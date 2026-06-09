@@ -122,10 +122,10 @@ app.post('/send', auth, async (req, res) => {
     const result = await sock.sendMessage(jid, { text: message });
     res.json({ ok: true, id: result?.key?.id });
   } catch (err) {
-    logger.error(err, 'send failed');
+    log(`send failed: ${err}`);
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-app.listen(PORT, () => logger.info(`WhatsApp bot HTTP API on :${PORT}`));
-startSock().catch((e) => logger.error(e, 'failed to start socket'));
+app.listen(PORT, () => log(`WhatsApp bot HTTP API on :${PORT}`));
+startSock().catch((e) => log(`failed to start socket: ${e}`));
