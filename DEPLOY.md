@@ -91,16 +91,44 @@ server {
 
 Then `sudo certbot --nginx -d stg.jastip.me` for HTTPS.
 
-## 6. WhatsApp bot (optional, separate service)
+## 6. WhatsApp bot — runs as a systemd service (auto-starts on boot)
 
 ```bash
 cd /var/www/jastip-stg/whatsapp-bot
 npm install
-cp .env.example .env   # set WHATSAPP_BOT_TOKEN to match Django
-npm start              # scan the QR once; run under pm2/systemd for persistence
+cp .env.example .env            # set WHATSAPP_BOT_TOKEN to match Django's .env
+
+# Install the service (auto-start on boot + auto-restart on crash):
+sudo cp jastip-whatsapp.service.example /etc/systemd/system/jastip-whatsapp-stg.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now jastip-whatsapp-stg
+```
+
+First start prints a QR to `whatsapp-bot/bot.log` (and the journal). Scan it once
+with the admin WhatsApp (Linked devices → Link a device):
+
+```bash
+sudo journalctl -u jastip-whatsapp-stg -f      # watch for the QR / "connection OPEN"
+```
+
+Credentials persist in `whatsapp-bot/auth_info/`, so **after a reboot the service
+starts automatically and reconnects with no re-scan**. Then enable it in Django:
+
+```
+WHATSAPP_ENABLED=True      # in /var/www/jastip-stg/.env, then restart gunicorn
+```
+
+## 7. Auto-close cron (releases the traveler payout)
+
+The buyer marks the package *Clear*; a daily cron closes it the next day. Install
+in the app user's crontab (server is on Asia/Jakarta, so this runs 01:00 WIB):
+
+```bash
+( crontab -l 2>/dev/null; echo "0 1 * * * cd /var/www/jastip-stg && /var/www/jastip-stg/.venv/bin/python manage.py close_cleared >> /var/www/jastip-stg/cron-close.log 2>&1" ) | crontab -
 ```
 
 ## Production
 
-Same steps with `jastip-prd`, `jastip_prd` DB, `jastip.me` host, and a separate
-systemd unit on its own port.
+Same steps with `jastip-prd`, `jastip_prd` DB, `jastip.me` host, a separate
+gunicorn systemd unit on its own port, a `jastip-whatsapp-prd` service, and the
+cron pointed at `/var/www/jastip-prd`.

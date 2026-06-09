@@ -1,0 +1,31 @@
+# systemd unit for the Jastip WhatsApp (Baileys) bot.
+# Makes the bot auto-start on boot and auto-restart if it crashes.
+#
+# Install (staging shown; for prod use /var/www/jastip-prd and a -prd name):
+#   sudo cp jastip-whatsapp.service.example /etc/systemd/system/jastip-whatsapp-stg.service
+#   # edit WorkingDirectory below if the path differs
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jastip-whatsapp-stg
+#
+# First run prints a QR to the log; scan it once with the admin WhatsApp:
+#   journalctl -u jastip-whatsapp-stg -f          (or tail the StandardOutput file)
+# Credentials persist in whatsapp-bot/auth_info, so restarts/reboots need no re-scan.
+
+[Unit]
+Description=Jastip WhatsApp bot (Baileys)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=claude
+WorkingDirectory=/var/www/jastip-stg/whatsapp-bot
+ExecStart=/usr/bin/node index.js
+Restart=always
+RestartSec=5
+# Keep a readable log for QR pairing + debugging
+StandardOutput=append:/var/www/jastip-stg/whatsapp-bot/bot.log
+StandardError=append:/var/www/jastip-stg/whatsapp-bot/bot.log
+
+[Install]
+WantedBy=multi-user.target

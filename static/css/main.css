@@ -156,6 +156,7 @@ table.offers tbody tr:hover { background: var(--ivory); }
 .site-footer a { color: #e7e2d6; }
 .footer-grid { display: flex; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
 .footer-links { display: flex; gap: 22px; flex-wrap: wrap; list-style: none; padding: 0; margin: 0; }
+.footer-legal { margin-top: 18px; font-style: normal; font-size: .82rem; line-height: 1.7; color: #948f84; }
 .footer-bottom { border-top: 1px solid #322f2a; margin-top: 28px; padding-top: 18px; font-size: .85rem; color: #948f84; }
 
 /* --- Misc --- */
