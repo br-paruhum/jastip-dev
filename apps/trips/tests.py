@@ -49,9 +49,11 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.shipment_cost, Decimal("50.00"))
         # deposit = 50% items + shipment = 100 + 50 = 150
         self.assertEqual(self.req.deposit_due, Decimal("150.00"))
-        # commission 2.5% of 150 = 3.75; payout = 146.25
+        # commission 2.5% of deposit 150 = 3.75 (the platform fee is unchanged)
         self.assertEqual(self.tx.commission_amount, Decimal("3.75"))
-        self.assertEqual(self.tx.payout_to_traveler, Decimal("146.25"))
+        # Payout to the traveler is the FULL invoice minus the fee, paid at
+        # arrival — not the deposit. (Asserted with real amounts in the
+        # lifecycle test.)
 
     def test_full_lifecycle(self):
         for item in self.req.items.all():
@@ -89,6 +91,12 @@ class LifecycleTests(TestCase):
         # deposit = 50% of est items (300) + shipment (50) = 200 -> unpaid = 200
         self.assertEqual(self.req.amount_paid, Decimal("200.00"))
         self.assertEqual(self.req.unpaid_amount, Decimal("200.00"))
+
+        # Payout correction: the traveler is paid the FULL invoice less the
+        # platform fee at arrival — no 50% deposit payout earlier.
+        # commission = 2.5% of deposit 200 = 5.00; payout = 400 - 5 = 395.00
+        self.assertEqual(self.tx.commission_amount, Decimal("5.00"))
+        self.assertEqual(self.tx.payout_to_traveler, Decimal("395.00"))
 
         bal = Payment.objects.create(
             transaction=self.tx, direction=Payment.Direction.INBOUND,

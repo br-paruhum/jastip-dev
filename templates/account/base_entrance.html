@@ -1,9 +1,11 @@
 {% extends "base.html" %}
-{% block content %}
+{# Wrap whatever the child puts in {% block content %} — including allauth's
+   own pages — in the auth card, so every entrance page gets the gutter. #}
+{% block content_wrapper %}
 <section>
   <div class="auth-wrap">
     <div class="auth-card">
-      {% block auth_content %}{% endblock %}
+      {{ block.super }}
     </div>
   </div>
 </section>

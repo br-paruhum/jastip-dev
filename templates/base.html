@@ -51,7 +51,7 @@
 </ul></div>
 {% endif %}
 
-<main>{% block content %}{% endblock %}</main>
+<main>{% block content_wrapper %}{% block content %}{% endblock %}{% endblock %}</main>
 
 <footer class="site-footer">
   <div class="container">

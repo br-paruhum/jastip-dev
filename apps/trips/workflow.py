@@ -112,7 +112,12 @@ def on_items_purchased(request_obj):
 
 
 def on_package_arrived(request_obj):
-    """Step 6: traveler arrived + paid custom fare -> notify buyer to settle."""
+    """Step 6: traveler arrived + paid custom fare.
+
+    Notify the buyer to settle the balance, and notify the traveler that their
+    full settlement (entire invoice less the platform fee) is now released —
+    there is no partial payout at the deposit stage.
+    """
     _set_status(request_obj, Status.PACKAGE_ARRIVED)
     send_email(
         to_user=request_obj.buyer,
@@ -122,6 +127,14 @@ def on_package_arrived(request_obj):
         event="package_arrived",
     )
     notify_see_email(request_obj.buyer, event="package_arrived")
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject="Package arrived — your full payment is being released",
+        template="payout_released",
+        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
+        event="payout_released",
+    )
+    notify_see_email(request_obj.plan.traveler, event="payout_released")
 
 
 def on_balance_verified(request_obj):

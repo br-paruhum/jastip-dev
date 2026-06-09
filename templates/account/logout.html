@@ -1,6 +1,6 @@
 {% extends "account/base_entrance.html" %}
 {% block title %}Sign out — {{ SITE_NAME }}{% endblock %}
-{% block auth_content %}
+{% block content %}
   <h1 style="text-align:center">Sign out</h1>
   <p class="muted text-center">Are you sure you want to sign out?</p>
   <form method="post" action="{% url 'account_logout' %}">
