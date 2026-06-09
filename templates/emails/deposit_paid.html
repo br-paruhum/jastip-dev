@@ -5,7 +5,7 @@
      <strong>secured</strong> by Jastip.me.</p>
   <p>You can go ahead and purchase the items, then record the actual cost and a photo for each one.
      Your <strong>full payment</strong> (the entire invoice, less the {{ request_obj.transaction.commission_percent }}%
-     platform fee) is transferred to you once the transaction <strong>closes</strong> — after the buyer
-     picks up the package and both sides confirm clearance.</p>
+     platform fee) is released to you once the buyer picks up the package and confirms it's good
+     (marks it <strong>Clear</strong>).</p>
   {% include "_email_button.html" with url=request_url label="Record purchases" %}
 {% endblock %}

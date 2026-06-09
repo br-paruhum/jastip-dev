@@ -41,8 +41,8 @@ who want items from abroad. Here is the full journey, step by step:</p>
   <li><strong>Buyer pays the unpaid balance</strong> (including any custom fare) to Admin. Admin verifies it
       and keeps the funds until both sides confirm clearance. <em>(Status: Ready for Pickup)</em></li>
   <li><strong>Buyer picks up the package</strong>, checks everything is good, and marks it &ldquo;Clear&rdquo;.
-      Admin then transfers the <strong>full amount to the traveler, after deducting the 2.5% fee</strong>.
-      <em>(Status: Closed)</em></li>
+      The traveler is then paid the <strong>full amount, less the 2.5% fee</strong>. The transaction is
+      archived to the Closed list the next day. <em>(Status: Clear &rarr; Closed)</em></li>
 </ol>
 <p>Names and item details stay private &mdash; visible only to the matched traveler, buyer and admin. All
 correspondence happens by email, with a copy to admin.</p>

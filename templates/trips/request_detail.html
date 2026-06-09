@@ -82,9 +82,10 @@
         {% endif %}
 
       {% elif req.status == "clear" %}
-        <p><span class="badge badge-success">Clear</span> Clearance confirmed{% if req.cleared_at %}
-           on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The transaction closes automatically and
-           the traveler is paid shortly after.</p>
+        <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
+           on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The traveler is paid the full amount now.
+           {% if is_traveler %}Your payout: <strong>{{ req.transaction.payout_to_traveler|intcomma }} {{ req.currency }}</strong>.{% endif %}
+           This will move to Closed (archived) automatically.</p>
 
       {% elif req.status == "closed" %}
         <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>

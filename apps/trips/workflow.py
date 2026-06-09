@@ -140,46 +140,38 @@ def on_balance_verified(request_obj):
 
 
 def on_buyer_cleared(request_obj):
-    """Step 8a: buyer picked up the package and marked it Clear.
+    """Step 8 / CLEAR: buyer picked up the package and confirmed it's good.
 
-    Status becomes CLEAR and a timestamp is recorded. The transaction is then
-    closed automatically by the daily `close_cleared` cron after a grace period
-    (default the next day), at which point the traveler is paid.
+    This is the settlement point: the traveler is paid the full invoice less the
+    2.5% fee NOW (admin releases funds at Clear). The later move to CLOSED is
+    only a display/archival step and carries no payment.
     """
     request_obj.buyer_cleared = True
     request_obj.cleared_at = timezone.now()
     request_obj.save(update_fields=["buyer_cleared", "cleared_at", "updated_at"])
     _set_status(request_obj, Status.CLEAR)
-    # Let the traveler know the clock has started.
+    # Traveler payout notification (full amount less the platform fee).
     send_email(
         to_user=request_obj.plan.traveler,
-        subject="Buyer confirmed pickup — payment will be released shortly",
-        template="cleared",
-        context=_ctx(request_obj),
+        subject="Cleared — your full payment is being released",
+        template="payout_released",
+        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
         event="cleared",
     )
     notify_see_email(request_obj.plan.traveler, event="cleared")
+    # Buyer thank-you / completion note.
+    send_email(
+        to_user=request_obj.buyer,
+        subject="Thanks — pickup confirmed",
+        template="closed",
+        context=_ctx(request_obj),
+        event="cleared",
+    )
 
 
 def on_cleared(request_obj):
-    """Step 8b: the grace period has elapsed -> close the transaction.
-
-    This is when the traveler is paid: admin transfers the full invoice amount
-    less the 2.5% platform fee. The buyer gets a thank-you note.
+    """Display/archival only: move a CLEAR transaction to CLOSED so it shows in
+    the Closed section on the home page. No payment, no emails — the traveler
+    was already paid at CLEAR. Triggered by the daily `close_cleared` cron.
     """
     _set_status(request_obj, Status.CLOSED)
-    send_email(
-        to_user=request_obj.plan.traveler,
-        subject="Transaction closed — your payment has been transferred",
-        template="payout_released",
-        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
-        event="closed",
-    )
-    notify_see_email(request_obj.plan.traveler, event="closed")
-    send_email(
-        to_user=request_obj.buyer,
-        subject="Transaction closed — thank you",
-        template="closed",
-        context=_ctx(request_obj),
-        event="closed",
-    )
