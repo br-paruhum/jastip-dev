@@ -38,7 +38,6 @@ const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`);
 let sock = null;
 let connected = false;
 let starting = false;
-let qrShown = false;
 
 async function startSock() {
   if (starting) return;
@@ -60,19 +59,17 @@ async function startSock() {
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
-    if (qr && !qrShown) {
-      qrShown = true;
+    if (qr) {
       console.log('\n  Scan this QR with the Jastip admin WhatsApp');
       console.log('  (WhatsApp → Linked devices → Link a device):\n');
       qrcode.generate(qr, { small: true });
-      console.log('\n  Waiting for you to scan…\n');
+      console.log('\n  Waiting for you to scan… (a new QR appears every ~20s)\n');
     }
     if (connection === 'connecting') {
       log('Connecting to WhatsApp…');
     }
     if (connection === 'open') {
       connected = true;
-      qrShown = false;
       log('✅ WhatsApp connection OPEN — bot is ready to send messages.');
     }
     if (connection === 'close') {
