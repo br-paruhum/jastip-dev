@@ -1,13 +1,37 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .constants import DEFAULT_PAYMENT_TERM
+from .constants import COUNTRY_CHOICES, DEFAULT_PAYMENT_TERM
 from .models import BuyRequest, RequestItem, TravelPlan
 
 DATE_INPUT = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
 
 
+class ThousandSeparatorNumberInput(forms.TextInput):
+    """Text input that displays thousand separators but submits a clean number.
+
+    Commas are stripped server-side here (belt-and-suspenders with the
+    money.js blur formatting), so the bound DecimalField parses correctly even
+    if JS is disabled.
+    """
+
+    def __init__(self, attrs=None):
+        defaults = {"inputmode": "decimal", "autocomplete": "off", "class": "money-input"}
+        if attrs:
+            defaults.update(attrs)
+        super().__init__(defaults)
+
+    def value_from_datadict(self, data, files, name):
+        value = super().value_from_datadict(data, files, name)
+        if isinstance(value, str):
+            value = value.replace(",", "").strip()
+        return value
+
+
 class TravelPlanForm(forms.ModelForm):
+    from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+    to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+
     class Meta:
         model = TravelPlan
         fields = [
@@ -18,6 +42,7 @@ class TravelPlanForm(forms.ModelForm):
         widgets = {
             "travel_date": DATE_INPUT,
             "payment_term": forms.Textarea(attrs={"rows": 3}),
+            "shipment_cost_per_kg": ThousandSeparatorNumberInput(),
         }
 
     def __init__(self, *args, **kwargs):

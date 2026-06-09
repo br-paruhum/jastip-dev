@@ -33,7 +33,13 @@ body {
   background: var(--ivory);
   line-height: 1.6;
   font-size: 16px;
+  /* Sticky footer: keep the footer at the bottom on short pages (no gap below it) */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
+main { flex: 1 0 auto; }
+.site-footer { flex-shrink: 0; }
 h1, h2, h3, h4 { font-family: var(--font); color: var(--slate); line-height: 1.2; font-weight: 700; margin: 0 0 .5em; }
 h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
 h2 { font-size: clamp(1.4rem, 3vw, 2rem); }

@@ -62,6 +62,21 @@ class Currency(models.TextChoices):
     THB = "THB", "THB — Thai Baht"
 
 
+_COUNTRY_NAMES = [
+    "Australia", "Austria", "Bangladesh", "Belgium", "Brazil", "Brunei", "Cambodia",
+    "Canada", "China", "Denmark", "Egypt", "Finland", "France", "Germany", "Hong Kong",
+    "India", "Indonesia", "Ireland", "Italy", "Japan", "Jordan", "Kuwait", "Laos",
+    "Macau", "Malaysia", "Maldives", "Mexico", "Myanmar", "Nepal", "Netherlands",
+    "New Zealand", "Norway", "Oman", "Pakistan", "Philippines", "Poland", "Portugal",
+    "Qatar", "Saudi Arabia", "Singapore", "South Korea", "Spain", "Sri Lanka", "Sweden",
+    "Switzerland", "Taiwan", "Thailand", "Turkey", "United Arab Emirates",
+    "United Kingdom", "United States", "Vietnam",
+]
+
+# (value, label) — stored as the country name to match the model CharFields.
+COUNTRY_CHOICES = [("", "Select a country")] + [(n, n) for n in _COUNTRY_NAMES]
+
+
 DEFAULT_PAYMENT_TERM = (
     "50% deposit of items ordered + 100% of shipment cost. "
     "Custom fare at the destination country is paid by the buyer "

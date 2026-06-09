@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Post a travel plan — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -37,3 +38,4 @@
   </div>
 </section>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/money.js' %}"></script>{% endblock %}
