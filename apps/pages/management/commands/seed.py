@@ -21,18 +21,31 @@ from apps.trips.models import TravelPlan
 PAGES = [
     ("how-to", SitePage.Kind.HOW_TO, "How It Works", """
 <p>Jastip.me connects <strong>travelers</strong> with spare luggage space to <strong>buyers</strong>
-who want items from abroad. Here is the full journey:</p>
+who want items from abroad. Here is the full journey, step by step:</p>
 <ol>
-  <li><strong>Traveler</strong> posts a travel plan with available weight, shipment cost and margin.</li>
-  <li><strong>Buyer</strong> blocks the trip and lists the items they want (up to 10).</li>
-  <li><strong>Traveler</strong> reviews, sets item costs, and accepts or rejects.</li>
-  <li>If accepted, the <strong>buyer</strong> pays a 50% deposit + 100% shipment to admin.</li>
-  <li>Admin verifies and forwards the funds (minus a 2.5% fee) to the traveler.</li>
-  <li>Traveler purchases items, records costs and photos; the invoice is built automatically.</li>
-  <li>Traveler arrives, pays any custom fare, and marks the package as arrived.</li>
-  <li>Buyer pays the balance; admin verifies; both confirm clearance and the deal closes.</li>
+  <li><strong>Traveler posts a Travel Plan</strong> with route, available weight, shipment cost and margin,
+      then clicks Submit. <em>(Status: New)</em></li>
+  <li><strong>Buyer clicks &ldquo;Block&rdquo;</strong>, logs in, fills in the buying request and submits.
+      An email &mdash; with a WhatsApp reminder &mdash; is sent to the traveler. <em>(Status: Request Received)</em></li>
+  <li><strong>Traveler reviews</strong> the request, fills in the cost of each requested item, and selects
+      Accept or Reject. The buyer is notified by email and WhatsApp. <em>(Status: Accepted or Reopen)</em></li>
+  <li><strong>If accepted, the buyer transfers the required deposit</strong> to the Admin account. Admin
+      verifies it and emails the traveler that the <strong>deposit has been secured</strong>.
+      <em>(Status: Deposit Paid)</em></li>
+  <li><strong>Traveler starts purchasing</strong> the requested items and records each item&rsquo;s photo and
+      actual cost. The invoice and unpaid amount are calculated automatically, and the buyer can follow
+      progress in their Profile. <em>(Status: Item(s) Purchased)</em></li>
+  <li><strong>Traveler arrives</strong> at the destination, pays any custom fare, and updates the status
+      (entering the custom fare paid, if any). The buyer is notified by email and WhatsApp.
+      <em>(Status: Package Arrived)</em></li>
+  <li><strong>Buyer pays the unpaid balance</strong> (including any custom fare) to Admin. Admin verifies it
+      and keeps the funds until both sides confirm clearance. <em>(Status: Ready for Pickup)</em></li>
+  <li><strong>Buyer picks up the package</strong>, checks everything is good, and marks it &ldquo;Clear&rdquo;.
+      Admin then transfers the <strong>full amount to the traveler, after deducting the 2.5% fee</strong>.
+      <em>(Status: Closed)</em></li>
 </ol>
-<p>Names and item details stay private — visible only to the matched traveler, buyer and admin.</p>
+<p>Names and item details stay private &mdash; visible only to the matched traveler, buyer and admin. All
+correspondence happens by email, with a copy to admin.</p>
 """),
     ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using Jastip.me.</p>"),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """

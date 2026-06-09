@@ -1,10 +1,11 @@
 {% extends "email_base.html" %}
 {% block body %}
-  <h2 style="margin:0 0 12px;color:#1a1a18;">Deposit received — start purchasing</h2>
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Deposit secured — you can start purchasing</h2>
   <p>The deposit for request <strong>{{ request_obj.reference }}</strong> has been verified and is now
-     held securely by Jastip.me.</p>
+     <strong>secured</strong> by Jastip.me.</p>
   <p>You can go ahead and purchase the items, then record the actual cost and a photo for each one.
-     Your <strong>full payment</strong> (the entire invoice, less the small platform fee) is released
-     to you once the package arrives — no partial payout at this stage.</p>
+     Your <strong>full payment</strong> (the entire invoice, less the {{ request_obj.transaction.commission_percent }}%
+     platform fee) is transferred to you once the transaction <strong>closes</strong> — after the buyer
+     picks up the package and both sides confirm clearance.</p>
   {% include "_email_button.html" with url=request_url label="Record purchases" %}
 {% endblock %}

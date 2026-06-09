@@ -112,12 +112,7 @@ def on_items_purchased(request_obj):
 
 
 def on_package_arrived(request_obj):
-    """Step 6: traveler arrived + paid custom fare.
-
-    Notify the buyer to settle the balance, and notify the traveler that their
-    full settlement (entire invoice less the platform fee) is now released —
-    there is no partial payout at the deposit stage.
-    """
+    """Step 6: traveler arrived + paid custom fare -> notify buyer to settle."""
     _set_status(request_obj, Status.PACKAGE_ARRIVED)
     send_email(
         to_user=request_obj.buyer,
@@ -127,14 +122,6 @@ def on_package_arrived(request_obj):
         event="package_arrived",
     )
     notify_see_email(request_obj.buyer, event="package_arrived")
-    send_email(
-        to_user=request_obj.plan.traveler,
-        subject="Package arrived — your full payment is being released",
-        template="payout_released",
-        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
-        event="payout_released",
-    )
-    notify_see_email(request_obj.plan.traveler, event="payout_released")
 
 
 def on_balance_verified(request_obj):
@@ -152,15 +139,20 @@ def on_balance_verified(request_obj):
 
 
 def on_cleared(request_obj):
-    """Step 8: both parties confirmed clearance -> close + release payout."""
+    """Step 8: both parties confirmed clearance -> close.
+
+    This is when the traveler is paid: admin transfers the full invoice amount
+    less the 2.5% platform fee. The buyer gets a thank-you note.
+    """
     _set_status(request_obj, Status.CLOSED)
     send_email(
         to_user=request_obj.plan.traveler,
-        subject="Transaction closed — balance released",
-        template="closed",
-        context=_ctx(request_obj),
+        subject="Transaction closed — your payment has been transferred",
+        template="payout_released",
+        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
         event="closed",
     )
+    notify_see_email(request_obj.plan.traveler, event="closed")
     send_email(
         to_user=request_obj.buyer,
         subject="Transaction closed — thank you",

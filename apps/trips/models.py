@@ -253,16 +253,15 @@ class Transaction(models.Model):
 
     @property
     def commission_amount(self) -> Decimal:
-        """Platform fee: 2.5% of the deposit base (items + shipment)."""
-        deposit = self.request.deposit_due
-        return (deposit * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
+        """Platform fee: 2.5% of the full invoice, deducted once at closing."""
+        return (self.request.invoice_total * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
 
     @property
     def payout_to_traveler(self) -> Decimal:
-        """Full settlement paid to the traveler on package arrival: the entire
-        invoice (items + margin + shipment + custom fare) minus the platform fee.
-        No funds are forwarded at the deposit stage — the deposit is held by
-        admin while the traveler purchases, then the traveler is paid in full.
+        """Paid to the traveler when the transaction CLOSES (both parties
+        cleared): the full invoice (items + margin + shipment + custom fare)
+        minus the 2.5% platform fee. The deposit is only held by admin while
+        the traveler purchases — there is no payout before closing.
         """
         return (self.request.invoice_total - self.commission_amount).quantize(TWO_PLACES)
 

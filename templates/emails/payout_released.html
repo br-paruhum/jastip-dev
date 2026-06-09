@@ -1,11 +1,11 @@
 {% extends "email_base.html" %}
 {% block body %}
-  <h2 style="margin:0 0 12px;color:#1a1a18;">Your full payment is being released</h2>
-  <p>The package for request <strong>{{ request_obj.reference }}</strong> has arrived. As agreed, you are
-     now paid <strong>in full</strong> — the entire invoice (items, margin, shipment and any custom fare)
-     less the {{ request_obj.transaction.commission_percent }}% platform fee.</p>
-  <p style="font-size:18px;"><strong>Payout: {{ payout }} {{ request_obj.currency }}</strong></p>
-  <p>Admin will transfer this to your account. You'll confirm clearance with the buyer at pickup to close
-     the transaction.</p>
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Your payment has been transferred</h2>
+  <p>The transaction for request <strong>{{ request_obj.reference }}</strong> is now closed — the buyer has
+     picked up the package and both sides confirmed clearance.</p>
+  <p>As agreed, you are paid the <strong>full amount</strong> — the entire invoice (items, margin, shipment
+     and any custom fare) less the {{ request_obj.transaction.commission_percent }}% platform fee.</p>
+  <p style="font-size:18px;"><strong>Transferred: {{ payout }} {{ request_obj.currency }}</strong></p>
+  <p>Thank you for travelling with Jastip.me!</p>
   {% include "_email_button.html" with url=request_url label="View the transaction" %}
 {% endblock %}
