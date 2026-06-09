@@ -1,0 +1,8 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Transaction closed</h2>
+  <p>Request <strong>{{ request_obj.reference }}</strong> is now closed. Both parties confirmed clearance
+     and the balance has been released to the traveler without any further fee.</p>
+  <p>Thank you for using Jastip.me!</p>
+  {% include "_email_button.html" with url=site_url label="Back to Jastip.me" %}
+{% endblock %}

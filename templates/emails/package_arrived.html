@@ -1,0 +1,9 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Your package has arrived</h2>
+  <p>The traveler has arrived at the destination for request <strong>{{ request_obj.reference }}</strong>.</p>
+  <p>Please pay the unpaid balance of
+     <strong>{{ request_obj.unpaid_amount }} {{ request_obj.currency }}</strong>
+     (including any custom fare) to the admin account and upload your proof.</p>
+  {% include "_email_button.html" with url=request_url label="Pay the balance" %}
+{% endblock %}

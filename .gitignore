@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+
+# Env / secrets
+.env
+*.pem
+
+# Node (whatsapp bot)
+node_modules/
+whatsapp-bot/auth_info/
+whatsapp-bot/*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

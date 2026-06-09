@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jastip",
+      "runtimeExecutable": ".venv/bin/python",
+      "runtimeArgs": ["manage.py", "runserver", "8019"],
+      "port": 8019
+    }
+  ]
+}

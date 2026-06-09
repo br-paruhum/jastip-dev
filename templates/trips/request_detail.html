@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:880px">
+    <span class="eyebrow">Request {{ req.reference }} · {{ req.plan.from_city }} → {{ req.plan.to_city }}</span>
+    <h1 style="display:flex;align-items:center;gap:12px">
+      Transaction
+      {% include "trips/_status_badge.html" with status=req.status label=req.get_status_display tone=req.status_tone %}
+    </h1>
+    <p class="muted">You are the <strong>{% if is_traveler %}traveler{% elif is_buyer %}buyer{% else %}admin{% endif %}</strong> on this transaction.</p>
+
+    <div class="grid grid-2">
+      <!-- Items -->
+      <div class="card"><div class="card-body">
+        <h3>Items</h3>
+        <table class="invoice">
+          <tr><td><strong>Item</strong></td><td><strong>Qty</strong></td><td><strong>Est.</strong></td><td><strong>Actual</strong></td></tr>
+          {% for item in req.items.all %}
+          <tr>
+            <td>{{ item.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.estimated_unit_cost }}</td>
+            <td>{{ item.actual_unit_cost }}{% if item.is_purchased %} ✓{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </table>
+        {% if req.buyer_notes %}<p class="help">Buyer notes: {{ req.buyer_notes }}</p>{% endif %}
+        {% if req.rejection_reason %}<p class="help" style="color:var(--danger)">Rejected: {{ req.rejection_reason }}</p>{% endif %}
+      </div></div>
+
+      <!-- Invoice -->
+      <div class="card"><div class="card-body">
+        <h3>Invoice ({{ req.currency }})</h3>
+        <table class="invoice">
+          <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total }}</td></tr>
+          <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total }}</td></tr>
+          <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount }}</td></tr>
+          <tr><td>Shipment</td><td style="text-align:right">{{ req.shipment_cost }}</td></tr>
+          <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount }}</td></tr>
+          <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total }}</td></tr>
+          <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due }}</td></tr>
+          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.amount_paid }}</td></tr>
+          <tr class="total"><td>Unpaid</td><td style="text-align:right">{{ req.unpaid_amount }}</td></tr>
+        </table>
+      </div></div>
+    </div>
+
+    <!-- Action panel -->
+    <div class="card mt-2"><div class="card-body">
+      <h3>Next step</h3>
+
+      {% if is_traveler and req.status == "request_received" %}
+        <p>Review the request, set item costs, then accept or reject.</p>
+        <a class="btn btn-primary" href="{% url 'trips:request_review' req.id %}">Review request</a>
+
+      {% elif is_buyer and req.status == "accepted" %}
+        <p>Your request was accepted. Transfer <strong>{{ req.deposit_due }} {{ req.currency }}</strong> to the admin account, then upload your proof.</p>
+        {% include "trips/_pay_form.html" with label="Upload deposit proof" %}
+
+      {% elif is_traveler and req.status == "deposit_paid" %}
+        <p>Deposit received. Purchase the items and record actual costs + photos.</p>
+        <a class="btn btn-primary" href="{% url 'trips:request_purchase' req.id %}">Record purchases</a>
+
+      {% elif is_traveler and req.status == "items_purchased" %}
+        <p>When you arrive, record any custom fare and mark the package as arrived.</p>
+        <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Mark arrived</a>
+
+      {% elif is_buyer and req.status == "package_arrived" %}
+        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.unpaid_amount }} {{ req.currency }}</strong> and upload proof.</p>
+        {% include "trips/_pay_form.html" with label="Upload balance proof" %}
+
+      {% elif req.status == "ready_for_pickup" %}
+        <p>Confirm clearance once the package is handed over and everything is good.</p>
+        <p class="muted">Traveler cleared: {{ req.traveler_cleared|yesno:"yes,no" }} ·
+           Buyer cleared: {{ req.buyer_cleared|yesno:"yes,no" }}</p>
+        {% if is_buyer and not req.buyer_cleared or is_traveler and not req.traveler_cleared %}
+        <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
+          <button class="btn btn-primary" type="submit">Confirm clearance (Clear)</button>
+        </form>
+        {% endif %}
+
+      {% elif req.status == "closed" %}
+        <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
+
+      {% else %}
+        <p class="muted">Waiting on the other party or admin verification.</p>
+      {% endif %}
+    </div></div>
+
+    <!-- Payments -->
+    {% if req.transaction.payments.all %}
+    <div class="card mt-2"><div class="card-body">
+      <h3>Payments</h3>
+      <table class="invoice">
+        <tr><td><strong>Type</strong></td><td><strong>Amount</strong></td><td><strong>Status</strong></td><td><strong>When</strong></td></tr>
+        {% for p in req.transaction.payments.all %}
+        <tr>
+          <td>{{ p.get_kind_display }}</td>
+          <td>{{ p.amount }} {{ p.currency }}</td>
+          <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
+              {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
+              {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
+          <td class="muted">{{ p.created_at|date:"d M H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div></div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Blog — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container">
+    <div class="section-head"><span class="eyebrow">Blog</span><h1>Tips &amp; stories</h1></div>
+    {% if page_obj %}
+    <div class="grid grid-3">
+      {% for post in page_obj %}
+      <article class="card">
+        {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" loading="lazy">{% endif %}
+        <div class="card-body">
+          <p class="muted" style="font-size:.8rem">{{ post.published_at|date:"d M Y" }}</p>
+          <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+          <p class="muted">{{ post.excerpt|default:post.body|truncatewords:22 }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="text-center mt-3">
+      {% if page_obj.has_previous %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.previous_page_number }}">← Newer</a>{% endif %}
+      {% if page_obj.has_next %}<a class="btn btn-outline btn-sm" href="?page={{ page_obj.next_page_number }}">Older →</a>{% endif %}
+    </div>
+    {% else %}
+    <p class="text-center muted">No posts yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

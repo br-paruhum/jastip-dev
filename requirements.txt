@@ -1,0 +1,22 @@
+# Core
+Django==5.1.6
+psycopg2-binary==2.9.10
+dj-database-url==2.3.0
+python-dotenv==1.0.1
+Pillow==11.1.0
+
+# Auth
+django-allauth==65.4.1
+PyJWT==2.10.1
+cryptography==44.0.1
+requests==2.32.3
+
+# Admin theme
+django-unfold==0.43.0
+
+# Static / serving
+whitenoise==6.9.0
+gunicorn==23.0.0
+
+# SEO / utils
+django-meta==2.5.0

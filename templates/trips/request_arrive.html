@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Mark arrived {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:620px">
+    <span class="eyebrow">Arrival · {{ req.reference }}</span>
+    <h1>Mark package as arrived</h1>
+    <p class="muted">Record any custom fare you paid at the destination (reimbursable by the buyer
+      with proof). Leave it at zero if none.</p>
+
+    <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-field"><label>Custom fare currency</label>{{ form.custom_fare_currency }}</div>
+          <div class="form-field"><label>Custom fare amount</label>{{ form.custom_fare_amount }}</div>
+        </div>
+        <div class="form-field"><label>Proof of payment (optional)</label>{{ form.custom_fare_proof }}</div>
+        <button class="btn btn-primary" type="submit">Mark arrived &amp; notify buyer</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

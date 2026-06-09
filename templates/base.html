@@ -1,0 +1,79 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ SITE_NAME }} — Proxy purchasing, simplified{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Jastip.me connects travelers with spare luggage space to buyers who want items from abroad. Safe, transparent proxy purchasing.{% endblock %}">
+  <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{{ SITE_NAME }}">
+  <meta property="og:title" content="{% block og_title %}{{ SITE_NAME }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}Travel-powered proxy purchasing.{% endblock %}">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}">
+  {% if ADSENSE_CLIENT %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ADSENSE_CLIENT }}" crossorigin="anonymous"></script>
+  {% endif %}
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a href="{% url 'pages:home' %}" class="brand"><span class="logo-mark">J</span> Jastip<span style="color:var(--clay)">.me</span></a>
+    <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
+    <ul class="nav-links" id="navlinks">
+      {% if user.is_authenticated %}
+        <li><a href="{% url 'blog:list' %}">Blog</a></li>
+        <li><a href="{% url 'trips:plan_create' %}">Post a Trip</a></li>
+        <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
+        <li><a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a></li>
+      {% else %}
+        <li><a href="{% url 'pages:how_to' %}">How To</a></li>
+        <li><a href="{% url 'blog:list' %}">Blog</a></li>
+        <li><a href="{% url 'account_login' %}">Login</a></li>
+        <li><a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">Register</a></li>
+      {% endif %}
+    </ul>
+  </div>
+</header>
+
+{% if messages %}
+<div class="container"><ul class="messages">
+  {% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}
+</ul></div>
+{% endif %}
+
+<main>{% block content %}{% endblock %}</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="{% url 'pages:home' %}" class="brand" style="color:#fff">
+          <span class="logo-mark">J</span> Jastip.me
+        </a>
+        <p class="muted" style="max-width:280px;margin-top:12px;color:#948f84">
+          Travel-powered proxy purchasing. Travelers earn, buyers get what they want from abroad.
+        </p>
+      </div>
+      <ul class="footer-links">
+        <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
+        <li><a href="{% url 'pages:page' 'privacy-policy' %}">Privacy Policy</a></li>
+        <li><a href="{% url 'pages:page' 'terms-of-use' %}">Terms of Use</a></li>
+        <li><a href="{% url 'pages:how_to' %}">How It Works</a></li>
+      </ul>
+    </div>
+    <div class="footer-bottom">© {% now "Y" %} Jastip.me — All rights reserved.</div>
+  </div>
+</footer>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

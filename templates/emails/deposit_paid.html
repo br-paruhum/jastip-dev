@@ -1,0 +1,8 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Deposit received — start purchasing</h2>
+  <p>The deposit for request <strong>{{ request_obj.reference }}</strong> has been verified and the funds
+     (less the platform fee) have been forwarded to you.</p>
+  <p>You can now purchase the items and record the actual cost and photos for each one.</p>
+  {% include "_email_button.html" with url=request_url label="Record purchases" %}
+{% endblock %}

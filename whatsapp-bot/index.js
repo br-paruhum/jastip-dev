@@ -1,0 +1,96 @@
+/**
+ * Jastip.me WhatsApp microservice (Baileys).
+ *
+ * Exposes a tiny HTTP API the Django app calls to send WhatsApp messages.
+ * On first run it prints a QR code — scan it with the admin WhatsApp account.
+ * Credentials persist in ./auth_info so it stays logged in across restarts.
+ *
+ *   POST /send   { "to": "+62812...", "message": "..." }   (Bearer token)
+ *   GET  /status                                           (Bearer token)
+ *   GET  /healthz                                          (no auth)
+ */
+require('dotenv').config();
+const express = require('express');
+const pino = require('pino');
+const qrcode = require('qrcode-terminal');
+const { Boom } = require('@hapi/boom');
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  DisconnectReason,
+  fetchLatestBaileysVersion,
+} = require('@whiskeysockets/baileys');
+
+const PORT = process.env.PORT || 8090;
+const TOKEN = process.env.WHATSAPP_BOT_TOKEN || 'change-me';
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+
+let sock = null;
+let connected = false;
+
+async function startSock() {
+  const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+  const { version } = await fetchLatestBaileysVersion();
+
+  sock = makeWASocket({ version, auth: state, logger, printQRInTerminal: false });
+
+  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on('connection.update', (update) => {
+    const { connection, lastDisconnect, qr } = update;
+    if (qr) {
+      console.log('\nScan this QR code with the Jastip admin WhatsApp:\n');
+      qrcode.generate(qr, { small: true });
+    }
+    if (connection === 'open') {
+      connected = true;
+      logger.info('WhatsApp connection open');
+    }
+    if (connection === 'close') {
+      connected = false;
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      const shouldReconnect = code !== DisconnectReason.loggedOut;
+      logger.warn({ code, shouldReconnect }, 'WhatsApp connection closed');
+      if (shouldReconnect) startSock();
+      else logger.error('Logged out — delete auth_info and re-scan the QR.');
+    }
+  });
+}
+
+// Convert "+6281234" / "081234" to a Baileys JID. Numbers must be E.164-ish.
+function toJid(raw) {
+  let n = String(raw).replace(/[^\d]/g, '');
+  if (!n) return null;
+  return `${n}@s.whatsapp.net`;
+}
+
+const app = express();
+app.use(express.json());
+
+function auth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  if (token !== TOKEN) return res.status(401).json({ ok: false, error: 'unauthorized' });
+  next();
+}
+
+app.get('/healthz', (req, res) => res.json({ ok: true, connected }));
+
+app.get('/status', auth, (req, res) => res.json({ ok: true, connected }));
+
+app.post('/send', auth, async (req, res) => {
+  try {
+    const { to, message } = req.body || {};
+    if (!to || !message) return res.status(400).json({ ok: false, error: 'to and message required' });
+    if (!connected || !sock) return res.status(503).json({ ok: false, error: 'whatsapp not connected' });
+    const jid = toJid(to);
+    if (!jid) return res.status(400).json({ ok: false, error: 'invalid number' });
+    const result = await sock.sendMessage(jid, { text: message });
+    res.json({ ok: true, id: result?.key?.id });
+  } catch (err) {
+    logger.error(err, 'send failed');
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+app.listen(PORT, () => logger.info(`WhatsApp bot HTTP API on :${PORT}`));
+startSock().catch((e) => logger.error(e, 'failed to start socket'));

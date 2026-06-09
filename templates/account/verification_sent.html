@@ -1,0 +1,8 @@
+{% extends "account/base_entrance.html" %}
+{% block title %}Verify your email — {{ SITE_NAME }}{% endblock %}
+{% block auth_content %}
+  <h1 style="text-align:center">Check your inbox</h1>
+  <p class="muted text-center">We've sent a confirmation link to your email address.
+     Click the <strong>“Click to Confirm”</strong> button in that email to activate your account.</p>
+  <p class="text-center mt-2"><a class="btn btn-outline btn-sm" href="{% url 'account_login' %}">Back to sign in</a></p>
+{% endblock %}

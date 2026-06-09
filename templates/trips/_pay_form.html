@@ -1,0 +1,8 @@
+<form method="post" action="{% url 'trips:request_pay' req.id %}" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="form-field"><label>{{ label }}</label>
+    <input type="file" name="proof" accept="image/png,image/jpeg" required></div>
+  <div class="form-field"><label>Note (optional)</label>
+    <input type="text" name="note" placeholder="Bank ref, time of transfer…"></div>
+  <button class="btn btn-primary" type="submit">Submit payment proof</button>
+</form>

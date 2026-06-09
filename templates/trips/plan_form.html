@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Post a travel plan — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:720px">
+    <span class="eyebrow">Traveler</span>
+    <h1>Post a travel plan</h1>
+    <p class="muted">List your trip and spare luggage space. Buyers will be able to block it.</p>
+
+    <form method="post" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="form-field">
+          <label>Travel date</label>{{ form.travel_date }}{{ form.travel_date.errors }}
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>From city</label>{{ form.from_city }}{{ form.from_city.errors }}</div>
+          <div class="form-field"><label>From country</label>{{ form.from_country }}{{ form.from_country.errors }}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>To city</label>{{ form.to_city }}{{ form.to_city.errors }}</div>
+          <div class="form-field"><label>To country</label>{{ form.to_country }}{{ form.to_country.errors }}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Available weight (kg)</label>{{ form.available_weight_kg }}{{ form.available_weight_kg.errors }}</div>
+          <div class="form-field"><label>Margin (%)</label>{{ form.margin_percent }}
+            <p class="help">Applied on top of the ordered items cost.</p></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Shipment currency</label>{{ form.shipment_currency }}</div>
+          <div class="form-field"><label>Shipment cost per kg</label>{{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}</div>
+        </div>
+        <div class="form-field"><label>Payment term</label>{{ form.payment_term }}</div>
+        <button class="btn btn-primary" type="submit">Submit travel plan</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

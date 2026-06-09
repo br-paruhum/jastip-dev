@@ -1,0 +1,9 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;font-size:20px;">Confirm your email</h2>
+  <p>Welcome to Jastip.me! Please confirm that this is your email address to activate your account.</p>
+  {% include "_email_button.html" with url=activate_url label="Click to Confirm" %}
+  <p style="color:#8a857a;font-size:13px;">If the button doesn't work, copy this link into your browser:<br>
+    <a href="{{ activate_url }}" style="color:#99492f;word-break:break-all;">{{ activate_url }}</a></p>
+  <p style="color:#8a857a;font-size:13px;">If you didn't create this account, you can ignore this email.</p>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Record purchases {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:720px">
+    <span class="eyebrow">Purchases · {{ req.reference }}</span>
+    <h1>Record what you actually bought</h1>
+    <p class="muted">Enter the actual unit cost and upload a photo per item. The invoice and the
+      buyer's unpaid amount update automatically.</p>
+
+    <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      {{ formset.management_form }}
+      <div class="card-body">
+        {% for f in formset %}
+        <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
+          <strong>{{ f.instance.name }}</strong> ×{{ f.instance.quantity }} {{ f.id }}
+          <div class="form-row mt-2">
+            <div class="form-field"><label>Actual unit cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
+            <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
+          </div>
+        </div></div>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">Save purchases &amp; notify buyer</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

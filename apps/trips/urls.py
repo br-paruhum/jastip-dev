@@ -1,0 +1,17 @@
+from django.urls import path
+
+from . import views
+
+app_name = "trips"
+
+urlpatterns = [
+    path("plans/new/", views.plan_create, name="plan_create"),
+    path("plans/<int:pk>/", views.plan_detail, name="plan_detail"),
+    path("plans/<int:plan_id>/block/", views.request_create, name="request_create"),
+    path("requests/<int:pk>/", views.request_detail, name="request_detail"),
+    path("requests/<int:pk>/review/", views.request_review, name="request_review"),
+    path("requests/<int:pk>/purchase/", views.request_purchase, name="request_purchase"),
+    path("requests/<int:pk>/arrive/", views.request_arrive, name="request_arrive"),
+    path("requests/<int:pk>/pay/", views.request_pay, name="request_pay"),
+    path("requests/<int:pk>/clear/", views.request_clear, name="request_clear"),
+]

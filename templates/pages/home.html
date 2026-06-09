@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="eyebrow">Proxy purchasing made simple</span>
+      <h1>Get items from abroad, carried by trusted travelers.</h1>
+      <p class="lead">Travelers post their trips and spare luggage space. Buyers request what they
+        need. Jastip.me holds the funds and keeps everyone safe — for a small {{ COMMISSION_PERCENT }}% fee.</p>
+      <div class="hero-cta">
+        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling — post a trip</a>
+        <a href="#open-offers" class="btn btn-outline">I want to buy</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <h3>How it works</h3>
+      <ol class="steps">
+        <li><span class="n">1</span><span>Traveler posts a trip with available weight &amp; rates.</span></li>
+        <li><span class="n">2</span><span>Buyer blocks the trip and lists items to buy.</span></li>
+        <li><span class="n">3</span><span>Traveler prices &amp; accepts; buyer pays the deposit.</span></li>
+        <li><span class="n">4</span><span>Items purchased, carried, and handed over. Done.</span></li>
+      </ol>
+      <a href="{% url 'pages:how_to' %}" class="btn btn-ghost btn-sm mt-2">See the full process →</a>
+    </div>
+  </div>
+</section>
+
+{% if ADSENSE_CLIENT %}<div class="container"><div class="adslot">Advertisement</div></div>{% endif %}
+
+<!-- SECTION 1: Open offers -->
+<section id="open-offers">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Live now</span>
+      <h2>Open travel offers</h2>
+      <p>Find a traveler heading your way and block their luggage space.</p>
+    </div>
+    {% if open_plans %}
+    <div class="table-wrap">
+      <table class="offers">
+        <thead>
+          <tr>
+            <th>Date</th><th>Route</th><th>Weight</th><th>Shipment</th>
+            <th>Margin</th><th>Terms</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for plan in open_plans %}
+          <tr>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td class="route-cell">
+              <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
+              <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
+            </td>
+            <td>{{ plan.available_weight_kg }} kg</td>
+            <td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg }}/kg</td>
+            <td>{{ plan.margin_percent }}%</td>
+            <td><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
+            <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
+            <td>
+              {% if plan.is_open %}
+                <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Block</a>
+              {% else %}
+                <a class="btn btn-outline btn-sm" href="{{ plan.get_absolute_url }}">Details</a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center muted">No open offers yet. <a href="{% url 'trips:plan_create' %}">Be the first to post a trip.</a></p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 2: Closed offers -->
+<section class="section-cream">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Completed</span>
+      <h2>Closed transactions</h2>
+      <p>Recently completed trips — proof that the community delivers.</p>
+    </div>
+    {% if closed_plans %}
+    <div class="table-wrap">
+      <table class="offers">
+        <thead><tr><th>Date</th><th>Route</th><th>Weight</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for plan in closed_plans %}
+          <tr>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
+              <span>{{ plan.from_country }} → {{ plan.to_country }}</span></td>
+            <td>{{ plan.available_weight_kg }} kg</td>
+            <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center muted">No closed transactions yet.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 3: Latest blog -->
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">From the blog</span>
+      <h2>Tips &amp; stories</h2>
+    </div>
+    {% if latest_posts %}
+    <div class="grid grid-3">
+      {% for post in latest_posts %}
+      <article class="card">
+        {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" loading="lazy">{% endif %}
+        <div class="card-body">
+          <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+          <p class="muted">{{ post.excerpt|default:post.body|truncatewords:20 }}</p>
+          <a href="{{ post.get_absolute_url }}" class="muted">Read more →</a>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center muted">No posts yet — check back soon.</p>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

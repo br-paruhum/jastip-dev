@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}{{ post.excerpt|default:post.title }}{% endblock %}
+{% block og_title %}{{ post.title }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:760px">
+    <p class="muted" style="font-size:.85rem">{{ post.published_at|date:"d M Y" }}</p>
+    <h1>{{ post.title }}</h1>
+    {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" style="border-radius:12px;margin:18px 0">{% endif %}
+    <div class="tag-prose">{{ post.body|linebreaks }}</div>
+  </div>
+
+  {% if related %}
+  <div class="container mt-3">
+    <h2>Read next</h2>
+    <div class="grid grid-3">
+      {% for p in related %}
+      <article class="card"><div class="card-body">
+        <h3><a href="{{ p.get_absolute_url }}">{{ p.title }}</a></h3>
+        <p class="muted">{{ p.excerpt|default:p.body|truncatewords:16 }}</p>
+      </div></article>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Ready for pickup</h2>
+  <p>The balance for request <strong>{{ request_obj.reference }}</strong> has been verified.
+     The package is ready for pickup.</p>
+  <p>Once the handover is complete and everything is good, please confirm clearance on the request page.
+     The balance is released to the traveler when both parties confirm.</p>
+  {% include "_email_button.html" with url=request_url label="Confirm clearance" %}
+{% endblock %}

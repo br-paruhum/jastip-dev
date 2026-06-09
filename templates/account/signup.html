@@ -1,0 +1,49 @@
+{% extends "account/base_entrance.html" %}
+{% load socialaccount static %}
+{% block title %}Create account — {{ SITE_NAME }}{% endblock %}
+{% block auth_content %}
+  <h1 style="text-align:center">Create your account</h1>
+  <p class="muted text-center">Join Jastip.me as a traveler or a buyer.</p>
+
+  {% get_providers as socialaccount_providers %}
+  {% if socialaccount_providers %}
+    <a href="{% provider_login_url 'google' %}" class="social-btn">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.4 5.4 2.6 13.2l7.8 6.1C12.2 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.5 3-2.2 5.5-4.7 7.2l7.3 5.7c4.3-4 6.9-9.9 6.9-17.4z"/><path fill="#FBBC05" d="M10.4 28.3c-.5-1.5-.8-3-.8-4.8s.3-3.3.8-4.8l-7.8-6.1C.9 16 0 19.9 0 24s.9 8 2.6 11.4l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.6 2.2-8.6 2.2-6.4 0-11.8-3.7-13.6-9.1l-7.8 6.1C6.4 42.6 14.6 48 24 48z"/></svg>
+      Sign up with Google
+    </a>
+    <div class="divider">or use your email</div>
+  {% endif %}
+
+  <form method="post" action="{% url 'account_signup' %}">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    <div class="form-field">
+      <label for="id_email">Email</label>
+      <input type="email" name="email" id="id_email" autocomplete="email" required value="{{ form.email.value|default:'' }}">
+      {{ form.email.errors }}
+    </div>
+    <div class="form-field">
+      <label for="id_password1">Password</label>
+      <div class="password-wrap">
+        <input type="password" name="password1" id="id_password1" autocomplete="new-password" required>
+        <button type="button" class="peek" data-target="id_password1">Show</button>
+      </div>
+      {{ form.password1.errors }}
+    </div>
+    <div class="form-field">
+      <label for="id_password2">Confirm password</label>
+      <div class="password-wrap">
+        <input type="password" name="password2" id="id_password2" autocomplete="new-password" required>
+        <button type="button" class="peek" data-target="id_password2">Show</button>
+      </div>
+      {{ form.password2.errors }}
+    </div>
+    {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+    <button type="submit" class="btn btn-primary btn-block mt-2">Create account</button>
+  </form>
+  <p class="text-center mt-2 muted" style="font-size:.9rem">
+    Already have an account? <a href="{% url 'account_login' %}">Sign in</a>
+  </p>
+  <p class="help text-center">We'll email you a confirmation link to verify your address.</p>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/peek.js' %}"></script>{% endblock %}

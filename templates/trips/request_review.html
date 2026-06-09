@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Review request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:720px">
+    <span class="eyebrow">Review · {{ req.reference }}</span>
+    <h1>Price the items, then accept or reject</h1>
+
+    <form method="post" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      {{ formset.management_form }}
+      <div class="card-body">
+        <table class="invoice">
+          <tr><td><strong>Item</strong></td><td><strong>Qty</strong></td><td><strong>Unit cost ({{ req.currency }})</strong></td></tr>
+          {% for f in formset %}
+          <tr>
+            <td>{{ f.instance.name }}{{ f.id }}</td>
+            <td>{{ f.instance.quantity }}</td>
+            <td>{{ f.estimated_unit_cost }}{{ f.estimated_unit_cost.errors }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+
+        <div class="form-field mt-2">
+          <label>Reason (if rejecting)</label>
+          <textarea name="rejection_reason" rows="2" placeholder="Optional note to the buyer"></textarea>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" type="submit" name="decision" value="accept">Accept</button>
+          <button class="btn btn-outline" type="submit" name="decision" value="reject">Reject</button>
+        </div>
+        <p class="help mt-2">Accepting notifies the buyer to pay the deposit (50% of items + 100% shipment).</p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

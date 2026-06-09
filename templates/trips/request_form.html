@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Request items — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:760px">
+    <span class="eyebrow">Buyer request · {{ plan.from_city }} → {{ plan.to_city }}</span>
+    <h1>What would you like the traveler to buy?</h1>
+    <p class="muted">Add up to 10 items. Photos are optional (PNG/JPG, max 2&nbsp;MB). Your name and
+      these details stay private between you, the traveler and admin.</p>
+
+    <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="card-body">
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+        <div id="items">
+          {% for item_form in formset %}
+          <div class="item-row card" style="margin-bottom:14px;box-shadow:none">
+            <div class="card-body">
+              {{ item_form.id }}
+              <div class="form-row">
+                <div class="form-field"><label>Item name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
+                <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
+              </div>
+              <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
+              {% if item_form.DELETE %}<label class="muted" style="font-size:.85rem">{{ item_form.DELETE }} Remove</label>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add item</button>
+
+        <div class="form-field mt-2"><label>Notes to traveler</label>{{ form.buyer_notes }}</div>
+        <button class="btn btn-primary" type="submit">Submit request</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<template id="empty-form">
+  <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
+    {{ formset.empty_form.id }}
+    <div class="form-row">
+      <div class="form-field"><label>Item name</label>{{ formset.empty_form.name }}</div>
+      <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
+    </div>
+    <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
+  </div></div>
+</template>
+
+{% block extra_js %}
+<script>
+(function () {
+  const maxItems = {{ formset.max_num }};
+  const totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+  const container = document.getElementById('items');
+  document.getElementById('add-item').addEventListener('click', function () {
+    let count = parseInt(totalForms.value, 10);
+    if (count >= maxItems) { this.disabled = true; return; }
+    const html = document.getElementById('empty-form').innerHTML.replace(/__prefix__/g, count);
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    container.appendChild(wrap.firstElementChild);
+    totalForms.value = count + 1;
+    if (count + 1 >= maxItems) this.disabled = true;
+  });
+})();
+</script>
+{% endblock %}
+{% endblock %}

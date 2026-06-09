@@ -1,0 +1,8 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Update on your request</h2>
+  <p>Unfortunately request <strong>{{ request_obj.reference }}</strong> was not accepted this time.</p>
+  {% if reason %}<p><em>Reason:</em> {{ reason }}</p>{% endif %}
+  <p>The travel plan is open again — feel free to browse other trips.</p>
+  {% include "_email_button.html" with url=site_url label="Browse open trips" %}
+{% endblock %}
