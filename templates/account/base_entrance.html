@@ -1,6 +1,8 @@
 {% extends "base.html" %}
-{# Wrap whatever the child puts in {% block content %} — including allauth's
-   own pages — in the auth card, so every entrance page gets the gutter. #}
+{% comment %}
+Wrap whatever the child puts in the content block — including allauth's own
+pages — in the auth card, so every entrance page gets the gutter.
+{% endcomment %}
 {% block content_wrapper %}
 <section>
   <div class="auth-wrap">
