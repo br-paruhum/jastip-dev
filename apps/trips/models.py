@@ -140,6 +140,15 @@ class BuyRequest(models.Model):
     def is_active(self) -> bool:
         return self.status in ACTIVE_TX_STATUSES
 
+    @property
+    def detail_status_label(self) -> str:
+        """Status label shown on the request detail page. 'Request Received'
+        reads as 'Request Submitted' here to avoid confusing the buyer (who
+        submitted it); home/profile tables keep the home-page wording."""
+        if self.status == Status.REQUEST_RECEIVED:
+            return "Request Submitted"
+        return self.get_status_display()
+
     # --- Money (no FX; the plan's shipment currency is the settlement currency) ---
     @property
     def currency(self) -> str:

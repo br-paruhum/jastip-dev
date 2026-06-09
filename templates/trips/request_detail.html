@@ -7,7 +7,7 @@
     <span class="eyebrow">Request {{ req.reference }} · {{ req.plan.from_city }} → {{ req.plan.to_city }}</span>
     <h1 style="display:flex;align-items:center;gap:12px">
       Transaction
-      {% include "trips/_status_badge.html" with status=req.status label=req.get_status_display tone=req.status_tone %}
+      {% include "trips/_status_badge.html" with status=req.status label=req.detail_status_label tone=req.status_tone %}
     </h1>
     <p class="muted">You are the <strong>{% if is_traveler %}traveler{% elif is_buyer %}buyer{% else %}admin{% endif %}</strong> on this transaction.</p>
 

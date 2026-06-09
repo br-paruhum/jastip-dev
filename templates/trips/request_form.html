@@ -18,12 +18,13 @@
           <div class="item-row card" style="margin-bottom:14px;box-shadow:none">
             <div class="card-body">
               {{ item_form.id }}
+              <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
               <div class="form-row">
                 <div class="form-field"><label>Item name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
                 <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
               </div>
               <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
-              {% if item_form.DELETE %}<label class="muted" style="font-size:.85rem">{{ item_form.DELETE }} Remove</label>{% endif %}
+              <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
             </div>
           </div>
           {% endfor %}
@@ -31,7 +32,10 @@
         <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add item</button>
 
         <div class="form-field mt-2"><label>Notes to traveler</label>{{ form.buyer_notes }}</div>
-        <button class="btn btn-primary" type="submit">Submit request</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" type="submit">Submit request</button>
+          <a class="btn btn-outline" href="{% url 'trips:request_create' plan.id %}">Reset</a>
+        </div>
       </div>
     </form>
   </div>
@@ -40,31 +44,52 @@
 <template id="empty-form">
   <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
     {{ formset.empty_form.id }}
+    <span class="del-field" style="display:none">{{ formset.empty_form.DELETE }}</span>
     <div class="form-row">
       <div class="form-field"><label>Item name</label>{{ formset.empty_form.name }}</div>
       <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
     </div>
     <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
+    <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
   </div></div>
 </template>
+{% endblock %}
 
 {% block extra_js %}
 <script>
 (function () {
-  const maxItems = {{ formset.max_num }};
-  const totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
-  const container = document.getElementById('items');
-  document.getElementById('add-item').addEventListener('click', function () {
-    let count = parseInt(totalForms.value, 10);
-    if (count >= maxItems) { this.disabled = true; return; }
-    const html = document.getElementById('empty-form').innerHTML.replace(/__prefix__/g, count);
-    const wrap = document.createElement('div');
+  var maxItems = {{ formset.max_num }};
+  var totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+  var container = document.getElementById('items');
+  var addBtn = document.getElementById('add-item');
+
+  function refreshAddState() {
+    addBtn.disabled = parseInt(totalForms.value, 10) >= maxItems;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var count = parseInt(totalForms.value, 10);
+    if (count >= maxItems) { addBtn.disabled = true; return; }
+    var html = document.getElementById('empty-form').innerHTML.replace(/__prefix__/g, count).trim();
+    var wrap = document.createElement('div');
     wrap.innerHTML = html;
     container.appendChild(wrap.firstElementChild);
     totalForms.value = count + 1;
-    if (count + 1 >= maxItems) this.disabled = true;
+    refreshAddState();
   });
+
+  // Remove a row: mark its hidden DELETE checkbox and hide it (keeps the
+  // formset indices contiguous so Django parses it correctly).
+  container.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('remove-item')) return;
+    var row = e.target.closest('.item-row');
+    var del = row.querySelector('input[name$="-DELETE"]');
+    if (del) { del.checked = true; row.style.display = 'none'; }
+    else { row.parentNode.removeChild(row); }
+    refreshAddState();
+  });
+
+  refreshAddState();
 })();
 </script>
-{% endblock %}
 {% endblock %}
