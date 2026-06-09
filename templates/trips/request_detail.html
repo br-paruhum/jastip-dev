@@ -56,7 +56,16 @@
         <a class="btn btn-primary" href="{% url 'trips:request_review' req.id %}">Review request</a>
 
       {% elif is_buyer and req.status == "accepted" %}
-        <p>Your request was accepted. Transfer <strong>{{ req.deposit_due|intcomma }} {{ req.currency }}</strong> to the admin account, then upload your proof.</p>
+        <p>Your request was accepted.</p>
+        <p>Please make a bank transfer of <strong>{{ req.deposit_due|intcomma }} {{ req.currency }}</strong> to:</p>
+        <table class="invoice" style="max-width:440px;margin-bottom:12px">
+          <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+          <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+          <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+          <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+        </table>
+        <p class="help">To avoid cancellation please make payment within {{ PAYMENT_DEADLINE_HOURS }} hours,
+          then upload your deposit proof below. (A PDF invoice was also emailed to you.)</p>
         {% include "trips/_pay_form.html" with label="Upload deposit proof" %}
 
       {% elif is_traveler and req.status == "deposit_paid" %}

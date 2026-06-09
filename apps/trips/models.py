@@ -191,6 +191,17 @@ class BuyRequest(models.Model):
         )
 
     @property
+    def estimated_invoice_total(self) -> Decimal:
+        """Proforma total at acceptance, before any purchase: estimated items +
+        margin + shipment + custom fare."""
+        return self._q(
+            self.items_estimated_total
+            + self.margin_amount
+            + self.shipment_cost
+            + self.custom_fare_amount
+        )
+
+    @property
     def amount_paid(self) -> Decimal:
         verified = self.transaction.payments.filter(
             direction=Payment.Direction.INBOUND, status=Payment.PaymentStatus.VERIFIED

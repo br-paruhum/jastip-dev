@@ -20,3 +20,6 @@ gunicorn==23.0.0
 
 # SEO / utils
 django-meta==2.5.0
+
+# PDF invoices (pure-Python, no system libs)
+reportlab==4.2.5

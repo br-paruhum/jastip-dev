@@ -179,6 +179,15 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jastip.me")
 # --- Business config --------------------------------------------------------
 PLATFORM_COMMISSION_PERCENT = float(os.getenv("PLATFORM_COMMISSION_PERCENT", "2.5"))
 
+# Admin bank account buyers transfer to (shown on the accept card + invoice).
+BANK_DETAILS = {
+    "bank_name": os.getenv("BANK_NAME", "PT Bank OCBC NISP, Tbk"),
+    "branch": os.getenv("BANK_BRANCH", "Pondok Indah Metri I"),
+    "account_no": os.getenv("BANK_ACCOUNT_NO", "5208 0000 5636"),
+    "account_name": os.getenv("BANK_ACCOUNT_NAME", "PT Ecoshipper Global Mandiri"),
+}
+PAYMENT_DEADLINE_HOURS = int(os.getenv("PAYMENT_DEADLINE_HOURS", "24"))
+
 # --- AdSense ----------------------------------------------------------------
 # e.g. "ca-pub-1234567890123456"; blank disables the script + ad slots.
 ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")

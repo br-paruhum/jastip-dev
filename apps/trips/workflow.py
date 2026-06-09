@@ -6,12 +6,16 @@ every lifecycle step sends the right email (cc admin) + WhatsApp reminder.
 
 from __future__ import annotations
 
+import logging
+
 from django.conf import settings
 from django.utils import timezone
 
 from apps.notifications.services import notify_see_email, send_email
 
 from .constants import Status
+
+logger = logging.getLogger(__name__)
 
 
 def _site_url(path: str = "") -> str:
@@ -28,6 +32,8 @@ def _ctx(request_obj, **extra):
         "traveler": request_obj.plan.traveler,
         "request_url": _site_url(request_obj.get_absolute_url()),
         "site_url": _site_url("/"),
+        "PAYMENT_DEADLINE_HOURS": getattr(settings, "PAYMENT_DEADLINE_HOURS", 24),
+        "BANK": getattr(settings, "BANK_DETAILS", {}),
     }
     ctx.update(extra)
     return ctx
@@ -57,14 +63,23 @@ def on_request_submitted(request_obj):
 
 
 def on_request_accepted(request_obj):
-    """Step 3 (accept): traveler priced + accepted -> notify buyer."""
+    """Step 3 (accept): traveler priced + accepted -> notify buyer with a PDF
+    invoice attached (also cc'd to the traveler + admin)."""
     _set_status(request_obj, Status.ACCEPTED)
+    attachments = None
+    try:
+        from .invoices import render_invoice_pdf
+        pdf = render_invoice_pdf(request_obj)
+        attachments = [(f"invoice-{request_obj.reference}.pdf", pdf, "application/pdf")]
+    except Exception:  # pragma: no cover - never block the email on a PDF error
+        logger.exception("Invoice PDF generation failed for %s", request_obj.reference)
     send_email(
         to_user=request_obj.buyer,
         subject="Your request was accepted — please transfer the deposit",
         template="request_accepted",
         context=_ctx(request_obj),
         event="request_accepted",
+        attachments=attachments,
     )
     notify_see_email(request_obj.buyer, event="request_accepted")
 

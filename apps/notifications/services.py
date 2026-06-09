@@ -16,10 +16,11 @@ logger = logging.getLogger(__name__)
 
 
 def send_email(*, to_user=None, to_address=None, subject, template, context=None, event="",
-               cc_admin=True):
+               cc_admin=True, attachments=None):
     """Render an HTML email (with plaintext fallback) and log it.
 
     Per spec, the admin is cc'd on all traveler/buyer correspondence.
+    `attachments` is an optional list of (filename, content_bytes, mimetype).
     """
     context = context or {}
     address = to_address or (to_user.email if to_user else None)
@@ -44,6 +45,8 @@ def send_email(*, to_user=None, to_address=None, subject, template, context=None
     try:
         msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [address], cc=cc)
         msg.attach_alternative(html_body, "text/html")
+        for filename, content, mimetype in (attachments or []):
+            msg.attach(filename, content, mimetype)
         msg.send()
         log.status = NotificationLog.Status.SENT
     except Exception as exc:  # pragma: no cover - smtp

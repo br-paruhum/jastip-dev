@@ -113,6 +113,29 @@ class LifecycleTests(TestCase):
         workflow.on_cleared(self.req)
         self.assertEqual(self.req.status, Status.CLOSED)
 
+    def test_invoice_pdf_generated(self):
+        from apps.trips.invoices import render_invoice_pdf
+        for item in self.req.items.all():
+            item.estimated_unit_cost = Decimal("1500")
+            item.save()
+        pdf = render_invoice_pdf(self.req)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertGreater(len(pdf), 1000)
+
+    def test_accept_attaches_invoice(self):
+        from django.core import mail
+        for item in self.req.items.all():
+            item.estimated_unit_cost = Decimal("100")
+            item.save()
+        workflow.on_request_submitted(self.req)
+        workflow.on_request_accepted(self.req)
+        accept_mail = [m for m in mail.outbox if "accepted" in m.subject.lower()]
+        self.assertTrue(accept_mail)
+        self.assertTrue(accept_mail[0].attachments)
+        fname, content, mimetype = accept_mail[0].attachments[0]
+        self.assertTrue(fname.endswith(".pdf"))
+        self.assertEqual(mimetype, "application/pdf")
+
     def test_reject_reopens_plan(self):
         workflow.on_request_submitted(self.req)
         workflow.on_request_rejected(self.req, reason="Out of stock")
