@@ -2,7 +2,9 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.trips import workflow
 from apps.trips.constants import Currency, Status
@@ -103,6 +105,11 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.status, Status.READY_FOR_PICKUP)
         self.assertEqual(self.req.unpaid_amount, Decimal("0.00"))
 
+        # Buyer marks Clear -> CLEAR (not closed yet); cron closes it later.
+        workflow.on_buyer_cleared(self.req)
+        self.assertEqual(self.req.status, Status.CLEAR)
+        self.assertIsNotNone(self.req.cleared_at)
+
         workflow.on_cleared(self.req)
         self.assertEqual(self.req.status, Status.CLOSED)
 
@@ -113,6 +120,43 @@ class LifecycleTests(TestCase):
         self.plan.refresh_from_db()
         self.assertEqual(self.plan.status, Status.REOPEN)
         self.assertTrue(self.plan.is_open)
+
+
+class CloseCronTests(TestCase):
+    def setUp(self):
+        traveler = make_user("t2@x.com")
+        buyer = make_user("b2@x.com")
+        plan = TravelPlan.objects.create(
+            traveler=traveler, travel_date=date.today() + timedelta(days=5),
+            from_city="Seoul", from_country="South Korea", to_city="Bandung",
+            to_country="Indonesia", available_weight_kg=Decimal("3"),
+            shipment_currency=Currency.USD, shipment_cost_per_kg=Decimal("8"),
+            margin_percent=Decimal("0"),
+        )
+        self.req = BuyRequest.objects.create(plan=plan, buyer=buyer, status=Status.READY_FOR_PICKUP)
+        RequestItem.objects.create(request=self.req, name="Book", quantity=1,
+                                   estimated_unit_cost=Decimal("10"), actual_unit_cost=Decimal("10"))
+        Transaction.objects.create(request=self.req)
+        workflow.on_buyer_cleared(self.req)
+
+    def test_recent_clear_not_closed_by_default_grace(self):
+        # cleared just now -> 24h grace means it stays CLEAR
+        call_command("close_cleared")
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.CLEAR)
+
+    def test_grace_zero_closes_immediately(self):
+        call_command("close_cleared", "--grace-hours", "0")
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.CLOSED)
+
+    def test_aged_clear_is_closed(self):
+        BuyRequest.objects.filter(pk=self.req.pk).update(
+            cleared_at=timezone.now() - timedelta(days=2)
+        )
+        call_command("close_cleared")
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.CLOSED)
 
 
 class ProfileGateTests(TestCase):

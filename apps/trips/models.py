@@ -112,6 +112,7 @@ class BuyRequest(models.Model):
     rejection_reason = models.TextField(blank=True)
     traveler_cleared = models.BooleanField(default=False)
     buyer_cleared = models.BooleanField(default=False)
+    cleared_at = models.DateTimeField(null=True, blank=True, help_text="When the buyer marked the package Clear.")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

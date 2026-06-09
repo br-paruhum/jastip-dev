@@ -1,0 +1,10 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Buyer confirmed pickup</h2>
+  <p>The buyer has picked up the package for request <strong>{{ request_obj.reference }}</strong> and
+     marked it as <strong>Clear</strong>.</p>
+  <p>The transaction will close automatically after a short clearance window, and your payment
+     (the full invoice less the {{ request_obj.transaction.commission_percent }}% platform fee) will be
+     released to you then. We'll email you again once it's transferred.</p>
+  {% include "_email_button.html" with url=request_url label="View the transaction" %}
+{% endblock %}

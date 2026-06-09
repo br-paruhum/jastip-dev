@@ -228,28 +228,22 @@ def request_pay(request, pk):
     return redirect(req.get_absolute_url())
 
 
-# --- Clearance: both parties confirm -> Closed ------------------------------
+# --- Clearance: buyer marks Clear; cron closes it next day ------------------
 @profile_required
 @require_POST
 def request_clear(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can confirm pickup and clearance.")
+        return redirect(req.get_absolute_url())
     if req.status != Status.READY_FOR_PICKUP:
-        messages.error(request, "Clearance is only available once ready for pickup.")
+        messages.error(request, "Clearance is only available once the package is ready for pickup.")
         return redirect(req.get_absolute_url())
 
-    if request.user == req.plan.traveler:
-        req.traveler_cleared = True
-        req.save(update_fields=["traveler_cleared"])
-    elif request.user == req.buyer:
-        req.buyer_cleared = True
-        req.save(update_fields=["buyer_cleared"])
-    else:
-        messages.error(request, "Only the buyer or traveler can confirm clearance.")
-        return redirect(req.get_absolute_url())
-
-    if req.traveler_cleared and req.buyer_cleared:
-        workflow.on_cleared(req)
-        messages.success(request, "Both parties cleared. Transaction closed.")
-    else:
-        messages.success(request, "Your clearance is recorded. Waiting for the other party.")
+    workflow.on_buyer_cleared(req)
+    messages.success(
+        request,
+        "Thank you — marked as Clear. The transaction will close automatically and the "
+        "traveler will be paid shortly.",
+    )
     return redirect(req.get_absolute_url())

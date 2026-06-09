@@ -7,6 +7,7 @@ every lifecycle step sends the right email (cc admin) + WhatsApp reminder.
 from __future__ import annotations
 
 from django.conf import settings
+from django.utils import timezone
 
 from apps.notifications.services import notify_see_email, send_email
 
@@ -138,8 +139,30 @@ def on_balance_verified(request_obj):
         notify_see_email(party, event="ready_for_pickup")
 
 
+def on_buyer_cleared(request_obj):
+    """Step 8a: buyer picked up the package and marked it Clear.
+
+    Status becomes CLEAR and a timestamp is recorded. The transaction is then
+    closed automatically by the daily `close_cleared` cron after a grace period
+    (default the next day), at which point the traveler is paid.
+    """
+    request_obj.buyer_cleared = True
+    request_obj.cleared_at = timezone.now()
+    request_obj.save(update_fields=["buyer_cleared", "cleared_at", "updated_at"])
+    _set_status(request_obj, Status.CLEAR)
+    # Let the traveler know the clock has started.
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject="Buyer confirmed pickup — payment will be released shortly",
+        template="cleared",
+        context=_ctx(request_obj),
+        event="cleared",
+    )
+    notify_see_email(request_obj.plan.traveler, event="cleared")
+
+
 def on_cleared(request_obj):
-    """Step 8: both parties confirmed clearance -> close.
+    """Step 8b: the grace period has elapsed -> close the transaction.
 
     This is when the traveler is paid: admin transfers the full invoice amount
     less the 2.5% platform fee. The buyer gets a thank-you note.

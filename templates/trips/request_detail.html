@@ -72,14 +72,19 @@
         {% include "trips/_pay_form.html" with label="Upload balance proof" %}
 
       {% elif req.status == "ready_for_pickup" %}
-        <p>Confirm clearance once the package is handed over and everything is good.</p>
-        <p class="muted">Traveler cleared: {{ req.traveler_cleared|yesno:"yes,no" }} ·
-           Buyer cleared: {{ req.buyer_cleared|yesno:"yes,no" }}</p>
-        {% if is_buyer and not req.buyer_cleared or is_traveler and not req.traveler_cleared %}
-        <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
-          <button class="btn btn-primary" type="submit">Confirm clearance (Clear)</button>
-        </form>
+        {% if is_buyer %}
+          <p>Pick up your package and check that everything is good. Then confirm clearance below.</p>
+          <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
+            <button class="btn btn-primary" type="submit">Confirm pickup — mark as Clear</button>
+          </form>
+        {% else %}
+          <p class="muted">Waiting for the buyer to pick up the package and confirm clearance.</p>
         {% endif %}
+
+      {% elif req.status == "clear" %}
+        <p><span class="badge badge-success">Clear</span> Clearance confirmed{% if req.cleared_at %}
+           on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The transaction closes automatically and
+           the traveler is paid shortly after.</p>
 
       {% elif req.status == "closed" %}
         <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>

@@ -13,6 +13,7 @@ class Status(models.TextChoices):
     ITEMS_PURCHASED = "items_purchased", "Item(s) Purchased"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
     READY_FOR_PICKUP = "ready_for_pickup", "Ready for Pickup"
+    CLEAR = "clear", "Clear"
     CLOSED = "closed", "Closed"
 
 
@@ -27,6 +28,7 @@ ACTIVE_TX_STATUSES = {
     Status.ITEMS_PURCHASED,
     Status.PACKAGE_ARRIVED,
     Status.READY_FOR_PICKUP,
+    Status.CLEAR,
 }
 
 # Bootstrap-ish colour keyword per status, used for badges in templates/admin.
@@ -40,6 +42,7 @@ STATUS_TONE = {
     Status.ITEMS_PURCHASED: "primary",
     Status.PACKAGE_ARRIVED: "primary",
     Status.READY_FOR_PICKUP: "warning",
+    Status.CLEAR: "success",
     Status.CLOSED: "muted",
 }
 
