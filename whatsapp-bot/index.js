@@ -29,35 +29,64 @@ const {
 
 const PORT = process.env.PORT || 8090;
 const TOKEN = process.env.WHATSAPP_BOT_TOKEN || 'change-me';
-const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+
+// Baileys' own logger is extremely chatty (dumps full stack traces). Keep it
+// silent and print our own clean, human-readable status lines instead.
+const baileysLogger = pino({ level: 'silent' });
+const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`);
 
 let sock = null;
 let connected = false;
+let starting = false;
+let qrShown = false;
 
 async function startSock() {
+  if (starting) return;
+  starting = true;
   const { state, saveCreds } = await useMultiFileAuthState('auth_info');
   const { version } = await fetchLatestBaileysVersion();
 
-  sock = makeWASocket({ version, auth: state, logger, printQRInTerminal: false });
+  sock = makeWASocket({
+    version,
+    auth: state,
+    logger: baileysLogger,
+    printQRInTerminal: false,
+    browser: ['Jastip.me', 'Chrome', '1.0'],
+    syncFullHistory: false,
+    markOnlineOnConnect: false,
+  });
+  starting = false;
 
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
-    if (qr) {
-      console.log('\nScan this QR code with the Jastip admin WhatsApp:\n');
+    if (qr && !qrShown) {
+      qrShown = true;
+      console.log('\n  Scan this QR with the Jastip admin WhatsApp');
+      console.log('  (WhatsApp → Linked devices → Link a device):\n');
       qrcode.generate(qr, { small: true });
+      console.log('\n  Waiting for you to scan…\n');
+    }
+    if (connection === 'connecting') {
+      log('Connecting to WhatsApp…');
     }
     if (connection === 'open') {
       connected = true;
-      logger.info('WhatsApp connection open');
+      qrShown = false;
+      log('✅ WhatsApp connection OPEN — bot is ready to send messages.');
     }
     if (connection === 'close') {
       connected = false;
       const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      const shouldReconnect = code !== DisconnectReason.loggedOut;
-      logger.warn({ code, shouldReconnect }, 'WhatsApp connection closed');
-      if (shouldReconnect) startSock();
-      else logger.error('Logged out — delete auth_info and re-scan the QR.');
+      const loggedOut = code === DisconnectReason.loggedOut;
+      if (loggedOut) {
+        log('⚠️  Logged out. Delete auth_info/ and restart to re-scan the QR.');
+        return;
+      }
+      // Transient (e.g. 408 timeout during init sync, 515 restart-required):
+      // reconnect using the saved credentials after a short backoff.
+      log(`Connection closed (code ${code}) — reconnecting in 3s…`);
+      setTimeout(() => startSock().catch((e) => log(`reconnect failed: ${e}`)), 3000);
     }
   });
 }

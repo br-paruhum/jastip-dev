@@ -21,6 +21,9 @@ node_modules/
 whatsapp-bot/auth_info/
 whatsapp-bot/*.log
 
+# graphify generated output
+graphify-out/
+
 # OS / editor
 .DS_Store
 .idea/
