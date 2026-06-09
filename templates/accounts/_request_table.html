@@ -10,8 +10,8 @@
         <td>{{ r.reference }}</td>
         <td class="route-cell"><strong>{{ r.plan.from_city }} → {{ r.plan.to_city }}</strong></td>
         <td>{{ r.items.count }}</td>
-        <td>{{ r.invoice_total|intcomma }} {{ r.currency }}</td>
-        <td>{{ r.unpaid_amount|intcomma }} {{ r.currency }}</td>
+        <td>{{ r.currency }} {{ r.invoice_total|intcomma }}</td>
+        <td>{{ r.currency }} {{ r.unpaid_amount|intcomma }}</td>
         <td>{% include "trips/_status_badge.html" with status=r.status label=r.get_status_display tone=r.status_tone %}</td>
         <td><a class="btn btn-outline btn-sm" href="{{ r.get_absolute_url }}">Open</a></td>
       </tr>

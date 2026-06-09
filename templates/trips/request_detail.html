@@ -57,7 +57,7 @@
 
       {% elif is_buyer and req.status == "accepted" %}
         <p>Your request was accepted.</p>
-        <p>Please make a bank transfer of <strong>{{ req.deposit_due|intcomma }} {{ req.currency }}</strong> to:</p>
+        <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong> to:</p>
         <table class="invoice" style="max-width:440px;margin-bottom:12px">
           <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
           <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -77,7 +77,7 @@
         <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Mark arrived</a>
 
       {% elif is_buyer and req.status == "package_arrived" %}
-        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.unpaid_amount|intcomma }} {{ req.currency }}</strong> and upload proof.</p>
+        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong> and upload proof.</p>
         {% include "trips/_pay_form.html" with label="Upload balance proof" %}
 
       {% elif req.status == "ready_for_pickup" %}
@@ -93,7 +93,7 @@
       {% elif req.status == "clear" %}
         <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
            on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The traveler is paid the full amount now.
-           {% if is_traveler %}Your payout: <strong>{{ req.transaction.payout_to_traveler|intcomma }} {{ req.currency }}</strong>.{% endif %}
+           {% if is_traveler %}Your payout: <strong>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</strong>.{% endif %}
            This will move to Closed (archived) automatically.</p>
 
       {% elif req.status == "closed" %}
@@ -113,7 +113,7 @@
         {% for p in req.transaction.payments.all %}
         <tr>
           <td>{{ p.get_kind_display }}</td>
-          <td>{{ p.amount|intcomma }} {{ p.currency }}</td>
+          <td>{{ p.currency }} {{ p.amount|intcomma }}</td>
           <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
               {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
               {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>

@@ -108,7 +108,7 @@ def render_invoice_pdf(req) -> bytes:
     rows.append(("ESTIMATED TOTAL", _money(req.estimated_invoice_total)))
     rows.append(("Deposit due now (50% items + shipment)", _money(req.deposit_due)))
 
-    totals_data = [[Paragraph(lbl, right if lbl.isupper() else label), f"{val} {cur}"] for lbl, val in rows]
+    totals_data = [[Paragraph(lbl, right if lbl.isupper() else label), f"{cur} {val}"] for lbl, val in rows]
     totals = Table(totals_data, colWidths=[120 * mm, 54 * mm], hAlign="RIGHT")
     totals.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),

@@ -182,7 +182,7 @@ PLATFORM_COMMISSION_PERCENT = float(os.getenv("PLATFORM_COMMISSION_PERCENT", "2.
 # Admin bank account buyers transfer to (shown on the accept card + invoice).
 BANK_DETAILS = {
     "bank_name": os.getenv("BANK_NAME", "PT Bank OCBC NISP, Tbk"),
-    "branch": os.getenv("BANK_BRANCH", "Pondok Indah Metri I"),
+    "branch": os.getenv("BANK_BRANCH", "Pondok Indah Metro I"),
     "account_no": os.getenv("BANK_ACCOUNT_NO", "5208 0000 5636"),
     "account_name": os.getenv("BANK_ACCOUNT_NAME", "PT Ecoshipper Global Mandiri"),
 }

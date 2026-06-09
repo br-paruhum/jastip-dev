@@ -3,7 +3,7 @@
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your request was accepted</h2>
   <p>Good news — request <strong>{{ request_obj.reference }}</strong> was accepted by the traveler.</p>
-  <p>Please transfer the deposit of <strong>{{ request_obj.deposit_due|intcomma }} {{ request_obj.currency }}</strong>
+  <p>Please transfer the deposit of <strong>{{ request_obj.currency }} {{ request_obj.deposit_due|intcomma }}</strong>
      (50% of items + 100% shipment), then upload your proof on the request page.</p>
   <p>A <strong>PDF invoice</strong> with the full breakdown and our bank account details is attached to this email.
      To avoid cancellation, please pay within {{ PAYMENT_DEADLINE_HOURS|default:24 }} hours.</p>
