@@ -100,6 +100,10 @@ class BuyRequest(models.Model):
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUEST_RECEIVED)
     buyer_notes = models.TextField(blank=True)
 
+    # Estimated shipping weight of THIS package, set by the traveler at review.
+    # Shipment cost is charged on this weight, not the plan's full capacity.
+    estimated_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
+
     # Custom fare paid by traveler at destination (reimbursable), filled on arrival.
     custom_fare_currency = models.CharField(
         max_length=3, choices=Currency.choices, blank=True, default=""
@@ -167,7 +171,9 @@ class BuyRequest(models.Model):
 
     @property
     def shipment_cost(self) -> Decimal:
-        return self._q(self.plan.available_weight_kg * self.plan.shipment_cost_per_kg)
+        """Shipment cost = the traveler's estimated weight for THIS package
+        × the plan's per-kg rate (not the plan's full available weight)."""
+        return self._q(self.estimated_weight_kg * self.plan.shipment_cost_per_kg)
 
     @property
     def margin_amount(self) -> Decimal:

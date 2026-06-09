@@ -59,6 +59,19 @@ class BuyRequestForm(forms.ModelForm):
         widgets = {"buyer_notes": forms.Textarea(attrs={"rows": 3, "placeholder": "Notes for the traveler (optional)"})}
 
 
+class ReviewForm(forms.ModelForm):
+    """Traveler-side review field: estimated weight of this package (kg)."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["estimated_weight_kg"]
+        widgets = {
+            "estimated_weight_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 2.5"}
+            )
+        }
+
+
 class RequestItemForm(forms.ModelForm):
     class Meta:
         model = RequestItem

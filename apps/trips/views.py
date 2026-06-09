@@ -14,6 +14,7 @@ from .forms import (
     CustomFareForm,
     PurchaseItemFormSet,
     RequestItemFormSet,
+    ReviewForm,
     ReviewItemFormSet,
     TravelPlanForm,
 )
@@ -128,23 +129,29 @@ def request_review(request, pk):
         return redirect(req.get_absolute_url())
 
     if request.method == "POST":
+        form = ReviewForm(request.POST, instance=req)
         formset = ReviewItemFormSet(request.POST, instance=req)
         decision = request.POST.get("decision")
-        if formset.is_valid():
-            formset.save()
-            if decision == "accept":
-                workflow.on_request_accepted(req)
-                messages.success(request, "Request accepted. The buyer has been notified.")
-            elif decision == "reject":
-                workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))
-                messages.success(request, "Request rejected. The plan is open again.")
+        if form.is_valid() and formset.is_valid():
+            if decision == "accept" and (form.cleaned_data.get("estimated_weight_kg") or 0) <= 0:
+                messages.error(request, "Enter the estimated package weight (kg) before accepting.")
             else:
-                messages.error(request, "Choose Accept or Reject.")
-                return redirect(request.path)
-            return redirect(req.get_absolute_url())
+                form.save()
+                formset.save()
+                if decision == "accept":
+                    workflow.on_request_accepted(req)
+                    messages.success(request, "Request accepted. The buyer has been notified.")
+                    return redirect(req.get_absolute_url())
+                elif decision == "reject":
+                    workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))
+                    messages.success(request, "Request rejected. The plan is open again.")
+                    return redirect(req.get_absolute_url())
+                else:
+                    messages.error(request, "Choose Accept or Reject.")
     else:
+        form = ReviewForm(instance=req)
         formset = ReviewItemFormSet(instance=req)
-    return render(request, "trips/request_review.html", {"req": req, "formset": formset})
+    return render(request, "trips/request_review.html", {"req": req, "form": form, "formset": formset})
 
 
 # --- Traveler: record purchases -> Item(s) Purchased ------------------------

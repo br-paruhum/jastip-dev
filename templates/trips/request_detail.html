@@ -37,7 +37,7 @@
           <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total|intcomma }}</td></tr>
           <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total|intcomma }}</td></tr>
           <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount|intcomma }}</td></tr>
-          <tr><td>Shipment</td><td style="text-align:right">{{ req.shipment_cost|intcomma }}</td></tr>
+          <tr><td>Shipment{% if req.estimated_weight_kg %} ({{ req.estimated_weight_kg }} kg){% endif %}</td><td style="text-align:right">{{ req.shipment_cost|intcomma }}</td></tr>
           <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount|intcomma }}</td></tr>
           <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
           <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>

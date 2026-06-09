@@ -30,7 +30,11 @@ class LifecycleTests(TestCase):
             available_weight_kg=Decimal("5"), shipment_currency=Currency.USD,
             shipment_cost_per_kg=Decimal("10"), margin_percent=Decimal("10"),
         )
-        self.req = BuyRequest.objects.create(plan=self.plan, buyer=self.buyer)
+        # Traveler's estimated weight for this package drives the shipment cost
+        # (5 kg × 10 = 50).
+        self.req = BuyRequest.objects.create(
+            plan=self.plan, buyer=self.buyer, estimated_weight_kg=Decimal("5")
+        )
         RequestItem.objects.create(request=self.req, name="Camera", quantity=1, position=1)
         RequestItem.objects.create(request=self.req, name="Lens", quantity=2, position=2)
         self.tx = Transaction.objects.create(request=self.req)

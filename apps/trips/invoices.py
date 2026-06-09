@@ -101,7 +101,7 @@ def render_invoice_pdf(req) -> bytes:
     rows = [
         ("Items subtotal (estimated)", _money(req.items_estimated_total)),
         (f"Margin ({plan.margin_percent}%)", _money(req.margin_amount)),
-        ("Shipment", _money(req.shipment_cost)),
+        (f"Shipment ({req.estimated_weight_kg} kg)", _money(req.shipment_cost)),
     ]
     if req.custom_fare_amount and req.custom_fare_amount > 0:
         rows.append(("Custom fare", _money(req.custom_fare_amount)))

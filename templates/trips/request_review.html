@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Review request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -20,6 +21,13 @@
           </tr>
           {% endfor %}
         </table>
+
+        <div class="form-field mt-2">
+          <label>Estimated weight of this package (kg)</label>
+          {{ form.estimated_weight_kg }}{{ form.estimated_weight_kg.errors }}
+          <p class="help">Shipment cost = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg
+            (the plan's per-kg rate). Required to accept.</p>
+        </div>
 
         <div class="form-field mt-2">
           <label>Reason (if rejecting)</label>
