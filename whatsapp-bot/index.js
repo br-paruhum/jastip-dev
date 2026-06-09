@@ -10,6 +10,12 @@
  *   GET  /healthz                                          (no auth)
  */
 require('dotenv').config();
+
+// Node 18 doesn't expose the WebCrypto API as a global (Node 20+ does), but
+// Baileys relies on globalThis.crypto. Polyfill it before loading Baileys.
+const { webcrypto } = require('crypto');
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
+
 const express = require('express');
 const pino = require('pino');
 const qrcode = require('qrcode-terminal');
