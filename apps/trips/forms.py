@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 from django.forms import inlineformset_factory
 
@@ -60,7 +62,11 @@ class BuyRequestForm(forms.ModelForm):
 
 
 class ReviewForm(forms.ModelForm):
-    """Traveler-side review field: estimated weight of this package (kg)."""
+    """Traveler-side review field: estimated weight of this package (kg).
+
+    Optional here (so a draft can be saved without it); the view requires a
+    positive value only when the traveler clicks Accept.
+    """
 
     class Meta:
         model = BuyRequest
@@ -70,6 +76,16 @@ class ReviewForm(forms.ModelForm):
                 attrs={"step": "0.01", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 2.5"}
             )
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["estimated_weight_kg"].required = False
+
+    def clean_estimated_weight_kg(self):
+        val = self.cleaned_data.get("estimated_weight_kg")
+        if val in (None, ""):
+            return self.instance.estimated_weight_kg or Decimal("0")
+        return val
 
 
 class RequestItemForm(forms.ModelForm):

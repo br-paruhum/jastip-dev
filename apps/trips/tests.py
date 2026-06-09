@@ -3,8 +3,14 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
+
+# Tests that render full pages must not require a collected staticfiles manifest.
+_NO_MANIFEST_STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
 
 from apps.trips import workflow
 from apps.trips.constants import Currency, Status
@@ -213,6 +219,50 @@ class CloseCronTests(TestCase):
         call_command("close_cleared")
         self.req.refresh_from_db()
         self.assertEqual(self.req.status, Status.CLOSED)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class ReviewDraftTests(TestCase):
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        traveler = make_user("rt@x.com")
+        buyer = make_user("rb@x.com")
+        plan = TravelPlan.objects.create(
+            traveler=traveler, travel_date=date.today() + timedelta(days=6),
+            from_city="Osaka", from_country="Japan", to_city="Medan",
+            to_country="Indonesia", available_weight_kg=Decimal("10"),
+            shipment_currency=Currency.JPY, shipment_cost_per_kg=Decimal("1000"),
+            margin_percent=Decimal("10"),
+        )
+        self.req = BuyRequest.objects.create(plan=plan, buyer=buyer, status=Status.REQUEST_RECEIVED)
+        self.item = RequestItem.objects.create(request=self.req, name="Toy", quantity=1)
+        self.traveler = traveler
+
+    def _post(self, decision, weight=""):
+        self.client.force_login(self.traveler)
+        return self.client.post(self.reverse("trips:request_review", args=[self.req.pk]), {
+            "items-TOTAL_FORMS": "1", "items-INITIAL_FORMS": "1",
+            "items-MIN_NUM_FORMS": "0", "items-MAX_NUM_FORMS": "1000",
+            "items-0-id": str(self.item.pk), "items-0-estimated_unit_cost": "1200",
+            "estimated_weight_kg": weight, "decision": decision,
+        })
+
+    def test_save_draft_keeps_review_status(self):
+        self._post("draft", weight="3.5")
+        self.req.refresh_from_db()
+        self.item.refresh_from_db()
+        self.assertEqual(self.req.status, Status.REQUEST_RECEIVED)  # still reviewable
+        self.assertEqual(self.req.estimated_weight_kg, Decimal("3.5"))
+        self.assertEqual(self.item.estimated_unit_cost, Decimal("1200"))
+
+    def test_accept_requires_weight(self):
+        self._post("accept", weight="")  # no weight
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.REQUEST_RECEIVED)  # blocked
+        self._post("accept", weight="4")
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.ACCEPTED)
 
 
 class ProfileGateTests(TestCase):

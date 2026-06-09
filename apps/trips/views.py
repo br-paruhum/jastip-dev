@@ -147,8 +147,11 @@ def request_review(request, pk):
                     workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))
                     messages.success(request, "Request rejected. The plan is open again.")
                     return redirect(req.get_absolute_url())
+                elif decision == "draft":
+                    messages.success(request, "Draft saved. Come back to accept or reject anytime.")
+                    return redirect("trips:request_review", pk=req.pk)
                 else:
-                    messages.error(request, "Choose Accept or Reject.")
+                    messages.error(request, "Choose Accept, Reject, or Save Draft.")
     else:
         form = ReviewForm(instance=req)
         formset = ReviewItemFormSet(instance=req)
