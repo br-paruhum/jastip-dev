@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block content %}
 
 <section class="hero">
@@ -55,7 +55,7 @@
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
             </td>
             <td>{{ plan.available_weight_kg }} kg</td>
-            <td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg }}/kg</td>
+            <td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}/kg</td>
             <td>{{ plan.margin_percent }}%</td>
             <td><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>

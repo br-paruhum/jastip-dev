@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -20,8 +21,8 @@
           <tr>
             <td>{{ item.name }}</td>
             <td>{{ item.quantity }}</td>
-            <td>{{ item.estimated_unit_cost }}</td>
-            <td>{{ item.actual_unit_cost }}{% if item.is_purchased %} ✓{% endif %}</td>
+            <td>{{ item.estimated_unit_cost|intcomma }}</td>
+            <td>{{ item.actual_unit_cost|intcomma }}{% if item.is_purchased %} ✓{% endif %}</td>
           </tr>
           {% endfor %}
         </table>
@@ -33,15 +34,15 @@
       <div class="card"><div class="card-body">
         <h3>Invoice ({{ req.currency }})</h3>
         <table class="invoice">
-          <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total }}</td></tr>
-          <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total }}</td></tr>
-          <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount }}</td></tr>
-          <tr><td>Shipment</td><td style="text-align:right">{{ req.shipment_cost }}</td></tr>
-          <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount }}</td></tr>
-          <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total }}</td></tr>
-          <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due }}</td></tr>
-          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.amount_paid }}</td></tr>
-          <tr class="total"><td>Unpaid</td><td style="text-align:right">{{ req.unpaid_amount }}</td></tr>
+          <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total|intcomma }}</td></tr>
+          <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total|intcomma }}</td></tr>
+          <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount|intcomma }}</td></tr>
+          <tr><td>Shipment</td><td style="text-align:right">{{ req.shipment_cost|intcomma }}</td></tr>
+          <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount|intcomma }}</td></tr>
+          <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
+          <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>
+          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.amount_paid|intcomma }}</td></tr>
+          <tr class="total"><td>Unpaid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>
         </table>
       </div></div>
     </div>
@@ -55,7 +56,7 @@
         <a class="btn btn-primary" href="{% url 'trips:request_review' req.id %}">Review request</a>
 
       {% elif is_buyer and req.status == "accepted" %}
-        <p>Your request was accepted. Transfer <strong>{{ req.deposit_due }} {{ req.currency }}</strong> to the admin account, then upload your proof.</p>
+        <p>Your request was accepted. Transfer <strong>{{ req.deposit_due|intcomma }} {{ req.currency }}</strong> to the admin account, then upload your proof.</p>
         {% include "trips/_pay_form.html" with label="Upload deposit proof" %}
 
       {% elif is_traveler and req.status == "deposit_paid" %}
@@ -67,7 +68,7 @@
         <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Mark arrived</a>
 
       {% elif is_buyer and req.status == "package_arrived" %}
-        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.unpaid_amount }} {{ req.currency }}</strong> and upload proof.</p>
+        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.unpaid_amount|intcomma }} {{ req.currency }}</strong> and upload proof.</p>
         {% include "trips/_pay_form.html" with label="Upload balance proof" %}
 
       {% elif req.status == "ready_for_pickup" %}
@@ -97,7 +98,7 @@
         {% for p in req.transaction.payments.all %}
         <tr>
           <td>{{ p.get_kind_display }}</td>
-          <td>{{ p.amount }} {{ p.currency }}</td>
+          <td>{{ p.amount|intcomma }} {{ p.currency }}</td>
           <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
               {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
               {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>

@@ -315,7 +315,7 @@ class Payment(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.get_kind_display()} {self.amount} {self.currency} ({self.get_status_display()})"
+        return f"{self.get_kind_display()} {self.amount:,.2f} {self.currency} ({self.get_status_display()})"
 
     def mark_verified(self, by_user=None):
         self.status = self.PaymentStatus.VERIFIED

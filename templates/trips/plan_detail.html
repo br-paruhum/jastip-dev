@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}{{ plan.from_city }} → {{ plan.to_city }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -13,7 +14,7 @@
         <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
         <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
         <tr><td>Available weight</td><td>{{ plan.available_weight_kg }} kg</td></tr>
-        <tr><td>Shipment cost</td><td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg }} / kg</td></tr>
+        <tr><td>Shipment cost</td><td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
         <tr><td>Margin</td><td>{{ plan.margin_percent }}%</td></tr>
         <tr><td>Payment term</td><td>{{ plan.payment_term }}</td></tr>
       </table>

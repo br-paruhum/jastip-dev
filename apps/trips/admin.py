@@ -33,11 +33,11 @@ class BuyRequestAdmin(ModelAdmin):
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
-        return f"{obj.invoice_total} {obj.currency}"
+        return f"{obj.invoice_total:,.2f} {obj.currency}"
 
     @admin.display(description="Unpaid")
     def unpaid_display(self, obj):
-        return f"{obj.unpaid_amount} {obj.currency}"
+        return f"{obj.unpaid_amount:,.2f} {obj.currency}"
 
 
 class PaymentInline(TabularInline):
@@ -55,11 +55,11 @@ class TransactionAdmin(ModelAdmin):
 
     @admin.display(description="Commission")
     def commission_display(self, obj):
-        return f"{obj.commission_amount} {obj.currency}"
+        return f"{obj.commission_amount:,.2f} {obj.currency}"
 
     @admin.display(description="Payout to traveler")
     def payout_display(self, obj):
-        return f"{obj.payout_to_traveler} {obj.currency}"
+        return f"{obj.payout_to_traveler:,.2f} {obj.currency}"
 
 
 @admin.register(Payment)
