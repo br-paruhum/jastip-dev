@@ -62,6 +62,9 @@ img { max-width: 100%; height: auto; display: block; }
 .btn-outline { background: transparent; color: var(--slate); border-color: var(--line); }
 .btn-outline:hover { border-color: var(--clay); color: var(--clay-dark); }
 .btn-ghost { background: var(--cream); color: var(--slate); }
+/* Non-clickable inverted Block button: brown text, no fill */
+.btn-blocked { background: transparent; color: var(--clay-dark); border-color: var(--clay); cursor: default; }
+.btn-blocked:hover { transform: none; }
 .btn-sm { padding: .4rem .8rem; font-size: .85rem; }
 .btn-block { width: 100%; justify-content: center; }
 .btn[disabled] { opacity: .5; pointer-events: none; }
@@ -116,8 +119,8 @@ table.offers tbody tr:hover { background: var(--ivory); }
 .route-cell span { color: var(--slate-400); font-size: .82rem; }
 
 /* --- Badges --- */
-.badge { display: inline-block; padding: .25rem .6rem; border-radius: 999px; font-size: .74rem; font-weight: 700;
-  letter-spacing: .02em; }
+.badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
+  letter-spacing: .02em; text-align: center; }
 .badge-info { background: #e6eef7; color: var(--info); }
 .badge-success { background: #e2f1ea; color: var(--success); }
 .badge-warning { background: #f8ecd9; color: var(--warning); }

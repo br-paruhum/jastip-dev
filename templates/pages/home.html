@@ -63,7 +63,7 @@
               {% if plan.is_open %}
                 <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Block</a>
               {% else %}
-                <a class="btn btn-outline btn-sm" href="{{ plan.get_absolute_url }}">Details</a>
+                <span class="btn btn-sm btn-blocked">Blocked</span>
               {% endif %}
             </td>
           </tr>
