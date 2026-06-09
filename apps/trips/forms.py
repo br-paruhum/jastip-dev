@@ -111,3 +111,22 @@ class CustomFareForm(forms.ModelForm):
     class Meta:
         model = BuyRequest
         fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+
+
+class ActualWeightForm(forms.ModelForm):
+    """Buyer-side: actual package weight, entered at pickup before clearance."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["actual_weight_kg"]
+        widgets = {
+            "actual_weight_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 2.7"}
+            )
+        }
+
+    def clean_actual_weight_kg(self):
+        w = self.cleaned_data.get("actual_weight_kg") or 0
+        if w <= 0:
+            raise forms.ValidationError("Enter the actual weight in kg.")
+        return w

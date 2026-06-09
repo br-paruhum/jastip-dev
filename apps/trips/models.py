@@ -103,6 +103,9 @@ class BuyRequest(models.Model):
     # Estimated shipping weight of THIS package, set by the traveler at review.
     # Shipment cost is charged on this weight, not the plan's full capacity.
     estimated_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
+    # Actual weight, set by the buyer when checking the package at pickup. Once
+    # set it supersedes the estimate for the final invoice + balance.
+    actual_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
 
     # Custom fare paid by traveler at destination (reimbursable), filled on arrival.
     custom_fare_currency = models.CharField(
@@ -170,10 +173,21 @@ class BuyRequest(models.Model):
         return self._q(sum((i.actual_line_total for i in self.items.all()), Decimal("0")))
 
     @property
+    def shipment_weight_kg(self) -> Decimal:
+        """Weight the shipment is billed on: the buyer's actual weight once set
+        (at pickup), otherwise the traveler's estimate."""
+        if self.actual_weight_kg and self.actual_weight_kg > 0:
+            return self.actual_weight_kg
+        return self.estimated_weight_kg
+
+    @property
     def shipment_cost(self) -> Decimal:
-        """Shipment cost = the traveler's estimated weight for THIS package
-        × the plan's per-kg rate (not the plan's full available weight)."""
-        return self._q(self.estimated_weight_kg * self.plan.shipment_cost_per_kg)
+        """Shipment cost = billable weight × the plan's per-kg rate."""
+        return self._q(self.shipment_weight_kg * self.plan.shipment_cost_per_kg)
+
+    @property
+    def has_actual_weight(self) -> bool:
+        return bool(self.actual_weight_kg and self.actual_weight_kg > 0)
 
     @property
     def margin_amount(self) -> Decimal:
@@ -217,6 +231,18 @@ class BuyRequest(models.Model):
     @property
     def unpaid_amount(self) -> Decimal:
         return self._q(self.invoice_total - self.amount_paid)
+
+    @property
+    def extra_due(self) -> Decimal:
+        """Amount the buyer still owes (e.g. actual weight > estimate)."""
+        u = self.unpaid_amount
+        return u if u > 0 else Decimal("0.00")
+
+    @property
+    def refund_due(self) -> Decimal:
+        """Amount to refund the buyer (e.g. actual weight < estimate)."""
+        u = self.unpaid_amount
+        return -u if u < 0 else Decimal("0.00")
 
 
 class RequestItem(models.Model):

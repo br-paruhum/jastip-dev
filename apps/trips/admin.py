@@ -3,6 +3,7 @@ from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 
 from . import workflow
+from .constants import Status
 from .models import BuyRequest, Payment, RequestItem, TravelPlan, Transaction
 
 
@@ -86,7 +87,9 @@ class PaymentAdmin(ModelAdmin):
             if payment.kind == Payment.Kind.DEPOSIT:
                 workflow.on_deposit_verified(req)
                 advanced += 1
-            elif payment.kind == Payment.Kind.BALANCE:
+            elif payment.kind == Payment.Kind.BALANCE and req.status == Status.PACKAGE_ARRIVED:
                 workflow.on_balance_verified(req)
                 advanced += 1
+            # A BALANCE payment while already READY_FOR_PICKUP is an actual-weight
+            # top-up: it's just marked verified, no status change.
         self.message_user(request, f"Verified payments and advanced {advanced} transaction(s).")

@@ -37,7 +37,7 @@
           <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total|intcomma }}</td></tr>
           <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total|intcomma }}</td></tr>
           <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount|intcomma }}</td></tr>
-          <tr><td>Shipment{% if req.estimated_weight_kg %} ({{ req.estimated_weight_kg }} kg){% endif %}</td><td style="text-align:right">{{ req.shipment_cost|intcomma }}</td></tr>
+          <tr><td>Shipment{% if req.shipment_weight_kg %} ({{ req.shipment_weight_kg }} kg{% if req.has_actual_weight %}, actual{% endif %}){% endif %}</td><td style="text-align:right">{{ req.shipment_cost|intcomma }}</td></tr>
           <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount|intcomma }}</td></tr>
           <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
           <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>
@@ -82,12 +82,37 @@
 
       {% elif req.status == "ready_for_pickup" %}
         {% if is_buyer %}
-          <p>Pick up your package and check that everything is good. Then confirm clearance below.</p>
-          <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
-            <button class="btn btn-primary" type="submit">Confirm pickup — mark as Clear</button>
-          </form>
+          {% if not req.has_actual_weight %}
+            <p>Pick up and check your package. Enter its <strong>actual weight</strong> to finalise the
+               shipment cost and the invoice.</p>
+            <form method="post" action="{% url 'trips:request_actual_weight' req.id %}">{% csrf_token %}
+              <div class="form-field"><label>Actual weight (kg)</label>
+                <input type="number" step="0.01" min="0.01" name="actual_weight_kg" required placeholder="e.g. 2.7">
+              </div>
+              <button class="btn btn-primary" type="submit">Save actual weight</button>
+            </form>
+          {% else %}
+            <p>Actual weight: <strong>{{ req.actual_weight_kg }} kg</strong> ·
+               final shipment <strong>{{ req.currency }} {{ req.shipment_cost|intcomma }}</strong>.</p>
+            {% if req.extra_due > 0 %}
+              <p>The actual weight is higher than estimated, so an additional
+                 <strong>{{ req.currency }} {{ req.extra_due|intcomma }}</strong> is due. Please pay it and
+                 upload proof; once admin verifies it you can confirm clearance.</p>
+              {% include "trips/_pay_form.html" with label="Upload additional payment proof" %}
+            {% else %}
+              {% if req.refund_due > 0 %}
+                <p class="muted">The actual weight is lower than estimated — a refund of
+                   <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be processed by admin.</p>
+              {% else %}
+                <p class="muted">Settled — no further payment due.</p>
+              {% endif %}
+              <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
+                <button class="btn btn-primary" type="submit">Confirm pickup — mark as Clear</button>
+              </form>
+            {% endif %}
+          {% endif %}
         {% else %}
-          <p class="muted">Waiting for the buyer to pick up the package and confirm clearance.</p>
+          <p class="muted">Waiting for the buyer to pick up the package, record the actual weight and confirm clearance.</p>
         {% endif %}
 
       {% elif req.status == "clear" %}

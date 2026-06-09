@@ -140,6 +140,35 @@ class LifecycleTests(TestCase):
         self.assertTrue(fname.endswith(".pdf"))
         self.assertEqual(mimetype, "application/pdf")
 
+    def test_actual_weight_reconciliation(self):
+        # Bring it to the point where the estimated balance is fully paid.
+        for item in self.req.items.all():
+            item.estimated_unit_cost = Decimal("100")
+            item.actual_unit_cost = Decimal("100")
+            item.save()
+        # estimated weight 5kg -> shipment 50; invoice (actual items 300 + margin 30
+        # + shipment 50) = 380. Pay it all so unpaid == 0 at estimated weight.
+        self.assertEqual(self.req.shipment_cost, Decimal("50.00"))
+        Payment.objects.create(
+            transaction=self.tx, direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.BALANCE, currency=Currency.USD,
+            amount=self.req.invoice_total, status=Payment.PaymentStatus.VERIFIED,
+        )
+        self.assertEqual(self.req.unpaid_amount, Decimal("0.00"))
+
+        # Actual weight HIGHER -> extra due
+        self.req.actual_weight_kg = Decimal("8")  # 8*10 = 80 shipment (+30)
+        self.req.save()
+        self.assertEqual(self.req.shipment_cost, Decimal("80.00"))
+        self.assertEqual(self.req.extra_due, Decimal("30.00"))
+        self.assertEqual(self.req.refund_due, Decimal("0.00"))
+
+        # Actual weight LOWER -> refund due
+        self.req.actual_weight_kg = Decimal("3")  # 3*10 = 30 shipment (-20)
+        self.req.save()
+        self.assertEqual(self.req.refund_due, Decimal("20.00"))
+        self.assertEqual(self.req.extra_due, Decimal("0.00"))
+
     def test_reject_reopens_plan(self):
         workflow.on_request_submitted(self.req)
         workflow.on_request_rejected(self.req, reason="Out of stock")
