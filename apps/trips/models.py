@@ -179,32 +179,14 @@ class BuyRequest(models.Model):
         return self._q(sum((i.actual_line_total for i in self.items.all()), Decimal("0")))
 
     @property
-    def shipment_weight_kg(self) -> Decimal:
-        """Weight the shipment is billed on: the buyer's actual weight once set
-        (at pickup), otherwise the traveler's estimate."""
-        if self.actual_weight_kg and self.actual_weight_kg > 0:
-            return self.actual_weight_kg
-        return self.estimated_weight_kg
-
-    @property
-    def shipment_cost(self) -> Decimal:
-        """Shipment cost on the billable weight (actual once set, else estimate).
-        Equals estimated_shipment_cost + shipment_adjustment."""
-        return self._q(self.shipment_weight_kg * self.plan.shipment_cost_per_kg)
-
-    @property
     def estimated_shipment_cost(self) -> Decimal:
-        """Shipment on the traveler's estimated weight — what the deposit/balance
-        were originally billed on."""
+        """Shipment on the traveler's estimated weight (drives the deposit)."""
         return self._q(self.estimated_weight_kg * self.plan.shipment_cost_per_kg)
 
     @property
-    def shipment_adjustment(self) -> Decimal:
-        """Difference from the actual weight vs the estimate (0 until actual set).
-        Positive = extra owed, negative = credit back."""
-        if not self.has_actual_weight:
-            return Decimal("0.00")
-        return self._q(self.shipment_cost - self.estimated_shipment_cost)
+    def shipment_cost(self) -> Decimal:
+        """Actual shipment = traveler's final measured weight × rate."""
+        return self._q(self.actual_weight_kg * self.plan.shipment_cost_per_kg)
 
     @property
     def has_actual_weight(self) -> bool:
@@ -214,39 +196,78 @@ class BuyRequest(models.Model):
     def refund_details_provided(self) -> bool:
         return bool(self.refund_account_no and self.refund_account_name)
 
+    # --- Quantities (Est = original request, Act = traveler's actuals) ---
     @property
-    def margin_amount(self) -> Decimal:
-        base = self.items_actual_total or self.items_estimated_total
-        return self._q(base * self.plan.margin_percent / Decimal("100"))
+    def est_qty_total(self) -> int:
+        return sum(i.quantity for i in self.items.all())
 
     @property
-    def deposit_due(self) -> Decimal:
-        """50% of items + 100% of shipment (the up-front transfer). Always on the
-        ESTIMATED weight — the deposit is fixed at acceptance, not re-billed when
-        the actual weight is later recorded."""
-        items = self.items_estimated_total
-        return self._q(items * Decimal("0.5") + self.estimated_shipment_cost)
+    def act_qty_total(self) -> int:
+        return sum(i.actual_quantity for i in self.items.all())
+
+    # --- Margin (Est on estimated items, Act on actual items) ---
+    @property
+    def estimated_margin(self) -> Decimal:
+        return self._q(self.items_estimated_total * self.plan.margin_percent / Decimal("100"))
+
+    @property
+    def actual_margin(self) -> Decimal:
+        return self._q(self.items_actual_total * self.plan.margin_percent / Decimal("100"))
+
+    # Backwards-compatible alias (actual margin drives the live invoice/payout).
+    @property
+    def margin_amount(self) -> Decimal:
+        return self.actual_margin
+
+    # --- Shipment + custom (Est vs Act) ---
+    @property
+    def actual_shipment_cost(self) -> Decimal:
+        return self.shipment_cost  # uses actual weight once set, else estimate
+
+    @property
+    def estimated_custom(self) -> Decimal:
+        return Decimal("0.00")
+
+    @property
+    def actual_custom(self) -> Decimal:
+        return self._q(self.custom_fare_amount)
+
+    # --- Totals ---
+    @property
+    def estimated_invoice_total(self) -> Decimal:
+        """Est column total: estimated items + est margin + est shipment."""
+        return self._q(
+            self.items_estimated_total + self.estimated_margin
+            + self.estimated_shipment_cost + self.estimated_custom
+        )
 
     @property
     def invoice_total(self) -> Decimal:
-        """Full cost: actual items + margin + shipment + custom fare."""
+        """Actual column total: actual items + actual margin + actual shipment + custom."""
         return self._q(
-            self.items_actual_total
-            + self.margin_amount
-            + self.shipment_cost
-            + self.custom_fare_amount
+            self.items_actual_total + self.actual_margin
+            + self.actual_shipment_cost + self.actual_custom
         )
 
     @property
-    def estimated_invoice_total(self) -> Decimal:
-        """Proforma total at acceptance, before any purchase: estimated items +
-        margin + estimated shipment + custom fare."""
+    def deposit_due(self) -> Decimal:
+        """Deposit = ((Estimated items + estimated margin) × 50%) + estimated
+        shipment. Fixed on estimates at acceptance."""
         return self._q(
-            self.items_estimated_total
-            + self.margin_amount
+            (self.items_estimated_total + self.estimated_margin) * Decimal("0.5")
             + self.estimated_shipment_cost
-            + self.custom_fare_amount
         )
+
+    @property
+    def invoice_unpaid_overpaid(self) -> Decimal:
+        """Invoice statement line: actual Total Invoice − Deposit Paid.
+        Positive = buyer still owes, negative = overpaid."""
+        return self._q(self.invoice_total - self.deposit_paid_amount)
+
+    @property
+    def final_settlement(self) -> Decimal:
+        """The (payment)/refund that settles the statement to zero (= -unpaid)."""
+        return self._q(-self.invoice_unpaid_overpaid)
 
     def _paid_of_kind(self, kind=None) -> Decimal:
         if not hasattr(self, "transaction"):
@@ -320,6 +341,7 @@ class RequestItem(models.Model):
     estimated_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
 
     # Set by the traveler after actually purchasing.
+    actual_quantity = models.PositiveSmallIntegerField(default=0, help_text="Quantity actually purchased.")
     actual_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     purchase_photo = models.ImageField(upload_to="items/purchased/", blank=True, null=True)
     purchase_note = models.CharField(
@@ -340,7 +362,7 @@ class RequestItem(models.Model):
 
     @property
     def actual_line_total(self) -> Decimal:
-        return (self.actual_unit_cost or Decimal("0")) * self.quantity
+        return (self.actual_unit_cost or Decimal("0")) * self.actual_quantity
 
     @property
     def is_purchased(self) -> bool:

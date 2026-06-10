@@ -116,21 +116,40 @@ ReviewItemFormSet = inlineformset_factory(
     extra=0, can_delete=False,
 )
 
-# Traveler records what was actually purchased.
+# Traveler records what was actually purchased (incl. actual quantity).
+class PurchaseItemForm(forms.ModelForm):
+    class Meta:
+        model = RequestItem
+        fields = ["actual_quantity", "actual_unit_cost", "purchase_photo", "purchase_note"]
+        widgets = {
+            "purchase_note": forms.TextInput(
+                attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-fill the actual quantity with the requested quantity for convenience.
+        if self.instance and self.instance.pk and not self.instance.actual_quantity:
+            self.fields["actual_quantity"].initial = self.instance.quantity
+
+
 PurchaseItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem,
-    fields=["actual_unit_cost", "purchase_photo", "purchase_note"],
-    widgets={"purchase_note": forms.TextInput(
-        attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
-    )},
-    extra=0, can_delete=False,
+    BuyRequest, RequestItem, form=PurchaseItemForm, extra=0, can_delete=False,
 )
 
 
 class CustomFareForm(forms.ModelForm):
+    """Traveler at arrival: actual (final-measured) weight + custom fare."""
+
     class Meta:
         model = BuyRequest
-        fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+        fields = ["actual_weight_kg", "custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+        widgets = {
+            "actual_weight_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 4.0"}
+            ),
+        }
 
 
 class MessageForm(forms.ModelForm):
@@ -177,22 +196,3 @@ class RefundBankForm(forms.ModelForm):
             if not (cleaned.get(f) or "").strip():
                 self.add_error(f, "Required.")
         return cleaned
-
-
-class ActualWeightForm(forms.ModelForm):
-    """Buyer-side: actual package weight, entered at pickup before clearance."""
-
-    class Meta:
-        model = BuyRequest
-        fields = ["actual_weight_kg"]
-        widgets = {
-            "actual_weight_kg": forms.NumberInput(
-                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 2.7"}
-            )
-        }
-
-    def clean_actual_weight_kg(self):
-        w = self.cleaned_data.get("actual_weight_kg") or 0
-        if w <= 0:
-            raise forms.ValidationError("Enter the actual weight in kg.")
-        return w

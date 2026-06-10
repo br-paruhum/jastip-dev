@@ -13,7 +13,6 @@ urlpatterns = [
     path("requests/<int:pk>/purchase/", views.request_purchase, name="request_purchase"),
     path("requests/<int:pk>/arrive/", views.request_arrive, name="request_arrive"),
     path("requests/<int:pk>/pay/", views.request_pay, name="request_pay"),
-    path("requests/<int:pk>/actual-weight/", views.request_actual_weight, name="request_actual_weight"),
     path("requests/<int:pk>/clear/", views.request_clear, name="request_clear"),
     path("requests/<int:pk>/message/", views.request_message, name="request_message"),
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),

@@ -5,12 +5,16 @@
   <div class="container" style="max-width:620px">
     <span class="eyebrow">Arrival · {{ req.reference }}</span>
     <h1>Mark package as arrived</h1>
-    <p class="muted">Record any custom fare you paid at the destination (reimbursable by the buyer
-      with proof). Leave it at zero if none.</p>
+    <p class="muted">Enter the package's <strong>final measured weight</strong> and any custom fare you paid
+      at the destination (reimbursable by the buyer with proof). Leave the fare at zero if none.</p>
 
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
       <div class="card-body">
+        <div class="form-field">
+          <label>Actual weight (kg)</label>{{ form.actual_weight_kg }}
+          <p class="help">Estimated was {{ req.estimated_weight_kg }} kg. This finalises the shipment cost on the invoice.</p>
+        </div>
         <div class="form-row">
           <div class="form-field"><label>Custom fare currency</label>{{ form.custom_fare_currency }}</div>
           <div class="form-field"><label>Custom fare amount</label>{{ form.custom_fare_amount }}</div>

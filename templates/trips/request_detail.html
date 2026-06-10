@@ -11,57 +11,74 @@
     </h1>
     <p class="muted">You are the <strong>{% if is_traveler %}traveler{% elif is_buyer %}buyer{% else %}admin{% endif %}</strong> on this transaction.</p>
 
-    <div class="grid grid-2">
-      <!-- Items -->
-      <div class="card"><div class="card-body">
-        <h3>Items</h3>
-        <table class="invoice">
-          <tr><td><strong>Item</strong></td><td><strong>Qty</strong></td><td><strong>Est.</strong></td><td><strong>Actual</strong></td></tr>
+    <!-- Invoice (Estimate / Actual) -->
+    <div class="card mt-2"><div class="card-body">
+      <h3>Invoice — {{ req.currency }}</h3>
+      <div class="table-wrap">
+      <table class="invoice inv2">
+        <thead>
+          <tr>
+            <th rowspan="2" class="lcell">Item Name</th>
+            <th colspan="2">Qty</th>
+            <th colspan="2">Unit Price</th>
+            <th colspan="2">Total ({{ req.currency }})</th>
+          </tr>
+          <tr><th>Est</th><th>Act</th><th>Est</th><th>Actual</th><th>Est</th><th>Actual</th></tr>
+        </thead>
+        <tbody>
           {% for item in req.items.all %}
           <tr>
-            <td>{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
+            <td class="lcell">{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
             <td>{{ item.quantity }}</td>
+            <td>{{ item.actual_quantity }}</td>
             <td>{{ item.estimated_unit_cost|intcomma }}</td>
-            <td>{{ item.actual_unit_cost|intcomma }}{% if item.is_purchased %} ✓{% endif %}</td>
+            <td>{{ item.actual_unit_cost|intcomma }}</td>
+            <td>{{ item.estimated_line_total|intcomma }}</td>
+            <td>{{ item.actual_line_total|intcomma }}</td>
           </tr>
           {% endfor %}
-        </table>
-        {% if req.buyer_notes %}<p class="help">Buyer notes: {{ req.buyer_notes }}</p>{% endif %}
-        {% if req.rejection_reason %}<p class="help" style="color:var(--danger)">Rejected: {{ req.rejection_reason }}</p>{% endif %}
-      </div></div>
-
-      <!-- Invoice -->
-      <div class="card"><div class="card-body">
-        <h3>Invoice ({{ req.currency }})</h3>
-        <table class="invoice">
-          <tr><td>Items (estimated)</td><td style="text-align:right">{{ req.items_estimated_total|intcomma }}</td></tr>
-          <tr><td>Items (actual)</td><td style="text-align:right">{{ req.items_actual_total|intcomma }}</td></tr>
-          <tr><td>Margin ({{ req.plan.margin_percent }}%)</td><td style="text-align:right">{{ req.margin_amount|intcomma }}</td></tr>
-          <tr><td>Shipment (est. {{ req.estimated_weight_kg }} kg)</td><td style="text-align:right">{{ req.estimated_shipment_cost|intcomma }}</td></tr>
-          {% if req.has_actual_weight %}
-          <tr><td>Weight adjustment (actual {{ req.actual_weight_kg }} kg)</td><td style="text-align:right">{{ req.shipment_adjustment|accounting }}</td></tr>
-          {% endif %}
-          <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount|intcomma }}</td></tr>
-          <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
-          <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>
-          <tr><td class="muted">Deposit Paid</td><td style="text-align:right">{{ req.deposit_paid_amount|intcomma }}</td></tr>
-          {% if req.balance_paid_amount > 0 %}
-          <tr><td class="muted">Balance Paid</td><td style="text-align:right">{{ req.balance_paid_amount|intcomma }}</td></tr>
-          {% endif %}
-          {% if req.total_refunded > 0 %}
-          <tr><td class="muted">Refunds issued</td><td style="text-align:right">({{ req.total_refunded|intcomma }})</td></tr>
-          {% endif %}
-          <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
-          {% if req.unpaid_amount > 0 %}
-          <tr><td class="muted">To collect from buyer</td><td style="text-align:right">{{ req.extra_due|intcomma }}</td></tr>
-          <tr class="total"><td>Net after settlement</td><td style="text-align:right">0.00</td></tr>
-          {% elif req.unpaid_amount < 0 %}
-          <tr><td class="muted">To refund to buyer</td><td style="text-align:right">{{ req.refund_due|intcomma }}</td></tr>
-          <tr class="total"><td>Net after settlement</td><td style="text-align:right">0.00</td></tr>
-          {% endif %}
-        </table>
-      </div></div>
-    </div>
+          <tr class="subtotal">
+            <td class="lcell">Sub-Total Items</td>
+            <td>{{ req.est_qty_total }}</td><td>{{ req.act_qty_total }}</td>
+            <td></td><td></td>
+            <td>{{ req.items_estimated_total|intcomma }}</td><td>{{ req.items_actual_total|intcomma }}</td>
+          </tr>
+          <tr>
+            <td class="lcell">Margin {{ req.plan.margin_percent }}%</td>
+            <td></td><td></td><td></td><td></td>
+            <td>{{ req.estimated_margin|intcomma }}</td><td>{{ req.actual_margin|intcomma }}</td>
+          </tr>
+          <tr>
+            <td class="lcell">Shipment (kg)</td>
+            <td>{{ req.estimated_weight_kg }}</td><td>{% if req.actual_weight_kg %}{{ req.actual_weight_kg }}{% endif %}</td>
+            <td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td>
+            <td>{{ req.estimated_shipment_cost|intcomma }}</td><td>{{ req.shipment_cost|intcomma }}</td>
+          </tr>
+          <tr>
+            <td class="lcell">Custom Duty</td>
+            <td></td><td></td><td></td><td></td>
+            <td>{{ req.estimated_custom|intcomma }}</td><td>{{ req.actual_custom|intcomma }}</td>
+          </tr>
+          <tr class="total">
+            <td class="lcell">Total Invoice</td>
+            <td></td><td></td><td></td><td></td>
+            <td>{{ req.estimated_invoice_total|intcomma }}</td><td>{{ req.invoice_total|intcomma }}</td>
+          </tr>
+          <tr><td class="lcell" colspan="6">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>
+          <tr><td class="lcell" colspan="6">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
+          <tr class="total"><td class="lcell" colspan="6">Unpaid / (Overpaid)</td><td>{{ req.invoice_unpaid_overpaid|accounting }}</td></tr>
+          <tr><td class="lcell" colspan="6">Final (Payment)/Refund Made</td><td>{{ req.final_settlement|accounting }}</td></tr>
+          <tr class="total"><td class="lcell" colspan="6">Total Due</td><td>0.00</td></tr>
+        </tbody>
+      </table>
+      </div>
+      {% if req.buyer_notes %}<p class="help mt-2">Buyer notes: {{ req.buyer_notes }}</p>{% endif %}
+      {% if req.rejection_reason %}<p class="help" style="color:var(--danger)">Rejected: {{ req.rejection_reason }}</p>{% endif %}
+      <p class="help mt-2" style="line-height:1.55">* Actual shipment weight was based on Traveler final measurement.
+        Buyer can verify this when picking up the package and should settle the discrepancy directly to traveler
+        or totally waive it. Jastip.me will not get involved on any dispute regarding this issue. As long as buyer
+        click &ldquo;Clear&rdquo; button, Jastip.me will paid traveler the full amount after deducting the 2.5% commission.</p>
+    </div></div>
 
     <!-- Action panel -->
     <div class="card mt-2"><div class="card-body">
@@ -107,38 +124,17 @@
 
       {% elif req.status == "ready_for_pickup" %}
         {% if is_buyer %}
-          {% if not req.has_actual_weight %}
-            <p>Pick up and check your package. Enter its <strong>actual weight</strong> to finalise the
-               shipment cost and the invoice.</p>
-            <form method="post" action="{% url 'trips:request_actual_weight' req.id %}">{% csrf_token %}
-              <div class="form-field"><label>Actual weight (kg)</label>
-                <input type="number" step="0.01" min="0.01" name="actual_weight_kg" required placeholder="e.g. 2.7">
-              </div>
-              <button class="btn btn-primary" type="submit">Save actual weight</button>
-            </form>
-          {% else %}
-            <p>Actual weight: <strong>{{ req.actual_weight_kg }} kg</strong> ·
-               final shipment <strong>{{ req.currency }} {{ req.shipment_cost|intcomma }}</strong>.</p>
-            {% if req.extra_due > 0 %}
-              <p>The actual weight is higher than estimated, so an additional
-                 <strong>{{ req.currency }} {{ req.extra_due|intcomma }}</strong> is due. Please pay it and
-                 upload proof; once admin verifies it you can confirm clearance.</p>
-              {% include "trips/_pay_form.html" with label="Upload additional payment proof" %}
-            {% else %}
-              {% if req.refund_due > 0 %}
-                <p class="muted">The actual weight is lower than estimated — a refund of
-                   <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be processed by admin.
-                   Add your <a href="#refund">refund bank details</a> below.</p>
-              {% else %}
-                <p class="muted">Settled — no further payment due.</p>
-              {% endif %}
-              <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
-                <button class="btn btn-primary" type="submit">Confirm pickup — mark as Clear</button>
-              </form>
-            {% endif %}
+          <p>Your package is ready. Pick it up and verify the items and weight against the invoice above.
+             When you're satisfied, click <strong>Clear</strong> to release the traveler's payment.</p>
+          {% if req.refund_due > 0 %}
+            <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
+               add your <a href="#refund">refund bank details</a> below so admin can transfer it within 48 hours.</p>
           {% endif %}
+          <form method="post" action="{% url 'trips:request_clear' req.id %}">{% csrf_token %}
+            <button class="btn btn-primary" type="submit">Confirm pickup — mark as Clear</button>
+          </form>
         {% else %}
-          <p class="muted">Waiting for the buyer to pick up the package, record the actual weight and confirm clearance.</p>
+          <p class="muted">Waiting for the buyer to pick up the package and confirm clearance.</p>
         {% endif %}
 
       {% elif req.status == "clear" %}

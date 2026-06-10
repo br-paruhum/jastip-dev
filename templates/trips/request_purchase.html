@@ -15,8 +15,9 @@
       <div class="card-body">
         {% for f in formset %}
         <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
-          <strong>{{ f.instance.name }}</strong> ×{{ f.instance.quantity }} {{ f.id }}
+          <strong>{{ f.instance.name }}</strong> · requested ×{{ f.instance.quantity }} {{ f.id }}
           <div class="form-row mt-2">
+            <div class="form-field"><label>Actual quantity</label>{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</div>
             <div class="form-field"><label>Actual unit cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
             <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
           </div>
@@ -29,7 +30,7 @@
           {{ form.estimated_weight_kg }}{{ form.estimated_weight_kg.errors }}
           <p class="help">Now that you have the items, you can refine the estimated package weight.
             Shipment = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg.
-            The buyer's final shipment is reconciled to the <em>actual</em> weight at pickup.</p>
+            You'll enter the <em>actual</em> measured weight when you mark the package as arrived.</p>
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap">

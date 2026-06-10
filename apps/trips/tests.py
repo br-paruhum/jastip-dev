@@ -57,10 +57,12 @@ class LifecycleTests(TestCase):
         items[1].save()
         # estimated items = 100 + 100 = 200
         self.assertEqual(self.req.items_estimated_total, Decimal("200.00"))
-        # shipment = 5kg * 10 = 50
-        self.assertEqual(self.req.shipment_cost, Decimal("50.00"))
-        # deposit = 50% items + shipment = 100 + 50 = 150
-        self.assertEqual(self.req.deposit_due, Decimal("150.00"))
+        # estimated shipment = 5kg * 10 = 50
+        self.assertEqual(self.req.estimated_shipment_cost, Decimal("50.00"))
+        # margin 10% of 200 = 20
+        self.assertEqual(self.req.estimated_margin, Decimal("20.00"))
+        # deposit = ((items 200 + margin 20) * 50%) + shipment 50 = 110 + 50 = 160
+        self.assertEqual(self.req.deposit_due, Decimal("160.00"))
         # commission + payout are 2.5% of the full invoice, settled at close —
         # asserted with concrete amounts in the lifecycle test.
 
@@ -68,6 +70,7 @@ class LifecycleTests(TestCase):
         for item in self.req.items.all():
             item.estimated_unit_cost = Decimal("100")
             item.actual_unit_cost = Decimal("100")
+            item.actual_quantity = item.quantity
             item.save()
 
         workflow.on_request_submitted(self.req)
@@ -90,6 +93,8 @@ class LifecycleTests(TestCase):
         workflow.on_items_purchased(self.req)
         self.assertEqual(self.req.status, Status.ITEMS_PURCHASED)
 
+        # Traveler records the actual measured weight at arrival.
+        self.req.actual_weight_kg = Decimal("5")
         self.req.custom_fare_amount = Decimal("20")
         self.req.save()
         workflow.on_package_arrived(self.req)
@@ -97,9 +102,10 @@ class LifecycleTests(TestCase):
 
         # actual items 300 (100 + 200) + margin 10% of 300 = 30 + shipment 50 + custom 20 = 400
         self.assertEqual(self.req.invoice_total, Decimal("400.00"))
-        # deposit = 50% of est items (300) + shipment (50) = 200 -> unpaid = 200
-        self.assertEqual(self.req.amount_paid, Decimal("200.00"))
-        self.assertEqual(self.req.unpaid_amount, Decimal("200.00"))
+        # deposit = ((est items 300 + margin 30) * 50%) + shipment 50 = 165 + 50 = 215
+        self.assertEqual(self.req.amount_paid, Decimal("215.00"))
+        # unpaid = invoice 400 - deposit 215 = 185
+        self.assertEqual(self.req.unpaid_amount, Decimal("185.00"))
 
         # Payout: traveler is paid the FULL invoice less the 2.5% fee, at CLOSE.
         # commission = 2.5% of invoice 400 = 10.00; payout = 400 - 10 = 390.00
@@ -146,39 +152,39 @@ class LifecycleTests(TestCase):
         self.assertTrue(fname.endswith(".pdf"))
         self.assertEqual(mimetype, "application/pdf")
 
-    def test_actual_weight_reconciliation(self):
-        # Bring it to the point where the estimated balance is fully paid.
+    def test_actual_weight_drives_invoice(self):
+        # Traveler's actual (final-measured) weight drives the actual invoice;
+        # the deposit always stays on the estimate.
         for item in self.req.items.all():
             item.estimated_unit_cost = Decimal("100")
             item.actual_unit_cost = Decimal("100")
+            item.actual_quantity = item.quantity
             item.save()
-        # estimated weight 5kg -> shipment 50; invoice (actual items 300 + margin 30
-        # + shipment 50) = 380. Pay it all so unpaid == 0 at estimated weight.
-        self.assertEqual(self.req.shipment_cost, Decimal("50.00"))
-        Payment.objects.create(
-            transaction=self.tx, direction=Payment.Direction.INBOUND,
-            kind=Payment.Kind.BALANCE, currency=Currency.USD,
-            amount=self.req.invoice_total, status=Payment.PaymentStatus.VERIFIED,
-        )
-        self.assertEqual(self.req.unpaid_amount, Decimal("0.00"))
-
-        deposit_before = self.req.deposit_due
+        # estimated items = 300, margin 10% = 30, est shipment 5kg*10 = 50
+        self.assertEqual(self.req.items_estimated_total, Decimal("300.00"))
+        self.assertEqual(self.req.estimated_margin, Decimal("30.00"))
         self.assertEqual(self.req.estimated_shipment_cost, Decimal("50.00"))
+        # deposit = ((300 + 30) * 50%) + 50 = 215
+        self.assertEqual(self.req.deposit_due, Decimal("215.00"))
+        deposit_before = self.req.deposit_due
 
-        # Actual weight HIGHER -> extra due, explicit adjustment, deposit unchanged
-        self.req.actual_weight_kg = Decimal("8")  # 8*10 = 80 shipment (+30)
+        # Actual weight HIGHER -> invoice grows, deposit unchanged.
+        self.req.actual_weight_kg = Decimal("8")  # 8*10 = 80 actual shipment
         self.req.save()
         self.assertEqual(self.req.shipment_cost, Decimal("80.00"))
-        self.assertEqual(self.req.shipment_adjustment, Decimal("30.00"))
-        self.assertEqual(self.req.deposit_due, deposit_before)  # deposit stays on estimate
-        self.assertEqual(self.req.extra_due, Decimal("30.00"))
-        self.assertEqual(self.req.refund_due, Decimal("0.00"))
+        # actual items 300 + actual margin 30 + actual shipment 80 + custom 0 = 410
+        self.assertEqual(self.req.invoice_total, Decimal("410.00"))
+        self.assertEqual(self.req.deposit_due, deposit_before)
 
-        # Actual weight LOWER -> refund due
-        self.req.actual_weight_kg = Decimal("3")  # 3*10 = 30 shipment (-20)
-        self.req.save()
-        self.assertEqual(self.req.refund_due, Decimal("20.00"))
-        self.assertEqual(self.req.extra_due, Decimal("0.00"))
+        # Pay the deposit; unpaid follows the actual invoice.
+        Payment.objects.create(
+            transaction=self.tx, direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.DEPOSIT, currency=Currency.USD,
+            amount=self.req.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        # unpaid = invoice 410 - deposit 215 = 195
+        self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("195.00"))
+        self.assertEqual(self.req.final_settlement, Decimal("-195.00"))
 
     def test_reject_reopens_plan(self):
         workflow.on_request_submitted(self.req)

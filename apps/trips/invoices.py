@@ -31,6 +31,14 @@ def _money(value) -> str:
     return f"{Decimal(value):,.2f}"
 
 
+def _acct(value) -> str:
+    """Accounting format: negatives shown in parentheses."""
+    v = Decimal(value)
+    if v < 0:
+        return f"({abs(v):,.2f})"
+    return f"{v:,.2f}"
+
+
 def render_invoice_pdf(req) -> bytes:
     """Return the PDF bytes of the invoice for a BuyRequest."""
     buf = BytesIO()
@@ -72,57 +80,97 @@ def render_invoice_pdf(req) -> bytes:
     story.append(meta)
     story.append(Spacer(1, 12))
 
-    # Items table
-    data = [["#", "Item", "Qty", f"Unit cost ({cur})", f"Line total ({cur})"]]
+    # Items table — two columns (Estimate / Actual)
+    act_weight = req.actual_weight_kg if req.has_actual_weight else ""
+    data = [
+        ["#", "Item", "Qty", "", f"Unit Price ({cur})", "", f"Total ({cur})", ""],
+        ["", "", "Est", "Act", "Est", "Actual", "Est", "Actual"],
+    ]
     for i, item in enumerate(req.items.all(), start=1):
         data.append([
-            str(i), item.name, str(item.quantity),
-            _money(item.estimated_unit_cost), _money(item.estimated_line_total),
+            str(i), item.name, str(item.quantity), str(item.actual_quantity),
+            _money(item.estimated_unit_cost), _money(item.actual_unit_cost),
+            _money(item.estimated_line_total), _money(item.actual_line_total),
         ])
-    items_tbl = Table(data, colWidths=[10 * mm, 76 * mm, 14 * mm, 40 * mm, 34 * mm])
+    n_items = req.items.count()
+    body_start = 2
+    sub_row = body_start + n_items
+    data.append(["", "Sub-Total Items", str(req.est_qty_total), str(req.act_qty_total),
+                 "", "", _money(req.items_estimated_total), _money(req.items_actual_total)])
+    data.append(["", f"Margin ({plan.margin_percent}%)", "", "", "", "",
+                 _money(req.estimated_margin), _money(req.actual_margin)])
+    data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight),
+                 "", _money(plan.shipment_cost_per_kg),
+                 _money(req.estimated_shipment_cost), _money(req.shipment_cost)])
+    data.append(["", "Custom Duty", "", "", "", "",
+                 _money(req.estimated_custom), _money(req.actual_custom)])
+    total_row = len(data)
+    data.append(["", "Total Invoice", "", "", "", "",
+                 _money(req.estimated_invoice_total), _money(req.invoice_total)])
+
+    items_tbl = Table(data, colWidths=[8 * mm, 44 * mm, 12 * mm, 12 * mm, 24 * mm, 24 * mm, 25 * mm, 25 * mm])
     items_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), CLAY),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("ALIGN", (2, 0), (-1, -1), "RIGHT"),
+        # grouped header spans
+        ("SPAN", (0, 0), (0, 1)), ("SPAN", (1, 0), (1, 1)),
+        ("SPAN", (2, 0), (3, 0)), ("SPAN", (4, 0), (5, 0)), ("SPAN", (6, 0), (7, 0)),
+        ("BACKGROUND", (0, 0), (-1, 1), CLAY),
+        ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
+        ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
+        ("ALIGN", (2, 0), (-1, 1), "CENTER"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ALIGN", (2, body_start), (-1, -1), "RIGHT"),
         ("ALIGN", (0, 0), (0, -1), "CENTER"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, CREAM]),
+        ("ROWBACKGROUNDS", (0, body_start), (-1, sub_row - 1), [colors.white, CREAM]),
         ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("LEFTPADDING", (0, 0), (-1, -1), 8),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        # subtotal + summary rows bold
+        ("FONTNAME", (1, sub_row), (-1, sub_row), "Helvetica-Bold"),
+        ("LINEABOVE", (0, sub_row), (-1, sub_row), 0.6, SLATE),
+        # total invoice row
+        ("FONTNAME", (1, total_row), (-1, total_row), "Helvetica-Bold"),
+        ("LINEABOVE", (0, total_row), (-1, total_row), 0.8, INK),
+        ("BACKGROUND", (0, total_row), (-1, total_row), CREAM),
+        ("TEXTCOLOR", (0, total_row), (-1, total_row), CLAY_DARK),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
     ]))
     story.append(items_tbl)
     story.append(Spacer(1, 10))
 
-    # Totals
-    rows = [
-        ("Items subtotal (estimated)", _money(req.items_estimated_total)),
-        (f"Margin ({plan.margin_percent}%)", _money(req.margin_amount)),
-        (f"Shipment ({req.shipment_weight_kg} kg)", _money(req.shipment_cost)),
+    # Settlement summary (deposit, payments, due)
+    settle = [
+        ("Deposit Due", _money(req.deposit_due)),
+        ("Deposit Paid", f"({_money(req.deposit_paid_amount)})"),
+        ("Unpaid / (Overpaid)", _acct(req.invoice_unpaid_overpaid)),
+        ("Final (Payment)/Refund Made", _acct(req.final_settlement)),
+        ("Total Due", "0.00"),
     ]
-    if req.custom_fare_amount and req.custom_fare_amount > 0:
-        rows.append(("Custom fare", _money(req.custom_fare_amount)))
-    rows.append(("ESTIMATED TOTAL", _money(req.estimated_invoice_total)))
-    rows.append(("Deposit due now (50% items + shipment)", _money(req.deposit_due)))
-
-    totals_data = [[Paragraph(lbl, right if lbl.isupper() else label), f"{cur} {val}"] for lbl, val in rows]
-    totals = Table(totals_data, colWidths=[120 * mm, 54 * mm], hAlign="RIGHT")
+    settle_data = [[lbl, f"{cur} {val}"] for lbl, val in settle]
+    totals = Table(settle_data, colWidths=[120 * mm, 54 * mm], hAlign="RIGHT")
     totals.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("FONTSIZE", (0, 0), (-1, -1), 9.5),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("LINEABOVE", (0, -2), (-1, -2), 0.8, INK),
-        ("FONTNAME", (0, -2), (-1, -2), "Helvetica-Bold"),
+        ("LINEABOVE", (0, 2), (-1, 2), 0.6, LINE),
+        ("FONTNAME", (0, 2), (-1, 2), "Helvetica-Bold"),
+        ("LINEABOVE", (0, -1), (-1, -1), 0.8, INK),
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
         ("TEXTCOLOR", (0, -1), (-1, -1), CLAY_DARK),
         ("BACKGROUND", (0, -1), (-1, -1), CREAM),
     ]))
     story.append(totals)
-    story.append(Spacer(1, 18))
+    story.append(Spacer(1, 10))
+
+    # Discrepancy / dispute note
+    story.append(Paragraph(
+        "* Actual shipment weight was based on Traveler final measurement. Buyer can verify this when "
+        "picking up the package and should settle the discrepancy directly to traveler or totally waive it. "
+        "Jastip.me will not get involved on any dispute regarding this issue. As long as buyer click "
+        "&ldquo;Clear&rdquo; button, Jastip.me will paid traveler the full amount after deducting the "
+        "2.5% commission.", small))
+    story.append(Spacer(1, 14))
 
     # Bank details
     bank = settings.BANK_DETAILS

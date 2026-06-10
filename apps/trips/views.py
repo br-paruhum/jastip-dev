@@ -10,7 +10,6 @@ from django.views.decorators.http import require_POST
 from . import workflow
 from .constants import OPEN_PLAN_STATUSES, Status
 from .forms import (
-    ActualWeightForm,
     BuyRequestForm,
     CustomFareForm,
     MessageForm,
@@ -278,9 +277,6 @@ def request_pay(request, pk):
         kind, amount = Payment.Kind.DEPOSIT, req.deposit_due
     elif req.status == Status.PACKAGE_ARRIVED:
         kind, amount = Payment.Kind.BALANCE, req.unpaid_amount
-    elif req.status == Status.READY_FOR_PICKUP and req.unpaid_amount > 0:
-        # Top-up: actual weight was higher than estimated, so an extra amount is due.
-        kind, amount = Payment.Kind.BALANCE, req.unpaid_amount
     else:
         messages.error(request, "No payment is due at this stage.")
         return redirect(req.get_absolute_url())
@@ -298,33 +294,6 @@ def request_pay(request, pk):
     return redirect(req.get_absolute_url())
 
 
-# --- Buyer: record the actual package weight at pickup ----------------------
-@profile_required
-@require_POST
-def request_actual_weight(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
-    if request.user != req.buyer:
-        messages.error(request, "Only the buyer can record the actual weight.")
-        return redirect(req.get_absolute_url())
-    if req.status != Status.READY_FOR_PICKUP:
-        messages.error(request, "Actual weight is recorded at pickup.")
-        return redirect(req.get_absolute_url())
-
-    form = ActualWeightForm(request.POST, instance=req)
-    if form.is_valid():
-        form.save()
-        diff = req.unpaid_amount
-        if diff > 0:
-            messages.warning(request, f"Actual weight saved. An additional {req.currency} {diff:,.2f} is due — please pay it below.")
-        elif diff < 0:
-            messages.info(request, f"Actual weight saved. A refund of {req.currency} {-diff:,.2f} will be processed by admin.")
-        else:
-            messages.success(request, "Actual weight saved. No further payment due — you can confirm clearance.")
-    else:
-        messages.error(request, "Please enter a valid actual weight (kg).")
-    return redirect(req.get_absolute_url())
-
-
 # --- Clearance: buyer marks Clear; cron closes it next day ------------------
 @profile_required
 @require_POST
@@ -335,12 +304,6 @@ def request_clear(request, pk):
         return redirect(req.get_absolute_url())
     if req.status != Status.READY_FOR_PICKUP:
         messages.error(request, "Clearance is only available once the package is ready for pickup.")
-        return redirect(req.get_absolute_url())
-    if not req.has_actual_weight:
-        messages.error(request, "Please record the actual package weight before confirming clearance.")
-        return redirect(req.get_absolute_url())
-    if req.unpaid_amount > 0:
-        messages.error(request, "There is still an outstanding amount to pay (from the actual weight). Please settle it before clearing.")
         return redirect(req.get_absolute_url())
 
     workflow.on_buyer_cleared(req)
