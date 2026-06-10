@@ -6,7 +6,13 @@ from django.forms import inlineformset_factory
 from .constants import COUNTRY_CHOICES, DEFAULT_PAYMENT_TERM
 from .models import BuyRequest, Message, RequestItem, TravelPlan
 
-DATE_INPUT = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+# Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
+# submits dd/mm/yyyy on every browser — the native <input type="date"> follows
+# the browser locale (e.g. mm/dd/yyyy on US English) and can't be forced.
+DATE_INPUT = forms.DateInput(
+    attrs={"class": "datepicker", "placeholder": "dd/mm/yyyy", "autocomplete": "off"},
+    format="%d/%m/%Y",
+)
 
 
 class ThousandSeparatorNumberInput(forms.TextInput):
@@ -49,7 +55,7 @@ class TravelPlanForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["travel_date"].input_formats = ["%Y-%m-%d"]
+        self.fields["travel_date"].input_formats = ["%d/%m/%Y", "%Y-%m-%d"]
         if not self.instance.pk and not self.initial.get("payment_term"):
             self.fields["payment_term"].initial = DEFAULT_PAYMENT_TERM
 

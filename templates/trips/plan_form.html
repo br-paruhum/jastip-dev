@@ -38,4 +38,9 @@
   </div>
 </section>
 {% endblock %}
-{% block extra_js %}<script src="{% static 'js/money.js' %}"></script>{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/money.js' %}"></script>
+<script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script>flatpickr(".datepicker", { dateFormat: "d/m/Y", allowInput: true });</script>
+{% endblock %}
