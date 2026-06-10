@@ -188,8 +188,23 @@ class BuyRequest(models.Model):
 
     @property
     def shipment_cost(self) -> Decimal:
-        """Shipment cost = billable weight × the plan's per-kg rate."""
+        """Shipment cost on the billable weight (actual once set, else estimate).
+        Equals estimated_shipment_cost + shipment_adjustment."""
         return self._q(self.shipment_weight_kg * self.plan.shipment_cost_per_kg)
+
+    @property
+    def estimated_shipment_cost(self) -> Decimal:
+        """Shipment on the traveler's estimated weight — what the deposit/balance
+        were originally billed on."""
+        return self._q(self.estimated_weight_kg * self.plan.shipment_cost_per_kg)
+
+    @property
+    def shipment_adjustment(self) -> Decimal:
+        """Difference from the actual weight vs the estimate (0 until actual set).
+        Positive = extra owed, negative = credit back."""
+        if not self.has_actual_weight:
+            return Decimal("0.00")
+        return self._q(self.shipment_cost - self.estimated_shipment_cost)
 
     @property
     def has_actual_weight(self) -> bool:
@@ -206,9 +221,11 @@ class BuyRequest(models.Model):
 
     @property
     def deposit_due(self) -> Decimal:
-        """50% of items + 100% of shipment (the up-front transfer)."""
+        """50% of items + 100% of shipment (the up-front transfer). Always on the
+        ESTIMATED weight — the deposit is fixed at acceptance, not re-billed when
+        the actual weight is later recorded."""
         items = self.items_estimated_total
-        return self._q(items * Decimal("0.5") + self.shipment_cost)
+        return self._q(items * Decimal("0.5") + self.estimated_shipment_cost)
 
     @property
     def invoice_total(self) -> Decimal:
@@ -223,11 +240,11 @@ class BuyRequest(models.Model):
     @property
     def estimated_invoice_total(self) -> Decimal:
         """Proforma total at acceptance, before any purchase: estimated items +
-        margin + shipment + custom fare."""
+        margin + estimated shipment + custom fare."""
         return self._q(
             self.items_estimated_total
             + self.margin_amount
-            + self.shipment_cost
+            + self.estimated_shipment_cost
             + self.custom_fare_amount
         )
 

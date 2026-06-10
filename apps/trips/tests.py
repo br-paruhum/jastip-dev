@@ -162,10 +162,15 @@ class LifecycleTests(TestCase):
         )
         self.assertEqual(self.req.unpaid_amount, Decimal("0.00"))
 
-        # Actual weight HIGHER -> extra due
+        deposit_before = self.req.deposit_due
+        self.assertEqual(self.req.estimated_shipment_cost, Decimal("50.00"))
+
+        # Actual weight HIGHER -> extra due, explicit adjustment, deposit unchanged
         self.req.actual_weight_kg = Decimal("8")  # 8*10 = 80 shipment (+30)
         self.req.save()
         self.assertEqual(self.req.shipment_cost, Decimal("80.00"))
+        self.assertEqual(self.req.shipment_adjustment, Decimal("30.00"))
+        self.assertEqual(self.req.deposit_due, deposit_before)  # deposit stays on estimate
         self.assertEqual(self.req.extra_due, Decimal("30.00"))
         self.assertEqual(self.req.refund_due, Decimal("0.00"))
 
