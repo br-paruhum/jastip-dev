@@ -63,10 +63,20 @@ class BuyRequestAdmin(ModelAdmin):
                 advanced += 1
         self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
 
-    @admin.action(description="Mark overpaid refund as processed")
+    @admin.action(description="Mark refund processed (and advance to Ready for Pickup)")
     def mark_refund_processed(self, request, queryset):
-        n = queryset.update(refund_processed=True)
-        self.message_user(request, f"Marked {n} refund(s) as processed.")
+        processed = advanced = 0
+        for req in queryset:
+            req.refund_processed = True
+            req.save(update_fields=["refund_processed"])
+            processed += 1
+            if req.status == Status.PACKAGE_ARRIVED:
+                workflow.on_balance_verified(req)  # -> Ready for Pickup
+                advanced += 1
+        self.message_user(
+            request,
+            f"Marked {processed} refund(s) processed; advanced {advanced} to Ready for Pickup.",
+        )
 
 
 class PaymentInline(TabularInline):
