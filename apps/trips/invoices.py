@@ -65,7 +65,7 @@ def render_invoice_pdf(req) -> bytes:
 
     meta = Table([
         [Paragraph("<b>Invoice</b>", label), Paragraph(req.reference, sub),
-         Paragraph("<b>Travel date</b>", label), Paragraph(plan.travel_date.strftime("%d-%b-%Y"), sub)],
+         Paragraph("<b>Travel date</b>", label), Paragraph(plan.travel_date.strftime("%d/%m/%Y"), sub)],
         [Paragraph("<b>Route</b>", label),
          Paragraph(f"{plan.from_city}, {plan.from_country} &rarr; {plan.to_city}, {plan.to_country}", sub),
          Paragraph("<b>Currency</b>", label), Paragraph(cur, sub)],

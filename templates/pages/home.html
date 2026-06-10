@@ -49,7 +49,7 @@
         <tbody>
           {% for plan in open_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td>{{ plan.travel_date|date:"d/m/Y" }}</td>
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
@@ -92,7 +92,7 @@
         <tbody>
           {% for plan in closed_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td>{{ plan.travel_date|date:"d/m/Y" }}</td>
             <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span></td>
             <td>{{ plan.available_weight_kg }} kg</td>

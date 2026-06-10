@@ -139,7 +139,7 @@
 
       {% elif req.status == "clear" %}
         <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
-           on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The traveler is paid the full amount now.
+           on {{ req.cleared_at|date:"d/m/Y, H:i" }}{% endif %}. The traveler is paid the full amount now.
            {% if is_traveler %}Your payout: <strong>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</strong>.{% endif %}
            This will move to Closed (archived) automatically.</p>
 
@@ -191,7 +191,7 @@
           <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
               {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
               {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
-          <td class="muted">{{ p.created_at|date:"d M H:i" }}</td>
+          <td class="muted">{{ p.created_at|date:"d/m/Y H:i" }}</td>
         </tr>
         {% endfor %}
       </table>
@@ -209,7 +209,7 @@
           <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
             <div class="chat-meta">
               {% if m.sender_id == req.buyer_id %}Buyer{% elif m.sender_id == req.plan.traveler_id %}Traveler{% else %}Admin{% endif %}{% if m.sender_id == user.id %} (you){% endif %}
-              · {{ m.created_at|date:"d M Y, H:i" }}
+              · {{ m.created_at|date:"d/m/Y, H:i" }}
             </div>
             <div class="chat-body">{{ m.body|linebreaksbr }}</div>
             {% if m.photo %}<a href="{{ m.photo.url }}" target="_blank"><img class="chat-photo" src="{{ m.photo.url }}" alt="attachment" loading="lazy"></a>{% endif %}
