@@ -2,8 +2,8 @@
 <h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
 {% if requests %}
 <div class="table-wrap">
-  <table class="offers">
-    <thead><tr><th>Ref</th><th>Route</th><th>Items</th><th>Invoice</th><th>Diff</th><th>Status</th><th></th></tr></thead>
+  <table class="offers offers-profile">
+    <thead><tr><th>Ref</th><th>Route</th><th>Items</th><th>Invoice</th><th>Diff</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for r in requests %}
       <tr>
@@ -12,7 +12,7 @@
         <td>{{ r.items.count }}</td>
         <td>{{ r.currency }} {{ r.invoice_total|intcomma }}</td>
         <td>{{ r.currency }} {{ r.unpaid_amount|accounting }}</td>
-        <td>{% include "trips/_status_badge.html" with status=r.status label=r.get_status_display tone=r.status_tone %}</td>
+        <td class="status-cell">{% include "trips/_status_badge.html" with status=r.status label=r.get_status_display tone=r.status_tone %}</td>
         <td><a class="btn btn-outline btn-sm" href="{{ r.get_absolute_url }}">Open</a></td>
       </tr>
       {% endfor %}
