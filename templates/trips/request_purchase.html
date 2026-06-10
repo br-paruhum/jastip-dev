@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block title %}Record purchases {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
   <div class="container" style="max-width:720px">
     <span class="eyebrow">Purchases · {{ req.reference }}</span>
     <h1>Record what you actually bought</h1>
-    <p class="muted">Enter the actual unit cost and upload a photo per item. The invoice and the
-      buyer's unpaid amount update automatically.</p>
+    <p class="muted">Enter the actual unit cost, a photo, and a note per item (e.g. if an item is out of
+      stock or short). The invoice and the buyer's unpaid amount update automatically.</p>
 
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
@@ -19,9 +20,25 @@
             <div class="form-field"><label>Actual unit cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
             <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
           </div>
+          <div class="form-field"><label>Note (if unavailable / short / substituted)</label>{{ f.purchase_note }}</div>
         </div></div>
         {% endfor %}
-        <button class="btn btn-primary" type="submit">Save purchases &amp; notify buyer</button>
+
+        <div class="form-field">
+          <label>Updated estimated total weight (kg)</label>
+          {{ form.estimated_weight_kg }}{{ form.estimated_weight_kg.errors }}
+          <p class="help">Now that you have the items, you can refine the estimated package weight.
+            Shipment = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg.
+            The buyer's final shipment is reconciled to the <em>actual</em> weight at pickup.</p>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" type="submit" name="decision" value="finalize">Save purchases &amp; notify buyer</button>
+          <button class="btn btn-ghost" type="submit" name="decision" value="draft">Save Draft</button>
+        </div>
+        <p class="help mt-2"><strong>Save Draft</strong> saves your progress without notifying the buyer or
+          changing the status. <strong>Save &amp; notify</strong> finalises the purchase (status → Item(s)
+          Purchased) and emails the buyer.</p>
       </div>
     </form>
   </div>

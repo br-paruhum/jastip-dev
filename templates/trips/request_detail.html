@@ -19,7 +19,7 @@
           <tr><td><strong>Item</strong></td><td><strong>Qty</strong></td><td><strong>Est.</strong></td><td><strong>Actual</strong></td></tr>
           {% for item in req.items.all %}
           <tr>
-            <td>{{ item.name }}</td>
+            <td>{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
             <td>{{ item.quantity }}</td>
             <td>{{ item.estimated_unit_cost|intcomma }}</td>
             <td>{{ item.actual_unit_cost|intcomma }}{% if item.is_purchased %} ✓{% endif %}</td>

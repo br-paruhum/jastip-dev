@@ -170,19 +170,26 @@ def request_purchase(request, pk):
         return redirect(req.get_absolute_url())
 
     if request.method == "POST":
+        form = ReviewForm(request.POST, instance=req)  # editable estimated weight
         formset = PurchaseItemFormSet(request.POST, request.FILES, instance=req)
-        if formset.is_valid():
+        decision = request.POST.get("decision", "finalize")
+        if form.is_valid() and formset.is_valid():
+            form.save()
             items = formset.save(commit=False)
             for item in items:
                 if item.actual_unit_cost and not item.purchased_at:
                     item.purchased_at = timezone.now()
                 item.save()
+            if decision == "draft":
+                messages.success(request, "Purchase draft saved. The buyer hasn't been notified yet.")
+                return redirect("trips:request_purchase", pk=req.pk)
             workflow.on_items_purchased(req)
             messages.success(request, "Purchases recorded. Invoice updated and buyer notified.")
             return redirect(req.get_absolute_url())
     else:
+        form = ReviewForm(instance=req)
         formset = PurchaseItemFormSet(instance=req)
-    return render(request, "trips/request_purchase.html", {"req": req, "formset": formset})
+    return render(request, "trips/request_purchase.html", {"req": req, "form": form, "formset": formset})
 
 
 # --- Traveler: arrival + custom fare -> Package Arrived ---------------------

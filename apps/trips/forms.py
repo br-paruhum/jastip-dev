@@ -118,7 +118,11 @@ ReviewItemFormSet = inlineformset_factory(
 
 # Traveler records what was actually purchased.
 PurchaseItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, fields=["actual_unit_cost", "purchase_photo"],
+    BuyRequest, RequestItem,
+    fields=["actual_unit_cost", "purchase_photo", "purchase_note"],
+    widgets={"purchase_note": forms.TextInput(
+        attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
+    )},
     extra=0, can_delete=False,
 )
 

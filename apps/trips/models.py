@@ -261,6 +261,10 @@ class RequestItem(models.Model):
     # Set by the traveler after actually purchasing.
     actual_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     purchase_photo = models.ImageField(upload_to="items/purchased/", blank=True, null=True)
+    purchase_note = models.CharField(
+        max_length=255, blank=True,
+        help_text="Note if the item is unavailable, short, or substituted.",
+    )
     purchased_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
