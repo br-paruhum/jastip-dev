@@ -53,11 +53,11 @@
           {% endif %}
           <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
           {% if req.unpaid_amount > 0 %}
-          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>
-          <tr class="total"><td>Due</td><td style="text-align:right">0.00</td></tr>
+          <tr><td class="muted">To collect from buyer</td><td style="text-align:right">{{ req.extra_due|intcomma }}</td></tr>
+          <tr class="total"><td>Net after settlement</td><td style="text-align:right">0.00</td></tr>
           {% elif req.unpaid_amount < 0 %}
-          <tr><td class="muted">Refunded</td><td style="text-align:right">{{ req.refund_due|intcomma }}</td></tr>
-          <tr class="total"><td>Due</td><td style="text-align:right">0.00</td></tr>
+          <tr><td class="muted">To refund to buyer</td><td style="text-align:right">{{ req.refund_due|intcomma }}</td></tr>
+          <tr class="total"><td>Net after settlement</td><td style="text-align:right">0.00</td></tr>
           {% endif %}
         </table>
       </div></div>
