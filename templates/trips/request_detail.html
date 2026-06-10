@@ -46,6 +46,13 @@
           <tr><td class="muted">Balance Paid</td><td style="text-align:right">{{ req.balance_paid_amount|intcomma }}</td></tr>
           {% endif %}
           <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
+          {% if req.unpaid_amount > 0 %}
+          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>
+          <tr class="total"><td>Due</td><td style="text-align:right">0.00</td></tr>
+          {% elif req.unpaid_amount < 0 %}
+          <tr><td class="muted">Refunded</td><td style="text-align:right">{{ req.refund_due|intcomma }}</td></tr>
+          <tr class="total"><td>Due</td><td style="text-align:right">0.00</td></tr>
+          {% endif %}
         </table>
       </div></div>
     </div>
