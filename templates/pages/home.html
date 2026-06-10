@@ -34,16 +34,22 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Live now</span>
-      <h2>Open travel offers</h2>
-      <p>Find a traveler heading your way and block their luggage space.</p>
+      <h2>Open Travel Plans</h2>
+      <p>Find a traveler heading your way and order their luggage space.</p>
     </div>
     {% if open_plans %}
     <div class="table-wrap">
       <table class="offers offers-centered">
         <thead>
           <tr>
-            <th>Date</th><th>Route</th><th>Weight</th><th>Shipment</th>
-            <th>Margin</th><th>Terms</th><th>Status</th><th>Action</th>
+            <th>Date</th>
+            <th>Route</th>
+            <th>Avail<br>(kg)</th>
+            <th>Shipment<br>Cost/kg</th>
+            <th>Margin<br>(%) <sup>1)</sup></th>
+            <th>Pymt<br>Terms <sup>2)</sup></th>
+            <th>Status</th>
+            <th>Action<br><sup>3)</sup></th>
           </tr>
         </thead>
         <tbody>
@@ -56,20 +62,26 @@
             </td>
             <td>{{ plan.available_weight_kg }} kg</td>
             <td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}/kg</td>
-            <td>{{ plan.margin_percent }}%</td>
-            <td><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
+            <td class="margin-cell">{{ plan.margin_percent }}%</td>
+            <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
             <td class="action-cell">
               {% if plan.is_open %}
-                <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Block</a>
+                <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Order</a>
               {% else %}
-                <span class="btn btn-sm btn-blocked">Blocked</span>
+                <span class="btn btn-sm btn-blocked">Used</span>
               {% endif %}
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+    </div>
+    <div class="offers-notes">
+      <p class="notes-head">Notes:</p>
+      <p>1) On top of Ordered Items Cost as stated on seller's/store's invoice(s)</p>
+      <p>2) Using commonly applied terms but editable</p>
+      <p>3) Used means some or all available space have been used</p>
     </div>
     {% else %}
     <p class="text-center muted">No open offers yet. <a href="{% url 'trips:plan_create' %}">Be the first to post a trip.</a></p>

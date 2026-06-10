@@ -115,12 +115,17 @@ table.offers th, table.offers td { padding: 13px 16px; text-align: left; border-
 table.offers th { background: var(--cream); font-weight: 700; color: var(--slate); white-space: nowrap; }
 table.offers tr:last-child td { border-bottom: 0; }
 table.offers tbody tr:hover { background: var(--ivory); }
-/* Centered variant: centered headers + centered Status column */
-table.offers.offers-centered th { text-align: center; }
+/* Centered variant: headers centered both axes + centered Status/Action/Margin/Terms columns */
+table.offers.offers-centered th { text-align: center; vertical-align: middle; }
 table.offers.offers-centered td.status-cell,
-table.offers.offers-centered td.action-cell { text-align: center; }
+table.offers.offers-centered td.action-cell,
+table.offers.offers-centered td.margin-cell,
+table.offers.offers-centered td.terms-cell { text-align: center; }
 .route-cell strong { color: var(--slate); display: block; }
 .route-cell span { color: var(--slate-400); font-size: .82rem; }
+.offers-notes { text-align: left; margin-top: 14px; font-size: .82rem; color: var(--slate-400); line-height: 1.5; }
+.offers-notes .notes-head { font-weight: 700; color: var(--slate); margin: 0 0 4px; }
+.offers-notes p { margin: 0 0 2px; }
 
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
