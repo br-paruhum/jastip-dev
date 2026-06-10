@@ -41,7 +41,7 @@
           <tr><td>Custom fare</td><td style="text-align:right">{{ req.custom_fare_amount|intcomma }}</td></tr>
           <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
           <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>
-          <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.amount_paid|intcomma }}</td></tr>
+          <tr><td class="muted">Deposit Paid</td><td style="text-align:right">{{ req.amount_paid|intcomma }}</td></tr>
           <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
           {% if req.unpaid_amount > 0 %}
           <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>

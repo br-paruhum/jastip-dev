@@ -59,7 +59,7 @@
             <td>{{ plan.margin_percent }}%</td>
             <td><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
-            <td>
+            <td class="action-cell">
               {% if plan.is_open %}
                 <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Block</a>
               {% else %}

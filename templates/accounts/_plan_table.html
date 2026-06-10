@@ -11,7 +11,7 @@
         <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
         <td>{{ plan.available_weight_kg }} kg</td>
         <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
-        <td>
+        <td class="action-cell">
           {% with req=plan.active_request %}
             {% if req %}<a class="btn btn-outline btn-sm" href="{{ req.get_absolute_url }}">Manage</a>
             {% else %}<a class="btn btn-outline btn-sm" href="{{ plan.get_absolute_url }}">View</a>{% endif %}
