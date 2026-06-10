@@ -44,8 +44,8 @@
             <td>{{ req.items_estimated_total|intcomma }}</td><td>{{ req.items_actual_total|intcomma }}</td>
           </tr>
           <tr>
-            <td class="lcell">Margin {{ req.plan.margin_percent }}%</td>
-            <td></td><td></td><td></td><td></td>
+            <td class="lcell">Margin</td>
+            <td></td><td>{{ req.plan.margin_percent|floatformat:"-2" }}%</td><td></td><td></td>
             <td>{{ req.estimated_margin|intcomma }}</td><td>{{ req.actual_margin|intcomma }}</td>
           </tr>
           <tr>

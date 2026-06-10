@@ -97,7 +97,9 @@ def render_invoice_pdf(req) -> bytes:
     sub_row = body_start + n_items
     data.append(["", "Sub-Total Items", str(req.est_qty_total), str(req.act_qty_total),
                  "", "", _money(req.items_estimated_total), _money(req.items_actual_total)])
-    data.append(["", f"Margin ({plan.margin_percent}%)", "", "", "", "",
+    _mp = plan.margin_percent
+    _mp_str = f"{int(_mp) if _mp == _mp.to_integral_value() else _mp}%"
+    data.append(["", "Margin", "", _mp_str, "", "",
                  _money(req.estimated_margin), _money(req.actual_margin)])
     data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight),
                  "", _money(plan.shipment_cost_per_kg),
