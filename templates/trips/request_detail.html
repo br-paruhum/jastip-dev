@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize money %}
 {% block title %}Request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -42,7 +42,7 @@
           <tr class="total"><td>Invoice total</td><td style="text-align:right">{{ req.invoice_total|intcomma }}</td></tr>
           <tr><td class="muted">Deposit due (50% items + shipment)</td><td style="text-align:right">{{ req.deposit_due|intcomma }}</td></tr>
           <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.amount_paid|intcomma }}</td></tr>
-          <tr class="total"><td>Unpaid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>
+          <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
         </table>
       </div></div>
     </div>
@@ -77,8 +77,17 @@
         <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Enter Arrival Details</a>
 
       {% elif is_buyer and req.status == "package_arrived" %}
-        <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong> and upload proof.</p>
-        {% include "trips/_pay_form.html" with label="Upload balance proof" %}
+        {% if req.unpaid_amount > 0 %}
+          <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong> and upload proof.</p>
+          {% include "trips/_pay_form.html" with label="Upload balance proof" %}
+        {% elif req.unpaid_amount < 0 %}
+          <p>The package has arrived. Your earlier payment <strong>exceeds</strong> the final amount — an
+             overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be refunded.
+             Please send your bank account number &amp; name (use the chat below) so admin can process it
+             within 48 hours.</p>
+        {% else %}
+          <p>The package has arrived and your balance is fully settled — no further payment due.</p>
+        {% endif %}
 
       {% elif req.status == "ready_for_pickup" %}
         {% if is_buyer %}

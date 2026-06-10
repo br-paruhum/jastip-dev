@@ -43,14 +43,25 @@ class BuyRequestAdmin(ModelAdmin):
     inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
     readonly_fields = ("reference",)
+    actions = ["advance_to_ready_for_pickup"]
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
         return f"{obj.invoice_total:,.2f} {obj.currency}"
 
-    @admin.display(description="Unpaid")
+    @admin.display(description="Unpaid / (Overpaid)")
     def unpaid_display(self, obj):
-        return f"{obj.unpaid_amount:,.2f} {obj.currency}"
+        u = obj.unpaid_amount
+        return f"({-u:,.2f}) {obj.currency}" if u < 0 else f"{u:,.2f} {obj.currency}"
+
+    @admin.action(description="Advance to Ready for Pickup (no balance due / overpaid)")
+    def advance_to_ready_for_pickup(self, request, queryset):
+        advanced = 0
+        for req in queryset:
+            if req.status == Status.PACKAGE_ARRIVED:
+                workflow.on_balance_verified(req)
+                advanced += 1
+        self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
 
 
 class PaymentInline(TabularInline):

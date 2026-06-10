@@ -3,8 +3,19 @@
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your package has arrived</h2>
   <p>The traveler has arrived at the destination for request <strong>{{ request_obj.reference }}</strong>.</p>
-  <p>Please pay the unpaid balance of
-     <strong>{{ request_obj.currency }} {{ request_obj.unpaid_amount|intcomma }}</strong>
-     (including any custom fare) to the admin account and upload your proof.</p>
-  {% include "_email_button.html" with url=request_url label="Pay the balance" %}
+  {% if request_obj.unpaid_amount > 0 %}
+    <p>Please pay the unpaid balance of
+       <strong>{{ request_obj.currency }} {{ request_obj.unpaid_amount|intcomma }}</strong>
+       (including any custom fare) to the admin account and upload your proof.</p>
+    {% include "_email_button.html" with url=request_url label="Pay the balance" %}
+  {% elif request_obj.unpaid_amount < 0 %}
+    <p>Good news — your earlier payment <strong>exceeds</strong> the final amount. Please provide your
+       <strong>Bank Account Number and Name</strong> (reply to this email or message us on the request page).
+       We will transfer the overpaid amount of
+       <strong>{{ request_obj.currency }} {{ request_obj.refund_due|intcomma }}</strong> to you within 48 hours.</p>
+    {% include "_email_button.html" with url=request_url label="View the request" %}
+  {% else %}
+    <p>Your balance is fully settled — no further payment is due.</p>
+    {% include "_email_button.html" with url=request_url label="View the request" %}
+  {% endif %}
 {% endblock %}
