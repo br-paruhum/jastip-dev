@@ -43,7 +43,7 @@ class BuyRequestAdmin(ModelAdmin):
     inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
     readonly_fields = ("reference",)
-    actions = ["advance_to_ready_for_pickup"]
+    actions = ["advance_to_ready_for_pickup", "mark_refund_processed"]
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
@@ -62,6 +62,11 @@ class BuyRequestAdmin(ModelAdmin):
                 workflow.on_balance_verified(req)
                 advanced += 1
         self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
+
+    @admin.action(description="Mark overpaid refund as processed")
+    def mark_refund_processed(self, request, queryset):
+        n = queryset.update(refund_processed=True)
+        self.message_user(request, f"Marked {n} refund(s) as processed.")
 
 
 class PaymentInline(TabularInline):

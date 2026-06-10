@@ -154,6 +154,31 @@ class MessageForm(forms.ModelForm):
         return photo
 
 
+class RefundBankForm(forms.ModelForm):
+    """Buyer's bank details for receiving an overpaid refund."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["refund_bank_name", "refund_account_no", "refund_account_name"]
+        labels = {
+            "refund_bank_name": "Bank name",
+            "refund_account_no": "Account number",
+            "refund_account_name": "Account holder name",
+        }
+        widgets = {
+            "refund_bank_name": forms.TextInput(attrs={"placeholder": "e.g. PT Bank OCBC NISP, Tbk"}),
+            "refund_account_no": forms.TextInput(attrs={"placeholder": "Your account number"}),
+            "refund_account_name": forms.TextInput(attrs={"placeholder": "Name on the account"}),
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        for f in ("refund_bank_name", "refund_account_no", "refund_account_name"):
+            if not (cleaned.get(f) or "").strip():
+                self.add_error(f, "Required.")
+        return cleaned
+
+
 class ActualWeightForm(forms.ModelForm):
     """Buyer-side: actual package weight, entered at pickup before clearance."""
 

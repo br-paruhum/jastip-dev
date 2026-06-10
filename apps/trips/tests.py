@@ -222,6 +222,42 @@ class CloseCronTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class RefundTests(TestCase):
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        traveler = make_user("rft@x.com")
+        self.buyer = make_user("rfb@x.com")
+        plan = TravelPlan.objects.create(
+            traveler=traveler, travel_date=date.today() + timedelta(days=9),
+            from_city="Hanoi", from_country="Vietnam", to_city="Jakarta",
+            to_country="Indonesia", available_weight_kg=Decimal("5"),
+            shipment_currency=Currency.USD, shipment_cost_per_kg=Decimal("10"),
+            margin_percent=Decimal("0"),
+        )
+        self.req = BuyRequest.objects.create(plan=plan, buyer=self.buyer, status=Status.PACKAGE_ARRIVED)
+        RequestItem.objects.create(request=self.req, name="A", quantity=1)
+        tx = Transaction.objects.create(request=self.req)
+        # Overpay: invoice_total is 0 here; a 100 verified payment => refund_due 100.
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.BALANCE,
+            currency=Currency.USD, amount=Decimal("100"), status=Payment.PaymentStatus.VERIFIED,
+        )
+
+    def test_buyer_submits_refund_details(self):
+        self.assertEqual(self.req.refund_due, Decimal("100.00"))
+        self.client.force_login(self.buyer)
+        resp = self.client.post(self.reverse("trips:request_refund_bank", args=[self.req.pk]), {
+            "refund_bank_name": "OCBC", "refund_account_no": "123456",
+            "refund_account_name": "Jane Buyer",
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.req.refresh_from_db()
+        self.assertTrue(self.req.refund_details_provided)
+        self.assertEqual(self.req.refund_account_name, "Jane Buyer")
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class ChatTests(TestCase):
     def setUp(self):
         from django.urls import reverse

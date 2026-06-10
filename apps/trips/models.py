@@ -116,6 +116,12 @@ class BuyRequest(models.Model):
     )
     custom_fare_proof = models.ImageField(upload_to="custom_fare/", blank=True, null=True)
 
+    # Buyer's bank details for refunding an overpaid amount (if any).
+    refund_bank_name = models.CharField(max_length=120, blank=True)
+    refund_account_no = models.CharField(max_length=60, blank=True)
+    refund_account_name = models.CharField(max_length=120, blank=True)
+    refund_processed = models.BooleanField(default=False)
+
     rejection_reason = models.TextField(blank=True)
     traveler_cleared = models.BooleanField(default=False)
     buyer_cleared = models.BooleanField(default=False)
@@ -188,6 +194,10 @@ class BuyRequest(models.Model):
     @property
     def has_actual_weight(self) -> bool:
         return bool(self.actual_weight_kg and self.actual_weight_kg > 0)
+
+    @property
+    def refund_details_provided(self) -> bool:
+        return bool(self.refund_account_no and self.refund_account_name)
 
     @property
     def margin_amount(self) -> Decimal:

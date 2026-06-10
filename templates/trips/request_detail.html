@@ -83,7 +83,7 @@
         {% elif req.unpaid_amount < 0 %}
           <p>The package has arrived. Your earlier payment <strong>exceeds</strong> the final amount — an
              overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be refunded.
-             Please send your bank account number &amp; name (use the chat below) so admin can process it
+             Please enter your <a href="#refund">refund bank details</a> below so admin can process it
              within 48 hours.</p>
         {% else %}
           <p>The package has arrived and your balance is fully settled — no further payment due.</p>
@@ -111,7 +111,8 @@
             {% else %}
               {% if req.refund_due > 0 %}
                 <p class="muted">The actual weight is lower than estimated — a refund of
-                   <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be processed by admin.</p>
+                   <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be processed by admin.
+                   Add your <a href="#refund">refund bank details</a> below.</p>
               {% else %}
                 <p class="muted">Settled — no further payment due.</p>
               {% endif %}
@@ -137,6 +138,34 @@
         <p class="muted">Waiting on the other party or admin verification.</p>
       {% endif %}
     </div></div>
+
+    <!-- Refund bank details (when overpaid) -->
+    {% if is_buyer and req.refund_due > 0 %}
+    <div class="card mt-2" id="refund"><div class="card-body">
+      <h3>Refund details</h3>
+      <p>You've overpaid by <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong>. Enter your bank
+         details below and admin will transfer the overpaid amount within 48 hours.</p>
+      {% if req.refund_details_provided %}
+        <table class="invoice" style="max-width:460px;margin-bottom:10px">
+          <tr><td style="width:150px">Bank name</td><td>: {{ req.refund_bank_name }}</td></tr>
+          <tr><td>Account number</td><td>: <strong>{{ req.refund_account_no }}</strong></td></tr>
+          <tr><td>Account holder</td><td>: <strong>{{ req.refund_account_name }}</strong></td></tr>
+        </table>
+        <p class="help">{% if req.refund_processed %}<span class="badge badge-success">Refund processed</span>{% else %}Submitted — admin will transfer within 48 hours. You can update the details below if needed.{% endif %}</p>
+      {% endif %}
+      {% if not req.refund_processed %}
+      <form method="post" action="{% url 'trips:request_refund_bank' req.id %}" class="mt-2">
+        {% csrf_token %}
+        <div class="form-field"><label>Bank name</label>{{ refund_form.refund_bank_name }}{{ refund_form.refund_bank_name.errors }}</div>
+        <div class="form-row">
+          <div class="form-field"><label>Account number</label>{{ refund_form.refund_account_no }}{{ refund_form.refund_account_no.errors }}</div>
+          <div class="form-field"><label>Account holder name</label>{{ refund_form.refund_account_name }}{{ refund_form.refund_account_name.errors }}</div>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">{% if req.refund_details_provided %}Update refund details{% else %}Submit refund details{% endif %}</button>
+      </form>
+      {% endif %}
+    </div></div>
+    {% endif %}
 
     <!-- Payments -->
     {% if req.transaction.payments.all %}

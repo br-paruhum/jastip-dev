@@ -15,6 +15,7 @@ from .forms import (
     CustomFareForm,
     MessageForm,
     PurchaseItemFormSet,
+    RefundBankForm,
     RequestItemFormSet,
     ReviewForm,
     ReviewItemFormSet,
@@ -119,8 +120,28 @@ def request_detail(request, pk):
             "chat_messages": chat_messages,
             "message_form": MessageForm(),
             "can_chat": is_traveler or is_buyer or request.user.is_staff,
+            "refund_form": RefundBankForm(instance=req),
         },
     )
+
+
+@profile_required
+@require_POST
+def request_refund_bank(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can submit refund details.")
+        return redirect(req.get_absolute_url())
+    if req.refund_due <= 0:
+        messages.error(request, "No refund is due on this request.")
+        return redirect(req.get_absolute_url())
+    form = RefundBankForm(request.POST, instance=req)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Refund bank details saved. Admin will transfer the overpaid amount within 48 hours.")
+    else:
+        messages.error(request, "Please fill in all bank detail fields.")
+    return redirect(req.get_absolute_url())
 
 
 @login_required
