@@ -115,9 +115,9 @@ table.offers th, table.offers td { padding: 13px 16px; text-align: left; border-
 table.offers th { background: var(--cream); font-weight: 700; color: var(--slate); white-space: nowrap; }
 table.offers tr:last-child td { border-bottom: 0; }
 table.offers tbody tr:hover { background: var(--ivory); }
-/* Profile tables: centered headers + centered Status column */
-table.offers.offers-profile th { text-align: center; }
-table.offers.offers-profile td.status-cell { text-align: center; }
+/* Centered variant: centered headers + centered Status column */
+table.offers.offers-centered th { text-align: center; }
+table.offers.offers-centered td.status-cell { text-align: center; }
 .route-cell strong { color: var(--slate); display: block; }
 .route-cell span { color: var(--slate-400); font-size: .82rem; }
 

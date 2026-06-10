@@ -39,11 +39,11 @@
     </div>
     {% if open_plans %}
     <div class="table-wrap">
-      <table class="offers">
+      <table class="offers offers-centered">
         <thead>
           <tr>
             <th>Date</th><th>Route</th><th>Weight</th><th>Shipment</th>
-            <th>Margin</th><th>Terms</th><th>Status</th><th></th>
+            <th>Margin</th><th>Terms</th><th>Status</th><th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -58,7 +58,7 @@
             <td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}/kg</td>
             <td>{{ plan.margin_percent }}%</td>
             <td><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
-            <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
+            <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
             <td>
               {% if plan.is_open %}
                 <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Block</a>
