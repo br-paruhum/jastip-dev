@@ -231,12 +231,28 @@ class BuyRequest(models.Model):
             + self.custom_fare_amount
         )
 
+    def _paid_of_kind(self, kind=None) -> Decimal:
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=Payment.Direction.INBOUND, status=Payment.PaymentStatus.VERIFIED
+        )
+        if kind is not None:
+            qs = qs.filter(kind=kind)
+        return self._q(sum((p.amount for p in qs), Decimal("0")))
+
     @property
     def amount_paid(self) -> Decimal:
-        verified = self.transaction.payments.filter(
-            direction=Payment.Direction.INBOUND, status=Payment.PaymentStatus.VERIFIED
-        ) if hasattr(self, "transaction") else []
-        return self._q(sum((p.amount for p in verified), Decimal("0")))
+        return self._paid_of_kind()
+
+    @property
+    def deposit_paid_amount(self) -> Decimal:
+        return self._paid_of_kind(Payment.Kind.DEPOSIT)
+
+    @property
+    def balance_paid_amount(self) -> Decimal:
+        """Verified non-deposit (balance / top-up) payments."""
+        return self._paid_of_kind(Payment.Kind.BALANCE)
 
     @property
     def unpaid_amount(self) -> Decimal:
