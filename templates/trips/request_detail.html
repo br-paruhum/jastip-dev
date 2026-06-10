@@ -73,8 +73,8 @@
         <a class="btn btn-primary" href="{% url 'trips:request_purchase' req.id %}">Record purchases</a>
 
       {% elif is_traveler and req.status == "items_purchased" %}
-        <p>When you arrive, record any custom fare and mark the package as arrived.</p>
-        <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Mark arrived</a>
+        <p>When you arrive, enter any custom fare and confirm the package has arrived.</p>
+        <a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Process Arrival Data</a>
 
       {% elif is_buyer and req.status == "package_arrived" %}
         <p>The package has arrived. Pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong> and upload proof.</p>
