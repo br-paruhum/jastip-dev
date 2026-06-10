@@ -200,7 +200,7 @@ table.invoice.inv2 th,
 table.invoice.inv2 td { padding: .4rem .55rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
 table.invoice.inv2 th.lcell,
 table.invoice.inv2 td.lcell { text-align: left; white-space: normal; }
-table.invoice.inv2 thead th { background: var(--cream, #f5f1ea); font-weight: 700; color: var(--slate); border-bottom: 1px solid var(--line); }
+table.invoice.inv2 thead th { background: var(--cream, #f5f1ea); font-weight: 700; color: var(--slate); border-bottom: 1px solid var(--line); text-align: center; vertical-align: middle; }
 table.invoice.inv2 tr.subtotal td { font-weight: 700; border-top: 1px solid var(--line); }
 table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-bottom: 0; border-top: 2px solid var(--slate); font-size: .95rem; }
 
