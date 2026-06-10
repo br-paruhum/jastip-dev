@@ -249,6 +249,19 @@ class RefundTests(TestCase):
             currency=Currency.USD, amount=Decimal("100"), status=Payment.PaymentStatus.VERIFIED,
         )
 
+    def test_refund_payment_nets_overpaid(self):
+        self.assertEqual(self.req.refund_due, Decimal("100.00"))
+        # Admin refunds 60 (recorded as an outbound refund payment).
+        Payment.objects.create(
+            transaction=self.req.transaction, direction=Payment.Direction.OUTBOUND,
+            kind=Payment.Kind.REFUND, currency=Currency.USD, amount=Decimal("60"),
+            status=Payment.PaymentStatus.VERIFIED,
+        )
+        self.assertEqual(self.req.total_refunded, Decimal("60.00"))
+        # Remaining overpaid is net of the refund already paid.
+        self.assertEqual(self.req.refund_due, Decimal("40.00"))
+        self.assertEqual(self.req.amount_paid, Decimal("40.00"))
+
     def test_buyer_submits_refund_details(self):
         self.assertEqual(self.req.refund_due, Decimal("100.00"))
         self.client.force_login(self.buyer)

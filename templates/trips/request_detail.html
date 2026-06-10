@@ -48,6 +48,9 @@
           {% if req.balance_paid_amount > 0 %}
           <tr><td class="muted">Balance Paid</td><td style="text-align:right">{{ req.balance_paid_amount|intcomma }}</td></tr>
           {% endif %}
+          {% if req.total_refunded > 0 %}
+          <tr><td class="muted">Refunds issued</td><td style="text-align:right">({{ req.total_refunded|intcomma }})</td></tr>
+          {% endif %}
           <tr class="total"><td>Unpaid / (Overpaid)</td><td style="text-align:right">{{ req.unpaid_amount|accounting }}</td></tr>
           {% if req.unpaid_amount > 0 %}
           <tr><td class="muted">Paid</td><td style="text-align:right">{{ req.unpaid_amount|intcomma }}</td></tr>
@@ -158,15 +161,15 @@
       <h3>Refund details</h3>
       <p>You've overpaid by <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong>. Enter your bank
          details below and admin will transfer the overpaid amount within 48 hours.</p>
+      {% if req.total_refunded > 0 %}<p class="help">Refunds issued so far: <strong>{{ req.currency }} {{ req.total_refunded|intcomma }}</strong>.</p>{% endif %}
       {% if req.refund_details_provided %}
         <table class="invoice" style="max-width:460px;margin-bottom:10px">
           <tr><td style="width:150px">Bank name</td><td>: {{ req.refund_bank_name }}</td></tr>
           <tr><td>Account number</td><td>: <strong>{{ req.refund_account_no }}</strong></td></tr>
           <tr><td>Account holder</td><td>: <strong>{{ req.refund_account_name }}</strong></td></tr>
         </table>
-        <p class="help">{% if req.refund_processed %}<span class="badge badge-success">Refund processed</span>{% else %}Submitted — admin will transfer within 48 hours. You can update the details below if needed.{% endif %}</p>
+        <p class="help">Submitted — admin will transfer the outstanding amount within 48 hours. Update below if needed.</p>
       {% endif %}
-      {% if not req.refund_processed %}
       <form method="post" action="{% url 'trips:request_refund_bank' req.id %}" class="mt-2">
         {% csrf_token %}
         <div class="form-field"><label>Bank name</label>{{ refund_form.refund_bank_name }}{{ refund_form.refund_bank_name.errors }}</div>
@@ -176,7 +179,6 @@
         </div>
         <button class="btn btn-primary btn-sm" type="submit">{% if req.refund_details_provided %}Update refund details{% else %}Submit refund details{% endif %}</button>
       </form>
-      {% endif %}
     </div></div>
     {% endif %}
 

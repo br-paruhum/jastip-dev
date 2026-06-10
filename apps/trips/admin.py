@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 
@@ -63,19 +64,34 @@ class BuyRequestAdmin(ModelAdmin):
                 advanced += 1
         self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
 
-    @admin.action(description="Mark refund processed (and advance to Ready for Pickup)")
+    @admin.action(description="Process refund (record outbound refund + advance to Ready for Pickup)")
     def mark_refund_processed(self, request, queryset):
-        processed = advanced = 0
+        refunded = advanced = 0
         for req in queryset:
+            amount = req.refund_due  # current outstanding overpaid, net of prior refunds
+            if amount > 0:
+                tx, _ = Transaction.objects.get_or_create(request=req)
+                Payment.objects.create(
+                    transaction=tx,
+                    direction=Payment.Direction.OUTBOUND,
+                    kind=Payment.Kind.REFUND,
+                    method=Payment.Method.MANUAL,
+                    currency=req.currency,
+                    amount=amount,
+                    status=Payment.PaymentStatus.VERIFIED,
+                    verified_by=request.user,
+                    verified_at=timezone.now(),
+                    note="Overpaid refund to buyer",
+                )
+                refunded += 1
             req.refund_processed = True
             req.save(update_fields=["refund_processed"])
-            processed += 1
             if req.status == Status.PACKAGE_ARRIVED:
                 workflow.on_balance_verified(req)  # -> Ready for Pickup
                 advanced += 1
         self.message_user(
             request,
-            f"Marked {processed} refund(s) processed; advanced {advanced} to Ready for Pickup.",
+            f"Recorded {refunded} refund payment(s); advanced {advanced} to Ready for Pickup.",
         )
 
 

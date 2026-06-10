@@ -259,8 +259,26 @@ class BuyRequest(models.Model):
         return self._q(sum((p.amount for p in qs), Decimal("0")))
 
     @property
-    def amount_paid(self) -> Decimal:
+    def gross_received(self) -> Decimal:
+        """All verified inbound payments from the buyer."""
         return self._paid_of_kind()
+
+    @property
+    def total_refunded(self) -> Decimal:
+        """Verified refunds already paid back to the buyer (outbound)."""
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=Payment.Direction.OUTBOUND,
+            status=Payment.PaymentStatus.VERIFIED,
+            kind=Payment.Kind.REFUND,
+        )
+        return self._q(sum((p.amount for p in qs), Decimal("0")))
+
+    @property
+    def amount_paid(self) -> Decimal:
+        """Net the buyer has paid us: inbound received minus refunds returned."""
+        return self._q(self.gross_received - self.total_refunded)
 
     @property
     def deposit_paid_amount(self) -> Decimal:
