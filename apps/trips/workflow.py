@@ -11,7 +11,7 @@ import logging
 from django.conf import settings
 from django.utils import timezone
 
-from apps.notifications.services import notify_see_email, send_email
+from apps.notifications.services import notify_see_email, send_email, send_whatsapp
 
 from .constants import Status
 
@@ -152,6 +152,28 @@ def on_balance_verified(request_obj):
             event="ready_for_pickup",
         )
         notify_see_email(party, event="ready_for_pickup")
+
+
+def on_new_message(message):
+    """Notify the other participant(s) of a new chat message (email cc admin +
+    WhatsApp ping). Admin posts notify both parties."""
+    req = message.request
+    participants = [p for p in (req.buyer, req.plan.traveler) if p]
+    recipients = [u for u in participants if u != message.sender]
+    preview = (message.body or "")[:160]
+    for user in recipients:
+        send_email(
+            to_user=user,
+            subject=f"New message on request {req.reference}",
+            template="chat_message",
+            context=_ctx(req, preview=preview, sender_role=message.role_for(req)),
+            event="chat_message",
+        )
+        send_whatsapp(
+            to_user=user,
+            text=f"Jastip.me: 📩 New message on request {req.reference}. Please open the request page to reply.",
+            event="chat_message",
+        )
 
 
 def on_buyer_cleared(request_obj):

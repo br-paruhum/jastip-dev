@@ -148,6 +148,37 @@
       </table>
     </div></div>
     {% endif %}
+
+    <!-- Chat -->
+    {% if can_chat %}
+    <div class="card mt-2" id="chat"><div class="card-body">
+      <h3>Messages</h3>
+      <p class="help">Private conversation between buyer and traveler about sourcing the items.
+        Admin can see this thread.</p>
+      <div class="chat-thread">
+        {% for m in chat_messages %}
+          <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
+            <div class="chat-meta">
+              {% if m.sender_id == req.buyer_id %}Buyer{% elif m.sender_id == req.plan.traveler_id %}Traveler{% else %}Admin{% endif %}{% if m.sender_id == user.id %} (you){% endif %}
+              · {{ m.created_at|date:"d M Y, H:i" }}
+            </div>
+            <div class="chat-body">{{ m.body|linebreaksbr }}</div>
+            {% if m.photo %}<a href="{{ m.photo.url }}" target="_blank"><img class="chat-photo" src="{{ m.photo.url }}" alt="attachment" loading="lazy"></a>{% endif %}
+          </div>
+        {% empty %}
+          <p class="muted">No messages yet — start the conversation.</p>
+        {% endfor %}
+      </div>
+      <form method="post" action="{% url 'trips:request_message' req.id %}" enctype="multipart/form-data" class="mt-2">
+        {% csrf_token %}
+        <div class="form-field" style="margin-bottom:8px">{{ message_form.body }}</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="file" name="photo" accept="image/png,image/jpeg">
+          <button class="btn btn-primary btn-sm" type="submit">Send</button>
+        </div>
+      </form>
+    </div></div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

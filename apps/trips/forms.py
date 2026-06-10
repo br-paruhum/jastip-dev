@@ -4,7 +4,7 @@ from django import forms
 from django.forms import inlineformset_factory
 
 from .constants import COUNTRY_CHOICES, DEFAULT_PAYMENT_TERM
-from .models import BuyRequest, RequestItem, TravelPlan
+from .models import BuyRequest, Message, RequestItem, TravelPlan
 
 DATE_INPUT = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
 
@@ -131,6 +131,27 @@ class CustomFareForm(forms.ModelForm):
     class Meta:
         model = BuyRequest
         fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+
+
+class MessageForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ["body", "photo"]
+        widgets = {
+            "body": forms.Textarea(attrs={"rows": 2, "placeholder": "Write a message…"}),
+        }
+
+    def clean_body(self):
+        body = (self.cleaned_data.get("body") or "").strip()
+        if not body:
+            raise forms.ValidationError("Message cannot be empty.")
+        return body
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get("photo")
+        if photo and hasattr(photo, "size") and photo.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("Image must be 5 MB or smaller.")
+        return photo
 
 
 class ActualWeightForm(forms.ModelForm):

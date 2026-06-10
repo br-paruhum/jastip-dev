@@ -222,6 +222,54 @@ class CloseCronTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class ChatTests(TestCase):
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        self.traveler = make_user("ct@x.com")
+        self.buyer = make_user("cb@x.com")
+        plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=8),
+            from_city="Bangkok", from_country="Thailand", to_city="Jakarta",
+            to_country="Indonesia", available_weight_kg=Decimal("5"),
+            shipment_currency=Currency.THB, shipment_cost_per_kg=Decimal("100"),
+            margin_percent=Decimal("5"),
+        )
+        self.req = BuyRequest.objects.create(plan=plan, buyer=self.buyer)
+        RequestItem.objects.create(request=self.req, name="Snacks", quantity=1)
+
+    def test_buyer_message_notifies_traveler(self):
+        from django.core import mail
+        from apps.trips.models import Message
+        self.client.force_login(self.buyer)
+        resp = self.client.post(
+            self.reverse("trips:request_message", args=[self.req.pk]),
+            {"body": "Is the item available?"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Message.objects.filter(request=self.req).count(), 1)
+        # traveler is notified by email
+        notified = [m for m in mail.outbox if self.traveler.email in m.to]
+        self.assertTrue(notified)
+
+    def test_detail_page_renders_chat(self):
+        self.client.force_login(self.buyer)
+        resp = self.client.get(self.reverse("trips:request_detail", args=[self.req.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Messages")
+
+    def test_outsider_cannot_post(self):
+        stranger = make_user("stranger@x.com")
+        self.client.force_login(stranger)
+        resp = self.client.post(
+            self.reverse("trips:request_message", args=[self.req.pk]),
+            {"body": "hi"},
+        )
+        from apps.trips.models import Message
+        self.assertEqual(Message.objects.filter(request=self.req).count(), 0)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class ReviewDraftTests(TestCase):
     def setUp(self):
         from django.urls import reverse

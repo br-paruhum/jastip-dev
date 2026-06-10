@@ -4,7 +4,7 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from . import workflow
 from .constants import Status
-from .models import BuyRequest, Payment, RequestItem, TravelPlan, Transaction
+from .models import BuyRequest, Message, Payment, RequestItem, TravelPlan, Transaction
 
 
 class RequestItemInline(TabularInline):
@@ -23,12 +23,24 @@ class TravelPlanAdmin(ModelAdmin):
     autocomplete_fields = ("traveler",)
 
 
+class MessageInline(TabularInline):
+    model = Message
+    extra = 0
+    fields = ("created_at", "sender", "body", "photo")
+    readonly_fields = ("created_at", "sender", "body", "photo")
+    can_delete = False
+    ordering = ("created_at",)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(BuyRequest)
 class BuyRequestAdmin(ModelAdmin):
     list_display = ("reference", "plan", "buyer", "status", "invoice_display", "unpaid_display", "created_at")
     list_filter = ("status",)
     search_fields = ("reference", "buyer__email", "plan__reference")
-    inlines = [RequestItemInline]
+    inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
     readonly_fields = ("reference",)
 
@@ -93,3 +105,19 @@ class PaymentAdmin(ModelAdmin):
             # A BALANCE payment while already READY_FOR_PICKUP is an actual-weight
             # top-up: it's just marked verified, no status change.
         self.message_user(request, f"Verified payments and advanced {advanced} transaction(s).")
+
+
+@admin.register(Message)
+class MessageAdmin(ModelAdmin):
+    list_display = ("created_at", "request", "sender", "short_body")
+    list_filter = ("created_at",)
+    search_fields = ("request__reference", "sender__email", "body")
+    readonly_fields = ("request", "sender", "body", "photo", "created_at")
+    date_hierarchy = "created_at"
+
+    @admin.display(description="Message")
+    def short_body(self, obj):
+        return (obj.body or "")[:80]
+
+    def has_add_permission(self, request):
+        return False

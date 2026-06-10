@@ -379,3 +379,28 @@ class Payment(models.Model):
         self.verified_by = by_user
         self.verified_at = timezone.now()
         self.save(update_fields=["status", "verified_by", "verified_at"])
+
+
+class Message(models.Model):
+    """A chat message between the buyer and traveler on a request (admin can
+    read all threads for oversight)."""
+
+    request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey(USER, on_delete=models.SET_NULL, null=True, related_name="sent_messages")
+    body = models.TextField()
+    photo = models.ImageField(upload_to="chat/", blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["request", "created_at"])]
+
+    def __str__(self):
+        return f"msg #{self.pk} on {self.request.reference}"
+
+    def role_for(self, request_obj) -> str:
+        if self.sender_id == request_obj.buyer_id:
+            return "Buyer"
+        if self.sender_id == request_obj.plan.traveler_id:
+            return "Traveler"
+        return "Admin"

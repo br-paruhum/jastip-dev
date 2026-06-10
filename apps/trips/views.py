@@ -13,6 +13,7 @@ from .forms import (
     ActualWeightForm,
     BuyRequestForm,
     CustomFareForm,
+    MessageForm,
     PurchaseItemFormSet,
     RequestItemFormSet,
     ReviewForm,
@@ -107,11 +108,38 @@ def request_detail(request, pk):
         return redirect("pages:home")
     is_traveler = request.user == req.plan.traveler
     is_buyer = request.user == req.buyer
+    chat_messages = req.messages.select_related("sender").all()
     return render(
         request,
         "trips/request_detail.html",
-        {"req": req, "is_traveler": is_traveler, "is_buyer": is_buyer},
+        {
+            "req": req,
+            "is_traveler": is_traveler,
+            "is_buyer": is_buyer,
+            "chat_messages": chat_messages,
+            "message_form": MessageForm(),
+            "can_chat": is_traveler or is_buyer or request.user.is_staff,
+        },
     )
+
+
+@login_required
+@require_POST
+def request_message(request, pk):
+    req = get_object_or_404(BuyRequest.objects.select_related("plan", "plan__traveler", "buyer"), pk=pk)
+    if request.user not in (req.buyer, req.plan.traveler) and not request.user.is_staff:
+        messages.error(request, "You cannot post to this conversation.")
+        return redirect("pages:home")
+    form = MessageForm(request.POST, request.FILES)
+    if form.is_valid():
+        msg = form.save(commit=False)
+        msg.request = req
+        msg.sender = request.user
+        msg.save()
+        workflow.on_new_message(msg)
+    else:
+        messages.error(request, "Message cannot be empty.")
+    return redirect(req.get_absolute_url() + "#chat")
 
 
 def _require_traveler(request, req):
