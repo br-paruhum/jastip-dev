@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.forms import inlineformset_factory
 
-from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, DEFAULT_PAYMENT_TERM
+from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, DEFAULT_PAYMENT_TERM, Currency
 from .models import BuyRequest, Message, RequestItem, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
@@ -189,16 +189,21 @@ PurchaseItemFormSet = inlineformset_factory(
 
 
 class CustomFareForm(forms.ModelForm):
-    """Traveler at arrival: actual (final-measured) weight + custom fare."""
+    """Traveler at arrival: custom fare paid at destination (always IDR)."""
 
     class Meta:
         model = BuyRequest
-        fields = ["actual_weight_kg", "custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+        fields = ["custom_fare_amount", "custom_fare_proof"]
         widgets = {
-            "actual_weight_kg": forms.NumberInput(
-                attrs={"step": "0.01", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 4.0"}
-            ),
+            "custom_fare_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
         }
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.custom_fare_currency = Currency.IDR
+        if commit:
+            obj.save()
+        return obj
 
 
 class MessageForm(forms.ModelForm):
