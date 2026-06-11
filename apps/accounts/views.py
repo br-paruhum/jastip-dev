@@ -1,14 +1,21 @@
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import Status
 from apps.trips.models import BuyRequest, TravelPlan
 
-from .forms import OTPForm, ProfileForm
+from .forms import ChangePasswordForm, OTPForm, ProfileForm
+
+
+def _profile_tab(tab):
+    """Redirect back to the profile page with a given sidebar tab active."""
+    return redirect(reverse("accounts:profile") + f"#{tab}")
 
 
 @login_required
@@ -32,6 +39,7 @@ def profile(request):
         {
             "profile_form": form,
             "otp_form": OTPForm(),
+            "password_form": ChangePasswordForm(user),
             "open_plans": open_plans,
             "closed_plans": closed_plans,
             "open_requests": open_requests,
@@ -53,7 +61,23 @@ def profile_update(request):
         for field, errors in form.errors.items():
             for err in errors:
                 messages.error(request, f"{field}: {err}")
-    return redirect("accounts:profile")
+    return _profile_tab("profile")
+
+
+@login_required
+@require_POST
+def password_change(request):
+    form = ChangePasswordForm(request.user, request.POST)
+    if form.is_valid():
+        form.save()
+        # Keep the user logged in after the password hash changes.
+        update_session_auth_hash(request, request.user)
+        messages.success(request, "Your password was successfully changed")
+    else:
+        for errors in form.errors.values():
+            for err in errors:
+                messages.error(request, err)
+    return _profile_tab("reset-password")
 
 
 @login_required
@@ -69,7 +93,7 @@ def send_otp(request):
         event="phone_otp",
     )
     messages.info(request, "Verification code sent to your WhatsApp.")
-    return redirect("accounts:profile")
+    return _profile_tab("profile")
 
 
 @login_required
@@ -84,4 +108,4 @@ def verify_otp(request):
         messages.success(request, "WhatsApp number verified. You can now post offers and requests.")
     else:
         messages.error(request, "Invalid or expired code. Please try again.")
-    return redirect("accounts:profile")
+    return _profile_tab("profile")

@@ -252,3 +252,23 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
   .nav-links.open { transform: translateY(0); }
   .nav-toggle { display: block; }
 }
+
+/* Profile page: main content + right sidebar with tabbed panels */
+.profile-layout { display: flex; gap: 28px; align-items: flex-start; }
+.profile-main { flex: 1 1 auto; min-width: 0; }
+.profile-side { flex: 0 0 230px; }
+.profile-side .side-nav { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line);
+  border-radius: var(--radius-sm); overflow: hidden; background: #fff; }
+.profile-side .side-nav li { margin: 0; }
+.profile-side .side-nav a { display: block; padding: .75rem 1rem; color: var(--slate-600);
+  font-weight: 600; border-bottom: 1px solid var(--line); }
+.profile-side .side-nav li:last-child a { border-bottom: 0; }
+.profile-side .side-nav a:hover { background: var(--cream); text-decoration: none; }
+.profile-side .side-nav a.active { background: var(--clay); color: #fff; }
+.profile-panel-header { display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 8px; }
+
+@media (max-width: 860px) {
+  .profile-layout { flex-direction: column; }
+  .profile-side { order: -1; flex-basis: auto; width: 100%; }
+}

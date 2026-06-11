@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import SetPasswordForm
 
 from .models import User
 
@@ -43,3 +44,15 @@ class OTPForm(forms.Form):
     code = forms.CharField(max_length=6, min_length=6, widget=forms.TextInput(
         attrs={"placeholder": "6-digit code", "inputmode": "numeric", "autocomplete": "one-time-code"}
     ))
+
+
+class ChangePasswordForm(SetPasswordForm):
+    """Set a new password for the logged-in user (no current password needed —
+    they are already authenticated). Two fields: New + Repeat New."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["new_password1"].label = "New Password"
+        self.fields["new_password2"].label = "Repeat New Password"
+        for field in self.fields.values():
+            field.widget.attrs.update({"autocomplete": "new-password"})
