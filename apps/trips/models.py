@@ -32,7 +32,7 @@ class TravelPlan(models.Model):
     to_country = models.CharField(max_length=80)
 
     available_weight_kg = models.DecimalField(max_digits=6, decimal_places=2)
-    shipment_currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.USD)
+    shipment_currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.IDR)
     shipment_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
     margin_percent = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("0"),
