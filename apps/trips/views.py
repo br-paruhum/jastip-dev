@@ -14,6 +14,7 @@ from .forms import (
     CustomFareForm,
     MessageForm,
     PurchaseItemFormSet,
+    PurchaseWeightForm,
     RefundBankForm,
     RequestItemFormSet,
     ReviewForm,
@@ -218,7 +219,7 @@ def request_purchase(request, pk):
         return redirect(req.get_absolute_url())
 
     if request.method == "POST":
-        form = ReviewForm(request.POST, instance=req)  # editable estimated weight
+        form = PurchaseWeightForm(request.POST, instance=req)  # actual shipment weight
         formset = PurchaseItemFormSet(request.POST, request.FILES, instance=req)
         decision = request.POST.get("decision", "finalize")
         if form.is_valid() and formset.is_valid():
@@ -235,7 +236,7 @@ def request_purchase(request, pk):
             messages.success(request, "Purchases recorded. Invoice updated and buyer notified.")
             return redirect(req.get_absolute_url())
     else:
-        form = ReviewForm(instance=req)
+        form = PurchaseWeightForm(instance=req)
         formset = PurchaseItemFormSet(instance=req)
     return render(request, "trips/request_purchase.html", {"req": req, "form": form, "formset": formset})
 

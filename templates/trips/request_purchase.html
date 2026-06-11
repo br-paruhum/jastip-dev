@@ -27,11 +27,12 @@
         {% endfor %}
 
         <div class="form-field">
-          <label>Updated estimated total weight (kg)</label>
-          {{ form.estimated_weight_kg }}{{ form.estimated_weight_kg.errors }}
-          <p class="help">Now that you have the items, you can refine the estimated package weight.
-            Shipment = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg.
-            You'll enter the <em>actual</em> measured weight when you mark the package as arrived.</p>
+          <label>Actual shipment weight (kg)</label>
+          {{ form.actual_weight_kg }}{{ form.actual_weight_kg.errors }}
+          <p class="help">Estimated was {{ req.estimated_weight_kg }} kg. Enter the final measured weight now —
+            the invoice's <em>Actual</em> shipment cost is calculated from it (this weight × {{ req.currency }}
+            {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). You can still confirm or adjust it at the
+            Mark&nbsp;Arrived step.</p>
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap">

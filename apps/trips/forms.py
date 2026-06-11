@@ -141,6 +141,26 @@ ReviewItemFormSet = inlineformset_factory(
     extra=0, can_delete=False,
 )
 
+class PurchaseWeightForm(forms.ModelForm):
+    """Traveler enters the actual (final-measured) shipment weight while recording
+    the purchase, so the invoice's Actual shipment cost is calculated right then
+    (rather than waiting for the package-arrived step)."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["actual_weight_kg"]
+        widgets = {
+            "actual_weight_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 3.60"}
+            )
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Optional so a draft can be saved before the items are weighed.
+        self.fields["actual_weight_kg"].required = False
+
+
 # Traveler records what was actually purchased (incl. actual quantity).
 class PurchaseItemForm(forms.ModelForm):
     class Meta:
