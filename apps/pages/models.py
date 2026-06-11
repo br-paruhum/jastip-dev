@@ -30,6 +30,32 @@ class SitePage(models.Model):
         return reverse("pages:page", args=[self.slug])
 
 
+class Promo(models.Model):
+    """A sidebar promo card. Fills the ad sidebar with house ads or sponsor
+    placements until AdSense is approved; once ADSENSE_CLIENT is set the sidebar
+    renders AdSense units instead. Editable in admin so cards can be swapped in
+    and out without touching templates."""
+
+    title = models.CharField(max_length=120)
+    body = models.CharField(max_length=240, blank=True)
+    image = models.ImageField(upload_to="promos/", blank=True, null=True)
+    # Path or URL — allows internal links ("/how-to/") as well as external ones.
+    url = models.CharField(max_length=300, blank=True)
+    cta_label = models.CharField(max_length=40, blank=True, default="Learn more")
+    badge = models.CharField(
+        max_length=24, blank=True, help_text="Small label, e.g. 'Sponsored', 'Tip', 'For travelers'."
+    )
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.title
+
+
 class FAQItem(models.Model):
     question = models.CharField(max_length=240)
     answer = models.TextField()

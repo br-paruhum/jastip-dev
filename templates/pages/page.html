@@ -3,26 +3,31 @@
 {% block meta_description %}{{ page.meta_description|default:page.title }}{% endblock %}
 {% block content %}
 <section>
-  <div class="container" style="max-width:820px">
-    {% if page %}
-      <span class="eyebrow">{{ page.get_kind_display }}</span>
-      <h1>{{ page.title }}</h1>
-      <div class="tag-prose">{{ page.body|safe }}</div>
+  <div class="container">
+    <div class="content-layout">
+      <div class="content-main">
+        {% if page %}
+          <span class="eyebrow">{{ page.get_kind_display }}</span>
+          <h1>{{ page.title }}</h1>
+          <div class="tag-prose">{{ page.body|safe }}</div>
 
-      {% if faqs %}
-      <div class="mt-3">
-        {% for f in faqs %}
-        <details class="card" style="margin-bottom:12px">
-          <summary class="card-body" style="cursor:pointer;font-weight:700">{{ f.question }}</summary>
-          <div class="card-body" style="padding-top:0">{{ f.answer|safe }}</div>
-        </details>
-        {% endfor %}
+          {% if faqs %}
+          <div class="mt-3">
+            {% for f in faqs %}
+            <details class="card" style="margin-bottom:12px">
+              <summary class="card-body" style="cursor:pointer;font-weight:700">{{ f.question }}</summary>
+              <div class="card-body" style="padding-top:0">{{ f.answer|safe }}</div>
+            </details>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <h1>Coming soon</h1>
+          <p class="muted">This page hasn't been published yet.</p>
+        {% endif %}
       </div>
-      {% endif %}
-    {% else %}
-      <h1>Coming soon</h1>
-      <p class="muted">This page hasn't been published yet.</p>
-    {% endif %}
+      {% include "_ad_sidebar.html" %}
+    </div>
   </div>
 </section>
 {% endblock %}

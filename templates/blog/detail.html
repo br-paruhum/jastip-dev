@@ -4,11 +4,16 @@
 {% block og_title %}{{ post.title }}{% endblock %}
 {% block content %}
 <section>
-  <div class="container" style="max-width:760px">
-    <p class="muted" style="font-size:.85rem">{{ post.published_at|date:"d M Y" }}</p>
-    <h1>{{ post.title }}</h1>
-    {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" style="border-radius:12px;margin:18px 0">{% endif %}
-    <div class="tag-prose">{{ post.body|linebreaks }}</div>
+  <div class="container">
+    <div class="content-layout">
+      <div class="content-main">
+        <p class="muted" style="font-size:.85rem">{{ post.published_at|date:"d M Y" }}</p>
+        <h1>{{ post.title }}</h1>
+        {% if post.cover_image %}<img src="{{ post.cover_image.url }}" alt="{{ post.title }}" style="border-radius:12px;margin:18px 0">{% endif %}
+        <div class="tag-prose">{{ post.body|linebreaks }}</div>
+      </div>
+      {% include "_ad_sidebar.html" %}
+    </div>
   </div>
 
   {% if related %}

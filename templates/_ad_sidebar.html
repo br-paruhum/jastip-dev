@@ -1,0 +1,32 @@
+{% comment %}
+Reusable right-hand ad sidebar. While AdSense is pending it renders house /
+sponsor promo cards (editable in admin: pages.Promo) plus an always-present
+"Advertise here" lead-gen card. Once ADSENSE_CLIENT is configured it renders
+AdSense units instead — no template changes needed on the pages that include it.
+{% endcomment %}
+<aside class="content-side">
+  {% if ADSENSE_CLIENT %}
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="{{ ADSENSE_CLIENT }}"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  {% else %}
+    {% for promo in sidebar_promos %}
+      <div class="ad-card">
+        {% if promo.badge %}<span class="ad-badge">{{ promo.badge }}</span>{% endif %}
+        {% if promo.image %}<img src="{{ promo.image.url }}" alt="{{ promo.title }}" loading="lazy">{% endif %}
+        <h4>{{ promo.title }}</h4>
+        {% if promo.body %}<p>{{ promo.body }}</p>{% endif %}
+        {% if promo.url %}<a class="btn btn-outline btn-sm" href="{{ promo.url }}">{{ promo.cta_label|default:"Learn more" }}</a>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="ad-card ad-card-cta">
+      <span class="ad-badge">Your ad here</span>
+      <h4>Advertise on Jastip.me</h4>
+      <p>Reach travelers and cross-border shoppers. Promote your product or business in this space.</p>
+      <a class="btn btn-primary btn-sm" href="mailto:admin@jastip.me?subject=Advertise%20on%20Jastip.me">Get in touch</a>
+    </div>
+  {% endif %}
+</aside>
