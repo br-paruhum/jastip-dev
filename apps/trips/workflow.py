@@ -24,6 +24,13 @@ def _site_url(path: str = "") -> str:
     return f"{scheme}://{domain}{path}"
 
 
+def _static_url(path: str) -> str:
+    """Absolute URL for a static asset, using the plain (non-hashed) path so
+    email rendering never depends on the staticfiles manifest being current."""
+    base = settings.STATIC_URL if settings.STATIC_URL.startswith("/") else "/" + settings.STATIC_URL
+    return _site_url(base + path)
+
+
 def _ctx(request_obj, **extra):
     ctx = {
         "request_obj": request_obj,
@@ -32,6 +39,7 @@ def _ctx(request_obj, **extra):
         "traveler": request_obj.plan.traveler,
         "request_url": _site_url(request_obj.get_absolute_url()),
         "site_url": _site_url("/"),
+        "logo_url": _static_url("img/logo-email.png"),
         "PAYMENT_DEADLINE_HOURS": getattr(settings, "PAYMENT_DEADLINE_HOURS", 24),
         "BANK": getattr(settings, "BANK_DETAILS", {}),
     }

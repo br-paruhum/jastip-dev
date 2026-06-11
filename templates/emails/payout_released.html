@@ -6,7 +6,7 @@
      confirmed everything is good.</p>
   <p>As agreed, you are now paid the <strong>full amount</strong> — the entire invoice (items, margin,
      shipment and any custom duty) less the {{ request_obj.transaction.commission_percent }}% platform fee.</p>
-  <p style="font-size:18px;"><strong>Payout: {{ request_obj.currency }} {{ payout|intcomma }}</strong></p>
+  <p style="font-size:18px;"><strong>Payout: {{ request_obj.currency }} {{ payout|floatformat:"0"|intcomma }}</strong></p>
   <p>Thank you for travelling with Jastip.me!</p>
   {% include "_email_button.html" with url=request_url label="View the Transaction" %}
 {% endblock %}
