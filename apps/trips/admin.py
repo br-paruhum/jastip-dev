@@ -57,12 +57,28 @@ class BuyRequestAdmin(ModelAdmin):
 
     @admin.action(description="Final Payment Verified")
     def advance_to_ready_for_pickup(self, request, queryset):
-        advanced = 0
+        """Verify the buyer's pending balance payment (the authoritative act —
+        it records the money received and clears Total Due), then advance to
+        Ready for Pickup. Previously this only bumped the status, which left the
+        payment stuck on 'pending' and Total Due unchanged."""
+        verified = advanced = 0
         for req in queryset:
+            if hasattr(req, "transaction"):
+                pending = req.transaction.payments.filter(
+                    direction=Payment.Direction.INBOUND,
+                    kind=Payment.Kind.BALANCE,
+                    status=Payment.PaymentStatus.PENDING,
+                )
+                for payment in pending:
+                    payment.mark_verified(by_user=request.user)
+                    verified += 1
             if req.status == Status.PACKAGE_ARRIVED:
                 workflow.on_balance_verified(req)
                 advanced += 1
-        self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
+        self.message_user(
+            request,
+            f"Verified {verified} balance payment(s); advanced {advanced} request(s) to Ready for Pickup.",
+        )
 
     @admin.action(description="Refund Processed")
     def mark_refund_processed(self, request, queryset):
