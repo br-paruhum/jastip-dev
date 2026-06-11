@@ -16,11 +16,12 @@
         {% for f in formset %}
         <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
           <strong>{{ f.instance.name }}</strong> · requested ×{{ f.instance.quantity }} {{ f.id }}
-          <div class="form-row mt-2">
+          <div class="form-row purchase-cols mt-2">
             <div class="form-field"><label>Actual quantity</label>{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</div>
+            <div class="form-field"><label>Unit</label><div class="static-field">{{ f.instance.unit }}</div></div>
             <div class="form-field"><label>Actual unit cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
-            <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
           </div>
+          <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
           <div class="form-field"><label>Note (if unavailable / short / substituted)</label>{{ f.purchase_note }}</div>
         </div></div>
         {% endfor %}

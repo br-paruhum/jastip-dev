@@ -166,6 +166,13 @@ table.offers.offers-allcenter td { text-align: center; }
 /* Let the fr ratio hold: inputs default to min-width:auto which would otherwise
    stop the narrow Qty/Unit columns from shrinking to 10/15. */
 .form-row.item-cols > .form-field { min-width: 0; }
+/* Purchase rows: Actual qty / Unit / Actual unit cost at 25 / 25 / 50, centered headers */
+.form-row.purchase-cols { grid-template-columns: 25fr 25fr 50fr; }
+.form-row.purchase-cols > .form-field { min-width: 0; }
+.form-row.purchase-cols .form-field > label { text-align: center; }
+/* Read-only field value (e.g. Unit on the purchase row) */
+.static-field { padding: .65rem .8rem; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--cream); color: var(--slate); text-align: center; }
 .help { font-size: .8rem; color: var(--slate-400); margin-top: .25rem; }
 .errorlist { color: var(--danger); font-size: .82rem; list-style: none; padding: 0; margin: .3rem 0 0; }
 .password-wrap { position: relative; }

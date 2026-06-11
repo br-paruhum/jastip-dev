@@ -147,6 +147,7 @@ class PurchaseItemForm(forms.ModelForm):
         model = RequestItem
         fields = ["actual_quantity", "actual_unit_cost", "purchase_photo", "purchase_note"]
         widgets = {
+            "actual_quantity": forms.NumberInput(attrs={"class": "num-right", "min": "0"}),
             "actual_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
             "purchase_note": forms.TextInput(
                 attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
