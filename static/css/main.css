@@ -222,6 +222,8 @@ table.offers.offers-allcenter td { text-align: center; }
 .invoice td.num-right { text-align: right; }
 .invoice td.num-right input { width: 100%; text-align: right; padding: .4rem .55rem; box-sizing: border-box;
   border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
+/* Right-aligned numeric input outside tables (e.g. Actual unit cost on purchase) */
+input.num-right { text-align: right; }
 
 /* Two-column (Estimate / Actual) invoice */
 table.invoice.inv2 { font-size: .9rem; }

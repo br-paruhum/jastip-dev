@@ -147,6 +147,7 @@ class PurchaseItemForm(forms.ModelForm):
         model = RequestItem
         fields = ["actual_quantity", "actual_unit_cost", "purchase_photo", "purchase_note"]
         widgets = {
+            "actual_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
             "purchase_note": forms.TextInput(
                 attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
             ),
@@ -154,9 +155,11 @@ class PurchaseItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Pre-fill the actual quantity with the requested quantity for convenience.
+        # Propagate the requested (estimate) quantity into the editable Actual
+        # Quantity. Set it on self.initial — a ModelForm fills self.initial from
+        # the instance, so field.initial alone would be ignored.
         if self.instance and self.instance.pk and not self.instance.actual_quantity:
-            self.fields["actual_quantity"].initial = self.instance.quantity
+            self.initial["actual_quantity"] = self.instance.quantity
 
 
 PurchaseItemFormSet = inlineformset_factory(

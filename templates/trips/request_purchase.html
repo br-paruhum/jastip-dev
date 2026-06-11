@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Record purchases {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -45,3 +45,4 @@
   </div>
 </section>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/money.js' %}"></script>{% endblock %}
