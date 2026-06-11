@@ -71,7 +71,7 @@
 </div></div>
 
 <!-- Notes (foldable) -->
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
     <p class="help" style="line-height:1.55">* Actual shipment weight was based on Traveler final measurement.
@@ -84,7 +84,7 @@
 </details>
 
 <!-- Action panel (foldable) -->
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Next step</h3></summary>
   <div class="fold-body">
 
@@ -156,7 +156,7 @@
 
 <!-- Payments (foldable) -->
 {% if req.transaction.payments.all %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice">
@@ -178,7 +178,7 @@
 
 <!-- Chat (foldable) -->
 {% if can_chat %}
-<details class="card fold mt-2" id="chat" open>
+<details class="card fold mt-2" id="chat">
   <summary><h3>Messages</h3></summary>
   <div class="fold-body">
   <p class="help">Private conversation between buyer and traveler about sourcing the items.

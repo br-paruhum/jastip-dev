@@ -1,33 +1,9 @@
 {% extends "base.html" %}
-{% load humanize %}
 {% block title %}{{ plan.from_city }} → {{ plan.to_city }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
   <div class="container" style="max-width:760px">
-    <span class="eyebrow">Travel Plan {{ plan.reference }}</span>
-    <h1>{{ plan.from_city }} → {{ plan.to_city }}</h1>
-    {% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}
-
-    <div class="card mt-2"><div class="card-body">
-      <table class="invoice">
-        <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}</strong></td></tr>
-        <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
-        <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
-        <tr><td>Available Weight</td><td>{{ plan.available_weight_kg }} kg</td></tr>
-        <tr><td>Shipment Cost</td><td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
-        <tr><td>Margin</td><td>{{ plan.margin_percent }}%</td></tr>
-        <tr><td>Payment Term</td><td>{{ plan.payment_term }}</td></tr>
-      </table>
-      <div class="mt-2" style="text-align: center;">
-        {% if plan.is_open and user != plan.traveler %}
-          <a class="btn btn-primary" href="{% url 'trips:request_create' plan.id %}">Submit Order</a>
-        {% elif user == plan.traveler %}
-          <span class="muted">This is your travel plan.</span>
-        {% else %}
-          <span class="badge badge-muted">No longer open</span>
-        {% endif %}
-      </div>
-    </div></div>
+    {% include "trips/_plan_detail_body.html" %}
   </div>
 </section>
 {% endblock %}

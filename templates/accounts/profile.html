@@ -134,6 +134,14 @@
         {% endwith %}{% endif %}
         {% endif %}
 
+        {% if plan %}
+        <!-- Panel: Plan detail (embedded travel plan view) -->
+        <div data-panel="plan-detail" data-origin="travel-plans">
+          <p style="margin:0 0 12px"><a class="muted" href="#travel-plans" data-tab="travel-plans">← Back to My Travel Plans</a></p>
+          {% include "trips/_plan_detail_body.html" %}
+        </div>
+        {% endif %}
+
         <!-- Panel: Reset Password -->
         <div data-panel="reset-password">
           <div class="card" style="max-width:480px"><div class="card-body">
@@ -185,13 +193,10 @@
   function activate(name) {
     if (names.indexOf(name) === -1) name = 'profile';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
-    // The transient order-detail panel keeps its origin tab (Travel Plans for a
-    // traveler, Buying Order for a buyer) highlighted in the sidebar.
-    var sideName = name;
-    if (name === 'order-detail') {
-      var op = document.querySelector('[data-panel="order-detail"]');
-      sideName = (op && op.dataset.origin) || 'buying-order';
-    }
+    // Transient detail panels (order-detail, plan-detail) keep their origin tab
+    // highlighted in the sidebar via data-origin.
+    var activePanel = document.querySelector('[data-panel="' + name + '"]');
+    var sideName = (activePanel && activePanel.dataset.origin) || name;
     sideLinks.forEach(function (l) { l.classList.toggle('active', l.dataset.tab === sideName); });
   }
   links.forEach(function (l) {

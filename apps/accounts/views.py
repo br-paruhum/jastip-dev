@@ -59,6 +59,16 @@ def profile(request):
         else:
             order = None
 
+    # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
+    plan = None
+    plan_id = request.GET.get("plan")
+    if plan_id:
+        plan = (
+            TravelPlan.objects.select_related("traveler").filter(pk=plan_id).first()
+        )
+        if not plan or not (user == plan.traveler or user.is_staff):
+            plan = None
+
     return render(
         request,
         "accounts/profile.html",
@@ -74,6 +84,7 @@ def profile(request):
             # A plan id to auto-open the buyer request form for (set after Block).
             "block_plan_id": request.GET.get("block"),
             "order": order,
+            "plan": plan,
             **order_ctx,
         },
     )

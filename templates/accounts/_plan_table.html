@@ -14,7 +14,7 @@
         <td class="action-cell">
           {% with req=plan.active_request %}
             {% if req %}<a class="btn btn-outline btn-sm" href="{{ req.get_absolute_url }}">Manage</a>
-            {% else %}<a class="btn btn-outline btn-sm" href="{{ plan.get_absolute_url }}">View</a>{% endif %}
+            {% else %}<a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ plan.id }}#plan-detail">View</a>{% endif %}
           {% endwith %}
         </td>
       </tr>
