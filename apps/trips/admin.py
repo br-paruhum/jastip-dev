@@ -55,7 +55,7 @@ class BuyRequestAdmin(ModelAdmin):
         u = obj.unpaid_amount
         return f"({-u:,.2f}) {obj.currency}" if u < 0 else f"{u:,.2f} {obj.currency}"
 
-    @admin.action(description="Advance to Ready for Pickup (no balance due / overpaid)")
+    @admin.action(description="Final Payment Verified")
     def advance_to_ready_for_pickup(self, request, queryset):
         advanced = 0
         for req in queryset:
@@ -64,7 +64,7 @@ class BuyRequestAdmin(ModelAdmin):
                 advanced += 1
         self.message_user(request, f"Advanced {advanced} request(s) to Ready for Pickup.")
 
-    @admin.action(description="Process refund (record outbound refund + advance to Ready for Pickup)")
+    @admin.action(description="Refund Processed")
     def mark_refund_processed(self, request, queryset):
         refunded = advanced = 0
         for req in queryset:
