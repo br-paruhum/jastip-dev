@@ -5,7 +5,7 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from . import workflow
 from .constants import Status
-from .models import BuyRequest, Message, Payment, RequestItem, TravelPlan, Transaction
+from .models import BuyRequest, Message, Payment, Refund, RequestItem, TravelPlan, Transaction
 
 
 class RequestItemInline(TabularInline):
@@ -38,13 +38,18 @@ class MessageInline(TabularInline):
 
 @admin.register(BuyRequest)
 class BuyRequestAdmin(ModelAdmin):
+    """Read-only order browser. All buyer-payment verification (deposit and
+    final/balance) is done on the Payments page — the single source of truth —
+    and overpaid refunds live under the dedicated Refunds section. This page no
+    longer carries money actions, so it can't be left in an inconsistent state."""
+
     list_display = ("reference", "plan", "buyer", "status", "invoice_display", "unpaid_display", "created_at")
     list_filter = ("status",)
     search_fields = ("reference", "buyer__email", "plan__reference")
     inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
     readonly_fields = ("reference",)
-    actions = ["advance_to_ready_for_pickup", "mark_refund_processed"]
+    actions = None  # no bulk/payment actions — browsing only
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
@@ -55,30 +60,39 @@ class BuyRequestAdmin(ModelAdmin):
         u = obj.unpaid_amount
         return f"({-u:,.2f}) {obj.currency}" if u < 0 else f"{u:,.2f} {obj.currency}"
 
-    @admin.action(description="Final Payment Verified")
-    def advance_to_ready_for_pickup(self, request, queryset):
-        """Verify the buyer's pending balance payment (the authoritative act —
-        it records the money received and clears Total Due), then advance to
-        Ready for Pickup. Previously this only bumped the status, which left the
-        payment stuck on 'pending' and Total Due unchanged."""
-        verified = advanced = 0
-        for req in queryset:
-            if hasattr(req, "transaction"):
-                pending = req.transaction.payments.filter(
-                    direction=Payment.Direction.INBOUND,
-                    kind=Payment.Kind.BALANCE,
-                    status=Payment.PaymentStatus.PENDING,
-                )
-                for payment in pending:
-                    payment.mark_verified(by_user=request.user)
-                    verified += 1
-            if req.status == Status.PACKAGE_ARRIVED:
-                workflow.on_balance_verified(req)
-                advanced += 1
-        self.message_user(
-            request,
-            f"Verified {verified} balance payment(s); advanced {advanced} request(s) to Ready for Pickup.",
-        )
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Refund)
+class RefundAdmin(ModelAdmin):
+    """Overpaid orders awaiting a refund. Selecting 'Refund Processed' records
+    the outbound refund to the buyer and advances the order to Ready for Pickup."""
+
+    list_display = ("reference", "plan", "buyer", "status", "invoice_display", "refund_due_display", "refund_processed")
+    search_fields = ("reference", "buyer__email", "plan__reference")
+    readonly_fields = ("reference",)
+    actions = ["mark_refund_processed"]
+
+    def get_queryset(self, request):
+        """Only show package-arrived orders that are actually overpaid."""
+        qs = super().get_queryset(request)
+        pks = [r.pk for r in qs.filter(status=Status.PACKAGE_ARRIVED) if r.refund_due > 0]
+        return qs.filter(pk__in=pks)
+
+    def has_add_permission(self, request):
+        return False
+
+    @admin.display(description="Invoice")
+    def invoice_display(self, obj):
+        return f"{obj.invoice_total:,.2f} {obj.currency}"
+
+    @admin.display(description="Refund due")
+    def refund_due_display(self, obj):
+        return f"{obj.refund_due:,.2f} {obj.currency}"
 
     @admin.action(description="Refund Processed")
     def mark_refund_processed(self, request, queryset):

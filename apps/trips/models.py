@@ -344,6 +344,17 @@ class BuyRequest(models.Model):
         return -u if u < 0 else Decimal("0.00")
 
 
+class Refund(BuyRequest):
+    """Proxy of BuyRequest powering the admin 'Refunds' section: the same orders,
+    but presented as a dedicated workspace for processing overpaid refunds so the
+    refund action no longer lives under the confusing 'Buy Requests' label."""
+
+    class Meta:
+        proxy = True
+        verbose_name = "Refund"
+        verbose_name_plural = "Refunds"
+
+
 class RequestItem(models.Model):
     """One requested item; the traveler fills in cost + actual-purchase fields."""
 
