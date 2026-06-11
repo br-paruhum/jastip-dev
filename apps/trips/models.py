@@ -335,6 +335,7 @@ class RequestItem(models.Model):
 
     name = models.CharField(max_length=200)
     quantity = models.PositiveSmallIntegerField(default=1)
+    unit = models.CharField(max_length=20, default="pcs", blank=True, help_text="Unit of measure, e.g. pcs, box, kg.")
     photo = models.ImageField(upload_to="items/requested/", blank=True, null=True)
 
     # Set by the traveler when reviewing the request ("update the cost fields").

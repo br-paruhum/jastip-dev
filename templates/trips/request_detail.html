@@ -19,11 +19,11 @@
         <thead>
           <tr>
             <th rowspan="2" class="lcell">Item Name</th>
-            <th colspan="2">Qty</th>
+            <th colspan="3">Qty</th>
             <th colspan="2">Unit Price</th>
             <th colspan="2">Total ({{ req.currency }})</th>
           </tr>
-          <tr><th>Est</th><th>Act</th><th>Est</th><th>Actual</th><th>Est</th><th>Actual</th></tr>
+          <tr><th>Est</th><th>Act</th><th>Unit</th><th>Est</th><th>Actual</th><th>Est</th><th>Actual</th></tr>
         </thead>
         <tbody>
           {% for item in req.items.all %}
@@ -31,6 +31,7 @@
             <td class="lcell">{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
             <td>{{ item.quantity }}</td>
             <td>{{ item.actual_quantity }}</td>
+            <td>{{ item.unit }}</td>
             <td>{{ item.estimated_unit_cost|intcomma }}</td>
             <td>{{ item.actual_unit_cost|intcomma }}</td>
             <td>{{ item.estimated_line_total|intcomma }}</td>
@@ -39,36 +40,36 @@
           {% endfor %}
           <tr class="subtotal">
             <td class="lcell">Sub-Total Items</td>
-            <td>{{ req.est_qty_total }}</td><td>{{ req.act_qty_total }}</td>
+            <td>{{ req.est_qty_total }}</td><td>{{ req.act_qty_total }}</td><td></td>
             <td></td><td></td>
             <td>{{ req.items_estimated_total|intcomma }}</td><td>{{ req.items_actual_total|intcomma }}</td>
           </tr>
           <tr>
             <td class="lcell">Margin</td>
-            <td></td><td>{{ req.plan.margin_percent|floatformat:"-2" }}%</td><td></td><td></td>
+            <td></td><td>{{ req.plan.margin_percent|floatformat:"-2" }}%</td><td></td><td></td><td></td>
             <td>{{ req.estimated_margin|intcomma }}</td><td>{{ req.actual_margin|intcomma }}</td>
           </tr>
           <tr>
             <td class="lcell">Shipment (kg)</td>
-            <td>{{ req.estimated_weight_kg }}</td><td>{% if req.actual_weight_kg %}{{ req.actual_weight_kg }}{% endif %}</td>
+            <td>{{ req.estimated_weight_kg }}</td><td>{% if req.actual_weight_kg %}{{ req.actual_weight_kg }}{% endif %}</td><td></td>
             <td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td>
             <td>{{ req.estimated_shipment_cost|intcomma }}</td><td>{{ req.shipment_cost|intcomma }}</td>
           </tr>
           <tr>
             <td class="lcell">Custom Duty</td>
-            <td></td><td></td><td></td><td></td>
+            <td></td><td></td><td></td><td></td><td></td>
             <td>{{ req.estimated_custom|intcomma }}</td><td>{{ req.actual_custom|intcomma }}</td>
           </tr>
           <tr class="total">
             <td class="lcell">Total Invoice</td>
-            <td></td><td></td><td></td><td></td>
+            <td></td><td></td><td></td><td></td><td></td>
             <td>{{ req.estimated_invoice_total|intcomma }}</td><td>{{ req.invoice_total|intcomma }}</td>
           </tr>
-          <tr><td class="lcell" colspan="6">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>
-          <tr><td class="lcell" colspan="6">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
-          <tr class="total"><td class="lcell" colspan="6">Unpaid / (Overpaid)</td><td>{{ req.invoice_unpaid_overpaid|accounting }}</td></tr>
-          <tr><td class="lcell" colspan="6">Final (Payment)/Refund Made</td><td>{{ req.final_settlement|accounting }}</td></tr>
-          <tr class="total"><td class="lcell" colspan="6">Total Due</td><td>0.00</td></tr>
+          <tr><td class="lcell" colspan="7">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>
+          <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
+          <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ req.invoice_unpaid_overpaid|accounting }}</td></tr>
+          <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ req.final_settlement|accounting }}</td></tr>
+          <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>0.00</td></tr>
         </tbody>
       </table>
       </div>

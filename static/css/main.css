@@ -148,6 +148,11 @@ table.offers.offers-centered td.shipment-cell { text-align: right; }
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
   outline: none; border-color: var(--clay); box-shadow: 0 0 0 3px var(--clay-soft); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+/* Item rows on the order form: Item name / Qty / Unit at 75 / 10 / 15 */
+.form-row.item-cols { grid-template-columns: 75fr 10fr 15fr; }
+/* Let the fr ratio hold: inputs default to min-width:auto which would otherwise
+   stop the narrow Qty/Unit columns from shrinking to 10/15. */
+.form-row.item-cols > .form-field { min-width: 0; }
 .help { font-size: .8rem; color: var(--slate-400); margin-top: .25rem; }
 .errorlist { color: var(--danger); font-size: .82rem; list-style: none; padding: 0; margin: .3rem 0 0; }
 .password-wrap { position: relative; }

@@ -82,3 +82,10 @@ DEFAULT_PAYMENT_TERM = (
     "Custom fare at the destination country is paid by the buyer "
     "(reimbursable to the traveler with proof of payment)."
 )
+
+# Pre-filled (editable) note the buyer sends to the traveler with a request.
+DEFAULT_BUYER_NOTE = (
+    "Please send me a message if you find difficulties finding my item(s) - "
+    "(product, product size/type or quantity), for I can think for substitutions.\n"
+    "Thank you."
+)

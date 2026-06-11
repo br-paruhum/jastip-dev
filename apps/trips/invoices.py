@@ -83,44 +83,45 @@ def render_invoice_pdf(req) -> bytes:
     # Items table — two columns (Estimate / Actual)
     act_weight = req.actual_weight_kg if req.has_actual_weight else ""
     data = [
-        ["#", "Item", "Qty", "", f"Unit Price ({cur})", "", f"Total ({cur})", ""],
-        ["", "", "Est", "Act", "Est", "Actual", "Est", "Actual"],
+        ["#", "Item", "Qty", "", "", f"Unit Price ({cur})", "", f"Total ({cur})", ""],
+        ["", "", "Est", "Act", "Unit", "Est", "Actual", "Est", "Actual"],
     ]
     for i, item in enumerate(req.items.all(), start=1):
         data.append([
-            str(i), item.name, str(item.quantity), str(item.actual_quantity),
+            str(i), item.name, str(item.quantity), str(item.actual_quantity), item.unit,
             _money(item.estimated_unit_cost), _money(item.actual_unit_cost),
             _money(item.estimated_line_total), _money(item.actual_line_total),
         ])
     n_items = req.items.count()
     body_start = 2
     sub_row = body_start + n_items
-    data.append(["", "Sub-Total Items", str(req.est_qty_total), str(req.act_qty_total),
+    data.append(["", "Sub-Total Items", str(req.est_qty_total), str(req.act_qty_total), "",
                  "", "", _money(req.items_estimated_total), _money(req.items_actual_total)])
     _mp = plan.margin_percent
     _mp_str = f"{int(_mp) if _mp == _mp.to_integral_value() else _mp}%"
-    data.append(["", "Margin", "", _mp_str, "", "",
+    data.append(["", "Margin", "", _mp_str, "", "", "",
                  _money(req.estimated_margin), _money(req.actual_margin)])
-    data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight),
+    data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight), "",
                  "", _money(plan.shipment_cost_per_kg),
                  _money(req.estimated_shipment_cost), _money(req.shipment_cost)])
-    data.append(["", "Custom Duty", "", "", "", "",
+    data.append(["", "Custom Duty", "", "", "", "", "",
                  _money(req.estimated_custom), _money(req.actual_custom)])
     total_row = len(data)
-    data.append(["", "Total Invoice", "", "", "", "",
+    data.append(["", "Total Invoice", "", "", "", "", "",
                  _money(req.estimated_invoice_total), _money(req.invoice_total)])
 
-    items_tbl = Table(data, colWidths=[8 * mm, 44 * mm, 12 * mm, 12 * mm, 24 * mm, 24 * mm, 25 * mm, 25 * mm])
+    items_tbl = Table(data, colWidths=[8 * mm, 40 * mm, 11 * mm, 11 * mm, 12 * mm, 22 * mm, 22 * mm, 24 * mm, 24 * mm])
     items_tbl.setStyle(TableStyle([
         # grouped header spans
         ("SPAN", (0, 0), (0, 1)), ("SPAN", (1, 0), (1, 1)),
-        ("SPAN", (2, 0), (3, 0)), ("SPAN", (4, 0), (5, 0)), ("SPAN", (6, 0), (7, 0)),
+        ("SPAN", (2, 0), (4, 0)), ("SPAN", (5, 0), (6, 0)), ("SPAN", (7, 0), (8, 0)),
         ("BACKGROUND", (0, 0), (-1, 1), CLAY),
         ("TEXTCOLOR", (0, 0), (-1, 1), colors.white),
         ("FONTNAME", (0, 0), (-1, 1), "Helvetica-Bold"),
         ("ALIGN", (2, 0), (-1, 1), "CENTER"),
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("ALIGN", (2, body_start), (-1, -1), "RIGHT"),
+        ("ALIGN", (4, body_start), (4, -1), "CENTER"),  # Unit column
         ("ALIGN", (0, 0), (0, -1), "CENTER"),
         ("ROWBACKGROUNDS", (0, body_start), (-1, sub_row - 1), [colors.white, CREAM]),
         ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),

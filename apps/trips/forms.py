@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.forms import inlineformset_factory
 
-from .constants import COUNTRY_CHOICES, DEFAULT_PAYMENT_TERM
+from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, DEFAULT_PAYMENT_TERM
 from .models import BuyRequest, Message, RequestItem, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
@@ -65,7 +65,13 @@ class BuyRequestForm(forms.ModelForm):
     class Meta:
         model = BuyRequest
         fields = ["buyer_notes"]
-        widgets = {"buyer_notes": forms.Textarea(attrs={"rows": 3, "placeholder": "Notes for the traveler (optional)"})}
+        widgets = {"buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pre-fill a helpful, editable default note on a new (unbound) request.
+        if not self.instance.pk and not (self.initial.get("buyer_notes") or self.data):
+            self.fields["buyer_notes"].initial = DEFAULT_BUYER_NOTE
 
 
 class ReviewForm(forms.ModelForm):
@@ -98,8 +104,11 @@ class ReviewForm(forms.ModelForm):
 class RequestItemForm(forms.ModelForm):
     class Meta:
         model = RequestItem
-        fields = ["name", "quantity", "photo"]
-        widgets = {"name": forms.TextInput(attrs={"placeholder": "Item name"})}
+        fields = ["name", "quantity", "unit", "photo"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Item name"}),
+            "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
+        }
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")

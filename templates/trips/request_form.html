@@ -19,9 +19,10 @@
             <div class="card-body">
               {{ item_form.id }}
               <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
-              <div class="form-row">
+              <div class="form-row item-cols">
                 <div class="form-field"><label>Item name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
                 <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
+                <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
               </div>
               <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
               <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
@@ -45,9 +46,10 @@
   <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
     {{ formset.empty_form.id }}
     <span class="del-field" style="display:none">{{ formset.empty_form.DELETE }}</span>
-    <div class="form-row">
+    <div class="form-row item-cols">
       <div class="form-field"><label>Item name</label>{{ formset.empty_form.name }}</div>
       <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
+      <div class="form-field"><label>Unit</label>{{ formset.empty_form.unit }}</div>
     </div>
     <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
     <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
