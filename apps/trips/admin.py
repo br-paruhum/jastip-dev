@@ -149,10 +149,14 @@ class TransactionAdmin(ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(ModelAdmin):
-    list_display = ("__str__", "transaction", "direction", "kind", "amount", "currency", "status", "proof_link")
+    list_display = ("__str__", "transaction", "direction", "kind", "amount_display", "currency", "status", "proof_link")
     list_filter = ("status", "direction", "kind", "method")
     search_fields = ("transaction__request__reference", "provider_ref")
     actions = ["verify_payments"]
+
+    @admin.display(description="Amount", ordering="amount")
+    def amount_display(self, obj):
+        return f"{obj.amount:,.2f}"
 
     @admin.display(description="Proof")
     def proof_link(self, obj):
