@@ -121,10 +121,17 @@
 
         {% if order %}
         <!-- Panel: Order detail (embedded transaction view) -->
-        <div data-panel="order-detail">
-          <p style="margin:0 0 12px"><a class="muted" href="#buying-order" data-tab="buying-order">← Back to My Buying Order</a></p>
+        {% if is_traveler %}{% with origin="travel-plans" origin_label="My Travel Plans" %}
+        <div data-panel="order-detail" data-origin="{{ origin }}">
+          <p style="margin:0 0 12px"><a class="muted" href="#{{ origin }}" data-tab="{{ origin }}">← Back to {{ origin_label }}</a></p>
           {% include "trips/_request_detail_body.html" %}
         </div>
+        {% endwith %}{% else %}{% with origin="buying-order" origin_label="My Buying Order" %}
+        <div data-panel="order-detail" data-origin="{{ origin }}">
+          <p style="margin:0 0 12px"><a class="muted" href="#{{ origin }}" data-tab="{{ origin }}">← Back to {{ origin_label }}</a></p>
+          {% include "trips/_request_detail_body.html" %}
+        </div>
+        {% endwith %}{% endif %}
         {% endif %}
 
         <!-- Panel: Reset Password -->
@@ -178,8 +185,13 @@
   function activate(name) {
     if (names.indexOf(name) === -1) name = 'profile';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
-    // The transient order-detail panel keeps "My Buying Order" highlighted in the sidebar.
-    var sideName = (name === 'order-detail') ? 'buying-order' : name;
+    // The transient order-detail panel keeps its origin tab (Travel Plans for a
+    // traveler, Buying Order for a buyer) highlighted in the sidebar.
+    var sideName = name;
+    if (name === 'order-detail') {
+      var op = document.querySelector('[data-panel="order-detail"]');
+      sideName = (op && op.dataset.origin) || 'buying-order';
+    }
     sideLinks.forEach(function (l) { l.classList.toggle('active', l.dataset.tab === sideName); });
   }
   links.forEach(function (l) {
