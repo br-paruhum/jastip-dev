@@ -229,14 +229,25 @@ class CloseCronTests(TestCase):
         Transaction.objects.create(request=self.req)
         workflow.on_buyer_cleared(self.req)
 
-    def test_recent_clear_not_closed_by_default_grace(self):
-        # cleared just now -> 24h grace means it stays CLEAR
+    def test_clear_today_not_closed(self):
+        # cleared today -> closes at tomorrow's 01:00 run, so it stays CLEAR now
         call_command("close_cleared")
         self.req.refresh_from_db()
         self.assertEqual(self.req.status, Status.CLEAR)
 
-    def test_grace_zero_closes_immediately(self):
-        call_command("close_cleared", "--grace-hours", "0")
+    def test_all_closes_immediately(self):
+        call_command("close_cleared", "--all")
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.status, Status.CLOSED)
+
+    def test_cleared_yesterday_is_closed(self):
+        # Cleared late yesterday (local) -> the next 01:00 run closes it, even
+        # though less than 24h has elapsed.
+        local_midnight = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
+        BuyRequest.objects.filter(pk=self.req.pk).update(
+            cleared_at=local_midnight - timedelta(minutes=1)
+        )
+        call_command("close_cleared")
         self.req.refresh_from_db()
         self.assertEqual(self.req.status, Status.CLOSED)
 

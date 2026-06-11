@@ -1,16 +1,15 @@
-"""Close transactions the buyer marked Clear once the grace period elapses.
+"""Close transactions the buyer marked Clear, the day after they clear it.
 
-Intended to run daily from cron. Finds BuyRequests in the CLEAR status whose
-`cleared_at` is older than the grace window (default 24h = "next day") and
-closes them, which triggers the traveler payout.
+Intended to run daily at 01:00 (server tz = Asia/Jakarta). Finds BuyRequests in
+the CLEAR status that were cleared on an earlier calendar day and closes them,
+which triggers the traveler payout. So a buyer who clears at any time today has
+until the end of today; the next 01:00 run closes it tomorrow morning.
 
 Usage:
-    python manage.py close_cleared                # close those cleared >= 24h ago
-    python manage.py close_cleared --grace-hours 0  # close all CLEAR now (testing)
-    python manage.py close_cleared --dry-run        # show what would close
+    python manage.py close_cleared            # close everything cleared before today (WIB)
+    python manage.py close_cleared --all      # close every CLEAR now (manual / testing)
+    python manage.py close_cleared --dry-run  # show what would close
 """
-
-from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -21,12 +20,12 @@ from apps.trips.models import BuyRequest
 
 
 class Command(BaseCommand):
-    help = "Close CLEAR transactions past the grace period (triggers traveler payout)."
+    help = "Close CLEAR transactions cleared before today (triggers the traveler payout)."
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--grace-hours", type=int, default=24,
-            help="Hours a request must stay CLEAR before auto-closing (default 24).",
+            "--all", action="store_true",
+            help="Close every CLEAR transaction now, ignoring the day cutoff (manual/testing).",
         )
         parser.add_argument(
             "--dry-run", action="store_true",
@@ -34,16 +33,23 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        grace = options["grace_hours"]
+        close_all = options["all"]
         dry = options["dry_run"]
-        cutoff = timezone.now() - timedelta(hours=grace)
 
         qs = BuyRequest.objects.filter(
-            status=Status.CLEAR, cleared_at__isnull=False, cleared_at__lte=cutoff
+            status=Status.CLEAR, cleared_at__isnull=False
         ).select_related("plan__traveler", "buyer")
 
+        if not close_all:
+            # Start of today in the server's local timezone (WIB). Anything
+            # cleared before this — i.e. on an earlier calendar day — is closed.
+            today_start = timezone.localtime().replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+            qs = qs.filter(cleared_at__lt=today_start)
+
         if not qs:
-            self.stdout.write(f"No CLEAR transactions older than {grace}h to close.")
+            self.stdout.write("No CLEAR transactions to close.")
             return
 
         closed = 0
