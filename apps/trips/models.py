@@ -88,9 +88,9 @@ class TravelPlan(models.Model):
 
 
 class BuyRequest(models.Model):
-    """A buyer 'blocks' a travel plan and lists items to purchase.
+    """A buyer 'orders' a travel plan and lists items to purchase.
 
-    This carries the transaction lifecycle from 'Request Received' onward.
+    This carries the transaction lifecycle from 'Ordered' onward.
     """
 
     plan = models.ForeignKey(TravelPlan, on_delete=models.CASCADE, related_name="buy_requests")
@@ -155,11 +155,8 @@ class BuyRequest(models.Model):
 
     @property
     def detail_status_label(self) -> str:
-        """Status label shown on the request detail page. 'Request Received'
-        reads as 'Request Submitted' here to avoid confusing the buyer (who
-        submitted it); home/profile tables keep the home-page wording."""
-        if self.status == Status.REQUEST_RECEIVED:
-            return "Request Submitted"
+        """Status label shown on the request detail page. Mirrors the global
+        status display (e.g. 'Ordered' for REQUEST_RECEIVED)."""
         return self.get_status_display()
 
     # --- Money (no FX; the plan's shipment currency is the settlement currency) ---

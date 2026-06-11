@@ -26,7 +26,7 @@ who want items from abroad. Here is the full journey, step by step:</p>
   <li><strong>Traveler posts a Travel Plan</strong> with route, available weight, shipment cost and margin,
       then clicks Submit. <em>(Status: New)</em></li>
   <li><strong>Buyer clicks &ldquo;Block&rdquo;</strong>, logs in, fills in the buying request and submits.
-      An email &mdash; with a WhatsApp reminder &mdash; is sent to the traveler. <em>(Status: Request Received)</em></li>
+      An email &mdash; with a WhatsApp reminder &mdash; is sent to the traveler. <em>(Status: Ordered)</em></li>
   <li><strong>Traveler reviews</strong> the request, fills in the cost of each requested item, and selects
       Accept or Reject. The buyer is notified by email and WhatsApp. <em>(Status: Accepted or Reopen)</em></li>
   <li><strong>If accepted, the buyer transfers the required deposit</strong> to the Admin account. Admin

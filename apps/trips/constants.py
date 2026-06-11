@@ -5,7 +5,7 @@ class Status(models.TextChoices):
     """The 8-step jastip lifecycle (+ rejection)."""
 
     NEW = "new", "New"
-    REQUEST_RECEIVED = "request_received", "Request Received"
+    REQUEST_RECEIVED = "request_received", "Ordered"
     ACCEPTED = "accepted", "Accepted"
     REOPEN = "reopen", "Reopen"
     REJECTED = "rejected", "Rejected"
