@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from io import BytesIO
+from xml.sax.saxutils import escape
 
 from django.conf import settings
 from reportlab.lib import colors
@@ -53,6 +54,8 @@ def render_invoice_pdf(req) -> bytes:
     label = ParagraphStyle("label", parent=styles["Normal"], textColor=SLATE, fontSize=9)
     small = ParagraphStyle("small", parent=styles["Normal"], textColor=SLATE, fontSize=8.5, leading=12)
     right = ParagraphStyle("right", parent=styles["Normal"], alignment=TA_RIGHT, fontSize=9)
+    # Item-name cell: a flowable Paragraph so long names wrap within the column.
+    item_cell = ParagraphStyle("item_cell", parent=styles["Normal"], fontSize=8.5, leading=10.5, textColor=INK)
 
     cur = req.currency
     plan = req.plan
@@ -88,7 +91,7 @@ def render_invoice_pdf(req) -> bytes:
     ]
     for i, item in enumerate(req.items.all(), start=1):
         data.append([
-            str(i), item.name, str(item.quantity), str(item.actual_quantity), item.unit,
+            str(i), Paragraph(escape(item.name), item_cell), str(item.quantity), str(item.actual_quantity), item.unit,
             _money(item.estimated_unit_cost), _money(item.actual_unit_cost),
             _money(item.estimated_line_total), _money(item.actual_line_total),
         ])
@@ -123,6 +126,7 @@ def render_invoice_pdf(req) -> bytes:
         ("ALIGN", (2, body_start), (-1, -1), "RIGHT"),
         ("ALIGN", (4, body_start), (4, -1), "CENTER"),  # Unit column
         ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("VALIGN", (0, body_start), (-1, -1), "MIDDLE"),  # keep numbers centered against a wrapped item name
         ("ROWBACKGROUNDS", (0, body_start), (-1, sub_row - 1), [colors.white, CREAM]),
         ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
         # subtotal + summary rows bold
