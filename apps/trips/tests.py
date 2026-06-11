@@ -186,6 +186,23 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("195.00"))
         self.assertEqual(self.req.final_settlement, Decimal("-195.00"))
 
+    def test_settlement_zero_after_deposit_before_actuals(self):
+        """Deposit verified but no actual purchase yet: the statement
+        reconciliation lines read 0, not the whole deposit as 'overpaid'."""
+        for item in self.req.items.all():
+            item.estimated_unit_cost = Decimal("100")
+            item.save()
+        self.assertGreater(self.req.deposit_due, Decimal("0"))
+        Payment.objects.create(
+            transaction=self.tx, direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.DEPOSIT, currency=Currency.USD,
+            amount=self.req.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        # Nothing purchased yet -> empty Actual column -> nothing to reconcile.
+        self.assertEqual(self.req.invoice_total, Decimal("0.00"))
+        self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("0.00"))
+        self.assertEqual(self.req.final_settlement, Decimal("0.00"))
+
     def test_reject_reopens_plan(self):
         workflow.on_request_submitted(self.req)
         workflow.on_request_rejected(self.req, reason="Out of stock")

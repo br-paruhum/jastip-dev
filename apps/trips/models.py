@@ -258,8 +258,16 @@ class BuyRequest(models.Model):
     @property
     def invoice_unpaid_overpaid(self) -> Decimal:
         """Invoice statement line: actual Total Invoice − Deposit Paid.
-        Positive = buyer still owes, negative = overpaid."""
-        return self._q(self.invoice_total - self.deposit_paid_amount)
+        Positive = buyer still owes, negative = overpaid.
+
+        Before the traveler records the actual purchase the Actual column is
+        empty (Total Invoice = 0). There is nothing to reconcile against the
+        deposit yet, so this reads 0 instead of showing the whole deposit as
+        'overpaid' (which confused buyers right after the deposit was verified)."""
+        total = self.invoice_total
+        if total <= 0:
+            return Decimal("0.00")
+        return self._q(total - self.deposit_paid_amount)
 
     @property
     def final_settlement(self) -> Decimal:
