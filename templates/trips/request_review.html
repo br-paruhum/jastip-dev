@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize %}
+{% load humanize static %}
 {% block title %}Review request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -12,12 +12,12 @@
       {{ formset.management_form }}
       <div class="card-body">
         <table class="invoice">
-          <tr><td><strong>Item</strong></td><td><strong>Qty</strong></td><td><strong>Unit cost ({{ req.currency }})</strong></td></tr>
+          <tr><td><strong>Item</strong></td><td class="num-right"><strong>Qty</strong></td><td class="num-right"><strong>Unit cost ({{ req.currency }})</strong></td></tr>
           {% for f in formset %}
           <tr>
             <td>{{ f.instance.name }}{{ f.id }}</td>
-            <td>{{ f.instance.quantity }}</td>
-            <td>{{ f.estimated_unit_cost }}{{ f.estimated_unit_cost.errors }}</td>
+            <td class="num-right">{{ f.instance.quantity }}</td>
+            <td class="num-right">{{ f.estimated_unit_cost }}{{ f.estimated_unit_cost.errors }}</td>
           </tr>
           {% endfor %}
         </table>
@@ -46,3 +46,4 @@
   </div>
 </section>
 {% endblock %}
+{% block extra_js %}<script src="{% static 'js/money.js' %}"></script>{% endblock %}

@@ -127,8 +127,17 @@ RequestItemFormSet = inlineformset_factory(
 )
 
 # Traveler sets the estimated cost of each item when reviewing.
+class ReviewItemForm(forms.ModelForm):
+    class Meta:
+        model = RequestItem
+        fields = ["estimated_unit_cost"]
+        widgets = {
+            "estimated_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
+        }
+
+
 ReviewItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, fields=["estimated_unit_cost"],
+    BuyRequest, RequestItem, form=ReviewItemForm,
     extra=0, can_delete=False,
 )
 

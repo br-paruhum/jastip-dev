@@ -205,6 +205,10 @@ table.offers.offers-centered td.shipment-cell { text-align: right; }
 .invoice { width: 100%; border-collapse: collapse; }
 .invoice td { padding: .45rem 0; border-bottom: 1px solid var(--line); }
 .invoice tr.total td { font-weight: 800; color: var(--slate); border-bottom: 0; font-size: 1.05rem; }
+/* Right-aligned numeric columns (e.g. Qty / Unit cost on the review table) */
+.invoice td.num-right { text-align: right; }
+.invoice td.num-right input { width: 100%; text-align: right; padding: .4rem .55rem; box-sizing: border-box;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
 
 /* Two-column (Estimate / Actual) invoice */
 table.invoice.inv2 { font-size: .9rem; }
