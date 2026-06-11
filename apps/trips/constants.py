@@ -79,8 +79,8 @@ COUNTRY_CHOICES = [("", "Select a country")] + [(n, n) for n in _COUNTRY_NAMES]
 
 DEFAULT_PAYMENT_TERM = (
     "50% deposit of items ordered including margin + 100% of shipment cost. "
-    "Custom fare at the destination country is paid by the buyer "
-    "(reimbursable to the traveler with proof of payment)."
+    "Custom duty at the destination city is paid by the buyer. "
+    "This payment is reimbursable to the traveler with proof of payment."
 )
 
 # Pre-filled (editable) note the buyer sends to the traveler with a request.
