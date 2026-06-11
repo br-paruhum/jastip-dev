@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import Status
-from apps.trips.forms import TravelPlanForm
+from apps.trips.forms import MessageForm, TravelPlanForm
 from apps.trips.models import BuyRequest, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
@@ -34,6 +34,31 @@ def profile(request):
     closed_requests = [r for r in my_requests if r.status == Status.CLOSED]
 
     form = ProfileForm(instance=user)
+
+    # Transaction detail embedded as an in-page panel (?order=<id>#order-detail).
+    order = None
+    order_ctx = {}
+    order_id = request.GET.get("order")
+    if order_id:
+        order = (
+            BuyRequest.objects.select_related("plan", "plan__traveler", "buyer")
+            .filter(pk=order_id)
+            .first()
+        )
+        if order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
+            is_traveler = user == order.plan.traveler
+            is_buyer = user == order.buyer
+            order_ctx = {
+                "req": order,
+                "is_traveler": is_traveler,
+                "is_buyer": is_buyer,
+                "chat_messages": order.messages.select_related("sender").all(),
+                "message_form": MessageForm(),
+                "can_chat": is_traveler or is_buyer or user.is_staff,
+            }
+        else:
+            order = None
+
     return render(
         request,
         "accounts/profile.html",
@@ -48,6 +73,8 @@ def profile(request):
             "closed_requests": closed_requests,
             # A plan id to auto-open the buyer request form for (set after Block).
             "block_plan_id": request.GET.get("block"),
+            "order": order,
+            **order_ctx,
         },
     )
 

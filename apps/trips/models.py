@@ -143,7 +143,8 @@ class BuyRequest(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("trips:request_detail", args=[self.pk])
+        # Transaction detail is embedded as an in-page panel on the profile page.
+        return reverse("accounts:profile") + f"?order={self.pk}#order-detail"
 
     @property
     def status_tone(self) -> str:

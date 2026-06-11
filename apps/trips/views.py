@@ -161,7 +161,7 @@ def request_message(request, pk):
         workflow.on_new_message(msg)
     else:
         messages.error(request, "Message cannot be empty.")
-    return redirect(req.get_absolute_url() + "#chat")
+    return redirect(req.get_absolute_url())
 
 
 def _require_traveler(request, req):

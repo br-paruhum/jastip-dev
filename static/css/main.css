@@ -118,6 +118,15 @@ section { padding: 56px 0; }
 .card-body { padding: 20px; }
 .card h3 { font-size: 1.15rem; }
 
+/* --- Foldable card (accordion) --- */
+details.fold > summary { list-style: none; cursor: pointer; padding: 20px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; user-select: none; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h3 { margin: 0; }
+details.fold > summary::after { content: "\25BE"; color: var(--muted); font-size: .9rem; transition: transform .2s ease; }
+details.fold:not([open]) > summary::after { transform: rotate(-90deg); }
+details.fold > .fold-body { padding: 0 20px 20px; }
+
 /* --- Offer table --- */
 .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow); }
 table.offers { width: 100%; border-collapse: collapse; min-width: 760px; }

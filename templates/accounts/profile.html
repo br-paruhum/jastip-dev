@@ -119,6 +119,14 @@
           {% include "accounts/_request_table.html" with requests=closed_requests empty="No closed orders yet." heading="Closed" %}
         </div>
 
+        {% if order %}
+        <!-- Panel: Order detail (embedded transaction view) -->
+        <div data-panel="order-detail">
+          <p style="margin:0 0 12px"><a class="muted" href="#buying-order" data-tab="buying-order">← Back to My Buying Order</a></p>
+          {% include "trips/_request_detail_body.html" %}
+        </div>
+        {% endif %}
+
         <!-- Panel: Reset Password -->
         <div data-panel="reset-password">
           <div class="card" style="max-width:480px"><div class="card-body">
@@ -163,13 +171,16 @@
 <script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
 <script>
 (function () {
-  var links = document.querySelectorAll('.profile-side [data-tab]');
+  var links = document.querySelectorAll('[data-tab]');
+  var sideLinks = document.querySelectorAll('.profile-side [data-tab]');
   var panels = document.querySelectorAll('.profile-main [data-panel]');
   var names = Array.prototype.map.call(panels, function (p) { return p.dataset.panel; });
   function activate(name) {
     if (names.indexOf(name) === -1) name = 'profile';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
-    links.forEach(function (l) { l.classList.toggle('active', l.dataset.tab === name); });
+    // The transient order-detail panel keeps "My Buying Order" highlighted in the sidebar.
+    var sideName = (name === 'order-detail') ? 'buying-order' : name;
+    sideLinks.forEach(function (l) { l.classList.toggle('active', l.dataset.tab === sideName); });
   }
   links.forEach(function (l) {
     l.addEventListener('click', function (e) {
