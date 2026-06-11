@@ -58,8 +58,10 @@ UNFOLD = {
         "show_search": True,
         # Single source of truth: the curated left menu below. The duplicate
         # auto-generated "all applications" list is turned off so there is only
-        # one menu to scan. Sub-items are prefixed with "- " to read as a
-        # sub-menu under each main heading.
+        # one menu to scan. Groups mirror the Django apps 1:1 — the headings
+        # match the app names shown in the breadcrumb (Home > <App> > <Model>),
+        # so the sidebar and breadcrumb stay consistent. Sub-items are prefixed
+        # with "- " to read as a sub-menu under each app heading.
         "show_all_applications": False,
         "navigation": [
             {
@@ -74,7 +76,7 @@ UNFOLD = {
                 ],
             },
             {
-                "title": _("Marketplace"),
+                "title": _("Trips"),
                 "separator": True,
                 "items": [
                     {
@@ -92,12 +94,6 @@ UNFOLD = {
                         "icon": "payments",
                         "link": reverse_lazy("admin:trips_transaction_changelist"),
                     },
-                ],
-            },
-            {
-                "title": _("Payments & Refunds"),
-                "separator": True,
-                "items": [
                     {
                         "title": _("- Payments"),
                         "icon": "account_balance_wallet",
@@ -108,17 +104,17 @@ UNFOLD = {
                         "icon": "currency_exchange",
                         "link": reverse_lazy("admin:trips_refund_changelist"),
                     },
+                    {
+                        "title": _("- Messages"),
+                        "icon": "forum",
+                        "link": reverse_lazy("admin:trips_message_changelist"),
+                    },
                 ],
             },
             {
-                "title": _("Content"),
+                "title": _("Pages"),
                 "separator": True,
                 "items": [
-                    {
-                        "title": _("- Blog posts"),
-                        "icon": "article",
-                        "link": reverse_lazy("admin:blog_post_changelist"),
-                    },
                     {
                         "title": _("- Site pages"),
                         "icon": "description",
@@ -132,18 +128,18 @@ UNFOLD = {
                 ],
             },
             {
-                "title": _("Support"),
+                "title": _("Blog"),
                 "separator": True,
                 "items": [
                     {
-                        "title": _("- Messages"),
-                        "icon": "forum",
-                        "link": reverse_lazy("admin:trips_message_changelist"),
+                        "title": _("- Posts"),
+                        "icon": "article",
+                        "link": reverse_lazy("admin:blog_post_changelist"),
                     },
                 ],
             },
             {
-                "title": _("People & Access"),
+                "title": _("Accounts"),
                 "separator": True,
                 "items": [
                     {
@@ -152,15 +148,27 @@ UNFOLD = {
                         "link": reverse_lazy("admin:accounts_user_changelist"),
                     },
                     {
-                        "title": _("- Groups"),
-                        "icon": "groups",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                    },
-                    {
                         "title": _("- Email addresses"),
                         "icon": "mail",
                         "link": reverse_lazy("admin:account_emailaddress_changelist"),
                     },
+                ],
+            },
+            {
+                "title": _("Authentication and Authorization"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("- Groups"),
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Social Accounts"),
+                "separator": True,
+                "items": [
                     {
                         "title": _("- Social accounts"),
                         "icon": "link",
@@ -172,14 +180,14 @@ UNFOLD = {
                         "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
                     },
                     {
-                        "title": _("- Social app tokens"),
+                        "title": _("- Social application tokens"),
                         "icon": "key",
                         "link": reverse_lazy("admin:socialaccount_socialtoken_changelist"),
                     },
                 ],
             },
             {
-                "title": _("System"),
+                "title": _("Sites"),
                 "separator": True,
                 "items": [
                     {
@@ -187,6 +195,12 @@ UNFOLD = {
                         "icon": "public",
                         "link": reverse_lazy("admin:sites_site_changelist"),
                     },
+                ],
+            },
+            {
+                "title": _("Notifications"),
+                "separator": True,
+                "items": [
                     {
                         "title": _("- Notification logs"),
                         "icon": "notifications",
