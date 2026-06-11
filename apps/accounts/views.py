@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import Status
+from apps.trips.forms import TravelPlanForm
 from apps.trips.models import BuyRequest, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
@@ -40,6 +41,7 @@ def profile(request):
             "profile_form": form,
             "otp_form": OTPForm(),
             "password_form": ChangePasswordForm(user),
+            "plan_form": TravelPlanForm(),
             "open_plans": open_plans,
             "closed_plans": closed_plans,
             "open_requests": open_requests,

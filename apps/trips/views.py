@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -50,7 +51,7 @@ def plan_create(request):
             plan.traveler = request.user
             plan.save()
             messages.success(request, "Travel plan published.")
-            return redirect("pages:home")
+            return redirect(reverse("accounts:profile") + "#travel-plans")
     else:
         form = TravelPlanForm()
     return render(request, "trips/plan_form.html", {"form": form})

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Your profile — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -71,8 +72,40 @@
         <div data-panel="travel-plans">
           <div class="profile-panel-header">
             <h2 style="margin:0">My Travel Plans</h2>
-            <a class="btn btn-primary btn-sm" href="{% url 'trips:plan_create' %}">Post a Travel Plan</a>
+            <button type="button" class="btn btn-primary btn-sm" id="toggle-plan-form">Post a Travel Plan</button>
           </div>
+
+          <!-- Inline "Post a Travel Plan" form (toggled by the button above) -->
+          <div id="plan-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
+            <h3 style="margin-top:0">Post a Travel Plan</h3>
+            <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
+            <form method="post" action="{% url 'trips:plan_create' %}">
+              {% csrf_token %}
+              <div class="form-field"><label>Travel Date</label>{{ plan_form.travel_date }}{{ plan_form.travel_date.errors }}</div>
+              <div class="form-row">
+                <div class="form-field"><label>From City</label>{{ plan_form.from_city }}{{ plan_form.from_city.errors }}</div>
+                <div class="form-field"><label>From Country</label>{{ plan_form.from_country }}{{ plan_form.from_country.errors }}</div>
+              </div>
+              <div class="form-row">
+                <div class="form-field"><label>To City</label>{{ plan_form.to_city }}{{ plan_form.to_city.errors }}</div>
+                <div class="form-field"><label>To Country</label>{{ plan_form.to_country }}{{ plan_form.to_country.errors }}</div>
+              </div>
+              <div class="form-row">
+                <div class="form-field"><label>Available Weight (kg)</label>{{ plan_form.available_weight_kg }}{{ plan_form.available_weight_kg.errors }}</div>
+                <div class="form-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}
+                  <p class="help">Applied on top of the ordered items cost.</p></div>
+              </div>
+              <div class="form-row">
+                <div class="form-field"><label>Shipment Currency</label>{{ plan_form.shipment_currency }}</div>
+                <div class="form-field"><label>Shipment Cost per kg</label>{{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}</div>
+              </div>
+              <div class="form-field"><label>Payment Term</label>{{ plan_form.payment_term }}</div>
+              <div style="text-align:center">
+                <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
+              </div>
+            </form>
+          </div></div>
+
           {% include "accounts/_plan_table.html" with plans=open_plans empty="No open travel plans." heading="Current" %}
           {% include "accounts/_plan_table.html" with plans=closed_plans empty="No closed plans yet." heading="Closed" %}
         </div>
@@ -123,7 +156,11 @@
 </section>
 {% endblock %}
 
+{% block extra_head %}<link rel="stylesheet" href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">{% endblock %}
 {% block extra_js %}
+<script src="{% static 'js/money.js' %}"></script>
+<script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
 <script>
 (function () {
   var links = document.querySelectorAll('.profile-side [data-tab]');
@@ -142,6 +179,15 @@
     });
   });
   activate((location.hash || '#profile').slice(1));
+
+  // Toggle the inline "Post a Travel Plan" form.
+  var toggle = document.getElementById('toggle-plan-form');
+  var wrap = document.getElementById('plan-form-wrap');
+  if (toggle && wrap) {
+    toggle.addEventListener('click', function () {
+      wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+    });
+  }
 })();
 </script>
 {% endblock %}
