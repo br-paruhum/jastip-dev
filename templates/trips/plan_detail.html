@@ -10,7 +10,7 @@
 
     <div class="card mt-2"><div class="card-body">
       <table class="invoice">
-        <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d/m/Y" }}</strong></td></tr>
+        <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}</strong></td></tr>
         <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
         <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
         <tr><td>Available weight</td><td>{{ plan.available_weight_kg }} kg</td></tr>
