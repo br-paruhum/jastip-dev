@@ -130,7 +130,7 @@ class PaymentAdmin(ModelAdmin):
             return format_html('<a href="{}" target="_blank">view</a>', obj.proof.url)
         return "—"
 
-    @admin.action(description="Verify selected payment(s) and advance the workflow")
+    @admin.action(description="Selected Payment(s) Verified")
     def verify_payments(self, request, queryset):
         advanced = 0
         for payment in queryset.select_related("transaction__request"):
