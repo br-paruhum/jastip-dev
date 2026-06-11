@@ -69,7 +69,7 @@
           <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
           <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ req.invoice_unpaid_overpaid|accounting }}</td></tr>
           <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ req.final_settlement|accounting }}</td></tr>
-          <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>0.00</td></tr>
+          <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>{{ req.total_due|accounting }}</td></tr>
         </tbody>
       </table>
       </div>

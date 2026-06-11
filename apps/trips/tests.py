@@ -184,7 +184,18 @@ class LifecycleTests(TestCase):
         )
         # unpaid = invoice 410 - deposit 215 = 195
         self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("195.00"))
+        # Balance not paid yet: no final settlement made, full 195 still due.
+        self.assertEqual(self.req.final_settlement, Decimal("0.00"))
+        self.assertEqual(self.req.total_due, Decimal("195.00"))
+
+        # Buyer pays the balance -> final settlement reflects it, due clears.
+        Payment.objects.create(
+            transaction=self.tx, direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.BALANCE, currency=Currency.USD,
+            amount=Decimal("195.00"), status=Payment.PaymentStatus.VERIFIED,
+        )
         self.assertEqual(self.req.final_settlement, Decimal("-195.00"))
+        self.assertEqual(self.req.total_due, Decimal("0.00"))
 
     def test_settlement_zero_after_deposit_before_actuals(self):
         """Deposit verified but no actual purchase yet: the statement
@@ -202,6 +213,7 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.invoice_total, Decimal("0.00"))
         self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("0.00"))
         self.assertEqual(self.req.final_settlement, Decimal("0.00"))
+        self.assertEqual(self.req.total_due, Decimal("0.00"))
 
     def test_reject_reopens_plan(self):
         workflow.on_request_submitted(self.req)

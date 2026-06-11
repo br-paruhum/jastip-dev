@@ -271,8 +271,20 @@ class BuyRequest(models.Model):
 
     @property
     def final_settlement(self) -> Decimal:
-        """The (payment)/refund that settles the statement to zero (= -unpaid)."""
-        return self._q(-self.invoice_unpaid_overpaid)
+        """The balance (payment)/refund actually made after the deposit.
+
+        Shown as a credit, like Deposit Paid: a balance payment reduces what is
+        due (negative), a refund returned to the buyer increases it (positive).
+        Stays zero until the buyer actually settles the post-purchase balance —
+        previously this assumed the full balance was already paid, so the
+        statement showed Total Due 0 while the payment was still outstanding."""
+        return self._q(self.total_refunded - self.balance_paid_amount)
+
+    @property
+    def total_due(self) -> Decimal:
+        """Outstanding after the deposit and any final settlement actually made.
+        Positive = buyer still owes; negative = refund owed to the buyer."""
+        return self._q(self.invoice_unpaid_overpaid + self.final_settlement)
 
     def _paid_of_kind(self, kind=None) -> Decimal:
         if not hasattr(self, "transaction"):

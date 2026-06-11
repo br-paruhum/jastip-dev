@@ -151,7 +151,7 @@ def render_invoice_pdf(req) -> bytes:
         ("Deposit Paid", f"({_money(req.deposit_paid_amount)})"),
         ("Unpaid / (Overpaid)", _acct(req.invoice_unpaid_overpaid)),
         ("Final (Payment)/Refund Made", _acct(req.final_settlement)),
-        ("Total Due", "0.00"),
+        ("Total Due", _acct(req.total_due)),
     ]
     settle_data = [[lbl, f"{cur} {val}"] for lbl, val in settle]
     totals = Table(settle_data, colWidths=[120 * mm, 54 * mm], hAlign="RIGHT")
