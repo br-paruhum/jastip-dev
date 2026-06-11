@@ -1,7 +1,7 @@
 {% extends "email_base.html" %}
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Pickup confirmed — all done</h2>
-  <p>Thanks for confirming pickup for request <strong>{{ request_obj.reference }}</strong> and marking it
+  <p>Thanks for confirming pickup for request #<strong>{{ request_obj.reference }}</strong> by marking it
      <strong>Clear</strong>. Everything is settled — the traveler is being paid and your order is complete.</p>
   <p>Thank you for using Jastip.me!</p>
   {% include "_email_button.html" with url=site_url label="Back to Jastip.me" %}
