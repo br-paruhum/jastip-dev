@@ -1,7 +1,16 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import FAQItem, Promo, SitePage
+from .models import ContactMessage, FAQItem, Promo, SitePage
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(ModelAdmin):
+    list_display = ("created_at", "topic", "name", "email", "handled")
+    list_editable = ("handled",)
+    list_filter = ("topic", "handled", "created_at")
+    search_fields = ("name", "email", "message")
+    readonly_fields = ("name", "email", "topic", "message", "created_at")
 
 
 @admin.register(SitePage)

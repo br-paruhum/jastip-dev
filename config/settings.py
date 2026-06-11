@@ -200,6 +200,12 @@ PAYMENT_DEADLINE_HOURS = int(os.getenv("PAYMENT_DEADLINE_HOURS", "24"))
 # e.g. "ca-pub-1234567890123456"; blank disables the script + ad slots.
 ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")
 
+# Cloudflare Turnstile (contact form anti-spam). When both are blank the widget
+# and server-side verification are skipped, so the form still works; set them to
+# enable enforcement.
+TURNSTILE_SITE_KEY = os.getenv("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.getenv("TURNSTILE_SECRET_KEY", "")
+
 # --- WhatsApp bot -----------------------------------------------------------
 WHATSAPP_BOT_URL = os.getenv("WHATSAPP_BOT_URL", "http://127.0.0.1:8090")
 WHATSAPP_BOT_TOKEN = os.getenv("WHATSAPP_BOT_TOKEN", "change-me")

@@ -56,6 +56,29 @@ class Promo(models.Model):
         return self.title
 
 
+class ContactMessage(models.Model):
+    """An enquiry submitted through the public /contact/ page."""
+
+    class Topic(models.TextChoices):
+        ADVERTISE = "advertise", "Advertising"
+        SUPPORT = "support", "Support"
+        FEEDBACK = "feedback", "Feedback"
+        OTHER = "other", "Other"
+
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    topic = models.CharField(max_length=20, choices=Topic.choices, default=Topic.OTHER)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    handled = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_topic_display()} — {self.name}"
+
+
 class FAQItem(models.Model):
     question = models.CharField(max_length=240)
     answer = models.TextField()

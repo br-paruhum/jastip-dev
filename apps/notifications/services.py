@@ -23,6 +23,17 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="notify")
 
 
+def _site_url(path: str = "") -> str:
+    domain = getattr(settings, "SITE_DOMAIN", "localhost:8019")
+    scheme = "http" if settings.DEBUG else "https"
+    return f"{scheme}://{domain}{path}"
+
+
+def _logo_url() -> str:
+    base = settings.STATIC_URL if settings.STATIC_URL.startswith("/") else "/" + settings.STATIC_URL
+    return _site_url(base + "img/logo-email.png")
+
+
 def _run_off_request(fn):
     """Run a blocking send in the background, unless NOTIFICATIONS_ASYNC is off
     (under tests) in which case run it inline so assertions stay deterministic."""
@@ -56,6 +67,10 @@ def send_email(*, to_user=None, to_address=None, subject, template, context=None
     `attachments` is an optional list of (filename, content_bytes, mimetype).
     """
     context = context or {}
+    # email_base.html header needs an absolute logo URL; default it so any
+    # caller (not just the trips workflow) gets the branded header.
+    context.setdefault("logo_url", _logo_url())
+    context.setdefault("site_url", _site_url("/"))
     address = to_address or (to_user.email if to_user else None)
     if not address:
         return None
