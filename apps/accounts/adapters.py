@@ -27,5 +27,13 @@ class AccountAdapter(DefaultAccountAdapter):
         context.setdefault("site_url", _site_url("/"))
         return super().render_mail(template_prefix, email, context, headers=headers)
 
+    def send_mail(self, template_prefix, email, context):
+        # Send confirmation / password-reset emails off the request cycle so a
+        # slow SMTP handshake doesn't make signup or reset hang.
+        from apps.notifications.services import deliver_in_background
+
+        msg = self.render_mail(template_prefix, email, context)
+        deliver_in_background(msg.send)
+
     def get_email_confirmation_url(self, request, emailconfirmation):
         return super().get_email_confirmation_url(request, emailconfirmation)

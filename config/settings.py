@@ -5,6 +5,7 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 import os
+import sys
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
@@ -175,6 +176,13 @@ else:
 
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Jastip.me <admin@jastip.me>")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jastip.me")
+
+# Send email + WhatsApp notifications off the request/response cycle (in a
+# background thread pool) so a slow SMTP/WhatsApp call never makes an action
+# hang. Forced off under the test runner so mail.outbox assertions stay
+# deterministic.
+TESTING = "test" in sys.argv
+NOTIFICATIONS_ASYNC = env_bool("NOTIFICATIONS_ASYNC", not TESTING)
 
 # --- Business config --------------------------------------------------------
 PLATFORM_COMMISSION_PERCENT = float(os.getenv("PLATFORM_COMMISSION_PERCENT", "2.5"))
