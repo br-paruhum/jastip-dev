@@ -43,7 +43,7 @@ STATUS_TONE = {
     Status.PACKAGE_ARRIVED: "primary",
     Status.READY_FOR_PICKUP: "warning",
     Status.CLEAR: "success",
-    Status.CLOSED: "muted",
+    Status.CLOSED: "success",
 }
 
 

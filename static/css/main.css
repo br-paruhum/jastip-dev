@@ -133,6 +133,9 @@ table.offers.offers-centered td.margin-cell,
 table.offers.offers-centered td.terms-cell,
 table.offers.offers-centered td.avail-cell { text-align: center; }
 table.offers.offers-centered td.shipment-cell { text-align: right; }
+/* Fully centered variant (Completed table): every header and cell centered */
+table.offers.offers-allcenter th,
+table.offers.offers-allcenter td { text-align: center; }
 .route-cell strong { color: var(--slate); display: block; }
 .route-cell span { color: var(--slate-400); font-size: .82rem; }
 .offers-notes { text-align: left; margin-top: 14px; font-size: .82rem; color: var(--slate-400); line-height: 1.5; }
