@@ -5,24 +5,17 @@
 <section class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="eyebrow">Proxy purchasing made simple</span>
-      <h1>Get items from abroad, carried by trusted travelers.</h1>
-      <p class="lead">Travelers post their trips and spare luggage space. Buyers request what they
-        need. Jastip.me holds the funds and keeps everyone safe — for a small {{ COMMISSION_PERCENT }}% fee.</p>
+      <span class="eyebrow">Proxy purchasing service made simple</span>
+      <h1>Buy items from abroad, carried by trusted travelers.</h1>
+      <p class="lead">Travelers post their trip plan and spare luggage space. Buyers request what they
+        want to buy. Jastip.me holds the funds and keeps everyone safe for a small {{ COMMISSION_PERCENT }}% fee.</p>
       <div class="hero-cta">
-        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling — post a trip</a>
-        <a href="#open-offers" class="btn btn-outline">I want to buy</a>
+        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling — Post a trip</a>
+        <a href="#open-offers" class="btn btn-outline btn-buy">I want to buy</a>
       </div>
     </div>
-    <div class="hero-card">
-      <h3>How it works</h3>
-      <ol class="steps">
-        <li><span class="n">1</span><span>Traveler posts a trip with available weight &amp; rates.</span></li>
-        <li><span class="n">2</span><span>Buyer blocks the trip and lists items to buy.</span></li>
-        <li><span class="n">3</span><span>Traveler prices &amp; accepts; buyer pays the deposit.</span></li>
-        <li><span class="n">4</span><span>Items purchased, carried, and handed over. Done.</span></li>
-      </ol>
-      <a href="{% url 'pages:how_to' %}" class="btn btn-ghost btn-sm mt-2">See the full process →</a>
+    <div class="hero-visual">
+      <img src="{% static 'img/airport-sketch.svg' %}" alt="A busy airport with travelers, luggage and aircraft" class="hero-illustration">
     </div>
   </div>
 </section>
@@ -94,7 +87,7 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Completed</span>
-      <h2>Closed transactions</h2>
+      <h2>Closed Transactions</h2>
       <p>Recently completed trips — proof that the community delivers.</p>
     </div>
     {% if closed_plans %}
@@ -125,7 +118,7 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">From the blog</span>
-      <h2>Tips &amp; stories</h2>
+      <h2>Tips &amp; Stories</h2>
     </div>
     {% if latest_posts %}
     <div class="grid grid-3">

@@ -18,7 +18,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
-  <link rel="icon" href="{% static 'img/favicon.svg' %}">
+  <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
   {% if ADSENSE_CLIENT %}
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ADSENSE_CLIENT }}" crossorigin="anonymous"></script>
   {% endif %}
@@ -27,7 +29,7 @@
 <body>
 <header class="site-header">
   <div class="container nav">
-    <a href="{% url 'pages:home' %}" class="brand"><span class="logo-mark">J</span> Jastip<span style="color:var(--clay)">.me</span></a>
+    <a href="{% url 'pages:home' %}" class="brand"><img src="{% static 'img/logo.svg' %}" alt="Jastip.me" class="brand-logo"></a>
     <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
     <ul class="nav-links" id="navlinks">
       {% if user.is_authenticated %}
@@ -42,7 +44,7 @@
         <li><a href="{% url 'pages:how_to' %}">How To</a></li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
         <li><a href="{% url 'account_login' %}">Login</a></li>
-        <li><a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">Register</a></li>
+        <li><a class="btn btn-primary btn-sm btn-register" href="{% url 'account_signup' %}">Register</a></li>
       {% endif %}
     </ul>
   </div>
@@ -60,28 +62,28 @@
   <div class="container">
     <div class="footer-grid">
       <div>
-        <a href="{% url 'pages:home' %}" class="brand" style="color:#fff">
-          <span class="logo-mark">J</span> Jastip.me
+        <a href="{% url 'pages:home' %}" class="brand">
+          <img src="{% static 'img/logo-footer.svg' %}" alt="Jastip.me" class="footer-logo">
         </a>
-        <p class="muted" style="max-width:280px;margin-top:12px;color:#948f84">
-          Travel-powered proxy purchasing. Travelers earn, buyers get what they want from abroad.
+        <p class="muted" style="max-width:280px;margin-top:12px;color:#fff; font-size: 1em;">
+          Proxy Purchasing Service.<br>Travelers earn, buyers get what they want from abroad.
         </p>
       </div>
       <div>
-        <ul class="footer-links">
+        <ul class="footer-links" style="color: #fff;">
           <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
           <li><a href="{% url 'pages:page' 'privacy-policy' %}">Privacy Policy</a></li>
           <li><a href="{% url 'pages:page' 'terms-of-use' %}">Terms of Use</a></li>
           <li><a href="{% url 'pages:how_to' %}">How It Works</a></li>
         </ul>
-        <address class="footer-legal">
+        <address class="footer-legal" style="color: #fff; font-size: 1em;">
           PT Ecoshipper Global Mandiri<br>
           Tax ID 1000 000 0799 7893<br>
           NIB 2502 2602 7916 3
         </address>
       </div>
     </div>
-    <div class="footer-bottom">© {% now "Y" %} Jastip.me — All rights reserved.</div>
+    <div class="footer-bottom" style="text-align: center; color: #fff;">© {% now "Y" %} Jastip.me — All rights reserved.</div>
   </div>
 </footer>
 {% block extra_js %}{% endblock %}
