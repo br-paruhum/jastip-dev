@@ -36,10 +36,8 @@
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
         <li><a href="{% url 'trips:plan_create' %}">Post a Trip</a></li>
         <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
-        <li style="text-align:center">
-          <a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a>
-          <div class="muted" style="font-size:.78rem;margin-top:4px">{{ user.full_name|default:user.email }}</div>
-        </li>
+        <li style="color:#c55a11;font-weight:600;font-size:.9rem">{{ user.full_name|default:user.email }}</li>
+        <li><a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a></li>
       {% else %}
         <li><a href="{% url 'pages:how_to' %}">How To</a></li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
