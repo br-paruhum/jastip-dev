@@ -189,21 +189,21 @@ PurchaseItemFormSet = inlineformset_factory(
 
 
 class CustomFareForm(forms.ModelForm):
-    """Traveler at arrival: custom fare paid at destination (always IDR)."""
+    """Traveler at arrival: custom fare paid at destination (defaults to IDR)."""
 
     class Meta:
         model = BuyRequest
-        fields = ["custom_fare_amount", "custom_fare_proof"]
+        fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
         widgets = {
             "custom_fare_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
         }
 
-    def save(self, commit=True):
-        obj = super().save(commit=False)
-        obj.custom_fare_currency = Currency.IDR
-        if commit:
-            obj.save()
-        return obj
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Duty is almost always paid in IDR at the destination — preselect it,
+        # but leave the dropdown editable so the traveler can change it.
+        if not self.instance.custom_fare_currency:
+            self.initial["custom_fare_currency"] = Currency.IDR
 
 
 class MessageForm(forms.ModelForm):

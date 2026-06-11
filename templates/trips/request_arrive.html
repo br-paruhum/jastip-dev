@@ -13,7 +13,7 @@
       {% csrf_token %}
       <div class="card-body">
         <div class="form-row">
-          <div class="form-field"><label>Custom Duty Currency</label><div class="static-field">IDR</div></div>
+          <div class="form-field"><label>Custom Duty Currency</label>{{ form.custom_fare_currency }}</div>
           <div class="form-field"><label>Custom Duty Amount</label>{{ form.custom_fare_amount }}</div>
         </div>
         <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ form.custom_fare_proof }}</div>
