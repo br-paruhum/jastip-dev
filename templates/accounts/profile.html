@@ -144,21 +144,25 @@
 
         <!-- Panel: Reset Password -->
         <div data-panel="reset-password">
-          <div class="card" style="max-width:480px"><div class="card-body">
+          <div class="card"><div class="card-body">
             <h2 style="margin-top:0">Reset Password</h2>
             <form method="post" action="{% url 'accounts:password_change' %}">
               {% csrf_token %}
-              <div class="form-field">
-                <label for="id_new_password1">New Password</label>
-                {{ password_form.new_password1 }}
-                {{ password_form.new_password1.errors }}
+              <div class="form-row">
+                <div class="form-field">
+                  <label for="id_new_password1">New Password</label>
+                  {{ password_form.new_password1 }}
+                  {{ password_form.new_password1.errors }}
+                </div>
+                <div class="form-field">
+                  <label for="id_new_password2">Repeat New Password</label>
+                  {{ password_form.new_password2 }}
+                  {{ password_form.new_password2.errors }}
+                </div>
               </div>
-              <div class="form-field">
-                <label for="id_new_password2">Repeat New Password</label>
-                {{ password_form.new_password2 }}
-                {{ password_form.new_password2.errors }}
+              <div style="text-align:center;margin-top:10px">
+                <button class="btn btn-primary" type="submit">Save</button>
               </div>
-              <button class="btn btn-primary" type="submit">Save</button>
             </form>
           </div></div>
         </div>
