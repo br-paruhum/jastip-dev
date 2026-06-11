@@ -56,14 +56,18 @@ UNFOLD = {
     },
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": True,
+        # Single source of truth: the curated left menu below. The duplicate
+        # auto-generated "all applications" list is turned off so there is only
+        # one menu to scan. Sub-items are prefixed with "- " to read as a
+        # sub-menu under each main heading.
+        "show_all_applications": False,
         "navigation": [
             {
                 "title": _("Overview"),
                 "separator": False,
                 "items": [
                     {
-                        "title": _("Dashboard"),
+                        "title": _("- Dashboard"),
                         "icon": "dashboard",
                         "link": reverse_lazy("admin:index"),
                     },
@@ -74,19 +78,35 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Travel plans"),
+                        "title": _("- Travel plans"),
                         "icon": "flight_takeoff",
                         "link": reverse_lazy("admin:trips_travelplan_changelist"),
                     },
                     {
-                        "title": _("Buy requests"),
+                        "title": _("- Buy requests"),
                         "icon": "shopping_bag",
                         "link": reverse_lazy("admin:trips_buyrequest_changelist"),
                     },
                     {
-                        "title": _("Transactions"),
+                        "title": _("- Transactions"),
                         "icon": "payments",
                         "link": reverse_lazy("admin:trips_transaction_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Payments & Refunds"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("- Payments"),
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:trips_payment_changelist"),
+                    },
+                    {
+                        "title": _("- Refunds"),
+                        "icon": "currency_exchange",
+                        "link": reverse_lazy("admin:trips_refund_changelist"),
                     },
                 ],
             },
@@ -95,25 +115,82 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Blog posts"),
+                        "title": _("- Blog posts"),
                         "icon": "article",
                         "link": reverse_lazy("admin:blog_post_changelist"),
                     },
                     {
-                        "title": _("Site pages"),
+                        "title": _("- Site pages"),
                         "icon": "description",
                         "link": reverse_lazy("admin:pages_sitepage_changelist"),
+                    },
+                    {
+                        "title": _("- FAQ items"),
+                        "icon": "quiz",
+                        "link": reverse_lazy("admin:pages_faqitem_changelist"),
                     },
                 ],
             },
             {
-                "title": _("People"),
+                "title": _("Support"),
                 "separator": True,
                 "items": [
                     {
-                        "title": _("Users"),
+                        "title": _("- Messages"),
+                        "icon": "forum",
+                        "link": reverse_lazy("admin:trips_message_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("People & Access"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("- Users"),
                         "icon": "person",
                         "link": reverse_lazy("admin:accounts_user_changelist"),
+                    },
+                    {
+                        "title": _("- Groups"),
+                        "icon": "groups",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                    {
+                        "title": _("- Email addresses"),
+                        "icon": "mail",
+                        "link": reverse_lazy("admin:account_emailaddress_changelist"),
+                    },
+                    {
+                        "title": _("- Social accounts"),
+                        "icon": "link",
+                        "link": reverse_lazy("admin:socialaccount_socialaccount_changelist"),
+                    },
+                    {
+                        "title": _("- Social applications"),
+                        "icon": "apps",
+                        "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
+                    },
+                    {
+                        "title": _("- Social app tokens"),
+                        "icon": "key",
+                        "link": reverse_lazy("admin:socialaccount_socialtoken_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("System"),
+                "separator": True,
+                "items": [
+                    {
+                        "title": _("- Sites"),
+                        "icon": "public",
+                        "link": reverse_lazy("admin:sites_site_changelist"),
+                    },
+                    {
+                        "title": _("- Notification logs"),
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notificationlog_changelist"),
                     },
                 ],
             },
