@@ -12,7 +12,7 @@
     <tr><td>Available Weight</td><td>{{ plan.available_weight_kg }} kg</td></tr>
     <tr><td>Shipment Cost</td><td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
     <tr><td>Margin</td><td>{{ plan.margin_percent }}%</td></tr>
-    <tr><td>Payment Term</td><td>{{ PAYMENT_TERM }}</td></tr>
+    <tr><td>Payment Term</td><td>{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">

@@ -13,7 +13,10 @@ class SiteSettings(models.Model):
 
     payment_term = models.TextField(
         default=DEFAULT_PAYMENT_TERM,
-        help_text="Shown as the Payment Term on every trip's detail page.",
+        help_text=(
+            "Shown as the Payment Term on every trip's detail page. "
+            "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
+        ),
     )
     updated_at = models.DateTimeField(auto_now=True)
 
