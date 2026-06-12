@@ -98,14 +98,15 @@
     {% if closed_plans %}
     <div class="table-wrap">
       <table class="offers offers-allcenter">
-        <thead><tr><th>Date</th><th>Route</th><th>Weight</th><th>Status</th></tr></thead>
+        <thead><tr><th>Date</th><th>Route</th><th>Avail (kg)</th><th>Utilizd (kg)</th><th>Status</th></tr></thead>
         <tbody>
           {% for plan in closed_plans %}
           <tr>
             <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
             <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span></td>
-            <td>{{ plan.available_weight_kg }} kg</td>
+            <td>{{ plan.available_weight_kg }}</td>
+            <td>{{ plan.utilized_weight_kg }}</td>
             <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
           </tr>
           {% endfor %}

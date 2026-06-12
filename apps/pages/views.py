@@ -26,7 +26,9 @@ def home(request):
         .prefetch_related("buy_requests")[:30]
     )
     closed_plans = (
-        TravelPlan.objects.filter(status=Status.CLOSED).select_related("traveler")[:20]
+        TravelPlan.objects.filter(status=Status.CLOSED)
+        .select_related("traveler")
+        .prefetch_related("buy_requests")[:20]
     )
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     return render(
