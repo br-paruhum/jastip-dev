@@ -125,6 +125,11 @@ UNFOLD = {
                         "icon": "quiz",
                         "link": reverse_lazy("admin:pages_faqitem_changelist"),
                     },
+                    {
+                        "title": _("- Site settings"),
+                        "icon": "settings",
+                        "link": reverse_lazy("admin:pages_sitesettings_changelist"),
+                    },
                 ],
             },
             {
