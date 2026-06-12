@@ -30,6 +30,10 @@ SITE_ID = 1
 SITE_NAME = "Jastip.me"
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "localhost:8019")
 
+# Only production should be indexed by search engines. Staging/dev stay noindex
+# (robots.txt Disallow + X-Robots-Tag header) so they never compete with prod.
+ALLOW_INDEXING = env_bool("ALLOW_INDEXING", False)
+
 # --- Applications -----------------------------------------------------------
 INSTALLED_APPS = [
     # Unfold must precede django.contrib.admin
@@ -69,6 +73,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "apps.pages.middleware.NoindexMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

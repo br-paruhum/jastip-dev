@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 {% load static humanize %}
+{% block structured_data %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"{{ SITE_NAME }}","url":"{{ request.scheme }}://{{ request.get_host }}/"}</script>
+{% endblock %}
 {% block content %}
 
 <section class="hero">

@@ -107,6 +107,10 @@ def contact(request):
 
 @require_GET
 def robots_txt(request):
+    # Staging/dev (ALLOW_INDEXING off) block all crawling so they never compete
+    # with production for the same content.
+    if not getattr(settings, "ALLOW_INDEXING", False):
+        return HttpResponse("User-agent: *\nDisallow: /\n", content_type="text/plain")
     lines = [
         "User-agent: *",
         "Allow: /",
