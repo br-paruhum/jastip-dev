@@ -41,6 +41,7 @@
             <th>Date</th>
             <th>Route</th>
             <th>Avail<br>(kg)</th>
+            <th>Utilizd<br>(kg)</th>
             <th>Shipment<br>Cost/kg</th>
             <th>Margin<br><sup>1)</sup></th>
             <th>Payment<br>Terms <sup>2)</sup></th>
@@ -57,6 +58,7 @@
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
             </td>
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
+            <td class="avail-cell">{{ plan.utilized_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
             <td class="margin-cell">{{ plan.margin_percent }}%</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
