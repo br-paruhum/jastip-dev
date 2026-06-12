@@ -1,0 +1,48 @@
+<svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect x="4" y="4" width="1192" height="592" rx="26" fill="#faf9f5" stroke="#e3ded2" stroke-width="3"/>
+  <clipPath id="pc"><rect x="4" y="4" width="1192" height="592" rx="26"/></clipPath>
+  <g clip-path="url(#pc)">
+    <rect x="4" y="4" width="1192" height="330" fill="#f3efe6"/>
+    <circle cx="140" cy="96" r="38" fill="#f6e4db" stroke="#cc785c" stroke-width="3"/>
+    <g stroke="#cc785c" stroke-width="3" stroke-linecap="round">
+      <line x1="140" y1="40" x2="140" y2="26"/>
+      <line x1="198" y1="96" x2="214" y2="96"/>
+      <line x1="182" y1="54" x2="194" y2="42"/>
+      <line x1="98" y1="54" x2="86" y2="42"/>
+    </g><g transform="translate(900 140) rotate(-14) scale(1.05)" fill="#fbfaf6" stroke="#1f1d1b" stroke-width="3" stroke-linejoin="round">
+      <path d="M0 0 l92 -8 q26 -2 40 7 q-14 9 -40 9 l-92 -3 z"/>
+      <path d="M24 0 l-18 -26 10 0 30 22z" fill="#cc785c" stroke="#cc785c"/>
+      <path d="M26 5 l-14 24 10 0 26 -19z"/>
+      <path d="M64 -5 l-7 -22 7 0 14 18z" fill="#cc785c" stroke="#cc785c"/>
+      <circle cx="118" cy="3" r="3" fill="#1f1d1b"/>
+    </g><g fill="none" stroke="#1f1d1b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="120" y1="500" x2="1080" y2="500"/>
+  <ellipse cx="600" cy="512" rx="150" ry="16" fill="#f0eee6" stroke="none"/>
+  <!-- person -->
+  <circle cx="560" cy="250" r="40" fill="#f6e4db"/>
+  <path d="M520 232 q40 -34 80 0 l6 -10 q-46 -34 -92 0 z" fill="#1f1d1b" stroke="#1f1d1b"/>
+  <path d="M540 300 q20 22 40 0 l16 120 q-36 22 -72 0 z" fill="#eef3f5"/>
+  <path d="M548 330 l-34 70" />
+  <path d="M572 330 l40 56" />
+  <path d="M524 420 l-8 78" />
+  <path d="M596 420 l10 78" />
+  <!-- suitcase -->
+  <rect x="640" y="372" width="128" height="128" rx="12" fill="#fbfaf6"/>
+  <line x1="640" y1="420" x2="768" y2="420"/>
+  <rect x="676" y="344" width="56" height="30" rx="8" fill="none"/>
+  <rect x="664" y="500" width="20" height="14" rx="3" fill="#1f1d1b" stroke="none"/>
+  <rect x="724" y="500" width="20" height="14" rx="3" fill="#1f1d1b" stroke="none"/>
+</g>
+  <g stroke="#1f1d1b" stroke-width="3" fill="#cc785c">
+    <circle cx="300" cy="300" r="34"/><circle cx="372" cy="250" r="28"/><circle cx="262" cy="380" r="24"/>
+  </g>
+  <g fill="#fbfaf6" font-family="Arial" font-weight="bold" text-anchor="middle">
+    <text x="300" y="312" font-size="30">Rp</text>
+    <text x="372" y="260" font-size="24">Rp</text>
+  </g>
+  <g transform="translate(560 168)" fill="#1f1d1b" stroke="#1f1d1b" stroke-width="3" stroke-linejoin="round">
+    <path d="M-46 6 l46 -22 46 22 -46 22 z" fill="#eef3f5"/>
+    <path d="M30 12 l0 26 q-30 16 -60 0 l0 -26" fill="#f6e4db"/>
+    <line x1="46" y1="6" x2="46" y2="40"/>
+  </g>
+  </g></svg>

@@ -1,0 +1,30 @@
+<svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect x="4" y="4" width="1192" height="592" rx="26" fill="#faf9f5" stroke="#e3ded2" stroke-width="3"/>
+  <clipPath id="pc"><rect x="4" y="4" width="1192" height="592" rx="26"/></clipPath>
+  <g clip-path="url(#pc)">
+    <rect x="4" y="4" width="1192" height="330" fill="#f3efe6"/>
+    <circle cx="1070" cy="96" r="38" fill="#f6e4db" stroke="#cc785c" stroke-width="3"/>
+    <g stroke="#cc785c" stroke-width="3" stroke-linecap="round">
+      <line x1="1070" y1="40" x2="1070" y2="26"/>
+      <line x1="1128" y1="96" x2="1144" y2="96"/>
+      <line x1="1112" y1="54" x2="1124" y2="42"/>
+      <line x1="1028" y1="54" x2="1016" y2="42"/>
+    </g><g fill="none" stroke="#1f1d1b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="120" y1="505" x2="1080" y2="505"/>
+  <!-- shield -->
+  <path d="M600 150 q120 50 196 44 q14 150 -60 248 q-58 46 -136 78 q-78 -32 -136 -78 q-74 -98 -60 -248 q76 6 196 -44 z" fill="#eef3f5"/>
+</g>
+  <path d="M524 372 l52 56 108 -130" fill="none" stroke="#cc785c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+<g fill="none" stroke="#1f1d1b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- padlock -->
+  <rect x="838" y="360" width="150" height="128" rx="16" fill="#f6e4db"/>
+  <path d="M866 360 l0 -34 q47 -56 94 0 l0 34" fill="none"/>
+  <circle cx="913" cy="412" r="13" fill="#fbfaf6"/>
+  <line x1="913" y1="412" x2="913" y2="450"/>
+  <!-- coins -->
+  <ellipse cx="270" cy="470" rx="62" ry="22" fill="#cc785c"/>
+  <ellipse cx="270" cy="446" rx="62" ry="22" fill="#f6e4db"/>
+  <ellipse cx="270" cy="422" rx="62" ry="22" fill="#fbfaf6"/>
+</g>
+  <text x="270" y="432" font-size="30" font-family="Arial" font-weight="bold" fill="#1f1d1b" text-anchor="middle">Rp</text>
+  </g></svg>

@@ -1,0 +1,33 @@
+<svg viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg" role="img">
+  <rect x="4" y="4" width="1192" height="592" rx="26" fill="#faf9f5" stroke="#e3ded2" stroke-width="3"/>
+  <clipPath id="pc"><rect x="4" y="4" width="1192" height="592" rx="26"/></clipPath>
+  <g clip-path="url(#pc)">
+    <rect x="4" y="4" width="1192" height="330" fill="#f3efe6"/>
+    <circle cx="1070" cy="96" r="38" fill="#f6e4db" stroke="#cc785c" stroke-width="3"/>
+    <g stroke="#cc785c" stroke-width="3" stroke-linecap="round">
+      <line x1="1070" y1="40" x2="1070" y2="26"/>
+      <line x1="1128" y1="96" x2="1144" y2="96"/>
+      <line x1="1112" y1="54" x2="1124" y2="42"/>
+      <line x1="1028" y1="54" x2="1016" y2="42"/>
+    </g><g fill="none" stroke="#1f1d1b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="120" y1="500" x2="1080" y2="500"/>
+  <!-- house / door on right -->
+  <path d="M812 500 l0 -150 120 -92 120 92 0 150" fill="#fbfaf6"/>
+  <path d="M788 360 l144 -110 144 110" fill="none"/>
+  <rect x="892" y="402" width="80" height="98" rx="4" fill="#f6e4db"/>
+  <circle cx="956" cy="452" r="5" fill="#1f1d1b" stroke="none"/>
+  <!-- big parcel center -->
+  <rect x="360" y="300" width="220" height="200" rx="12" fill="#f6e4db"/>
+  <line x1="360" y1="364" x2="580" y2="364"/>
+  <line x1="470" y1="300" x2="470" y2="500"/>
+  <path d="M470 300 q-52 -50 -82 -10 q-2 22 34 18" fill="#fbfaf6"/>
+  <path d="M470 300 q52 -50 82 -10 q2 22 -34 18" fill="#fbfaf6"/>
+  <!-- dashed move arrow parcel->house -->
+</g>
+  <path d="M600 360 q120 -40 196 60" fill="none" stroke="#cc785c" stroke-width="3.4" stroke-dasharray="3 12" stroke-linecap="round"/>
+<g fill="none" stroke="#1f1d1b" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- magnifier over parcel (authenticity) -->
+  <circle cx="300" cy="240" r="58" fill="#eef3f5"/>
+  <line x1="342" y1="282" x2="392" y2="332"/>
+  <path d="M276 240 a24 24 0 0 1 24 -24" />
+</g></g></svg>
