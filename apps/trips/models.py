@@ -8,7 +8,6 @@ from django.utils.text import slugify
 
 from .constants import (
     ACTIVE_TX_STATUSES,
-    DEFAULT_PAYMENT_TERM,
     OPEN_PLAN_STATUSES,
     STATUS_TONE,
     Currency,
@@ -38,8 +37,6 @@ class TravelPlan(models.Model):
         max_digits=5, decimal_places=2, default=Decimal("0"),
         help_text="Applied on top of the ordered items cost.",
     )
-    payment_term = models.TextField(default=DEFAULT_PAYMENT_TERM)
-
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.NEW)
 
     created_at = models.DateTimeField(auto_now_add=True)

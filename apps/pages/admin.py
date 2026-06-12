@@ -1,7 +1,19 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from .models import ContactMessage, FAQItem, Promo, SitePage
+from .models import ContactMessage, FAQItem, Promo, SitePage, SiteSettings
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(ModelAdmin):
+    list_display = ("__str__", "updated_at")
+
+    def has_add_permission(self, request):
+        # Singleton: only allow creating the row if none exists yet.
+        return not SiteSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(ContactMessage)

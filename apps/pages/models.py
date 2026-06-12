@@ -1,6 +1,39 @@
 from django.db import models
 from django.urls import reverse
 
+from apps.trips.constants import DEFAULT_PAYMENT_TERM
+
+
+class SiteSettings(models.Model):
+    """Site-wide settings editable in admin. A single (singleton) row.
+
+    Use SiteSettings.load() to read it from anywhere; it is exposed to every
+    template as PAYMENT_TERM via apps.pages.context_processors.site_globals.
+    """
+
+    payment_term = models.TextField(
+        default=DEFAULT_PAYMENT_TERM,
+        help_text="Shown as the Payment Term on every trip's detail page.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Site Settings"
+        verbose_name_plural = "Site Settings"
+
+    def __str__(self):
+        return "Site Settings"
+
+    def save(self, *args, **kwargs):
+        # Force a single row so there is only ever one settings object.
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
 
 class SitePage(models.Model):
     """Editable static pages: How To, FAQ, Privacy Policy, Terms & Conditions."""

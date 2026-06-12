@@ -10,6 +10,11 @@ def site_globals(request):
 
         return list(Promo.objects.filter(is_active=True))
 
+    def _payment_term():
+        from .models import SiteSettings
+
+        return SiteSettings.load().payment_term
+
     return {
         "SITE_NAME": getattr(settings, "SITE_NAME", "Jastip.me"),
         "SITE_DOMAIN": getattr(settings, "SITE_DOMAIN", ""),
@@ -20,4 +25,6 @@ def site_globals(request):
         "PAYMENT_DEADLINE_HOURS": getattr(settings, "PAYMENT_DEADLINE_HOURS", 24),
         # Lazy: the DB query only runs if a template actually renders the sidebar.
         "sidebar_promos": SimpleLazyObject(_promos),
+        # Site-wide payment term (single admin-editable setting).
+        "PAYMENT_TERM": SimpleLazyObject(_payment_term),
     }

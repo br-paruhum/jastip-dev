@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.forms import inlineformset_factory
 
-from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, DEFAULT_PAYMENT_TERM, Currency
+from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, Currency
 from .models import BuyRequest, Message, RequestItem, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
@@ -46,19 +46,16 @@ class TravelPlanForm(forms.ModelForm):
         fields = [
             "travel_date", "from_city", "from_country", "to_city", "to_country",
             "available_weight_kg", "shipment_currency", "shipment_cost_per_kg",
-            "margin_percent", "payment_term",
+            "margin_percent",
         ]
         widgets = {
             "travel_date": DATE_INPUT,
-            "payment_term": forms.Textarea(attrs={"rows": 3}),
             "shipment_cost_per_kg": ThousandSeparatorNumberInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
-        if not self.instance.pk and not self.initial.get("payment_term"):
-            self.fields["payment_term"].initial = DEFAULT_PAYMENT_TERM
 
 
 class BuyRequestForm(forms.ModelForm):
