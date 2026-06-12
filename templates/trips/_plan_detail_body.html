@@ -1,7 +1,8 @@
 {% load humanize %}
-<span class="eyebrow">Travel Plan {{ plan.reference }}</span>
-<h1>{{ plan.from_city }} → {{ plan.to_city }}</h1>
-{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+  <span class="eyebrow" style="margin:0">Travel Plan {{ plan.reference }}</span>
+  {% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}
+</div>
 
 <div class="card mt-2"><div class="card-body">
   <table class="invoice">
@@ -13,13 +14,13 @@
     <tr><td>Margin</td><td>{{ plan.margin_percent }}%</td></tr>
     <tr><td>Payment Term</td><td>{{ plan.payment_term }}</td></tr>
   </table>
+  {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
-    {% if plan.is_open and user != plan.traveler %}
-      <a class="btn btn-primary" href="{% url 'trips:request_create' plan.id %}">Submit Order</a>
-    {% elif user == plan.traveler %}
-      <span class="muted">This is your travel plan.</span>
-    {% else %}
-      <span class="badge badge-muted">No longer open</span>
-    {% endif %}
+    <a class="btn btn-primary" href="{% url 'trips:request_create' plan.id %}">Submit Order</a>
   </div>
+  {% elif user != plan.traveler %}
+  <div class="mt-2" style="text-align: center;">
+    <span class="badge badge-muted">No longer open</span>
+  </div>
+  {% endif %}
 </div></div>
