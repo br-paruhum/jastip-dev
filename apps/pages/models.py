@@ -3,13 +3,13 @@ from django.urls import reverse
 
 
 class SitePage(models.Model):
-    """Editable static pages: How To, FAQ, Privacy Policy, Terms of Use."""
+    """Editable static pages: How To, FAQ, Privacy Policy, Terms & Conditions."""
 
     class Kind(models.TextChoices):
         HOW_TO = "how-to", "How To"
         FAQ = "faq", "FAQ"
         PRIVACY = "privacy", "Privacy Policy"
-        TERMS = "terms", "Terms of Use"
+        TERMS = "terms", "Terms & Conditions"
         GENERIC = "generic", "Generic"
 
     kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.GENERIC)

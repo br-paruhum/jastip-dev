@@ -54,7 +54,7 @@ correspondence happens by email, with a copy to admin.</p>
 <p>We respect your privacy. Your name and phone number are never shown publicly — they are shared
 only with the counterparty of a transaction and the admin. We store the minimum data needed to
 operate the service and never sell your data.</p>"""),
-    ("terms-of-use", SitePage.Kind.TERMS, "Terms of Use", """
+    ("terms-conditions", SitePage.Kind.TERMS, "Terms & Conditions", """
 <p>By using Jastip.me you agree to act in good faith. Jastip.me is a platform that facilitates
 proxy purchasing and holds funds in escrow for a 2.5% fee. All correspondence between travelers and
 buyers is conducted through email with a copy to admin.</p>"""),

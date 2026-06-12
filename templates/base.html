@@ -63,28 +63,29 @@
         <a href="{% url 'pages:home' %}" class="brand">
           <img src="{% static 'img/logo-footer.svg' %}" alt="Jastip.me" class="footer-logo">
         </a>
-        <p class="muted" style="max-width:280px;margin-top:12px;color:#fff; font-size: 1em;">
-          Proxy Purchasing Service.<br>Travelers earn, buyers get what they want from abroad.
+        <p class="muted" style="max-width:350px;margin-top:12px;color:#fff; font-size: 1em;">
+          Proxy Purchasing Service Made Easy.<br>Travelers earn, buyers get what they want.
         </p>
       </div>
       <div>
-        <ul class="footer-links" style="color: #fff;">
+        <ul class="footer-links">
           <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
           <li><a href="{% url 'pages:page' 'privacy-policy' %}">Privacy Policy</a></li>
-          <li><a href="{% url 'pages:page' 'terms-of-use' %}">Terms of Use</a></li>
+          <li><a href="{% url 'pages:page' 'terms-conditions' %}">Terms & Conditions</a></li>
           <li><a href="{% url 'pages:how_to' %}">How It Works</a></li>
           <li><a href="{% url 'pages:contact' %}">Contact</a></li>
         </ul>
         <address class="footer-legal" style="color: #fff; font-size: 1em;">
-          PT Ecoshipper Global Mandiri<br>
+          <strong>PT Ecoshipper Global Mandiri</strong><br>
           Tax ID 1000 000 0799 7893<br>
           NIB 2502 2602 7916 3
         </address>
       </div>
     </div>
-    <div class="footer-bottom" style="text-align: center; color: #fff;">© {% now "Y" %} Jastip.me — All rights reserved.</div>
+    <div class="footer-bottom" style="text-align: center; color: #ff7316;">© {% now "Y" %} Jastip.me — All rights reserved.</div>
   </div>
 </footer>
 {% block extra_js %}{% endblock %}
+{% include "_cookie_consent.html" %}
 </body>
 </html>
