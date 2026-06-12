@@ -83,6 +83,32 @@ class TravelPlan(models.Model):
         """The buy request currently driving this plan's lifecycle, if any."""
         return self.buy_requests.exclude(status=Status.REJECTED).order_by("-created_at").first()
 
+    @property
+    def utilized_weight_kg(self) -> Decimal:
+        """Spare weight already taken up by current orders.
+
+        Counts every non-rejected buy request, using its actual weight once the
+        buyer has confirmed it (set at pickup), otherwise the traveler's
+        estimate. So the figure starts showing as soon as an estimate is entered
+        and is automatically corrected to the actual weight later — giving the
+        traveler no benefit from over-estimating.
+
+        Iterates the prefetched ``buy_requests`` cache (filters in Python) to
+        avoid an extra query per plan in list views.
+        """
+        total = Decimal("0")
+        for req in self.buy_requests.all():
+            if req.status == Status.REJECTED:
+                continue
+            total += req.actual_weight_kg if req.has_actual_weight else req.estimated_weight_kg
+        return total.quantize(TWO_PLACES)
+
+    @property
+    def remaining_weight_kg(self) -> Decimal:
+        """Spare weight still available to fill (never negative for display)."""
+        remaining = self.available_weight_kg - self.utilized_weight_kg
+        return remaining if remaining > 0 else Decimal("0").quantize(TWO_PLACES)
+
 
 class BuyRequest(models.Model):
     """A buyer 'orders' a travel plan and lists items to purchase.
