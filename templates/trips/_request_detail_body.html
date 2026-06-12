@@ -1,10 +1,8 @@
 {% load humanize money %}
-<span class="eyebrow">Request {{ req.reference }} · {{ req.plan.from_city }} → {{ req.plan.to_city }}</span>
-<h1 style="display:flex;align-items:center;gap:12px">
-  Transaction
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+  <span class="eyebrow" style="margin:0">Request {{ req.reference }} · {{ req.plan.from_city }} → {{ req.plan.to_city }}</span>
   {% include "trips/_status_badge.html" with status=req.status label=req.detail_status_label tone=req.status_tone %}
-</h1>
-<p class="muted">You are the <strong>{% if is_traveler %}traveler{% elif is_buyer %}buyer{% else %}admin{% endif %}</strong> on this transaction.</p>
+</div>
 
 <!-- Invoice (Estimate / Actual) -->
 <div class="card mt-2"><div class="card-body">

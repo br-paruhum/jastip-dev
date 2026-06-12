@@ -123,12 +123,10 @@
         <!-- Panel: Order detail (embedded transaction view) -->
         {% if is_traveler %}{% with origin="travel-plans" origin_label="My Travel Plans" %}
         <div data-panel="order-detail" data-origin="{{ origin }}">
-          <p style="margin:0 0 12px"><a class="muted" href="#{{ origin }}" data-tab="{{ origin }}">← Back to {{ origin_label }}</a></p>
           {% include "trips/_request_detail_body.html" %}
         </div>
         {% endwith %}{% else %}{% with origin="buying-order" origin_label="My Buying Order" %}
         <div data-panel="order-detail" data-origin="{{ origin }}">
-          <p style="margin:0 0 12px"><a class="muted" href="#{{ origin }}" data-tab="{{ origin }}">← Back to {{ origin_label }}</a></p>
           {% include "trips/_request_detail_body.html" %}
         </div>
         {% endwith %}{% endif %}
