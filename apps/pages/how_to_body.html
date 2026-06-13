@@ -4,7 +4,7 @@
      Screenshots are served from /media/how-to/01.png … 18.png . -->
 <style>
 .howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
-.howto-ig .hi-lead{font-size:24px;color:var(--slate-400);margin:0 0 22px;max-width:900px}
+.howto-ig .hi-lead{font-size:clamp(15px,4.2vw,24px);color:var(--slate-400);margin:0 0 22px;max-width:900px}
 .howto-ig .hi-colhead{display:grid;grid-template-columns:1fr 2fr 1fr;gap:16px;
   position:sticky;top:69px;z-index:5;background:var(--ivory);padding:12px 0}
 .howto-ig .hi-lane{font-weight:600;font-size:24px;letter-spacing:.04em;text-transform:uppercase;text-align:center;
@@ -23,6 +23,8 @@
 .howto-ig .system .hi-msg{background:var(--cream)}
 .howto-ig .hi-who{display:block;font-size:20px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
   margin-bottom:5px;color:var(--clay-dark)}
+/* Mobile-only actor tag — shows who acts (Traveler/Buyer) once the lane columns collapse. */
+.howto-ig .hi-mwho{display:none}
 .howto-ig .hi-num{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   font-weight:800;font-size:20px;color:#fff;background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
 .howto-ig .hi-thumb{cursor:zoom-in;display:block;width:100%}
@@ -45,6 +47,9 @@
   .howto-ig .hi-msg{text-align:left}
   .howto-ig .hi-c{align-items:flex-start}
   .howto-ig .hi-num{position:absolute;left:4px;top:16px}
+  .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 7px;
+    padding:3px 11px;border-radius:999px;border:1px solid var(--clay);background:#fff;
+    color:var(--clay);font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 }
 </style>
 
@@ -88,7 +93,9 @@
   ];
   var LABEL={traveler:'Traveler', buyer:'Buyer', system:'Jastip.me'};
   function pad(n){return (n<10?'0':'')+n;}
-  function bubble(s){return '<div class="hi-msg">'+s.t+'</div>';}
+  function bubble(s){
+    var who=(s.a==='traveler'||s.a==='buyer')?'<span class="hi-mwho">'+LABEL[s.a]+'</span>':'';
+    return '<div class="hi-msg">'+who+s.t+'</div>';}
   function thumb(n){var u='/media/how-to/'+pad(n)+'.png';
     return '<div class="hi-thumb"><img src="'+u+'" data-full="'+u+'" data-step="'+n+'" alt="Step '+n+'" loading="lazy"></div>';}
   var tl=document.getElementById('hi-timeline');
