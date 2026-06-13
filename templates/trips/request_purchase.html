@@ -5,9 +5,9 @@
 <section>
   <div class="container" style="max-width:720px">
     <span class="eyebrow">Purchases · {{ req.reference }}</span>
-    <h1>Record what you actually bought</h1>
-    <p class="muted">Enter the actual unit cost, a photo, and a note per item (e.g. if an item is out of
-      stock or short). The invoice and the buyer's unpaid amount update automatically.</p>
+    <h1>Actual Purchased Record</h1>
+    <p class="muted">Enter the actual unit costs, a photo, and a note (if any) (e.g. if an item is out of
+      stock or short). The invoice and the Buyer's unpaid amount will be updated automatically.</p>
 
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
@@ -17,9 +17,9 @@
         <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
           <strong>{{ f.instance.name }}</strong> · requested ×{{ f.instance.quantity }} {{ f.id }}
           <div class="form-row purchase-cols mt-2">
-            <div class="form-field"><label>Actual quantity</label>{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</div>
+            <div class="form-field"><label>Actual Qty</label>{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</div>
             <div class="form-field"><label>Unit</label><div class="static-field">{{ f.instance.unit }}</div></div>
-            <div class="form-field"><label>Actual unit cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
+            <div class="form-field"><label>Actual Unit Cost ({{ req.currency }})</label>{{ f.actual_unit_cost }}</div>
           </div>
           <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
           <div class="form-field"><label>Note (if unavailable / short / substituted)</label>{{ f.purchase_note }}</div>
@@ -31,17 +31,15 @@
           {{ form.actual_weight_kg }}{{ form.actual_weight_kg.errors }}
           <p class="help">Estimated was {{ req.estimated_weight_kg }} kg. Enter the final measured weight now —
             the invoice's <em>Actual</em> shipment cost is calculated from it (this weight × {{ req.currency }}
-            {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). You can still confirm or adjust it at the
-            Mark&nbsp;Arrived step.</p>
+            {{ req.plan.shipment_cost_per_kg|intcomma }}/kg).</p>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" type="submit" name="decision" value="finalize">Save purchases &amp; notify buyer</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          <button class="btn btn-primary" type="submit" name="decision" value="finalize">Save Purchases</button>
           <button class="btn btn-ghost" type="submit" name="decision" value="draft">Save Draft</button>
         </div>
         <p class="help mt-2"><strong>Save Draft</strong> saves your progress without notifying the buyer or
-          changing the status. <strong>Save &amp; notify</strong> finalises the purchase (status → Item(s)
-          Purchased) and emails the buyer.</p>
+          changing the status. <strong>Save Purchases</strong> will finalises the purchases.</p>
       </div>
     </form>
   </div>

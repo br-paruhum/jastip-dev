@@ -5,8 +5,8 @@
   <div class="container" style="max-width:760px">
     <span class="eyebrow">Buyer request · {{ plan.from_city }} → {{ plan.to_city }}</span>
     <h1>What would you like the traveler to buy?</h1>
-    <p class="muted">Add up to 10 items. Photos are optional (PNG/JPG, max 2&nbsp;MB). Your name and
-      these details stay private between you, the traveler and admin.</p>
+    <p class="muted">Add up to 10 items. Photos are optional (png/jpeg/jpg, max 2&nbsp;MB). These order 
+    details stay private between you and the traveler.</p>
 
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
@@ -20,7 +20,7 @@
               {{ item_form.id }}
               <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
               <div class="form-row item-cols">
-                <div class="form-field"><label>Item name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
+                <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
                 <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
                 <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
               </div>
@@ -30,11 +30,11 @@
           </div>
           {% endfor %}
         </div>
-        <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add item</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add Product</button>
 
-        <div class="form-field mt-2"><label>Notes to traveler</label>{{ form.buyer_notes }}</div>
-        <div style="display:flex;gap:10px">
-          <button class="btn btn-primary" type="submit">Submit request</button>
+        <div class="form-field mt-2"><label>Notes to Traveler</label>{{ form.buyer_notes }}</div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-primary" type="submit">Submit Order</button>
           <a class="btn btn-outline" href="{% url 'trips:request_create' plan.id %}">Reset</a>
         </div>
       </div>
@@ -47,7 +47,7 @@
     {{ formset.empty_form.id }}
     <span class="del-field" style="display:none">{{ formset.empty_form.DELETE }}</span>
     <div class="form-row item-cols">
-      <div class="form-field"><label>Item name</label>{{ formset.empty_form.name }}</div>
+      <div class="form-field"><label>Product Name</label>{{ formset.empty_form.name }}</div>
       <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
       <div class="form-field"><label>Unit</label>{{ formset.empty_form.unit }}</div>
     </div>

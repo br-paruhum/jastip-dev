@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.forms import inlineformset_factory
 
-from .constants import COUNTRY_CHOICES, DEFAULT_BUYER_NOTE, Currency
+from .constants import COUNTRY_CHOICES, Currency
 from .models import BuyRequest, Message, RequestItem, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
@@ -64,12 +64,6 @@ class BuyRequestForm(forms.ModelForm):
         fields = ["buyer_notes"]
         widgets = {"buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"})}
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Pre-fill a helpful, editable default note on a new (unbound) request.
-        if not self.instance.pk and not (self.initial.get("buyer_notes") or self.data):
-            self.fields["buyer_notes"].initial = DEFAULT_BUYER_NOTE
-
 
 class ReviewForm(forms.ModelForm):
     """Traveler-side review field: estimated weight of this package (kg).
@@ -103,7 +97,7 @@ class RequestItemForm(forms.ModelForm):
         model = RequestItem
         fields = ["name", "quantity", "unit", "photo"]
         widgets = {
-            "name": forms.TextInput(attrs={"placeholder": "Item name"}),
+            "name": forms.TextInput(attrs={"placeholder": "Product Name"}),
             "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
         }
 

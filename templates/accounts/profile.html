@@ -109,10 +109,10 @@
           {% include "accounts/_plan_table.html" with plans=closed_plans empty="No closed plans yet." heading="Closed" %}
         </div>
 
-        <!-- Panel: My Buying Order -->
+        <!-- Panel: My Buying Orders -->
         <div data-panel="buying-order">
           <div class="profile-panel-header">
-            <h2 style="margin:0">My Buying Order</h2>
+            <h2 style="margin:0">My Buying Orders</h2>
           </div>
           {% include "accounts/_request_table.html" with requests=open_requests empty="No active orders." heading="Current" %}
           {% include "accounts/_request_table.html" with requests=closed_requests empty="No closed orders yet." heading="Closed" %}
@@ -170,7 +170,7 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">Profile</a></li>
           <li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>
-          <li><a href="#buying-order" data-tab="buying-order">My Buying Order</a></li>
+          <li><a href="#buying-order" data-tab="buying-order">My Buying Orders</a></li>
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>
@@ -207,6 +207,13 @@
     });
   });
   activate((location.hash || '#profile').slice(1));
+
+  // When a link only changes the hash (e.g. clicking "Open" while ?order= is
+  // already in the URL), the browser does not reload — re-activate the panel
+  // for the new hash so the order/plan detail shows without a manual refresh.
+  window.addEventListener('hashchange', function () {
+    activate((location.hash || '#profile').slice(1));
+  });
 
   // Toggle the inline "Post a Travel Plan" form.
   var toggle = document.getElementById('toggle-plan-form');
