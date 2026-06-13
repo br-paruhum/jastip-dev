@@ -41,13 +41,15 @@
     <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
     <ul class="nav-links" id="navlinks">
       {% if user.is_authenticated %}
-        <li><a href="{% url 'pages:how_to' %}">How-to</a></li>
+        <li><a href="{% url 'pages:how_to' %}">How To</a></li>
+        <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
         <li><a href="{% url 'accounts:profile' %}">Profile</a></li>
         <li style="color:#c55a11;font-weight:600;font-size:.9rem">{{ user.full_name|default:user.email }}</li>
         <li><a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a></li>
       {% else %}
         <li><a href="{% url 'pages:how_to' %}">How To</a></li>
+        <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
         <li><a href="{% url 'account_login' %}">Login</a></li>
         <li><a class="btn btn-primary btn-sm btn-register" href="{% url 'account_signup' %}">Register</a></li>
@@ -77,10 +79,8 @@
       </div>
       <div>
         <ul class="footer-links">
-          <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
           <li><a href="{% url 'pages:page' 'privacy-policy' %}">Privacy Policy</a></li>
           <li><a href="{% url 'pages:page' 'terms-conditions' %}">Terms & Conditions</a></li>
-          <li><a href="{% url 'pages:how_to' %}">How It Works</a></li>
           <li><a href="{% url 'pages:contact' %}">Contact</a></li>
         </ul>
         <address class="footer-legal" style="color: #fff; font-size: 1em;">
@@ -93,6 +93,22 @@
     <div class="footer-bottom" style="text-align: center; color: #ff7316;">© {% now "Y" %} Jastip.me — All rights reserved.</div>
   </div>
 </footer>
+<button id="to-top" aria-label="Back to top" title="Back to top">&uarr;</button>
+<style>
+#to-top{position:fixed;right:20px;bottom:20px;width:46px;height:46px;border:0;border-radius:50%;
+  background:var(--clay);color:#fff;font-size:22px;line-height:1;cursor:pointer;
+  box-shadow:0 6px 18px rgba(26,26,24,.25);opacity:0;visibility:hidden;
+  transition:opacity .2s,visibility .2s;z-index:60}
+#to-top.show{opacity:1;visibility:visible}
+#to-top:hover{background:var(--clay-dark)}
+</style>
+<script>
+(function(){var b=document.getElementById('to-top');if(!b)return;
+  function t(){if(window.scrollY>300)b.classList.add('show');else b.classList.remove('show');}
+  window.addEventListener('scroll',t,{passive:true});t();
+  b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+})();
+</script>
 {% block extra_js %}{% endblock %}
 {% include "_cookie_consent.html" %}
 </body>

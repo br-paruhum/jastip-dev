@@ -62,9 +62,9 @@ img { max-width: 100%; height: auto; display: block; }
 .btn-outline { background: transparent; color: var(--slate); border-color: var(--line); }
 .btn-outline:hover { border-color: var(--clay); color: var(--clay-dark); }
 .btn-ghost { background: var(--cream); color: var(--slate); }
-/* Register button: white label, dark hover (scoped to beat .nav-links a) */
+/* Register button: white label, clay hover to match the primary "I'm Travelling" button */
 .nav-links a.btn-register { color: #fff; }
-.nav-links a.btn-register:hover { background: #161616; color: #fff; }
+.nav-links a.btn-register:hover { background: var(--clay-dark); color: #fff; }
 /* "I want to buy" button: clay label + border */
 .btn-buy { color: #cc785c; border-color: #cc785c; }
 .btn-buy:hover { color: #cc785c; border-color: #cc785c; background: rgba(204,120,92,.08); }

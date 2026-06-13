@@ -6,6 +6,7 @@ Idempotent — safe to run repeatedly.  Usage: python manage.py seed
 import datetime
 import os
 from decimal import Decimal
+from pathlib import Path
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -18,37 +19,13 @@ from apps.pages.models import FAQItem, SitePage
 from apps.trips.constants import Currency, Status
 from apps.trips.models import TravelPlan
 
+# Rich "How It Works" infographic body — single source of truth, also rendered
+# live at /how-to/.  Kept in its own file so it can be edited without bloating
+# this command and so re-seeding never reverts the page to old placeholder text.
+HOW_TO_BODY = (Path(__file__).resolve().parents[2] / "how_to_body.html").read_text(encoding="utf-8")
+
 PAGES = [
-    ("how-to", SitePage.Kind.HOW_TO, "How It Works", """
-<p>Jastip.me connects <strong>travelers</strong> with spare luggage space to <strong>buyers</strong>
-who want items from abroad. Here is the full journey, step by step:</p>
-<ol>
-  <li><strong>Traveler posts a Travel Plan</strong> with route, available weight, shipment cost and margin,
-      then clicks Submit. <em>(Status: New)</em></li>
-  <li><strong>Buyer clicks &ldquo;Block&rdquo;</strong>, logs in, fills in the buying request and submits.
-      An email &mdash; with a WhatsApp reminder &mdash; is sent to the traveler. <em>(Status: Ordered)</em></li>
-  <li><strong>Traveler reviews</strong> the request, fills in the cost of each requested item, and selects
-      Accept or Reject. The buyer is notified by email and WhatsApp. <em>(Status: Accepted or Reopen)</em></li>
-  <li><strong>If accepted, the buyer transfers the required deposit</strong> to the Admin account. Admin
-      verifies it and emails the traveler that the <strong>deposit has been secured</strong>.
-      <em>(Status: Deposit Paid)</em></li>
-  <li><strong>Traveler starts purchasing</strong> the requested items and records each item&rsquo;s photo and
-      actual cost. The invoice and unpaid amount are calculated automatically, and the buyer can follow
-      progress in their Profile. <em>(Status: Item(s) Purchased)</em></li>
-  <li><strong>Traveler arrives</strong> at the destination, pays any custom fare, and updates the status
-      (entering the custom fare paid, if any). The buyer is notified by email and WhatsApp.
-      <em>(Status: Package Arrived)</em></li>
-  <li><strong>Buyer pays the unpaid balance</strong> (including any custom fare) to Admin. Admin verifies it
-      and keeps the funds until both sides confirm clearance. <em>(Status: Ready for Pickup)</em></li>
-  <li><strong>Buyer picks up the package</strong>, checks everything is good, and records the
-      <strong>actual weight</strong> &mdash; the shipment cost is finalised on this weight and any small
-      difference is settled (top-up or refund). The buyer then marks it &ldquo;Clear&rdquo;, and the traveler
-      is paid the <strong>full amount, less the 2.5% fee</strong>. The transaction is archived to the
-      Closed list the next day. <em>(Status: Clear &rarr; Closed)</em></li>
-</ol>
-<p>Names and item details stay private &mdash; visible only to the matched traveler, buyer and admin. All
-correspondence happens by email, with a copy to admin.</p>
-"""),
+    ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY),
     ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using Jastip.me.</p>"),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """
 <p>We respect your privacy. Your name and phone number are never shown publicly — they are shared

@@ -1,0 +1,116 @@
+<!-- How It Works infographic — rendered as the SitePage(how-to) body inside pages/page.html.
+     All CSS is scoped under .howto-ig / #hi-lightbox so it cannot affect the rest of the site,
+     and colors reuse the site palette variables from static/css/main.css.
+     Screenshots are served from /media/how-to/01.png … 18.png . -->
+<style>
+.howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
+.howto-ig .hi-lead{font-size:24px;color:var(--slate-400);margin:0 0 22px;max-width:900px}
+.howto-ig .hi-colhead{display:grid;grid-template-columns:1fr 2fr 1fr;gap:16px;
+  position:sticky;top:69px;z-index:5;background:var(--ivory);padding:12px 0}
+.howto-ig .hi-lane{font-weight:600;font-size:24px;letter-spacing:.04em;text-transform:uppercase;text-align:center;
+  padding:10px;border-radius:10px;color:var(--slate);background:var(--cream);border:1px solid var(--line)}
+.howto-ig .hi-timeline{position:relative}
+.howto-ig .hi-step::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;
+  transform:translateX(-50%);background:var(--line);z-index:-1}
+.howto-ig .hi-step:last-child::before{bottom:50%}
+.howto-ig .hi-step{display:grid;grid-template-columns:1fr 2fr 1fr;gap:16px;align-items:center;
+  padding:16px 0;position:relative;z-index:1}
+.howto-ig .hi-l{display:flex;justify-content:flex-end}
+.howto-ig .hi-r{display:flex;justify-content:flex-start}
+.howto-ig .hi-c{display:flex;flex-direction:column;align-items:center;gap:8px}
+.howto-ig .hi-msg{max-width:100%;padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:#fff;
+  box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:19.5px;line-height:1.45;color:var(--slate-600);text-align:center}
+.howto-ig .system .hi-msg{background:var(--cream)}
+.howto-ig .hi-who{display:block;font-size:20px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  margin-bottom:5px;color:var(--clay-dark)}
+.howto-ig .hi-num{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:20px;color:#fff;background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
+.howto-ig .hi-thumb{cursor:zoom-in;display:block;width:100%}
+.howto-ig .hi-thumb img{width:100%;border-radius:10px;border:1px solid var(--line);background:#fff;
+  box-shadow:0 6px 18px rgba(26,26,24,.10);display:block;transition:transform .15s}
+.howto-ig .hi-thumb:hover img{transform:scale(1.02)}
+.howto-ig .hi-cap2{font-size:20px;color:var(--muted);text-align:center}
+#hi-lightbox{position:fixed;inset:0;z-index:1000;display:none;background:rgba(26,26,24,.9);
+  align-items:center;justify-content:center;padding:28px}
+#hi-lightbox.open{display:flex}
+#hi-lightbox img{max-width:94vw;max-height:88vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+#hi-lightbox .hi-close{position:absolute;top:16px;right:22px;width:48px;height:48px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.16);color:#fff;font-size:28px;line-height:1;cursor:pointer}
+#hi-lightbox .hi-cap{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:var(--cream);font-size:18px}
+@media(max-width:760px){
+  .howto-ig .hi-colhead{display:none}
+  .howto-ig .hi-step::before{left:23px}
+  .howto-ig .hi-step{grid-template-columns:1fr;gap:10px;padding:14px 0 22px 52px}
+  .howto-ig .hi-l,.howto-ig .hi-r{justify-content:flex-start}
+  .howto-ig .hi-msg{text-align:left}
+  .howto-ig .hi-c{align-items:flex-start}
+  .howto-ig .hi-num{position:absolute;left:4px;top:16px}
+}
+</style>
+
+<div class="howto-ig">
+  <p class="hi-lead">The full journey from posting a travel plan to a pickup the package and cleared transaction - Click any screenshot to enlarge.</p>
+  <div class="hi-colhead">
+    <div class="hi-lane">Traveler</div>
+    <div class="hi-lane">Jastip.me</div>
+    <div class="hi-lane">Buyer</div>
+  </div>
+  <div class="hi-timeline" id="hi-timeline"></div>
+</div>
+
+<div id="hi-lightbox" aria-hidden="true">
+  <button class="hi-close" id="hi-close" aria-label="Close">&times;</button>
+  <img id="hi-img" src="" alt="">
+  <div class="hi-cap" id="hi-cap"></div>
+</div>
+
+<script>
+(function(){
+  var STEPS=[
+    {a:'traveler', t:'After register and login, select <b>“My Travel Plans”</b>.'},
+    {a:'traveler', t:'Click <b>“Post a Travel Plan”</b>.'},
+    {a:'traveler', t:'Complete the highlighted fields and click <b>“Submit Travel Plan”</b>.'},
+    {a:'buyer',    t:'After register and login, go to the Home page, select a travel plan and click <b>“Order”</b>.'},
+    {a:'buyer',    t:'Complete the highlighted fields and click <b>“Submit Order”</b>.'},
+    {a:'system',   t:'Traveler notified by email and WhatsApp. Travel plan status changes to <b>“Ordered”</b>.'},
+    {a:'traveler', t:'Select <b>“My Travel Plans”</b> and click <b>“Manage”</b>.'},
+    {a:'traveler', t:'Update unit costs and estimated weight, then click <b>“Accept”</b>.'},
+    {a:'buyer',    t:'Buyer notified; status changes to <b>“Accepted”</b>. Select <b>“My Buying Orders”</b>, click <b>“Open”</b> and review the invoice.'},
+    {a:'buyer',    t:'Make a bank transfer, upload the transfer proof and click <b>“Submit Transfer Proof”</b>. The deposit shows as <b>“Pending”</b> under the Payments tab.'},
+    {a:'system',   t:'Admin verifies the incoming transfer. Payment status changes to <b>“Verified”</b> and the traveler is notified.'},
+    {a:'traveler', t:'Select <b>“My Travel Plans”</b> and click <b>“Manage”</b> to start purchasing.'},
+    {a:'traveler', t:'Input actual quantity, actual unit cost and final shipment weight. The buyer is notified.'},
+    {a:'system',   t:'All invoice values update automatically — only custom duty remains, to be filled on arrival. Traveler and buyer see the same invoice.'},
+    {a:'traveler', t:'On arrival, click <b>“Enter Arrival Details”</b>, enter custom duty (if any), upload proof of payment and click <b>“Mark Arrived”</b>. The buyer is notified.'},
+    {a:'buyer',    t:'Pay the unpaid balance, upload proof and click <b>“Submit Transfer Proof”</b>.'},
+    {a:'system',   t:'Admin verifies the transfer. Payment <b>“Verified”</b> and order status changes to <b>“Ready for Pickup”</b>. Both parties notified.'},
+    {a:'buyer',    t:'Pick up the package and click <b>“Confirm Pickup”</b>. The traveler is paid; Travel Plan and Buying Order status changes to <b>“Clear”</b>.'}
+  ];
+  var LABEL={traveler:'Traveler', buyer:'Buyer', system:'Jastip.me'};
+  function pad(n){return (n<10?'0':'')+n;}
+  function bubble(s){return '<div class="hi-msg">'+s.t+'</div>';}
+  function thumb(n){var u='/media/how-to/'+pad(n)+'.png';
+    return '<div class="hi-thumb"><img src="'+u+'" data-full="'+u+'" data-step="'+n+'" alt="Step '+n+'" loading="lazy"></div>';}
+  var tl=document.getElementById('hi-timeline');
+  if(!tl) return;
+  tl.innerHTML=STEPS.map(function(s,i){var n=i+1;
+    var left  = s.a==='traveler' ? bubble(s) : '';
+    var right = s.a==='buyer'    ? bubble(s) : '';
+    var mid   = (s.a==='system' ? bubble(s) : '') +
+                '<div class="hi-num">'+n+'</div>'+thumb(n);
+    return '<div class="hi-step '+s.a+'"><div class="hi-l">'+left+'</div><div class="hi-c">'+mid+
+           '</div><div class="hi-r">'+right+'</div></div>';
+  }).join('');
+  var lb=document.getElementById('hi-lightbox'),
+      img=document.getElementById('hi-img'),
+      cap=document.getElementById('hi-cap');
+  function openLB(src,step){img.src=src;cap.textContent='Click outside or press Esc to close';
+    lb.classList.add('open');lb.setAttribute('aria-hidden','false');}
+  function closeLB(){lb.classList.remove('open');lb.setAttribute('aria-hidden','true');img.src='';}
+  tl.addEventListener('click',function(e){var t=e.target.closest('img');
+    if(!t||!t.getAttribute('data-full'))return; openLB(t.getAttribute('data-full'),t.getAttribute('data-step'));});
+  document.getElementById('hi-close').addEventListener('click',closeLB);
+  lb.addEventListener('click',function(e){if(e.target===lb)closeLB();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLB();});
+})();
+</script>
