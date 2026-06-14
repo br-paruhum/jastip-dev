@@ -41,7 +41,7 @@
             <th>Date</th>
             <th>Route</th>
             <th>Avail<br>(kg)</th>
-            <th>Utilizd<br>(kg)</th>
+            <th>Remaing<br>(kg)</th>
             <th>Shipment<br>Cost/kg</th>
             <th>Margin<br><sup>*)</sup></th>
             <th>Payment<br>Terms</th>
@@ -58,7 +58,7 @@
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
             </td>
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
-            <td class="avail-cell">{{ plan.utilized_weight_kg }}</td>
+            <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
             <td class="margin-cell">{{ plan.margin_percent }}%</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
@@ -96,7 +96,7 @@
     {% if closed_plans %}
     <div class="table-wrap">
       <table class="offers offers-allcenter">
-        <thead><tr><th>Date</th><th>Route</th><th>Avail (kg)</th><th>Utilizd (kg)</th><th>Status</th></tr></thead>
+        <thead><tr><th>Date</th><th>Route</th><th>Avail (kg)</th><th>Remaing (kg)</th><th>Status</th></tr></thead>
         <tbody>
           {% for plan in closed_plans %}
           <tr>
@@ -104,7 +104,7 @@
             <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span></td>
             <td>{{ plan.available_weight_kg }}</td>
-            <td>{{ plan.utilized_weight_kg }}</td>
+            <td>{{ plan.remaining_weight_kg }}</td>
             <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
           </tr>
           {% endfor %}
