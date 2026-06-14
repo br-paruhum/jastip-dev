@@ -194,11 +194,21 @@ class BuyRequest(models.Model):
     def buyer_status_display(self) -> str:
         """Status label shown to the buyer — differs from the traveler's label
         for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
+        if self.status == Status.ITEMS_PURCHASED:
+            return self._items_purchased_date_label()
         return self._BUYER_STATUS_LABELS.get(self.status, self.get_status_display())
 
     @property
     def detail_status_label(self) -> str:
+        """Status label shown in detail views and the traveler dashboard."""
+        if self.status == Status.ITEMS_PURCHASED:
+            return self._items_purchased_date_label()
         return self.get_status_display()
+
+    def _items_purchased_date_label(self) -> str:
+        """'Package Ready' before travel date, 'Package Carried' on/after."""
+        today = timezone.now().date()
+        return "Package Carried" if today >= self.plan.travel_date else "Package Ready"
 
     # --- Money ---
     @property
