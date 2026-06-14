@@ -266,6 +266,7 @@ class ReshipmentCostForm(forms.ModelForm):
         }
         widgets = {
             "reshipment_cost_amount": forms.NumberInput(attrs={"placeholder": "e.g. 100000"}),
+            "reshipment_cost_proof": forms.FileInput(),
             "reshipment_bank_name": forms.TextInput(attrs={"placeholder": "e.g. BCA"}),
             "reshipment_bank_account_no": forms.TextInput(attrs={"placeholder": "Your account number"}),
             "reshipment_bank_account_name": forms.TextInput(attrs={"placeholder": "Name on the account"}),
@@ -293,6 +294,7 @@ class AWBForm(forms.ModelForm):
         }
         widgets = {
             "awb_number": forms.TextInput(attrs={"placeholder": "e.g. JNE123456789"}),
+            "awb_document": forms.FileInput(),
         }
 
     def clean_awb_number(self):
