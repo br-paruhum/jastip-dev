@@ -2,13 +2,14 @@ from django.db import models
 
 
 class Status(models.TextChoices):
-    """The 8-step jastip lifecycle (+ rejection)."""
+    """The 8-step jastip lifecycle (+ rejection / cancellation)."""
 
     NEW = "new", "New"
     REQUEST_RECEIVED = "request_received", "W/f Estimate"
     ACCEPTED = "accepted", "Estimate Sent"
     REOPEN = "reopen", "Reopen"
     REJECTED = "rejected", "Rejected"
+    CANCELLED = "cancelled", "Cancelled"
     DEPOSIT_PAID = "deposit_paid", "Deposit Paid"
     ITEMS_PURCHASED = "items_purchased", "Item(s) Purchased"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
@@ -38,6 +39,7 @@ STATUS_TONE = {
     Status.ACCEPTED: "success",
     Status.REOPEN: "info",
     Status.REJECTED: "danger",
+    Status.CANCELLED: "danger",
     Status.DEPOSIT_PAID: "success",
     Status.ITEMS_PURCHASED: "primary",
     Status.PACKAGE_ARRIVED: "primary",

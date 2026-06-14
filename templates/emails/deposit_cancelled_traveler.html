@@ -1,0 +1,7 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Order {{ request_obj.reference }} cancelled</h2>
+  <p>Buyer <strong>{{ buyer.full_name|default:buyer.email }}</strong> failed to pay the deposit for order <strong>{{ request_obj.reference }}</strong> within {{ PAYMENT_DEADLINE_HOURS }} hours.</p>
+  <p>The order has been cancelled and the weight is now available for new buyers.</p>
+  {% include "_email_button.html" with url=request_url label="View order" %}
+{% endblock %}

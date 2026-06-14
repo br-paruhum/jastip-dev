@@ -1,0 +1,7 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Order cancelled</h2>
+  <p>Your order <strong>{{ request_obj.reference }}</strong> ({{ plan.from_city }} → {{ plan.to_city }}) has been cancelled because the deposit was not paid within {{ PAYMENT_DEADLINE_HOURS }} hours.</p>
+  <p>If you still want to purchase these items, please create a new order for the same or another open trip.</p>
+  {% include "_email_button.html" with url=site_url label="Browse open trips" %}
+{% endblock %}

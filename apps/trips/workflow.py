@@ -93,6 +93,29 @@ def on_request_accepted(request_obj):
     notify_see_email(request_obj.buyer, event="request_accepted")
 
 
+def on_deposit_cancelled(request_obj):
+    """Auto-cancellation: buyer did not pay the deposit within the deadline.
+    Plan status is not touched — remaining_weight_kg recovers automatically."""
+    request_obj.status = Status.CANCELLED
+    request_obj.save(update_fields=["status", "updated_at"])
+    send_email(
+        to_user=request_obj.buyer,
+        subject="Your order has been cancelled",
+        template="deposit_cancelled_buyer",
+        context=_ctx(request_obj),
+        event="deposit_cancelled",
+    )
+    notify_see_email(request_obj.buyer, event="deposit_cancelled")
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject=f"Order {request_obj.reference} cancelled — buyer did not pay",
+        template="deposit_cancelled_traveler",
+        context=_ctx(request_obj),
+        event="deposit_cancelled",
+    )
+    notify_see_email(request_obj.plan.traveler, event="deposit_cancelled")
+
+
 def on_request_rejected(request_obj, reason=""):
     """Step 3 (reject): traveler rejected -> notify buyer.
     Plan status is not changed — remaining_weight_kg automatically recovers
