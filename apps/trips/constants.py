@@ -13,7 +13,7 @@ class Status(models.TextChoices):
     DEPOSIT_PAID = "deposit_paid", "Deposit Paid"
     ITEMS_PURCHASED = "items_purchased", "Package Ready"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
-    READY_FOR_PICKUP = "ready_for_pickup", "Ready for Pickup"
+    READY_FOR_PICKUP = "ready_for_pickup", "Paid in Full"
     CLEAR = "clear", "Clear"
     CLOSED = "closed", "Closed"
 
