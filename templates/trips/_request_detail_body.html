@@ -125,20 +125,70 @@
 
   {% elif req.status == "ready_for_pickup" %}
     {% if is_buyer %}
-      <p>Your package is ready. Pick it up and verify the items and weight against the invoice above.
-         When you're satisfied, click <strong>Confirm Pickup</strong> to release the traveler's payment.</p>
+      <p><strong>Option 1 — Pick up locally:</strong> Collect the package from the traveler and verify
+         the items and weight. When satisfied, click Confirm Pickup to release payment.</p>
       {% if req.refund_due > 0 %}
         <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
       {% endif %}
-      <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center">{% csrf_token %}
+      <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
         <button class="btn btn-primary" type="submit">Confirm Pickup</button>
       </form>
+      <hr style="margin:16px 0">
+      <p><strong>Option 2 — Request reshipment:</strong> If you need the package shipped to your location,
+         enter your full delivery address below.</p>
+      <form method="post" action="{% url 'trips:request_reship_request' req.id %}">{% csrf_token %}
+        <div class="form-field">
+          <label>Delivery address (full name, street, city, postal code)</label>
+          <textarea name="reshipment_address" rows="4" required
+            placeholder="e.g. Mr. John Doe&#10;Jl. Sudirman No. 1&#10;Surabaya 60100"></textarea>
+        </div>
+        <div style="text-align:center"><button class="btn btn-outline" type="submit">Request Shipment</button></div>
+      </form>
     {% else %}
-      <p>The buyer has paid in full. If they are picking up the package, wait for their confirmation.
-         If reshipment was agreed, ship the package and enter the AWB below.</p>
+      <p class="muted">Waiting for the buyer to either pick up the package or request reshipment.</p>
+    {% endif %}
+
+  {% elif req.status == "reship_requested" %}
+    {% if is_buyer %}
+      <p>Reshipment requested to:</p>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
+      <p class="muted">Waiting for the traveler to confirm shipment cost and bank details.</p>
+    {% else %}
+      <p>The buyer has requested reshipment to:</p>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
       <div style="text-align:center">
-        <a class="btn btn-outline" href="{% url 'accounts:profile' %}?reship={{ req.id }}#reship-order">Ship Package</a>
+        <a class="btn btn-primary" href="{% url 'accounts:profile' %}?reship_cost={{ req.id }}#reship-cost-order">Send Cost &amp; Bank Details</a>
+      </div>
+    {% endif %}
+
+  {% elif req.status == "reship_cost_sent" %}
+    {% if is_buyer %}
+      <p>Reshipment cost: <strong>IDR {{ req.reshipment_cost_amount|intcomma }}</strong>
+        {% if req.reshipment_cost_proof %}&nbsp;<a href="{{ req.reshipment_cost_proof.url }}" target="_blank" class="help">(View proof)</a>{% endif %}
+      </p>
+      <p>Please transfer to:</p>
+      <table class="invoice" style="max-width:440px;margin-bottom:12px">
+        <tr><td style="width:120px">Bank</td><td>: {{ req.reshipment_bank_name }}</td></tr>
+        <tr><td>Account No.</td><td>: <strong>{{ req.reshipment_bank_account_no }}</strong></td></tr>
+        <tr><td>Account Name</td><td>: <strong>{{ req.reshipment_bank_account_name }}</strong></td></tr>
+      </table>
+      {% if req.reshipment_proof %}
+        <p class="muted">Payment proof uploaded &#10003; — waiting for traveler to ship.</p>
+      {% else %}
+        <p>Upload your payment proof once you have transferred:</p>
+        {% include "trips/_reship_proof_form.html" %}
+      {% endif %}
+    {% else %}
+      <p>Cost sent to buyer. Delivery address:</p>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
+      {% if req.reshipment_proof %}
+        <p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship.</p>
+      {% else %}
+        <p class="muted">Waiting for buyer to upload reshipment payment proof.</p>
+      {% endif %}
+      <div style="text-align:center;margin-top:12px">
+        <a class="btn btn-outline" href="{% url 'accounts:profile' %}?reship={{ req.id }}#reship-order">Submit AWB</a>
       </div>
     {% endif %}
 
@@ -147,13 +197,6 @@
       <p>Your package is in transit. AWB / Tracking: <strong>{{ req.awb_number }}</strong>
         {% if req.awb_document %}&nbsp;<a href="{{ req.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}
       </p>
-      {% if req.reshipment_proof %}
-        <p class="muted">Reshipment payment proof uploaded &#10003;</p>
-      {% else %}
-        <p>Please pay the traveler the agreed reshipment cost and upload your proof below.</p>
-        {% include "trips/_reship_proof_form.html" %}
-      {% endif %}
-      <hr style="margin:14px 0">
       <p class="muted">Once you receive your package, click below to confirm and release the traveler's payment.</p>
       <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center">{% csrf_token %}
         <button class="btn btn-primary" type="submit">Confirm Receipt</button>

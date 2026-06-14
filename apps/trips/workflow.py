@@ -209,6 +209,44 @@ def on_new_message(message):
         )
 
 
+def on_reship_requested(request_obj):
+    """Buyer submitted delivery address → RESHIP_REQUESTED; traveler notified."""
+    _set_status(request_obj, Status.RESHIP_REQUESTED, sync_plan=False)
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject=f"Buyer requested reshipment — {request_obj.reference}",
+        template="reship_requested",
+        context=_ctx(request_obj),
+        event="reship_requested",
+    )
+    notify_see_email(request_obj.plan.traveler, event="reship_requested")
+
+
+def on_reship_cost_sent(request_obj):
+    """Traveler submitted cost + bank details → RESHIP_COST_SENT; buyer notified."""
+    _set_status(request_obj, Status.RESHIP_COST_SENT, sync_plan=False)
+    send_email(
+        to_user=request_obj.buyer,
+        subject="Reshipment cost details from your traveler",
+        template="reship_cost_sent",
+        context=_ctx(request_obj),
+        event="reship_cost_sent",
+    )
+    notify_see_email(request_obj.buyer, event="reship_cost_sent")
+
+
+def on_reship_proof_uploaded(request_obj):
+    """Buyer uploaded reshipment payment proof — no status change; traveler notified."""
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject=f"Buyer uploaded reshipment payment proof — {request_obj.reference}",
+        template="reship_proof_uploaded",
+        context=_ctx(request_obj),
+        event="reship_proof_uploaded",
+    )
+    notify_see_email(request_obj.plan.traveler, event="reship_proof_uploaded")
+
+
 def on_reshipped(request_obj):
     """Traveler ships the package → RESHIPPING; buyer notified to confirm receipt."""
     _set_status(request_obj, Status.RESHIPPING, sync_plan=False)

@@ -1,0 +1,11 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Buyer requested reshipment</h2>
+  <p>For request <strong>{{ request_obj.reference }}</strong>, the buyer has requested the package
+     to be shipped to their address:</p>
+  <blockquote style="border-left:3px solid #ccc;padding-left:12px;margin:12px 0;color:#555">
+    {{ request_obj.reshipment_address|linebreaksbr }}
+  </blockquote>
+  <p>Please log in and provide your bank account details and the shipment cost so the buyer can make payment.</p>
+  {% include "_email_button.html" with url=request_url label="View order" %}
+{% endblock %}

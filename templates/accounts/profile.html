@@ -159,8 +159,15 @@
         </div>
         {% endif %}
 
+        {% if reship_cost_req %}
+        <!-- Panel: Send reshipment cost (traveler) -->
+        <div data-panel="reship-cost-order" data-origin="travel-plans">
+          {% include "trips/_request_reship_cost_body.html" %}
+        </div>
+        {% endif %}
+
         {% if reship_req %}
-        <!-- Panel: Ship package (traveler uploads AWB) -->
+        <!-- Panel: Submit AWB (traveler) -->
         <div data-panel="reship-order" data-origin="travel-plans">
           {% include "trips/_request_reship_body.html" %}
         </div>

@@ -1,0 +1,9 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Buyer uploaded reshipment payment proof</h2>
+  <p>For request <strong>{{ request_obj.reference }}</strong>, the buyer has uploaded proof of
+     reshipment cost payment.</p>
+  <p>Please verify the payment and proceed to ship the package. Enter the AWB / tracking number
+     on the order page to notify the buyer.</p>
+  {% include "_email_button.html" with url=request_url label="View order & submit AWB" %}
+{% endblock %}

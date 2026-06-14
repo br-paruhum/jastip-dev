@@ -10,8 +10,8 @@ from apps.notifications.services import send_whatsapp
 from apps.trips.constants import CHAT_STATUSES, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
-    PurchaseWeightForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
-    TravelPlanForm,
+    PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet, ReviewForm,
+    ReviewItemFormSet, TravelPlanForm,
 )
 from apps.trips.models import BuyRequest, TravelPlan
 
@@ -109,6 +109,17 @@ def profile(request):
             arrive_req = _r
             arrive_form = CustomFareForm(instance=_r)
 
+    # Reship-cost panel (?reship_cost=<id>#reship-cost-order) — traveler sends cost + bank.
+    reship_cost_req = reship_cost_form = None
+    reship_cost_id = request.GET.get("reship_cost")
+    if reship_cost_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=reship_cost_id, plan__traveler=user
+        ).first()
+        if _r and _r.status == Status.RESHIP_REQUESTED:
+            reship_cost_req = _r
+            reship_cost_form = ReshipmentCostForm(instance=_r)
+
     # Reship panel (?reship=<id>#reship-order) — traveler uploads AWB to ship.
     reship_req = reship_form = None
     reship_id = request.GET.get("reship")
@@ -116,7 +127,7 @@ def profile(request):
         _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
             pk=reship_id, plan__traveler=user
         ).first()
-        if _r and _r.status == Status.READY_FOR_PICKUP:
+        if _r and _r.status == Status.RESHIP_COST_SENT:
             reship_req = _r
             reship_form = AWBForm(instance=_r)
 
@@ -163,6 +174,8 @@ def profile(request):
             "purchase_formset": purchase_formset,
             "arrive_req": arrive_req,
             "arrive_form": arrive_form,
+            "reship_cost_req": reship_cost_req,
+            "reship_cost_form": reship_cost_form,
             "reship_req": reship_req,
             "reship_form": reship_form,
             "order_form_plan": order_form_plan,

@@ -1,0 +1,21 @@
+<span class="eyebrow">Reshipment Cost · {{ reship_cost_req.reference }}</span>
+<h2>Send Reshipment Cost &amp; Bank Details</h2>
+<p class="muted">Buyer's delivery address:</p>
+<blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ reship_cost_req.reshipment_address }}</blockquote>
+<p class="muted">Fill in the shipment cost and your bank details, then submit. The buyer will be notified by email.</p>
+
+<form method="post" action="{% url 'trips:request_reship_cost' reship_cost_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="form-row">
+      <div class="form-field"><label>Shipment Cost (IDR) *</label>{{ reship_cost_form.reshipment_cost_amount }}{{ reship_cost_form.reshipment_cost_amount.errors }}</div>
+      <div class="form-field"><label>Cost Proof (optional)</label>{{ reship_cost_form.reshipment_cost_proof }}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Bank Name *</label>{{ reship_cost_form.reshipment_bank_name }}{{ reship_cost_form.reshipment_bank_name.errors }}</div>
+      <div class="form-field"><label>Account Number *</label>{{ reship_cost_form.reshipment_bank_account_no }}{{ reship_cost_form.reshipment_bank_account_no.errors }}</div>
+    </div>
+    <div class="form-field"><label>Account Holder Name *</label>{{ reship_cost_form.reshipment_bank_account_name }}{{ reship_cost_form.reshipment_bank_account_name.errors }}</div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">Send to Buyer</button></div>
+  </div>
+</form>

@@ -1,0 +1,14 @@
+{% extends "email_base.html" %}
+{% load humanize %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Reshipment cost details from your traveler</h2>
+  <p>For request <strong>{{ request_obj.reference }}</strong>, the traveler has provided the reshipment cost:</p>
+  <table style="border-collapse:collapse;margin:12px 0;font-size:14px">
+    <tr><td style="padding:4px 12px 4px 0;color:#666">Shipment cost</td><td><strong>IDR {{ request_obj.reshipment_cost_amount|intcomma }}</strong></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#666">Bank</td><td>{{ request_obj.reshipment_bank_name }}</td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#666">Account number</td><td><strong>{{ request_obj.reshipment_bank_account_no }}</strong></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#666">Account name</td><td>{{ request_obj.reshipment_bank_account_name }}</td></tr>
+  </table>
+  <p>Please transfer the amount to the traveler and upload your payment proof on the order page.</p>
+  {% include "_email_button.html" with url=request_url label="View order & upload proof" %}
+{% endblock %}

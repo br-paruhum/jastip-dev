@@ -153,11 +153,19 @@ class BuyRequest(models.Model):
     refund_account_name = models.CharField(max_length=120, blank=True)
     refund_processed = models.BooleanField(default=False)
 
-    # Reshipment — filled by traveler when shipping the package to buyer.
+    # Reshipment — step 1: buyer's delivery address.
+    reshipment_address = models.TextField(blank=True)
+    # Reshipment — step 2: traveler's cost + bank details.
+    reshipment_cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    reshipment_cost_proof = models.ImageField(upload_to="reshipment_costs/", blank=True, null=True)
+    reshipment_bank_name = models.CharField(max_length=120, blank=True)
+    reshipment_bank_account_no = models.CharField(max_length=60, blank=True)
+    reshipment_bank_account_name = models.CharField(max_length=120, blank=True)
+    # Reshipment — step 3: buyer uploads proof of paying the reshipment cost.
+    reshipment_proof = models.ImageField(upload_to="reshipment_proofs/", blank=True, null=True)
+    # Reshipment — step 4: traveler uploads AWB + waybill.
     awb_number = models.CharField(max_length=80, blank=True)
     awb_document = models.FileField(upload_to="awb/", blank=True, null=True)
-    # Buyer uploads proof of paying the traveler for reshipment cost.
-    reshipment_proof = models.ImageField(upload_to="reshipment_proofs/", blank=True, null=True)
 
     rejection_reason = models.TextField(blank=True)
     traveler_cleared = models.BooleanField(default=False)
@@ -194,6 +202,8 @@ class BuyRequest(models.Model):
     _BUYER_STATUS_LABELS = {
         "accepted": "Estimate Received",
         "deposit_paid": "W/f Actual Cost",
+        "reship_requested": "Awaiting Cost Details",
+        "reship_cost_sent": "Pay Reship Cost",
         "reshipping": "In Transit",
     }
 

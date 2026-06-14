@@ -14,6 +14,8 @@ class Status(models.TextChoices):
     ITEMS_PURCHASED = "items_purchased", "Package Ready"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
     READY_FOR_PICKUP = "ready_for_pickup", "Paid in Full"
+    RESHIP_REQUESTED = "reship_requested", "Reship Requested"
+    RESHIP_COST_SENT = "reship_cost_sent", "Reship Cost Sent"
     RESHIPPING = "reshipping", "In Transit"
     CLEAR = "clear", "Clear"
     CLOSED = "closed", "Closed"
@@ -28,10 +30,6 @@ OPEN_PLAN_STATUSES = {Status.NEW, Status.REOPEN}
 CHAT_STATUSES = {
     Status.DEPOSIT_PAID,
     Status.ITEMS_PURCHASED,
-    Status.PACKAGE_ARRIVED,
-    Status.READY_FOR_PICKUP,
-    Status.RESHIPPING,
-    Status.CLEAR,
 }
 
 # Statuses considered an in-progress (current/open) transaction on the home page.
@@ -42,6 +40,9 @@ ACTIVE_TX_STATUSES = {
     Status.ITEMS_PURCHASED,
     Status.PACKAGE_ARRIVED,
     Status.READY_FOR_PICKUP,
+    Status.RESHIP_REQUESTED,
+    Status.RESHIP_COST_SENT,
+    Status.RESHIPPING,
     Status.CLEAR,
 }
 
@@ -57,6 +58,8 @@ STATUS_TONE = {
     Status.ITEMS_PURCHASED: "primary",
     Status.PACKAGE_ARRIVED: "primary",
     Status.READY_FOR_PICKUP: "warning",
+    Status.RESHIP_REQUESTED: "warning",
+    Status.RESHIP_COST_SENT: "warning",
     Status.RESHIPPING: "info",
     Status.CLEAR: "success",
     Status.CLOSED: "success",

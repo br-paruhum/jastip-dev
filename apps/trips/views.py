@@ -18,6 +18,7 @@ from .forms import (
     PurchaseItemFormSet,
     PurchaseWeightForm,
     RefundBankForm,
+    ReshipmentCostForm,
     RequestItemFormSet,
     ReviewForm,
     ReviewItemFormSet,
@@ -316,7 +317,7 @@ def request_clear(request, pk):
         messages.error(request, "Only the buyer can confirm pickup and clearance.")
         return redirect(req.get_absolute_url())
     if req.status not in {Status.READY_FOR_PICKUP, Status.RESHIPPING}:
-        messages.error(request, "Clearance is only available once the package is ready.")
+        messages.error(request, "Clearance is only available at Paid in Full or In Transit stage.")
         return redirect(req.get_absolute_url())
 
     workflow.on_buyer_cleared(req)
@@ -328,15 +329,60 @@ def request_clear(request, pk):
     return redirect(req.get_absolute_url())
 
 
-# --- Traveler: ship the package (reshipment) --------------------------------
+# --- Buyer: request reshipment + enter delivery address ---------------------
+@profile_required
+@require_POST
+def request_reship_request(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can request reshipment.")
+        return redirect(req.get_absolute_url())
+    if req.status != Status.READY_FOR_PICKUP:
+        messages.error(request, "Reshipment can only be requested at Paid in Full stage.")
+        return redirect(req.get_absolute_url())
+    address = request.POST.get("reshipment_address", "").strip()
+    if not address:
+        messages.error(request, "Please enter your delivery address.")
+        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    req.reshipment_address = address
+    req.save(update_fields=["reshipment_address", "updated_at"])
+    workflow.on_reship_requested(req)
+    messages.success(request, "Reshipment requested. The traveler has been notified.")
+    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+
+
+# --- Traveler: send reshipment cost + bank details --------------------------
+@profile_required
+def request_reship_cost(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if not _require_traveler(request, req):
+        messages.error(request, "Only the traveler can submit the reshipment cost.")
+        return redirect(req.get_absolute_url())
+    if req.status != Status.RESHIP_REQUESTED:
+        messages.info(request, "No reshipment cost to submit at this stage.")
+        return redirect(req.get_absolute_url())
+
+    if request.method == "POST":
+        form = ReshipmentCostForm(request.POST, request.FILES, instance=req)
+        if form.is_valid():
+            form.save()
+            workflow.on_reship_cost_sent(req)
+            messages.success(request, "Cost sent. Buyer has been notified.")
+            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+        else:
+            messages.error(request, "Please fill in all required fields.")
+    return redirect(reverse("accounts:profile") + f"?reship_cost={req.id}#reship-cost-order")
+
+
+# --- Traveler: submit AWB → In Transit --------------------------------------
 @profile_required
 def request_reship(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the traveler can mark this as shipped.")
         return redirect(req.get_absolute_url())
-    if req.status != Status.READY_FOR_PICKUP:
-        messages.info(request, "The package can only be shipped once it is Paid in Full.")
+    if req.status != Status.RESHIP_COST_SENT:
+        messages.info(request, "AWB can only be submitted after reshipment cost is sent.")
         return redirect(req.get_absolute_url())
 
     if request.method == "POST":
@@ -359,14 +405,15 @@ def request_reship_proof(request, pk):
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can upload reshipment proof.")
         return redirect(req.get_absolute_url())
-    if req.status != Status.RESHIPPING:
+    if req.status != Status.RESHIP_COST_SENT:
         messages.error(request, "No reshipment proof is needed at this stage.")
         return redirect(req.get_absolute_url())
     proof = request.FILES.get("reshipment_proof")
     if proof:
         req.reshipment_proof = proof
         req.save(update_fields=["reshipment_proof", "updated_at"])
-        messages.success(request, "Reshipment proof uploaded.")
+        workflow.on_reship_proof_uploaded(req)
+        messages.success(request, "Payment proof uploaded. Traveler has been notified.")
     else:
         messages.error(request, "Please select a file to upload.")
     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
