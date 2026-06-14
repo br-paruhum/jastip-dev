@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.urls import reverse
 
@@ -16,6 +18,13 @@ class SiteSettings(models.Model):
         help_text=(
             "Shown as the Payment Term on every trip's detail page. "
             "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
+        ),
+    )
+    min_remaining_weight_kg = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0.99"),
+        help_text=(
+            "Plans with remaining capacity below this threshold show as Full on the home page "
+            "and block new orders. Default 0.99 kg."
         ),
     )
     updated_at = models.DateTimeField(auto_now=True)

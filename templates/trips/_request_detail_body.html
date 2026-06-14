@@ -89,7 +89,7 @@
 
   {% if is_traveler and req.status == "request_received" %}
     <p>Review the request, set item costs, then accept or reject.</p>
-    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'trips:request_review' req.id %}">Review request</a></div>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?review={{ req.id }}#review-order">Review request</a></div>
 
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>
@@ -106,11 +106,11 @@
 
   {% elif is_traveler and req.status == "deposit_paid" %}
     <p>Deposit received. Purchase the items and record actual costs + photos.</p>
-    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'trips:request_purchase' req.id %}">Record purchases</a></div>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?purchase={{ req.id }}#purchase-order">Record purchases</a></div>
 
   {% elif is_traveler and req.status == "items_purchased" %}
     <p>When you arrive, enter any custom duty paid and confirm the package has arrived.</p>
-    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'trips:request_arrive' req.id %}">Enter Arrival Details</a></div>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Enter Arrival Details</a></div>
 
   {% elif is_buyer and req.status == "package_arrived" %}
     {% if req.unpaid_amount > 0 %}

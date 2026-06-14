@@ -1,0 +1,38 @@
+{% load humanize %}
+<span class="eyebrow">Purchases · {{ purchase_req.reference }}</span>
+<h2>Actual Purchased Record</h2>
+<p class="muted">Enter the actual unit costs, a photo, and a note if any item is out of stock or short.</p>
+
+<form method="post" action="{% url 'trips:request_purchase' purchase_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  {{ purchase_formset.management_form }}
+  <div class="card-body">
+    {% for f in purchase_formset %}
+    <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
+      <strong>{{ f.instance.name }}</strong> · requested ×{{ f.instance.quantity }} {{ f.id }}
+      <div class="form-row purchase-cols mt-2">
+        <div class="form-field"><label>Actual Qty</label>{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</div>
+        <div class="form-field"><label>Unit</label><div class="static-field">{{ f.instance.unit }}</div></div>
+        <div class="form-field"><label>Actual Unit Cost ({{ purchase_req.currency }})</label>{{ f.actual_unit_cost }}</div>
+      </div>
+      <div class="form-field"><label>Photo</label>{{ f.purchase_photo }}</div>
+      <div class="form-field"><label>Note (if unavailable / short / substituted)</label>{{ f.purchase_note }}</div>
+    </div></div>
+    {% endfor %}
+
+    <div class="form-field">
+      <label>Actual shipment weight (kg)</label>
+      {{ purchase_form.actual_weight_kg }}{{ purchase_form.actual_weight_kg.errors }}
+      <p class="help">Estimated was {{ purchase_req.estimated_weight_kg }} kg. Enter the final measured weight —
+        the invoice's <em>Actual</em> shipment cost is calculated from it
+        (this weight × {{ purchase_req.currency }} {{ purchase_req.plan.shipment_cost_per_kg|intcomma }}/kg).</p>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-primary" type="submit" name="decision" value="finalize">Save Purchases</button>
+      <button class="btn btn-ghost" type="submit" name="decision" value="draft">Save Draft</button>
+    </div>
+    <p class="help mt-2"><strong>Save Draft</strong> saves without notifying the buyer.
+      <strong>Save Purchases</strong> finalises and notifies the buyer.</p>
+  </div>
+</form>

@@ -12,8 +12,11 @@ def site_globals(request):
 
     def _payment_term():
         from .models import SiteSettings
-
         return SiteSettings.load().payment_term
+
+    def _min_remaining():
+        from .models import SiteSettings
+        return SiteSettings.load().min_remaining_weight_kg
 
     return {
         "SITE_NAME": getattr(settings, "SITE_NAME", "Jastip.me"),
@@ -27,4 +30,5 @@ def site_globals(request):
         "sidebar_promos": SimpleLazyObject(_promos),
         # Site-wide payment term (single admin-editable setting).
         "PAYMENT_TERM": SimpleLazyObject(_payment_term),
+        "MIN_REMAINING_WEIGHT_KG": SimpleLazyObject(_min_remaining),
     }

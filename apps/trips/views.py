@@ -65,8 +65,10 @@ def plan_detail(request, pk):
 # --- Buyer: block a plan + compose the request ------------------------------
 @profile_required
 def request_create(request, plan_id):
+    from apps.pages.models import SiteSettings
     plan = get_object_or_404(TravelPlan.objects.prefetch_related("buy_requests"), pk=plan_id)
-    if plan.is_closed or not plan.remaining_weight_kg:
+    min_kg = SiteSettings.load().min_remaining_weight_kg
+    if plan.is_closed or plan.remaining_weight_kg < min_kg:
         messages.error(request, "This travel plan is no longer open for requests.")
         return redirect(plan.get_absolute_url())
     if plan.traveler_id == request.user.id:
@@ -94,7 +96,7 @@ def request_create(request, plan_id):
                 Transaction.objects.create(request=buy)
                 workflow.on_request_submitted(buy)
             messages.success(request, "Request sent to the traveler.")
-            return redirect("accounts:profile")
+            return redirect(reverse("accounts:profile") + f"?order={buy.id}#order-detail")
     else:
         form = BuyRequestForm()
         formset = RequestItemFormSet(instance=BuyRequest())
@@ -197,14 +199,14 @@ def request_review(request, pk):
                     else:
                         workflow.on_request_accepted(req)
                         messages.success(request, "Estimate sent. The buyer has been notified.")
-                    return redirect(req.get_absolute_url())
+                    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
                 elif decision == "reject":
                     workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))
                     messages.success(request, "Request rejected. The plan is open again.")
-                    return redirect(req.get_absolute_url())
+                    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
                 elif decision == "draft":
                     messages.success(request, "Draft saved. Come back to submit or reject anytime.")
-                    return redirect("trips:request_review", pk=req.pk)
+                    return redirect(reverse("accounts:profile") + f"?review={req.id}#review-order")
                 else:
                     messages.error(request, "Choose Submit Estimate, Reject, or Save Draft.")
     else:
@@ -237,10 +239,10 @@ def request_purchase(request, pk):
                 item.save()
             if decision == "draft":
                 messages.success(request, "Purchase draft saved. The buyer hasn't been notified yet.")
-                return redirect("trips:request_purchase", pk=req.pk)
+                return redirect(reverse("accounts:profile") + f"?purchase={req.id}#purchase-order")
             workflow.on_items_purchased(req)
             messages.success(request, "Purchases recorded. Invoice updated and buyer notified.")
-            return redirect(req.get_absolute_url())
+            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
     else:
         form = PurchaseWeightForm(instance=req)
         formset = PurchaseItemFormSet(instance=req)
@@ -264,7 +266,7 @@ def request_arrive(request, pk):
             form.save()
             workflow.on_package_arrived(req)
             messages.success(request, "Marked as arrived. The buyer has been notified to pay the balance.")
-            return redirect(req.get_absolute_url())
+            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
     else:
         form = CustomFareForm(instance=req)
     return render(request, "trips/request_arrive.html", {"req": req, "form": form})

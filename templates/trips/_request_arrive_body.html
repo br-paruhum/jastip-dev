@@ -1,0 +1,16 @@
+<span class="eyebrow">Arrival · {{ arrive_req.reference }}</span>
+<h2>Mark Package as Arrived</h2>
+<p class="muted">Add custom duty you paid at the destination city. This payment is reimbursable by the buyer —
+  obtain the proof. Leave the amount zero if none.</p>
+
+<form method="post" action="{% url 'trips:request_arrive' arrive_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="form-row">
+      <div class="form-field"><label>Custom Duty Currency</label>{{ arrive_form.custom_fare_currency }}</div>
+      <div class="form-field"><label>Custom Duty Amount</label>{{ arrive_form.custom_fare_amount }}</div>
+    </div>
+    <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ arrive_form.custom_fare_proof }}</div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">Mark Arrived</button></div>
+  </div>
+</form>

@@ -138,6 +138,34 @@
         </div>
         {% endif %}
 
+        {% if review_req %}
+        <!-- Panel: Review order (traveler sends estimate) -->
+        <div data-panel="review-order" data-origin="travel-plans">
+          {% include "trips/_request_review_body.html" %}
+        </div>
+        {% endif %}
+
+        {% if purchase_req %}
+        <!-- Panel: Record purchases (traveler) -->
+        <div data-panel="purchase-order" data-origin="travel-plans">
+          {% include "trips/_request_purchase_body.html" %}
+        </div>
+        {% endif %}
+
+        {% if arrive_req %}
+        <!-- Panel: Mark arrived (traveler) -->
+        <div data-panel="arrive-order" data-origin="travel-plans">
+          {% include "trips/_request_arrive_body.html" %}
+        </div>
+        {% endif %}
+
+        {% if order_form_plan %}
+        <!-- Panel: Place new order (buyer) -->
+        <div data-panel="order-form" data-origin="buying-order">
+          {% include "trips/_request_form_body.html" %}
+        </div>
+        {% endif %}
+
         <!-- Panel: Reset Password -->
         <div data-panel="reset-password">
           <div class="card"><div class="card-body">

@@ -14,7 +14,7 @@
           <td>{{ plan.remaining_weight_kg }} kg</td>
           <td class="status-cell">{% include "trips/_status_badge.html" with status=req.status label=req.get_status_display tone=req.status_tone %}</td>
           <td class="action-cell">
-            <a class="btn btn-outline btn-sm" href="{% if req.status == 'request_received' or req.status == 'accepted' %}{% url 'trips:request_review' req.id %}{% elif req.status == 'deposit_paid' %}{% url 'trips:request_purchase' req.id %}{% elif req.status == 'items_purchased' %}{% url 'trips:request_arrive' req.id %}{% else %}{{ req.get_absolute_url }}{% endif %}">Manage</a>
+            <a class="btn btn-outline btn-sm" href="{% if req.status == 'request_received' or req.status == 'accepted' %}{% url 'accounts:profile' %}?review={{ req.id }}#review-order{% elif req.status == 'deposit_paid' %}{% url 'accounts:profile' %}?purchase={{ req.id }}#purchase-order{% elif req.status == 'items_purchased' %}{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order{% else %}{% url 'accounts:profile' %}?order={{ req.id }}#order-detail{% endif %}">Manage</a>
           </td>
         </tr>
         {% empty %}

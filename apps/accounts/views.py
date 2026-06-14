@@ -2,13 +2,17 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import Status
-from apps.trips.forms import MessageForm, TravelPlanForm
+from apps.trips.forms import (
+    BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
+    PurchaseWeightForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
+    TravelPlanForm,
+)
 from apps.trips.models import BuyRequest, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
@@ -69,6 +73,61 @@ def profile(request):
         if not plan or not (user == plan.traveler or user.is_staff):
             plan = None
 
+    # Review panel (?review=<id>#review-order) — traveler sends estimate.
+    review_req = review_form = review_formset = review_is_edit = None
+    review_id = request.GET.get("review")
+    if review_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=review_id, plan__traveler=user
+        ).first()
+        if _r and _r.status in {Status.REQUEST_RECEIVED, Status.ACCEPTED}:
+            review_req = _r
+            review_is_edit = _r.status == Status.ACCEPTED
+            review_form = ReviewForm(instance=_r)
+            review_formset = ReviewItemFormSet(instance=_r)
+
+    # Purchase panel (?purchase=<id>#purchase-order) — traveler records purchases.
+    purchase_req = purchase_form = purchase_formset = None
+    purchase_id = request.GET.get("purchase")
+    if purchase_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=purchase_id, plan__traveler=user
+        ).first()
+        if _r and _r.status in {Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED}:
+            purchase_req = _r
+            purchase_form = PurchaseWeightForm(instance=_r)
+            purchase_formset = PurchaseItemFormSet(instance=_r)
+
+    # Arrive panel (?arrive=<id>#arrive-order) — traveler marks package arrived.
+    arrive_req = arrive_form = None
+    arrive_id = request.GET.get("arrive")
+    if arrive_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=arrive_id, plan__traveler=user
+        ).first()
+        if _r and _r.status == Status.ITEMS_PURCHASED:
+            arrive_req = _r
+            arrive_form = CustomFareForm(instance=_r)
+
+    # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
+    order_form_plan = order_form_buy = order_form_formset = None
+    order_form_plan_id = request.GET.get("order_form")
+    if order_form_plan_id:
+        from apps.pages.models import SiteSettings
+        _plan = TravelPlan.objects.prefetch_related("buy_requests").filter(
+            pk=order_form_plan_id
+        ).first()
+        min_kg = SiteSettings.load().min_remaining_weight_kg
+        if (
+            _plan
+            and not _plan.is_closed
+            and _plan.remaining_weight_kg >= min_kg
+            and _plan.traveler_id != user.id
+        ):
+            order_form_plan = _plan
+            order_form_buy = BuyRequestForm()
+            order_form_formset = RequestItemFormSet(instance=BuyRequest())
+
     return render(
         request,
         "accounts/profile.html",
@@ -81,10 +140,21 @@ def profile(request):
             "closed_plans": closed_plans,
             "open_requests": open_requests,
             "closed_requests": closed_requests,
-            # A plan id to auto-open the buyer request form for (set after Block).
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,
+            "review_req": review_req,
+            "review_form": review_form,
+            "review_formset": review_formset,
+            "review_is_edit": review_is_edit,
+            "purchase_req": purchase_req,
+            "purchase_form": purchase_form,
+            "purchase_formset": purchase_formset,
+            "arrive_req": arrive_req,
+            "arrive_form": arrive_form,
+            "order_form_plan": order_form_plan,
+            "order_form_buy": order_form_buy,
+            "order_form_formset": order_form_formset,
             **order_ctx,
         },
     )
