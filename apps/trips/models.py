@@ -187,6 +187,7 @@ class BuyRequest(models.Model):
 
     _BUYER_STATUS_LABELS = {
         "accepted": "Estimate Received",
+        "deposit_paid": "W/f Actual Cost",
     }
 
     @property
