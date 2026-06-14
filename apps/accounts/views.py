@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import Status
+from apps.trips.constants import CHAT_STATUSES, Status
 from apps.trips.forms import (
     BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
     PurchaseWeightForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
@@ -58,7 +58,7 @@ def profile(request):
                 "is_buyer": is_buyer,
                 "chat_messages": order.messages.select_related("sender").all(),
                 "message_form": MessageForm(),
-                "can_chat": is_traveler or is_buyer or user.is_staff,
+                "can_chat": (is_traveler or is_buyer or user.is_staff) and order.status in CHAT_STATUSES,
             }
         else:
             order = None

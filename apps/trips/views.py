@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import workflow
-from .constants import OPEN_PLAN_STATUSES, Status
+from .constants import CHAT_STATUSES, OPEN_PLAN_STATUSES, Status
 from .forms import (
     BuyRequestForm,
     CustomFareForm,
@@ -122,7 +122,7 @@ def request_detail(request, pk):
             "is_buyer": is_buyer,
             "chat_messages": chat_messages,
             "message_form": MessageForm(),
-            "can_chat": is_traveler or is_buyer or request.user.is_staff,
+            "can_chat": (is_traveler or is_buyer or request.user.is_staff) and req.status in CHAT_STATUSES,
             "refund_form": RefundBankForm(instance=req),
         },
     )
@@ -154,6 +154,9 @@ def request_message(request, pk):
     if request.user not in (req.buyer, req.plan.traveler) and not request.user.is_staff:
         messages.error(request, "You cannot post to this conversation.")
         return redirect("pages:home")
+    if req.status not in CHAT_STATUSES and not request.user.is_staff:
+        messages.error(request, "Chat is not available at this stage.")
+        return redirect(req.get_absolute_url())
     form = MessageForm(request.POST, request.FILES)
     if form.is_valid():
         msg = form.save(commit=False)

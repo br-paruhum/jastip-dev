@@ -21,6 +21,17 @@ class Status(models.TextChoices):
 # Statuses where the travel plan is still accepting a new buyer block.
 OPEN_PLAN_STATUSES = {Status.NEW, Status.REOPEN}
 
+# Chat is only available once there is a real purchase to discuss (deposit paid
+# onward). Keeping it closed during the estimate stage reduces the temptation
+# for buyers and travelers to exchange contact details and bypass the platform.
+CHAT_STATUSES = {
+    Status.DEPOSIT_PAID,
+    Status.ITEMS_PURCHASED,
+    Status.PACKAGE_ARRIVED,
+    Status.READY_FOR_PICKUP,
+    Status.CLEAR,
+}
+
 # Statuses considered an in-progress (current/open) transaction on the home page.
 ACTIVE_TX_STATUSES = {
     Status.REQUEST_RECEIVED,
