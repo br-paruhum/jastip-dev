@@ -6,7 +6,7 @@ class Status(models.TextChoices):
 
     NEW = "new", "New"
     REQUEST_RECEIVED = "request_received", "W/f Estimate"
-    ACCEPTED = "accepted", "Accepted"
+    ACCEPTED = "accepted", "Estimate Sent"
     REOPEN = "reopen", "Reopen"
     REJECTED = "rejected", "Rejected"
     DEPOSIT_PAID = "deposit_paid", "Deposit Paid"

@@ -175,9 +175,11 @@ def request_review(request, pk):
     if not _require_traveler(request, req):
         messages.error(request, "Only the traveler can review this request.")
         return redirect(req.get_absolute_url())
-    if req.status != Status.REQUEST_RECEIVED:
-        messages.info(request, "This request has already been reviewed.")
+    if req.status not in {Status.REQUEST_RECEIVED, Status.ACCEPTED}:
+        messages.info(request, "This request can no longer be edited.")
         return redirect(req.get_absolute_url())
+
+    is_edit = req.status == Status.ACCEPTED
 
     if request.method == "POST":
         form = ReviewForm(request.POST, instance=req)
@@ -190,22 +192,25 @@ def request_review(request, pk):
                 form.save()
                 formset.save()
                 if decision == "accept":
-                    workflow.on_request_accepted(req)
-                    messages.success(request, "Request accepted. The buyer has been notified.")
+                    if is_edit:
+                        messages.success(request, "Estimate updated.")
+                    else:
+                        workflow.on_request_accepted(req)
+                        messages.success(request, "Estimate sent. The buyer has been notified.")
                     return redirect(req.get_absolute_url())
                 elif decision == "reject":
                     workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))
                     messages.success(request, "Request rejected. The plan is open again.")
                     return redirect(req.get_absolute_url())
                 elif decision == "draft":
-                    messages.success(request, "Draft saved. Come back to accept or reject anytime.")
+                    messages.success(request, "Draft saved. Come back to submit or reject anytime.")
                     return redirect("trips:request_review", pk=req.pk)
                 else:
-                    messages.error(request, "Choose Accept, Reject, or Save Draft.")
+                    messages.error(request, "Choose Submit Estimate, Reject, or Save Draft.")
     else:
         form = ReviewForm(instance=req)
         formset = ReviewItemFormSet(instance=req)
-    return render(request, "trips/request_review.html", {"req": req, "form": form, "formset": formset})
+    return render(request, "trips/request_review.html", {"req": req, "form": form, "formset": formset, "is_edit": is_edit})
 
 
 # --- Traveler: record purchases -> Item(s) Purchased ------------------------
