@@ -125,8 +125,9 @@
 
   {% elif req.status == "ready_for_pickup" %}
     {% if is_buyer %}
-      <p><strong>Option 1 — Pick up locally:</strong> Collect the package from the traveler and verify
-         the items and weight. When satisfied, click Confirm Pickup to release payment.</p>
+      <p><strong>Option 1 — Pick up locally:</strong> Contact the traveler directly (WhatsApp or email)
+         to arrange their address and best time to visit. When you are there, verify the items and weight.
+         When satisfied, click Confirm Pickup to release payment.</p>
       {% if req.refund_due > 0 %}
         <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
