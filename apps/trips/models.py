@@ -521,7 +521,7 @@ class ExchangeRate(models.Model):
     """BCA TT Counter exchange rate, fetched daily by `fetch_kurs`."""
 
     code = models.CharField(max_length=6, primary_key=True)
-    name = models.CharField(max_length=10)
+    name = models.CharField(max_length=40)
     sell_rate = models.DecimalField(max_digits=14, decimal_places=4)
     buy_rate = models.DecimalField(max_digits=14, decimal_places=4)
     is_active = models.BooleanField(default=True)
