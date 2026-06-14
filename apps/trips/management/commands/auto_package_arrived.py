@@ -27,10 +27,19 @@ class Command(BaseCommand):
             "--dry-run", action="store_true",
             help="Preview without making any changes.",
         )
+        parser.add_argument(
+            "--travel-date", metavar="YYYY-MM-DD", default=None,
+            help="Pretend today is this date (for testing). E.g. --travel-date 2026-06-10",
+        )
 
     def handle(self, *args, **options):
         dry = options["dry_run"]
-        today = timezone.localtime().date()
+        if options["travel_date"]:
+            from datetime import date
+            today = date.fromisoformat(options["travel_date"])
+            self.stdout.write(f"[simulating today = {today}]")
+        else:
+            today = timezone.localtime().date()
         # travel_date + 2 <= today  →  travel_date <= today - 2
         cutoff = today - timedelta(days=2)
 
