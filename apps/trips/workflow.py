@@ -73,8 +73,9 @@ def on_request_submitted(request_obj):
 
 def on_request_accepted(request_obj):
     """Step 3 (accept): traveler priced + accepted -> notify buyer with a PDF
-    invoice attached (also cc'd to the traveler + admin)."""
-    _set_status(request_obj, Status.ACCEPTED)
+    invoice attached (also cc'd to the traveler + admin).
+    Plan status is not touched — multiple buyers can be at different stages."""
+    _set_status(request_obj, Status.ACCEPTED, sync_plan=False)
     attachments = None
     try:
         from .invoices import render_invoice_pdf

@@ -68,9 +68,9 @@ class TravelPlan(models.Model):
 
     @property
     def active_requests(self):
-        """All buy requests still in an active lifecycle (not rejected, not closed).
+        """All buy requests still in an active lifecycle (not rejected, cancelled, or closed).
         Iterates the prefetched buy_requests cache — no extra query per plan."""
-        excluded = {Status.REJECTED, Status.CLOSED}
+        excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
         return [r for r in self.buy_requests.all() if r.status not in excluded]
 
     @property
@@ -103,9 +103,10 @@ class TravelPlan(models.Model):
         Iterates the prefetched ``buy_requests`` cache (filters in Python) to
         avoid an extra query per plan in list views.
         """
+        excluded = {Status.REJECTED, Status.CANCELLED}
         total = Decimal("0")
         for req in self.buy_requests.all():
-            if req.status == Status.REJECTED:
+            if req.status in excluded:
                 continue
             total += req.actual_weight_kg if req.has_actual_weight else req.estimated_weight_kg
         return total.quantize(TWO_PLACES)
