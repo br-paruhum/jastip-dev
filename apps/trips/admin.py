@@ -202,7 +202,7 @@ class MessageAdmin(ModelAdmin):
 @admin.register(ExchangeRate)
 class ExchangeRateAdmin(ModelAdmin):
     list_display = ("code", "name", "sell_rate", "buy_rate", "is_active", "sequence", "updated_at")
-    list_editable = ("is_active", "sequence")
+    list_editable = ("name", "is_active", "sequence")
     list_filter = ("is_active",)
     search_fields = ("code", "name")
     readonly_fields = ("updated_at",)
