@@ -177,10 +177,18 @@ class BuyRequest(models.Model):
     def is_active(self) -> bool:
         return self.status in ACTIVE_TX_STATUSES
 
+    _BUYER_STATUS_LABELS = {
+        "accepted": "Estimate Received",
+    }
+
+    @property
+    def buyer_status_display(self) -> str:
+        """Status label shown to the buyer — differs from the traveler's label
+        for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
+        return self._BUYER_STATUS_LABELS.get(self.status, self.get_status_display())
+
     @property
     def detail_status_label(self) -> str:
-        """Status label shown on the request detail page. Mirrors the global
-        status display (e.g. 'Ordered' for REQUEST_RECEIVED)."""
         return self.get_status_display()
 
     # --- Money (no FX; the plan's shipment currency is the settlement currency) ---
