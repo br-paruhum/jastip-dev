@@ -153,8 +153,9 @@ class PurchaseWeightForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Optional so a draft can be saved before the items are weighed.
         self.fields["actual_weight_kg"].required = False
+        if self.instance and self.instance.pk and not self.instance.actual_weight_kg:
+            self.initial["actual_weight_kg"] = self.instance.estimated_weight_kg
 
 
 # Traveler records what was actually purchased (incl. actual quantity).
@@ -172,11 +173,11 @@ class PurchaseItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Propagate the requested (estimate) quantity into the editable Actual
-        # Quantity. Set it on self.initial — a ModelForm fills self.initial from
-        # the instance, so field.initial alone would be ignored.
-        if self.instance and self.instance.pk and not self.instance.actual_quantity:
-            self.initial["actual_quantity"] = self.instance.quantity
+        if self.instance and self.instance.pk:
+            if not self.instance.actual_quantity:
+                self.initial["actual_quantity"] = self.instance.quantity
+            if not self.instance.actual_unit_cost:
+                self.initial["actual_unit_cost"] = self.instance.estimated_unit_cost
 
 
 PurchaseItemFormSet = inlineformset_factory(
