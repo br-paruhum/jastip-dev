@@ -64,10 +64,10 @@
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
             <td class="action-cell">
-              {% if plan.is_open %}
+              {% if plan.remaining_weight_kg %}
                 <a class="btn btn-primary btn-sm" href="{% url 'trips:request_create' plan.id %}">Order</a>
               {% else %}
-                <span class="btn btn-sm btn-blocked">Locked</span>
+                <span class="btn btn-sm btn-blocked">Full</span>
               {% endif %}
             </td>
           </tr>

@@ -65,8 +65,8 @@ def plan_detail(request, pk):
 # --- Buyer: block a plan + compose the request ------------------------------
 @profile_required
 def request_create(request, plan_id):
-    plan = get_object_or_404(TravelPlan, pk=plan_id)
-    if plan.status not in OPEN_PLAN_STATUSES:
+    plan = get_object_or_404(TravelPlan.objects.prefetch_related("buy_requests"), pk=plan_id)
+    if plan.is_closed or not plan.remaining_weight_kg:
         messages.error(request, "This travel plan is no longer open for requests.")
         return redirect(plan.get_absolute_url())
     if plan.traveler_id == request.user.id:
