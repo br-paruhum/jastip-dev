@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import models as db_models
+from django.forms import TextInput
 from django.utils import timezone
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
@@ -207,3 +209,6 @@ class ExchangeRateAdmin(ModelAdmin):
     search_fields = ("code", "name")
     readonly_fields = ("updated_at",)
     ordering = ("sequence", "code")
+    formfield_overrides = {
+        db_models.CharField: {"widget": TextInput(attrs={"size": 20})},
+    }
