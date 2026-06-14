@@ -32,6 +32,12 @@
         </div>
         <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add Product</button>
 
+        <div class="form-field mt-2">
+          <label>Estimated Weight (kg) <span style="color:var(--danger)">*</span></label>
+          {{ form.estimated_weight_kg }}
+          {{ form.estimated_weight_kg.errors }}
+          <p class="help">Your best estimate of the total package weight in kg. The traveler will verify this before accepting.</p>
+        </div>
         <div class="form-field mt-2"><label>Notes to Traveler</label>{{ form.buyer_notes }}</div>
         <div style="display:flex;gap:10px;justify-content:center">
           <button class="btn btn-primary" type="submit">Submit Order</button>
