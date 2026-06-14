@@ -517,6 +517,24 @@ class Payment(models.Model):
         self.save(update_fields=["status", "verified_by", "verified_at"])
 
 
+class ExchangeRate(models.Model):
+    """BCA TT Counter exchange rate, fetched daily by `fetch_kurs`."""
+
+    code = models.CharField(max_length=6, primary_key=True)
+    name = models.CharField(max_length=10)
+    sell_rate = models.DecimalField(max_digits=14, decimal_places=4)
+    buy_rate = models.DecimalField(max_digits=14, decimal_places=4)
+    is_active = models.BooleanField(default=True)
+    sequence = models.PositiveSmallIntegerField(default=0, help_text="Lower = shown first.")
+    updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["sequence", "code"]
+
+    def __str__(self):
+        return f"{self.code} — sell {self.sell_rate:,.2f}"
+
+
 class Message(models.Model):
     """A chat message between the buyer and traveler on a request (admin can
     read all threads for oversight)."""

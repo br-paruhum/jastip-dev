@@ -5,7 +5,7 @@ from unfold.admin import ModelAdmin, TabularInline
 
 from . import workflow
 from .constants import Status
-from .models import BuyRequest, Message, Payment, Refund, RequestItem, TravelPlan, Transaction
+from .models import BuyRequest, ExchangeRate, Message, Payment, Refund, RequestItem, TravelPlan, Transaction
 
 
 class RequestItemInline(TabularInline):
@@ -197,3 +197,13 @@ class MessageAdmin(ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(ExchangeRate)
+class ExchangeRateAdmin(ModelAdmin):
+    list_display = ("code", "name", "sell_rate", "buy_rate", "is_active", "sequence", "updated_at")
+    list_editable = ("is_active", "sequence")
+    list_filter = ("is_active",)
+    search_fields = ("code", "name")
+    readonly_fields = ("updated_at",)
+    ordering = ("sequence", "code")

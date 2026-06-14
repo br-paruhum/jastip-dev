@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Kurs BCA — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:640px">
+    <h2 style="margin-bottom:.25rem">Kurs BCA</h2>
+    <p style="color:#666;font-size:.9rem;margin-top:0">
+      TT Counter — Jual (we buy)
+      {% if last_updated %}
+        &nbsp;·&nbsp; diperbarui {{ last_updated|date:"d M Y H:i" }} WIB
+      {% endif %}
+    </p>
+
+    {% if rates %}
+    <table style="width:100%;border-collapse:collapse;font-size:.95rem">
+      <thead>
+        <tr style="border-bottom:2px solid #ddd;text-align:left">
+          <th style="padding:.5rem .75rem">Mata Uang</th>
+          <th style="padding:.5rem .75rem;text-align:right">Kurs Jual (IDR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rates %}
+        <tr style="border-bottom:1px solid #eee">
+          <td style="padding:.5rem .75rem;font-weight:600">{{ r.code }}</td>
+          <td style="padding:.5rem .75rem;text-align:right">{{ r.sell_rate|idr_num }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888">Belum ada data kurs. Hubungi admin untuk menjalankan <code>fetch_kurs</code>.</p>
+    {% endif %}
+
+    <p style="margin-top:1.5rem;font-size:.8rem;color:#999">
+      Sumber: <a href="https://www.bca.co.id/id-ID/informasi/kurs" target="_blank" rel="noopener">BCA Kurs</a>.
+      Data hanya untuk referensi — selalu konfirmasi kurs terkini sebelum bertransaksi.
+    </p>
+  </div>
+</section>
+{% endblock %}

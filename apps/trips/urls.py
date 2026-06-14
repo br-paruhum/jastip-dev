@@ -16,4 +16,5 @@ urlpatterns = [
     path("requests/<int:pk>/clear/", views.request_clear, name="request_clear"),
     path("requests/<int:pk>/message/", views.request_message, name="request_message"),
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),
+    path("kurs/", views.kurs, name="kurs"),
 ]

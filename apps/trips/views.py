@@ -22,7 +22,7 @@ from .forms import (
     ReviewItemFormSet,
     TravelPlanForm,
 )
-from .models import BuyRequest, Payment, TravelPlan, Transaction
+from .models import BuyRequest, ExchangeRate, Payment, TravelPlan, Transaction
 
 
 def profile_required(view):
@@ -315,3 +315,10 @@ def request_clear(request, pk):
         "traveler will be paid shortly.",
     )
     return redirect(req.get_absolute_url())
+
+
+@login_required
+def kurs(request):
+    rates = ExchangeRate.objects.filter(is_active=True).order_by("sequence", "code")
+    last_updated = rates.order_by("-updated_at").values_list("updated_at", flat=True).first()
+    return render(request, "trips/kurs.html", {"rates": rates, "last_updated": last_updated})

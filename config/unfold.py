@@ -109,6 +109,11 @@ UNFOLD = {
                         "icon": "forum",
                         "link": reverse_lazy("admin:trips_message_changelist"),
                     },
+                    {
+                        "title": _("- Exchange rates"),
+                        "icon": "currency_exchange",
+                        "link": reverse_lazy("admin:trips_exchangerate_changelist"),
+                    },
                 ],
             },
             {
