@@ -11,7 +11,7 @@ class Status(models.TextChoices):
     REJECTED = "rejected", "Rejected"
     CANCELLED = "cancelled", "Cancelled"
     DEPOSIT_PAID = "deposit_paid", "Deposit Paid"
-    ITEMS_PURCHASED = "items_purchased", "Item(s) Purchased"
+    ITEMS_PURCHASED = "items_purchased", "Package Ready"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
     READY_FOR_PICKUP = "ready_for_pickup", "Ready for Pickup"
     CLEAR = "clear", "Clear"

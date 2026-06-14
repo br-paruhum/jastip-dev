@@ -19,7 +19,7 @@
             {% elif req.status == 'deposit_paid' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ req.id }}#purchase-order">Open</a>
             {% elif req.status == 'items_purchased' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Manage</a>
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Open</a>
             {% else %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ req.id }}#order-detail">Open</a>
             {% endif %}
