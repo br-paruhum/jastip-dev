@@ -10,7 +10,7 @@
         <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
         <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
         <td>{{ plan.available_weight_kg }} kg</td>
-        <td>{{ plan.remaining_weight_kg }} kg<br><span class="muted" style="font-size:.8em">of {{ plan.available_weight_kg }} kg avail</span></td>
+        <td>{{ plan.remaining_weight_kg }} kg</td>
         <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
         <td class="action-cell">
           {% with req=plan.active_request %}
