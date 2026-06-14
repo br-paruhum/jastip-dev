@@ -14,7 +14,7 @@ from apps.trips.constants import Status
 from apps.trips.models import TravelPlan
 
 from .forms import ContactForm
-from .models import ContactMessage, FAQItem, SitePage
+from .models import ContactMessage, FAQItem, SitePage, SiteSettings
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,9 @@ def home(request):
         .prefetch_related("buy_requests")[:20]
     )
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
+    # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works
+    # (SimpleLazyObject doesn't proxy __ge__/__le__, causing silent False comparisons).
+    min_remaining = SiteSettings.load().min_remaining_weight_kg
     return render(
         request,
         "pages/home.html",
@@ -38,6 +41,7 @@ def home(request):
             "open_plans": open_plans,
             "closed_plans": closed_plans,
             "latest_posts": latest_posts,
+            "MIN_REMAINING_WEIGHT_KG": min_remaining,
         },
     )
 
