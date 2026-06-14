@@ -135,7 +135,34 @@
         <button class="btn btn-primary" type="submit">Confirm Pickup</button>
       </form>
     {% else %}
-      <p class="muted">Waiting for the buyer to pick up the package and confirm clearance.</p>
+      <p>The buyer has paid in full. If they are picking up the package, wait for their confirmation.
+         If reshipment was agreed, ship the package and enter the AWB below.</p>
+      <div style="text-align:center">
+        <a class="btn btn-outline" href="{% url 'accounts:profile' %}?reship={{ req.id }}#reship-order">Ship Package</a>
+      </div>
+    {% endif %}
+
+  {% elif req.status == "reshipping" %}
+    {% if is_buyer %}
+      <p>Your package is in transit. AWB / Tracking: <strong>{{ req.awb_number }}</strong>
+        {% if req.awb_document %}&nbsp;<a href="{{ req.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}
+      </p>
+      {% if req.reshipment_proof %}
+        <p class="muted">Reshipment payment proof uploaded &#10003;</p>
+      {% else %}
+        <p>Please pay the traveler the agreed reshipment cost and upload your proof below.</p>
+        {% include "trips/_reship_proof_form.html" %}
+      {% endif %}
+      <hr style="margin:14px 0">
+      <p class="muted">Once you receive your package, click below to confirm and release the traveler's payment.</p>
+      <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center">{% csrf_token %}
+        <button class="btn btn-primary" type="submit">Confirm Receipt</button>
+      </form>
+    {% else %}
+      <p>Package shipped. AWB / Tracking: <strong>{{ req.awb_number }}</strong>
+        {% if req.awb_document %}&nbsp;<a href="{{ req.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}
+      </p>
+      <p class="muted">Waiting for the buyer to confirm receipt.</p>
     {% endif %}
 
   {% elif req.status == "clear" %}

@@ -153,6 +153,12 @@ class BuyRequest(models.Model):
     refund_account_name = models.CharField(max_length=120, blank=True)
     refund_processed = models.BooleanField(default=False)
 
+    # Reshipment — filled by traveler when shipping the package to buyer.
+    awb_number = models.CharField(max_length=80, blank=True)
+    awb_document = models.FileField(upload_to="awb/", blank=True, null=True)
+    # Buyer uploads proof of paying the traveler for reshipment cost.
+    reshipment_proof = models.ImageField(upload_to="reshipment_proofs/", blank=True, null=True)
+
     rejection_reason = models.TextField(blank=True)
     traveler_cleared = models.BooleanField(default=False)
     buyer_cleared = models.BooleanField(default=False)
@@ -188,6 +194,7 @@ class BuyRequest(models.Model):
     _BUYER_STATUS_LABELS = {
         "accepted": "Estimate Received",
         "deposit_paid": "W/f Actual Cost",
+        "reshipping": "In Transit",
     }
 
     @property

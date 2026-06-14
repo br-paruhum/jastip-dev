@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import CHAT_STATUSES, Status
 from apps.trips.forms import (
-    BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
+    AWBForm, BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
     PurchaseWeightForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
     TravelPlanForm,
 )
@@ -109,6 +109,17 @@ def profile(request):
             arrive_req = _r
             arrive_form = CustomFareForm(instance=_r)
 
+    # Reship panel (?reship=<id>#reship-order) — traveler uploads AWB to ship.
+    reship_req = reship_form = None
+    reship_id = request.GET.get("reship")
+    if reship_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=reship_id, plan__traveler=user
+        ).first()
+        if _r and _r.status == Status.READY_FOR_PICKUP:
+            reship_req = _r
+            reship_form = AWBForm(instance=_r)
+
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
     order_form_plan_id = request.GET.get("order_form")
@@ -152,6 +163,8 @@ def profile(request):
             "purchase_formset": purchase_formset,
             "arrive_req": arrive_req,
             "arrive_form": arrive_form,
+            "reship_req": reship_req,
+            "reship_form": reship_form,
             "order_form_plan": order_form_plan,
             "order_form_buy": order_form_buy,
             "order_form_formset": order_form_formset,

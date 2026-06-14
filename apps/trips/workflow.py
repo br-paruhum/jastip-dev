@@ -209,6 +209,19 @@ def on_new_message(message):
         )
 
 
+def on_reshipped(request_obj):
+    """Traveler ships the package → RESHIPPING; buyer notified to confirm receipt."""
+    _set_status(request_obj, Status.RESHIPPING, sync_plan=False)
+    send_email(
+        to_user=request_obj.buyer,
+        subject="Your package is on its way",
+        template="reshipped",
+        context=_ctx(request_obj),
+        event="reshipped",
+    )
+    notify_see_email(request_obj.buyer, event="reshipped")
+
+
 def on_buyer_cleared(request_obj):
     """Step 8 / CLEAR: buyer picked up the package and confirmed it's good.
 

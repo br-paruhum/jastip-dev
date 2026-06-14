@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from . import workflow
 from .constants import CHAT_STATUSES, OPEN_PLAN_STATUSES, Status
 from .forms import (
+    AWBForm,
     BuyRequestForm,
     CustomFareForm,
     MessageForm,
@@ -314,8 +315,8 @@ def request_clear(request, pk):
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can confirm pickup and clearance.")
         return redirect(req.get_absolute_url())
-    if req.status != Status.READY_FOR_PICKUP:
-        messages.error(request, "Clearance is only available once the package is ready for pickup.")
+    if req.status not in {Status.READY_FOR_PICKUP, Status.RESHIPPING}:
+        messages.error(request, "Clearance is only available once the package is ready.")
         return redirect(req.get_absolute_url())
 
     workflow.on_buyer_cleared(req)
@@ -325,6 +326,50 @@ def request_clear(request, pk):
         "traveler will be paid shortly.",
     )
     return redirect(req.get_absolute_url())
+
+
+# --- Traveler: ship the package (reshipment) --------------------------------
+@profile_required
+def request_reship(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if not _require_traveler(request, req):
+        messages.error(request, "Only the traveler can mark this as shipped.")
+        return redirect(req.get_absolute_url())
+    if req.status != Status.READY_FOR_PICKUP:
+        messages.info(request, "The package can only be shipped once it is Paid in Full.")
+        return redirect(req.get_absolute_url())
+
+    if request.method == "POST":
+        form = AWBForm(request.POST, request.FILES, instance=req)
+        if form.is_valid():
+            form.save()
+            workflow.on_reshipped(req)
+            messages.success(request, "Package marked as shipped. Buyer has been notified.")
+            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+        else:
+            messages.error(request, "Please enter an AWB number before submitting.")
+    return redirect(reverse("accounts:profile") + f"?reship={req.id}#reship-order")
+
+
+# --- Buyer: upload reshipment payment proof ---------------------------------
+@profile_required
+@require_POST
+def request_reship_proof(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can upload reshipment proof.")
+        return redirect(req.get_absolute_url())
+    if req.status != Status.RESHIPPING:
+        messages.error(request, "No reshipment proof is needed at this stage.")
+        return redirect(req.get_absolute_url())
+    proof = request.FILES.get("reshipment_proof")
+    if proof:
+        req.reshipment_proof = proof
+        req.save(update_fields=["reshipment_proof", "updated_at"])
+        messages.success(request, "Reshipment proof uploaded.")
+    else:
+        messages.error(request, "Please select a file to upload.")
+    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
 
 
 @login_required

@@ -1,0 +1,13 @@
+<span class="eyebrow">Ship Package · {{ reship_req.reference }}</span>
+<h2>Mark Package as Shipped</h2>
+<p class="muted">Enter the AWB / tracking number and optionally upload the waybill document,
+  then submit. The buyer will be notified by email.</p>
+
+<form method="post" action="{% url 'trips:request_reship' reship_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="form-field"><label>AWB / Tracking Number *</label>{{ reship_form.awb_number }}{{ reship_form.awb_number.errors }}</div>
+    <div class="form-field"><label>AWB Document (PDF or image, optional)</label>{{ reship_form.awb_document }}{{ reship_form.awb_document.errors }}</div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">Mark Shipped</button></div>
+  </div>
+</form>

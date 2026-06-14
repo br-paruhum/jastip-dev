@@ -159,6 +159,13 @@
         </div>
         {% endif %}
 
+        {% if reship_req %}
+        <!-- Panel: Ship package (traveler uploads AWB) -->
+        <div data-panel="reship-order" data-origin="travel-plans">
+          {% include "trips/_request_reship_body.html" %}
+        </div>
+        {% endif %}
+
         {% if order_form_plan %}
         <!-- Panel: Place new order (buyer) -->
         <div data-panel="order-form" data-origin="buying-order">

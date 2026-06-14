@@ -20,6 +20,8 @@
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ req.id }}#purchase-order">Open</a>
             {% elif req.status == 'items_purchased' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Open</a>
+            {% elif req.status == 'ready_for_pickup' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ req.id }}#order-detail">Ship/Wait</a>
             {% else %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ req.id }}#order-detail">Open</a>
             {% endif %}

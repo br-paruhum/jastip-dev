@@ -246,4 +246,25 @@ class RefundBankForm(forms.ModelForm):
         for f in ("refund_bank_name", "refund_account_no", "refund_account_name"):
             if not (cleaned.get(f) or "").strip():
                 self.add_error(f, "Required.")
+
+
+class AWBForm(forms.ModelForm):
+    """Traveler uploads AWB number + document to mark package as shipped."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["awb_number", "awb_document"]
+        labels = {
+            "awb_number": "AWB / Tracking number",
+            "awb_document": "AWB document (PDF or image)",
+        }
+        widgets = {
+            "awb_number": forms.TextInput(attrs={"placeholder": "e.g. JNE123456789"}),
+        }
+
+    def clean_awb_number(self):
+        val = self.cleaned_data.get("awb_number", "").strip()
+        if not val:
+            raise forms.ValidationError("AWB / tracking number is required.")
+        return val
         return cleaned
