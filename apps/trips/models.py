@@ -67,6 +67,13 @@ class TravelPlan(models.Model):
         return self.status in OPEN_PLAN_STATUSES
 
     @property
+    def active_requests(self):
+        """All buy requests still in an active lifecycle (not rejected, not closed).
+        Iterates the prefetched buy_requests cache — no extra query per plan."""
+        excluded = {Status.REJECTED, Status.CLOSED}
+        return [r for r in self.buy_requests.all() if r.status not in excluded]
+
+    @property
     def is_closed(self) -> bool:
         return self.status == Status.CLOSED
 

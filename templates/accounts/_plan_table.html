@@ -5,20 +5,29 @@
     <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th>Available</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for plan in plans %}
-      <tr>
-        <td>{{ plan.reference }}</td>
-        <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
-        <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
-        <td>{{ plan.available_weight_kg }} kg</td>
-        <td>{{ plan.remaining_weight_kg }} kg</td>
-        <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
-        <td class="action-cell">
-          {% with req=plan.active_request %}
-            {% if req %}<a class="btn btn-outline btn-sm" href="{% if req.status == 'request_received' or req.status == 'accepted' %}{% url 'trips:request_review' req.id %}{% elif req.status == 'deposit_paid' %}{% url 'trips:request_purchase' req.id %}{% elif req.status == 'items_purchased' %}{% url 'trips:request_arrive' req.id %}{% else %}{{ req.get_absolute_url }}{% endif %}">Manage</a>
-            {% else %}<a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ plan.id }}#plan-detail">View</a>{% endif %}
-          {% endwith %}
-        </td>
-      </tr>
+        {% for req in plan.active_requests %}
+        <tr>
+          <td>{{ plan.reference }}</td>
+          <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+          <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
+          <td>{{ plan.available_weight_kg }} kg</td>
+          <td>{{ plan.remaining_weight_kg }} kg</td>
+          <td class="status-cell">{% include "trips/_status_badge.html" with status=req.status label=req.get_status_display tone=req.status_tone %}</td>
+          <td class="action-cell">
+            <a class="btn btn-outline btn-sm" href="{% if req.status == 'request_received' or req.status == 'accepted' %}{% url 'trips:request_review' req.id %}{% elif req.status == 'deposit_paid' %}{% url 'trips:request_purchase' req.id %}{% elif req.status == 'items_purchased' %}{% url 'trips:request_arrive' req.id %}{% else %}{{ req.get_absolute_url }}{% endif %}">Manage</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td>{{ plan.reference }}</td>
+          <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+          <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
+          <td>{{ plan.available_weight_kg }} kg</td>
+          <td>{{ plan.remaining_weight_kg }} kg</td>
+          <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
+          <td class="action-cell"><a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ plan.id }}#plan-detail">View</a></td>
+        </tr>
+        {% endfor %}
       {% endfor %}
     </tbody>
   </table>

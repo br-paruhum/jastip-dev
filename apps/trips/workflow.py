@@ -58,8 +58,9 @@ def _set_status(request_obj, status, *, sync_plan=True):
 # --- Lifecycle steps --------------------------------------------------------
 
 def on_request_submitted(request_obj):
-    """Step 2: buyer submitted a request -> notify traveler."""
-    _set_status(request_obj, Status.REQUEST_RECEIVED)
+    """Step 2: buyer submitted a request -> notify traveler.
+    Plan status is not touched — multiple buyers can be at different stages."""
+    _set_status(request_obj, Status.REQUEST_RECEIVED, sync_plan=False)
     send_email(
         to_user=request_obj.plan.traveler,
         subject="New buying request for your trip",
@@ -93,12 +94,12 @@ def on_request_accepted(request_obj):
 
 
 def on_request_rejected(request_obj, reason=""):
-    """Step 3 (reject): traveler rejected -> reopen the plan, notify buyer."""
+    """Step 3 (reject): traveler rejected -> notify buyer.
+    Plan status is not changed — remaining_weight_kg automatically recovers
+    because rejected requests are excluded from utilized_weight_kg."""
     request_obj.rejection_reason = reason
     request_obj.status = Status.REJECTED
     request_obj.save(update_fields=["status", "rejection_reason", "updated_at"])
-    request_obj.plan.status = Status.REOPEN
-    request_obj.plan.save(update_fields=["status", "updated_at"])
     send_email(
         to_user=request_obj.buyer,
         subject="Update on your buying request",
