@@ -198,10 +198,32 @@ class BuyRequest(models.Model):
     def detail_status_label(self) -> str:
         return self.get_status_display()
 
-    # --- Money (no FX; the plan's shipment currency is the settlement currency) ---
+    # --- Money ---
     @property
     def currency(self) -> str:
         return self.plan.shipment_currency
+
+    def _idr_equivalent(self, amount: Decimal) -> "Decimal | None":
+        """Convert a foreign-currency amount to IDR using the BCA TT Counter
+        sell rate. Returns None when currency is already IDR or no active
+        rate exists in the kurs table."""
+        if self.currency == "IDR":
+            return None
+        try:
+            rate = ExchangeRate.objects.get(code=self.currency, is_active=True)
+            if not rate.sell_rate:
+                return None
+            return (amount * rate.sell_rate).quantize(TWO_PLACES)
+        except ExchangeRate.DoesNotExist:
+            return None
+
+    @property
+    def deposit_due_idr(self) -> "Decimal | None":
+        return self._idr_equivalent(self.deposit_due)
+
+    @property
+    def unpaid_amount_idr(self) -> "Decimal | None":
+        return self._idr_equivalent(self.unpaid_amount)
 
     def _q(self, value: Decimal) -> Decimal:
         return Decimal(value).quantize(TWO_PLACES)

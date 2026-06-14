@@ -93,7 +93,7 @@
 
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>
-    <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong> to:</p>
+    <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
     <table class="invoice" style="max-width:440px;margin-bottom:12px">
       <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
       <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -114,7 +114,7 @@
 
   {% elif is_buyer and req.status == "package_arrived" %}
     {% if req.unpaid_amount > 0 %}
-      <p>The package has arrived. Please pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong> and upload transfer proof.</p>
+      <p>The package has arrived. Please pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong>{% if req.unpaid_amount_idr %} or <strong>IDR {{ req.unpaid_amount_idr|floatformat:0|intcomma }}</strong>{% endif %} and upload transfer proof.</p>
       {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
     {% elif req.unpaid_amount < 0 %}
       <p>The package has arrived. Your earlier payment <strong>exceeds</strong> the final amount — an
