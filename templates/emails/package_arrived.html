@@ -7,7 +7,13 @@
     <p>Please pay the unpaid balance of
        <strong>{{ request_obj.currency }} {{ request_obj.unpaid_amount|intcomma }}</strong>
        (including any custom fare) to the admin account and upload your proof.</p>
-    {% include "_email_button.html" with url=request_url label="Pay the balance" %}
+    <table class="invoice" style="width:100%;margin:12px 0">
+      <tr><td style="width:130px;color:#555">Bank Name</td><td>: <strong>{{ BANK.bank_name }}</strong></td></tr>
+      <tr><td style="color:#555">Branch</td><td>: {{ BANK.branch }}</td></tr>
+      <tr><td style="color:#555">Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+      <tr><td style="color:#555">Account Name</td><td>: {{ BANK.account_name }}</td></tr>
+    </table>
+    {% include "_email_button.html" with url=request_url label="Upload payment proof" %}
   {% elif request_obj.unpaid_amount < 0 %}
     <p>Good news — your earlier payment <strong>exceeds</strong> the final amount. Please enter your
        <strong>bank account number and name</strong> on the request page, and we will transfer the overpaid
