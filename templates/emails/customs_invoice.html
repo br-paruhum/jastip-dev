@@ -10,6 +10,7 @@
       <th style="text-align:right;padding:8px 10px;border:1px solid #e3ded2;">Qty</th>
       <th style="text-align:right;padding:8px 10px;border:1px solid #e3ded2;">Unit ({{ request_obj.currency }})</th>
       <th style="text-align:right;padding:8px 10px;border:1px solid #e3ded2;">Total ({{ request_obj.currency }})</th>
+      {% if request_obj.items_actual_total_idr %}<th style="text-align:right;padding:8px 10px;border:1px solid #e3ded2;">Total (IDR equiv.)</th>{% endif %}
     </tr>
     {% for item in request_obj.items.all %}{% if item.actual_quantity > 0 %}
     <tr>
@@ -17,11 +18,13 @@
       <td style="padding:7px 10px;border:1px solid #e3ded2;text-align:right;">{{ item.actual_quantity }}</td>
       <td style="padding:7px 10px;border:1px solid #e3ded2;text-align:right;">{{ item.actual_unit_cost|intcomma }}</td>
       <td style="padding:7px 10px;border:1px solid #e3ded2;text-align:right;">{{ item.actual_line_total|intcomma }}</td>
+      {% if request_obj.items_actual_total_idr %}<td style="padding:7px 10px;border:1px solid #e3ded2;text-align:right;">{{ item.actual_line_total_idr|floatformat:0|intcomma }}</td>{% endif %}
     </tr>
     {% endif %}{% endfor %}
     <tr style="background:#f5f3ee;font-weight:700;">
       <td colspan="3" style="padding:8px 10px;border:1px solid #e3ded2;">Total</td>
       <td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">{{ request_obj.currency }} {{ request_obj.items_actual_total|intcomma }}</td>
+      {% if request_obj.items_actual_total_idr %}<td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">IDR {{ request_obj.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
     </tr>
   </table>
 

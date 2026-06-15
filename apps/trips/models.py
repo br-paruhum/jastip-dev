@@ -314,6 +314,10 @@ class BuyRequest(models.Model):
         return bool(self.refund_account_no and self.refund_account_name)
 
     @property
+    def items_actual_total_idr(self):
+        return self._idr_equivalent(self.items_actual_total)
+
+    @property
     def customs_invoice_available(self) -> bool:
         """True once the traveler has recorded actual purchases."""
         unavailable = {
@@ -558,6 +562,10 @@ class RequestItem(models.Model):
     @property
     def actual_line_total(self) -> Decimal:
         return (self.actual_unit_cost or Decimal("0")) * self.actual_quantity
+
+    @property
+    def actual_line_total_idr(self):
+        return self.request._idr_equivalent(self.actual_line_total)
 
     @property
     def is_purchased(self) -> bool:
