@@ -343,22 +343,33 @@ class BuyRequest(models.Model):
 
     @property
     def actual_custom(self) -> Decimal:
-        """Custom duty in the plan's invoice currency.
+        """Custom duty converted to the plan's invoice currency.
 
-        Duty is paid at the destination — usually IDR — while the invoice is in
-        the plan's shipment currency (e.g. JPY). When the currencies differ,
-        convert IDR → plan currency by dividing by the BCA TT sell rate.
-        Falls back to the stored amount if no rate is available.
+        BCA sell_rate = IDR per 1 unit of foreign currency.
+        - Same currency → return as-is (rate = 1).
+        - Duty in IDR, invoice in foreign → divide by sell_rate[invoice_ccy].
+        - Duty in foreign, invoice in IDR → multiply by sell_rate[duty_ccy].
+        Falls back to the stored amount when no rate is available.
         """
         if not self.custom_fare_amount:
             return Decimal("0.00")
-        if not self.custom_fare_currency or self.custom_fare_currency == self.currency:
+        fare_ccy = self.custom_fare_currency or self.currency
+        if fare_ccy == self.currency:
             return self._q(self.custom_fare_amount)
-        if self.custom_fare_currency == "IDR" and self.currency != "IDR":
+        if fare_ccy == "IDR" and self.currency != "IDR":
+            # IDR duty → foreign invoice: ÷ sell_rate
             try:
                 rate = ExchangeRate.objects.get(code=self.currency, is_active=True)
                 if rate.sell_rate:
                     return (self.custom_fare_amount / rate.sell_rate).quantize(TWO_PLACES)
+            except ExchangeRate.DoesNotExist:
+                pass
+        elif self.currency == "IDR" and fare_ccy != "IDR":
+            # Foreign duty → IDR invoice: × sell_rate
+            try:
+                rate = ExchangeRate.objects.get(code=fare_ccy, is_active=True)
+                if rate.sell_rate:
+                    return (self.custom_fare_amount * rate.sell_rate).quantize(TWO_PLACES)
             except ExchangeRate.DoesNotExist:
                 pass
         return self._q(self.custom_fare_amount)
