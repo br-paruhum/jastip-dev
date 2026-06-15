@@ -97,7 +97,7 @@
      note:'Buyer Notified',
      t:'Go to <b>"My Buying Orders"</b>, click <b>"Open"</b>, make bank transfer, upload transfer proof and click <b>"Submit Transfer Proof"</b>. You can pay in Invoice currency or IDR equivalent.'},
     {num:'9.1',  a:'buyer',    img:'9.1.webp',
-     note:'Admin verified. Both parties notified. · Option 1 — Pickup Locally',
+     note:['Admin verified. Both parties notified.', 'Option 1 — Pickup Locally'],
      t:'Communicate directly with the Traveler regarding location and best time to visit. After collecting and checking the package, click <b>"Confirm Pickup"</b>.'},
     {num:'9.2',  a:'buyer',    img:'9.2.webp',
      note:'Option 2 — Request Reshipment',
@@ -126,7 +126,7 @@
   var tl=document.getElementById('hi-timeline');
   if(!tl) return;
   tl.innerHTML=STEPS.map(function(s){
-    var noteHtml=s.note?'<div class="hi-note">'+s.note+'</div>':'';
+    var noteHtml=s.note?(Array.isArray(s.note)?s.note:([s.note])).map(function(n){return'<div class="hi-note">'+n+'</div>';}).join(''):'';
     var capHtml=s.caption?'<div class="hi-note">'+s.caption+'</div>':'';
     var numHtml='<div class="hi-num">'+s.num+'</div>';
     var left  = s.a==='traveler' ? bubble(s) : '';
