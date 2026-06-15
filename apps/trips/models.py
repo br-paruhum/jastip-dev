@@ -3,6 +3,8 @@ from types import SimpleNamespace
 
 from django.conf import settings
 from django.db import models
+
+from .storage import webp_storage
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
@@ -170,7 +172,7 @@ class BuyRequest(models.Model):
     custom_fare_amount = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
-    custom_fare_proof = models.ImageField(upload_to="custom_fare/", blank=True, null=True)
+    custom_fare_proof = models.ImageField(upload_to="custom_fare/", blank=True, null=True, storage=webp_storage)
 
     # Buyer's bank details for refunding an overpaid amount (if any).
     refund_bank_name = models.CharField(max_length=120, blank=True)
@@ -182,12 +184,12 @@ class BuyRequest(models.Model):
     reshipment_address = models.TextField(blank=True)
     # Reshipment — step 2: traveler's cost + bank details.
     reshipment_cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
-    reshipment_cost_proof = models.ImageField(upload_to="reshipment_costs/", blank=True, null=True)
+    reshipment_cost_proof = models.ImageField(upload_to="reshipment_costs/", blank=True, null=True, storage=webp_storage)
     reshipment_bank_name = models.CharField(max_length=120, blank=True)
     reshipment_bank_account_no = models.CharField(max_length=60, blank=True)
     reshipment_bank_account_name = models.CharField(max_length=120, blank=True)
     # Reshipment — step 3: buyer uploads proof of paying the reshipment cost.
-    reshipment_proof = models.ImageField(upload_to="reshipment_proofs/", blank=True, null=True)
+    reshipment_proof = models.ImageField(upload_to="reshipment_proofs/", blank=True, null=True, storage=webp_storage)
     # Reshipment — step 4: traveler uploads AWB + waybill.
     awb_number = models.CharField(max_length=80, blank=True)
     awb_document = models.FileField(upload_to="awb/", blank=True, null=True)
@@ -534,7 +536,7 @@ class RequestItem(models.Model):
     name = models.CharField(max_length=200)
     quantity = models.PositiveSmallIntegerField(default=1)
     unit = models.CharField(max_length=20, default="pcs", blank=True, help_text="Unit of measure, e.g. pcs, box, kg.")
-    photo = models.ImageField(upload_to="items/requested/", blank=True, null=True)
+    photo = models.ImageField(upload_to="items/requested/", blank=True, null=True, storage=webp_storage)
 
     # Set by the traveler when reviewing the request ("update the cost fields").
     estimated_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
@@ -542,7 +544,7 @@ class RequestItem(models.Model):
     # Set by the traveler after actually purchasing.
     actual_quantity = models.PositiveSmallIntegerField(default=0, help_text="Quantity actually purchased.")
     actual_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
-    purchase_photo = models.ImageField(upload_to="items/purchased/", blank=True, null=True)
+    purchase_photo = models.ImageField(upload_to="items/purchased/", blank=True, null=True, storage=webp_storage)
     purchase_note = models.CharField(
         max_length=255, blank=True,
         help_text="Note if the item is unavailable, short, or substituted.",
@@ -644,7 +646,7 @@ class Payment(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
     status = models.CharField(max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
-    proof = models.ImageField(upload_to="payments/proof/", blank=True, null=True)
+    proof = models.ImageField(upload_to="payments/proof/", blank=True, null=True, storage=webp_storage)
 
     # Gateway plumbing (unused in manual mode).
     provider = models.CharField(max_length=40, blank=True)
@@ -696,7 +698,7 @@ class Message(models.Model):
     request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(USER, on_delete=models.SET_NULL, null=True, related_name="sent_messages")
     body = models.TextField()
-    photo = models.ImageField(upload_to="chat/", blank=True, null=True)
+    photo = models.ImageField(upload_to="chat/", blank=True, null=True, storage=webp_storage)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
