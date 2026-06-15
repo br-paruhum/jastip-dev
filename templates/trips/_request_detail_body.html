@@ -224,7 +224,7 @@
 
   {% elif req.status == "clear" %}
     <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
-       on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The traveler is paid the full amount now.
+       on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}. The traveler is paid the full amount after deducting the 2.5% platform fee now.
        {% if is_traveler %}<br>Your payout: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</nobr>{% if req.transaction.payout_to_traveler_idr %} (<nobr>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>){% endif %}</strong>.{% endif %}</p>
 
   {% elif req.status == "closed" %}
