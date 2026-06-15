@@ -75,7 +75,7 @@
 (function(){
   var STEPS=[
     {num:'1',    a:'traveler', img:'1.webp',
-     note:'New data displayed on Home page',
+     caption:'New data displayed on Home page',
      t:'Go to <b>"My Travel Plans"</b>, click <b>"Post a Travel Plan"</b>, fill in required fields and click <b>"Submit Travel Plan"</b>.'},
     {num:'2',    a:'buyer',    img:'2.webp',
      t:'Go to the Home page, select a travel plan and click <b>"Order"</b>.'},
@@ -127,11 +127,12 @@
   if(!tl) return;
   tl.innerHTML=STEPS.map(function(s){
     var noteHtml=s.note?'<div class="hi-note">'+s.note+'</div>':'';
+    var capHtml=s.caption?'<div class="hi-note">'+s.caption+'</div>':'';
     var numHtml='<div class="hi-num">'+s.num+'</div>';
     var left  = s.a==='traveler' ? bubble(s) : '';
     var right = s.a==='buyer'    ? bubble(s) : '';
     var sysBubble = s.a==='system' ? bubble(s) : '';
-    var mid = noteHtml+sysBubble+numHtml+thumb(s);
+    var mid = noteHtml+sysBubble+numHtml+thumb(s)+capHtml;
     return '<div class="hi-step '+s.a+'"><div class="hi-l">'+left+'</div><div class="hi-c">'+mid+
            '</div><div class="hi-r">'+right+'</div></div>';
   }).join('');
