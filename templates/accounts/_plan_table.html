@@ -2,7 +2,7 @@
 {% if plans %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th>Available</th><th>Remaining</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th style="text-align:right">Available</th><th style="text-align:right">Remaining</th><th>Buyer</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for plan in plans %}
         {% for req in plan.active_requests %}
@@ -10,8 +10,9 @@
           <td>{{ plan.reference }}</td>
           <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
           <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
-          <td>{{ plan.available_weight_kg }} kg</td>
-          <td>{{ plan.remaining_weight_kg }} kg</td>
+          <td style="text-align:right">{{ plan.available_weight_kg }} kg</td>
+          <td style="text-align:right">{{ plan.remaining_weight_kg }} kg</td>
+          <td>{{ req.buyer.full_name|truncatechars:16 }}</td>
           <td class="status-cell">{% include "trips/_status_badge.html" with status=req.status label=req.detail_status_label tone=req.status_tone %}</td>
           <td class="action-cell">
             {% if req.status == 'request_received' or req.status == 'accepted' %}
@@ -32,8 +33,9 @@
           <td>{{ plan.reference }}</td>
           <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
           <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
-          <td>{{ plan.available_weight_kg }} kg</td>
-          <td>{{ plan.remaining_weight_kg }} kg</td>
+          <td style="text-align:right">{{ plan.available_weight_kg }} kg</td>
+          <td style="text-align:right">{{ plan.remaining_weight_kg }} kg</td>
+          <td class="muted">—</td>
           <td class="status-cell">{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
           <td class="action-cell"><a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ plan.id }}#plan-detail">View</a></td>
         </tr>
