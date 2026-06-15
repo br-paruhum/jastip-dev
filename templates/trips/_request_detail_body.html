@@ -6,7 +6,12 @@
 
 <!-- Invoice (Estimate / Actual) -->
 <div class="card mt-2"><div class="card-body">
-  <h3>Invoice — {{ req.currency }}</h3>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+    <h3 style="margin:0">Invoice — {{ req.currency }}</h3>
+    {% if is_traveler and req.customs_invoice_available %}
+    <a href="{% url 'trips:request_customs_invoice' req.id %}" target="_blank" class="btn btn-outline btn-sm">Print Customs Invoice</a>
+    {% endif %}
+  </div>
   <div class="table-wrap">
   <table class="invoice inv2">
     <thead>

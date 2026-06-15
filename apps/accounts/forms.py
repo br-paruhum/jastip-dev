@@ -9,11 +9,16 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["full_name", "phone_country_code", "phone_number"]
+        fields = ["full_name", "phone_country_code", "phone_number", "address"]
         widgets = {
             "full_name": forms.TextInput(attrs={"placeholder": "Your full name", "autocomplete": "name"}),
             "phone_country_code": forms.TextInput(attrs={"placeholder": "+62", "class": "country-code"}),
             "phone_number": forms.TextInput(attrs={"placeholder": "81234567890", "inputmode": "numeric"}),
+            "address": forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": "e.g. Jl. Sudirman No. 1, Jakarta 10220, Indonesia",
+                "autocomplete": "street-address",
+            }),
         }
 
     def clean_phone_country_code(self):

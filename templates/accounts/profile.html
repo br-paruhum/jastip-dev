@@ -45,7 +45,13 @@
                   {{ profile_form.phone_number.errors }}
                 </div>
               </div>
-              <!-- Row 4: Save centered -->
+              <!-- Row 4: Delivery address -->
+              <div class="form-field">
+                <label for="id_address">Delivery Address <span class="help">(used on customs invoices)</span></label>
+                {{ profile_form.address }}
+                {{ profile_form.address.errors }}
+              </div>
+              <!-- Row 5: Save centered -->
               <div style="text-align:center;margin-top:10px">
                 <button class="btn btn-primary" type="submit">Save</button>
               </div>

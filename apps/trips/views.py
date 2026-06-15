@@ -428,3 +428,12 @@ def kurs(request):
     rates = ExchangeRate.objects.filter(is_active=True).order_by("sequence", "code")
     last_updated = rates.order_by("-updated_at").values_list("updated_at", flat=True).first()
     return render(request, "trips/kurs.html", {"rates": rates, "last_updated": last_updated})
+
+
+@login_required
+def request_customs_invoice(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk, plan__traveler=request.user)
+    if not req.customs_invoice_available:
+        messages.error(request, "Customs invoice is not available yet.")
+        return redirect(req.get_absolute_url())
+    return render(request, "trips/customs_invoice_print.html", {"req": req})

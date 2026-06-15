@@ -22,6 +22,7 @@ class User(AbstractUser):
     phone_country_code = models.CharField(max_length=6, blank=True, help_text="e.g. +62")
     phone_number = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False)
+    address = models.TextField(blank=True, help_text="Full delivery address (street, city, postal code, country)")
 
     # WhatsApp OTP verification state.
     phone_otp = models.CharField(max_length=6, blank=True)

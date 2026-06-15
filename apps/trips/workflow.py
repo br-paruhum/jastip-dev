@@ -148,7 +148,7 @@ def on_deposit_verified(request_obj):
 
 
 def on_items_purchased(request_obj):
-    """Step 5: traveler recorded purchases -> invoice ready, notify buyer."""
+    """Step 5: traveler recorded purchases -> invoice ready, notify buyer + send customs invoice to traveler."""
     _set_status(request_obj, Status.ITEMS_PURCHASED)
     send_email(
         to_user=request_obj.buyer,
@@ -158,6 +158,14 @@ def on_items_purchased(request_obj):
         event="items_purchased",
     )
     notify_see_email(request_obj.buyer, event="items_purchased")
+    customs_url = _site_url(f"/trips/requests/{request_obj.pk}/customs-invoice/")
+    send_email(
+        to_user=request_obj.plan.traveler,
+        subject=f"Customs Invoice — {request_obj.reference}",
+        template="customs_invoice",
+        context=_ctx(request_obj, customs_invoice_url=customs_url),
+        event="customs_invoice",
+    )
 
 
 def on_package_arrived(request_obj):

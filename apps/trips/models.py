@@ -313,6 +313,15 @@ class BuyRequest(models.Model):
     def refund_details_provided(self) -> bool:
         return bool(self.refund_account_no and self.refund_account_name)
 
+    @property
+    def customs_invoice_available(self) -> bool:
+        """True once the traveler has recorded actual purchases."""
+        unavailable = {
+            Status.NEW, Status.REQUEST_RECEIVED, Status.ACCEPTED,
+            Status.DEPOSIT_PAID, Status.REJECTED, Status.CANCELLED, Status.CLOSED,
+        }
+        return self.status not in unavailable
+
     # --- Quantities (Est = original request, Act = traveler's actuals) ---
     @property
     def est_qty_total(self) -> int:
