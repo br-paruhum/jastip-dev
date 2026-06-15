@@ -20,6 +20,15 @@ def idr_num(value):
 
 
 @register.filter
+def add_decimal(value, arg):
+    """Add two Decimal values safely (avoids Django's built-in add which truncates to int)."""
+    try:
+        return Decimal(str(value)) + Decimal(str(arg))
+    except (InvalidOperation, TypeError, ValueError):
+        return value
+
+
+@register.filter
 def accounting(value):
     """Thousand-separated amount; negatives shown in parentheses (overpaid).
 

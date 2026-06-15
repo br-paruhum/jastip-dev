@@ -1,4 +1,5 @@
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.db import models
@@ -72,6 +73,26 @@ class TravelPlan(models.Model):
         Iterates the prefetched buy_requests cache — no extra query per plan."""
         excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
         return [r for r in self.buy_requests.all() if r.status not in excluded]
+
+    @property
+    def active_requests_with_capacity(self):
+        """Active requests in creation order, each annotated with first-come-first-served
+        available/remaining capacity. Returns a list of SimpleNamespace(req, available, remaining).
+        Uses the prefetched buy_requests cache — no extra queries."""
+        excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
+        ordered = sorted(
+            [r for r in self.buy_requests.all() if r.status not in excluded],
+            key=lambda r: r.created_at,
+        )
+        running = self.available_weight_kg
+        result = []
+        for req in ordered:
+            avail = running.quantize(TWO_PLACES)
+            weight = req.actual_weight_kg if req.has_actual_weight else req.estimated_weight_kg
+            remaining = max(running - weight, Decimal("0")).quantize(TWO_PLACES)
+            result.append(SimpleNamespace(req=req, available=avail, remaining=remaining))
+            running = remaining
+        return result
 
     @property
     def is_closed(self) -> bool:
@@ -278,6 +299,11 @@ class BuyRequest(models.Model):
     @property
     def has_actual_weight(self) -> bool:
         return bool(self.actual_weight_kg and self.actual_weight_kg > 0)
+
+    @property
+    def effective_weight_kg(self) -> Decimal:
+        """Weight counted toward plan capacity: actual once confirmed, else estimated."""
+        return self.actual_weight_kg if self.has_actual_weight else self.estimated_weight_kg
 
     @property
     def refund_details_provided(self) -> bool:

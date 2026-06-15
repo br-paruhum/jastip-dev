@@ -1,3 +1,4 @@
+{% load money %}
 <h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
 {% if plans %}
 <div class="table-wrap">
@@ -5,26 +6,26 @@
     <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th style="text-align:right">Available</th><th style="text-align:right">Remaining</th><th>Buyer</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for plan in plans %}
-        {% for req in plan.active_requests %}
+        {% for item in plan.active_requests_with_capacity %}
         <tr>
           <td>{{ plan.reference }}</td>
           <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
           <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong></td>
-          <td style="text-align:right">{{ plan.available_weight_kg }} kg</td>
-          <td style="text-align:right">{{ plan.remaining_weight_kg }} kg</td>
-          <td>{{ req.buyer.full_name|truncatechars:16 }}</td>
-          <td class="status-cell">{% include "trips/_status_badge.html" with status=req.status label=req.detail_status_label tone=req.status_tone %}</td>
+          <td style="text-align:right">{{ item.available }} kg</td>
+          <td style="text-align:right">{{ item.remaining }} kg</td>
+          <td>{{ item.req.buyer.full_name|truncatechars:16 }}</td>
+          <td class="status-cell">{% include "trips/_status_badge.html" with status=item.req.status label=item.req.detail_status_label tone=item.req.status_tone %}</td>
           <td class="action-cell">
-            {% if req.status == 'request_received' or req.status == 'accepted' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ req.id }}#review-order">Manage</a>
-            {% elif req.status == 'deposit_paid' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ req.id }}#purchase-order">Open</a>
-            {% elif req.status == 'items_purchased' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Open</a>
-            {% elif req.status == 'reship_requested' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship_cost={{ req.id }}#reship-cost-order">Manage</a>
+            {% if item.req.status == 'request_received' or item.req.status == 'accepted' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ item.req.id }}#review-order">Manage</a>
+            {% elif item.req.status == 'deposit_paid' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ item.req.id }}#purchase-order">Open</a>
+            {% elif item.req.status == 'items_purchased' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ item.req.id }}#arrive-order">Open</a>
+            {% elif item.req.status == 'reship_requested' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship_cost={{ item.req.id }}#reship-cost-order">Manage</a>
             {% else %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ req.id }}#order-detail">Open</a>
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ item.req.id }}#order-detail">Open</a>
             {% endif %}
           </td>
         </tr>
