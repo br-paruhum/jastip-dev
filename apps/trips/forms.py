@@ -265,7 +265,7 @@ class ReshipmentCostForm(forms.ModelForm):
             "reshipment_bank_account_name": "Account holder name",
         }
         widgets = {
-            "reshipment_cost_amount": forms.NumberInput(attrs={"placeholder": "e.g. 100000"}),
+            "reshipment_cost_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right", "placeholder": "e.g. 100,000"}),
             "reshipment_cost_proof": forms.FileInput(),
             "reshipment_bank_name": forms.TextInput(attrs={"placeholder": "e.g. BCA"}),
             "reshipment_bank_account_no": forms.TextInput(attrs={"placeholder": "Your account number"}),
