@@ -343,7 +343,33 @@ class BuyRequest(models.Model):
 
     @property
     def actual_custom(self) -> Decimal:
+        """Custom duty in the plan's invoice currency.
+
+        Duty is paid at the destination — usually IDR — while the invoice is in
+        the plan's shipment currency (e.g. JPY). When the currencies differ,
+        convert IDR → plan currency by dividing by the BCA TT sell rate.
+        Falls back to the stored amount if no rate is available.
+        """
+        if not self.custom_fare_amount:
+            return Decimal("0.00")
+        if not self.custom_fare_currency or self.custom_fare_currency == self.currency:
+            return self._q(self.custom_fare_amount)
+        if self.custom_fare_currency == "IDR" and self.currency != "IDR":
+            try:
+                rate = ExchangeRate.objects.get(code=self.currency, is_active=True)
+                if rate.sell_rate:
+                    return (self.custom_fare_amount / rate.sell_rate).quantize(TWO_PLACES)
+            except ExchangeRate.DoesNotExist:
+                pass
         return self._q(self.custom_fare_amount)
+
+    @property
+    def custom_fare_needs_conversion(self) -> bool:
+        return bool(
+            self.custom_fare_amount
+            and self.custom_fare_currency
+            and self.custom_fare_currency != self.currency
+        )
 
     # --- Totals ---
     @property

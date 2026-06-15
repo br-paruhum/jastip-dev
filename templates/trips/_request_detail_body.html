@@ -49,7 +49,7 @@
         <td>{{ req.estimated_shipment_cost|intcomma }}</td><td>{{ req.shipment_cost|intcomma }}</td>
       </tr>
       <tr>
-        <td class="lcell">Custom Duty</td>
+        <td class="lcell">Custom Duty{% if req.custom_fare_needs_conversion %}<br><span class="help">({{ req.custom_fare_currency }} {{ req.custom_fare_amount|intcomma }} converted)</span>{% endif %}</td>
         <td></td><td></td><td></td><td></td><td></td>
         <td>{{ req.estimated_custom|intcomma }}</td><td>{{ req.actual_custom|intcomma }}</td>
       </tr>
