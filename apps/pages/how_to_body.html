@@ -1,7 +1,7 @@
 <!-- How It Works infographic — rendered as the SitePage(how-to) body inside pages/page.html.
      All CSS is scoped under .howto-ig / #hi-lightbox so it cannot affect the rest of the site,
      and colors reuse the site palette variables from static/css/main.css.
-     Screenshots are served from /media/how-to/01.png … 18.png . -->
+     Screenshots are served from /media/how-to/1.webp … 10.6.webp . -->
 <style>
 .howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
 .howto-ig .hi-lead{font-size:clamp(15px,4.2vw,24px);color:var(--slate-400);margin:0 0 22px;max-width:900px}
@@ -23,15 +23,17 @@
 .howto-ig .system .hi-msg{background:var(--cream)}
 .howto-ig .hi-who{display:block;font-size:20px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
   margin-bottom:5px;color:var(--clay-dark)}
+.howto-ig .hi-note{font-size:14px;font-weight:700;text-align:center;color:var(--clay-dark);
+  border:1px solid var(--clay);border-radius:6px;padding:5px 12px;background:#fff;letter-spacing:.01em}
 /* Mobile-only actor tag — shows who acts (Traveler/Buyer) once the lane columns collapse. */
 .howto-ig .hi-mwho{display:none}
-.howto-ig .hi-num{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-weight:800;font-size:20px;color:#fff;background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
+.howto-ig .hi-num{min-width:44px;height:44px;border-radius:50px;padding:0 10px;display:inline-flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;
+  background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
 .howto-ig .hi-thumb{cursor:zoom-in;display:block;width:100%}
 .howto-ig .hi-thumb img{width:100%;border-radius:10px;border:1px solid var(--line);background:#fff;
   box-shadow:0 6px 18px rgba(26,26,24,.10);display:block;transition:transform .15s}
 .howto-ig .hi-thumb:hover img{transform:scale(1.02)}
-.howto-ig .hi-cap2{font-size:20px;color:var(--muted);text-align:center}
 #hi-lightbox{position:fixed;inset:0;z-index:1000;display:none;background:rgba(26,26,24,.9);
   align-items:center;justify-content:center;padding:28px}
 #hi-lightbox.open{display:flex}
@@ -54,7 +56,7 @@
 </style>
 
 <div class="howto-ig">
-  <p class="hi-lead">The full journey from posting a travel plan to a pickup the package and cleared transaction - Click any screenshot to enlarge.</p>
+  <p class="hi-lead">The full journey from posting a travel plan to pickup the package and cleared transaction — Assuming Traveler and Buyer are registered and logged in. Click any screenshot to enlarge.</p>
   <div class="hi-colhead">
     <div class="hi-lane">Traveler</div>
     <div class="hi-lane">Jastip.me</div>
@@ -72,50 +74,75 @@
 <script>
 (function(){
   var STEPS=[
-    {a:'traveler', t:'After register and login, select <b>“My Travel Plans”</b>.'},
-    {a:'traveler', t:'Click <b>“Post a Travel Plan”</b>.'},
-    {a:'traveler', t:'Complete the highlighted fields and click <b>“Submit Travel Plan”</b>.'},
-    {a:'buyer',    t:'After register and login, go to the Home page, select a travel plan and click <b>“Order”</b>.'},
-    {a:'buyer',    t:'Complete the highlighted fields and click <b>“Submit Order”</b>.'},
-    {a:'system',   t:'Traveler notified by email and WhatsApp. Travel plan status changes to <b>“Ordered”</b>.'},
-    {a:'traveler', t:'Select <b>“My Travel Plans”</b> and click <b>“Manage”</b>.'},
-    {a:'traveler', t:'Update unit costs and estimated weight, then click <b>“Accept”</b>.'},
-    {a:'buyer',    t:'Buyer notified; status changes to <b>“Accepted”</b>. Select <b>“My Buying Orders”</b>, click <b>“Open”</b> and review the invoice.'},
-    {a:'buyer',    t:'Make a bank transfer, upload the transfer proof and click <b>“Submit Transfer Proof”</b>. The deposit shows as <b>“Pending”</b> under the Payments tab.'},
-    {a:'system',   t:'Admin verifies the incoming transfer. Payment status changes to <b>“Verified”</b> and the traveler is notified.'},
-    {a:'traveler', t:'Select <b>“My Travel Plans”</b> and click <b>“Manage”</b> to start purchasing.'},
-    {a:'traveler', t:'Input actual quantity, actual unit cost and final shipment weight. The buyer is notified.'},
-    {a:'system',   t:'All invoice values update automatically — only custom duty remains, to be filled on arrival. Traveler and buyer see the same invoice.'},
-    {a:'traveler', t:'On arrival, click <b>“Enter Arrival Details”</b>, enter custom duty (if any), upload proof of payment and click <b>“Mark Arrived”</b>. The buyer is notified.'},
-    {a:'buyer',    t:'Pay the unpaid balance, upload proof and click <b>“Submit Transfer Proof”</b>.'},
-    {a:'system',   t:'Admin verifies the transfer. Payment <b>“Verified”</b> and order status changes to <b>“Ready for Pickup”</b>. Both parties notified.'},
-    {a:'buyer',    t:'Pick up the package and click <b>“Confirm Pickup”</b>. The traveler is paid; Travel Plan and Buying Order status changes to <b>“Clear”</b>.'}
+    {num:'1',    a:'traveler', img:'1.webp',
+     note:'New data displayed on Home page',
+     t:'Go to <b>"My Travel Plans"</b>, click <b>"Post a Travel Plan"</b>, fill in required fields and click <b>"Submit Travel Plan"</b>.'},
+    {num:'2',    a:'buyer',    img:'2.webp',
+     t:'Go to the Home page, select a travel plan and click <b>"Order"</b>.'},
+    {num:'3',    a:'buyer',    img:'3.webp',
+     t:'Fill in detail of Ordered Product(s) and click <b>"Submit Order"</b>.'},
+    {num:'4',    a:'traveler', img:'4.webp',
+     note:'Traveler Notified',
+     t:'Go to <b>"My Travel Plans"</b>, click <b>"Manage"</b>, fill in Estimate Unit Costs, Estimated weight, and click <b>"Submit Estimate"</b>.'},
+    {num:'5',    a:'buyer',    img:'5.webp',
+     note:'Buyer Notified',
+     t:'Go to <b>"My Buying Orders"</b>, click <b>"Open"</b>, make bank transfer, upload transfer proof and click <b>"Submit Transfer Proof"</b>. You can pay in Invoice currency or IDR equivalent.'},
+    {num:'6',    a:'traveler', img:'6.webp',
+     note:'Admin verified the fund. Traveler notified — 50% deposit confirmed, purchasing can begin.',
+     t:'Go to <b>"My Travel Plans"</b>, ensure the order has <b>"Deposit Paid"</b> status, then purchase the requested product(s). When done, click <b>"Manage"</b>, input actual quantity, actual unit cost, final shipment weight and click <b>"Submit Purchases"</b>.'},
+    {num:'7',    a:'traveler', img:'7.webp',
+     note:'Buyer Notified',
+     t:'When arrived, go to <b>"My Travel Plans"</b>, click <b>"Manage"</b>, fill in Custom Duty currency and amount, upload proof of payment, and click <b>"Mark Arrived"</b>.'},
+    {num:'8',    a:'buyer',    img:'8.webp',
+     note:'Buyer Notified',
+     t:'Go to <b>"My Buying Orders"</b>, click <b>"Open"</b>, make bank transfer, upload transfer proof and click <b>"Submit Transfer Proof"</b>. You can pay in Invoice currency or IDR equivalent.'},
+    {num:'9.1',  a:'buyer',    img:'9.1.webp',
+     note:'Admin verified. Both parties notified. · Option 1 — Pickup Locally',
+     t:'Communicate directly with the Traveler regarding location and best time to visit. After collecting and checking the package, click <b>"Confirm Pickup"</b>.'},
+    {num:'9.2',  a:'buyer',    img:'9.2.webp',
+     note:'Option 2 — Request Reshipment',
+     t:'Fill in your delivery address and click <b>"Request Reshipment"</b>.'},
+    {num:'10.1', a:'traveler', img:'10.1.webp',
+     note:'Traveler Notified',
+     t:'Go to <b>"My Travel Plans"</b>, click <b>"Manage"</b> to review the reshipment request.'},
+    {num:'10.2', a:'traveler', img:'10.2.webp',
+     t:'Fill in shipment cost, bank name, account number, account name, upload cost proof (optional) and click <b>"Send to Buyer"</b>.'},
+    {num:'10.3', a:'buyer',    img:'10.3.webp',
+     note:'Buyer Notified',
+     t:'Upload transfer proof and click <b>"Send Proof"</b>.'},
+    {num:'10.4', a:'traveler', img:'10.4.webp',
+     note:'Traveler Notified',
+     t:'Upload the AWB / tracking number and shipment document, then click <b>"Submit AWB"</b>.'},
+    {num:'10.5', a:'buyer',    img:'10.5.webp',
+     note:'Package in Transit · Buyer Notified',
+     t:'When the package arrives, click <b>"Confirm Received"</b>. Transaction is complete — Traveler fund disbursement is in process.'},
   ];
   var LABEL={traveler:'Traveler', buyer:'Buyer', system:'Jastip.me'};
-  function pad(n){return (n<10?'0':'')+n;}
   function bubble(s){
     var who=(s.a==='traveler'||s.a==='buyer')?'<span class="hi-mwho">'+LABEL[s.a]+'</span>':'';
     return '<div class="hi-msg">'+who+s.t+'</div>';}
-  function thumb(n){var u='/media/how-to/'+pad(n)+'.png';
-    return '<div class="hi-thumb"><img src="'+u+'" data-full="'+u+'" data-step="'+n+'" alt="Step '+n+'" loading="lazy"></div>';}
+  function thumb(s){var u='/media/how-to/'+s.img;
+    return '<div class="hi-thumb"><img src="'+u+'" data-full="'+u+'" data-step="'+s.num+'" alt="Step '+s.num+'" loading="lazy"></div>';}
   var tl=document.getElementById('hi-timeline');
   if(!tl) return;
-  tl.innerHTML=STEPS.map(function(s,i){var n=i+1;
+  tl.innerHTML=STEPS.map(function(s){
+    var noteHtml=s.note?'<div class="hi-note">'+s.note+'</div>':'';
+    var numHtml='<div class="hi-num">'+s.num+'</div>';
     var left  = s.a==='traveler' ? bubble(s) : '';
     var right = s.a==='buyer'    ? bubble(s) : '';
-    var mid   = (s.a==='system' ? bubble(s) : '') +
-                '<div class="hi-num">'+n+'</div>'+thumb(n);
+    var sysBubble = s.a==='system' ? bubble(s) : '';
+    var mid = noteHtml+sysBubble+numHtml+thumb(s);
     return '<div class="hi-step '+s.a+'"><div class="hi-l">'+left+'</div><div class="hi-c">'+mid+
            '</div><div class="hi-r">'+right+'</div></div>';
   }).join('');
   var lb=document.getElementById('hi-lightbox'),
       img=document.getElementById('hi-img'),
       cap=document.getElementById('hi-cap');
-  function openLB(src,step){img.src=src;cap.textContent='Click outside or press Esc to close';
+  function openLB(src){img.src=src;cap.textContent='Click outside or press Esc to close';
     lb.classList.add('open');lb.setAttribute('aria-hidden','false');}
   function closeLB(){lb.classList.remove('open');lb.setAttribute('aria-hidden','true');img.src='';}
   tl.addEventListener('click',function(e){var t=e.target.closest('img');
-    if(!t||!t.getAttribute('data-full'))return; openLB(t.getAttribute('data-full'),t.getAttribute('data-step'));});
+    if(!t||!t.getAttribute('data-full'))return; openLB(t.getAttribute('data-full'));});
   document.getElementById('hi-close').addEventListener('click',closeLB);
   lb.addEventListener('click',function(e){if(e.target===lb)closeLB();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLB();});
