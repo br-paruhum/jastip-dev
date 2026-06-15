@@ -64,6 +64,10 @@ class TravelPlan(models.Model):
         return reverse("trips:plan_detail", args=[self.pk])
 
     @property
+    def travel_date_passed(self) -> bool:
+        return timezone.now().date() >= self.travel_date
+
+    @property
     def is_open(self) -> bool:
         return self.status in OPEN_PLAN_STATUSES
 
