@@ -44,7 +44,7 @@
         <li><a href="{% url 'pages:how_to' %}">How To</a></li>
         <li><a href="{% url 'pages:page' 'faq' %}">FAQ</a></li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
-        <li><a href="{% url 'trips:kurs' %}">Kurs</a></li>
+        <li><a href="{% url 'trips:fxrate' %}">FX Rate</a></li>
         <li><a href="{% url 'accounts:profile' %}">Dashboard</a></li>
         <li style="color:#c55a11;font-weight:600;font-size:.9rem">{{ user.full_name|default:user.email }}</li>
         <li><a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a></li>
