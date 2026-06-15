@@ -3,11 +3,12 @@
 {% if requests %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Ref</th><th>Route</th><th>Items</th><th>Invoice</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th>Items</th><th>Invoice</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for r in requests %}
       <tr>
         <td>{{ r.reference }}</td>
+        <td>{{ r.plan.travel_date|date:"d-M-Y" }}</td>
         <td class="route-cell"><strong>{{ r.plan.from_city }} → {{ r.plan.to_city }}</strong></td>
         <td>{{ r.items.count }}</td>
         <td>{{ r.currency }} {{ r.invoice_total|intcomma }}</td>
