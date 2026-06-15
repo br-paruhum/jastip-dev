@@ -172,7 +172,7 @@
       <p>The buyer has requested reshipment to:</p>
       <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
       <div style="text-align:center">
-        <a class="btn btn-outline" href="{% url 'accounts:profile' %}?reship_cost={{ req.id }}#reship-cost-order">Send Proof</a>
+        <a class="btn btn-primary" href="{% url 'accounts:profile' %}?reship_cost={{ req.id }}#reship-cost-order">Send Cost &amp; Bank Details</a>
       </div>
     {% endif %}
 
