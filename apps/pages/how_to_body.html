@@ -100,7 +100,7 @@
      note:['Admin verified. Both parties notified.', 'Option 1 — Pickup Locally'],
      t:'Communicate directly with the Traveler regarding location and best time to visit. After collecting and checking the package, click <b>"Confirm Pickup"</b>.'},
     {num:'10.1', a:'system',   img:'10.1.webp',
-     t:'Transaction complete. Traveler fund disbursement is in process.'},
+     note:'Transaction complete. Traveler fund disbursement is in process.'},
     {num:'9.2',  a:'buyer',    img:'9.2.webp',
      note:'Option 2 — Request Reshipment',
      t:'Fill in your delivery address and click <b>"Request Reshipment"</b>.'},
@@ -130,7 +130,7 @@
     var numHtml='<div class="hi-num">'+s.num+'</div>';
     var left  = s.a==='traveler' ? bubble(s) : '';
     var right = s.a==='buyer'    ? bubble(s) : '';
-    var sysBubble = s.a==='system' ? bubble(s) : '';
+    var sysBubble = (s.a==='system' && s.t) ? bubble(s) : '';
     var mid = noteHtml+sysBubble+numHtml+thumb(s)+capHtml;
     return '<div class="hi-step '+s.a+'"><div class="hi-l">'+left+'</div><div class="hi-c">'+mid+
            '</div><div class="hi-r">'+right+'</div></div>';
