@@ -213,7 +213,7 @@
       </p>
       <p class="muted">Once you receive your package, click below to confirm and release the traveler's payment.</p>
       <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center">{% csrf_token %}
-        <button class="btn btn-primary" type="submit">Confirm Receipt</button>
+        <button class="btn btn-primary" type="submit">Confirm Received</button>
       </form>
     {% else %}
       <p>Package shipped. AWB / Tracking: <strong>{{ req.awb_number }}</strong>
