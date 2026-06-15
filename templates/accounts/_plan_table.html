@@ -19,13 +19,15 @@
             {% if item.req.status == 'request_received' or item.req.status == 'accepted' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ item.req.id }}#review-order">Manage</a>
             {% elif item.req.status == 'deposit_paid' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ item.req.id }}#purchase-order">Open</a>
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ item.req.id }}#purchase-order">Manage</a>
             {% elif item.req.status == 'items_purchased' %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ item.req.id }}#arrive-order">Open</a>
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ item.req.id }}#arrive-order">Manage</a>
             {% elif item.req.status == 'reship_requested' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship_cost={{ item.req.id }}#reship-cost-order">Manage</a>
+            {% elif item.req.status == 'reship_cost_sent' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship={{ item.req.id }}#reship-order">Manage</a>
             {% else %}
-              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ item.req.id }}#order-detail">Open</a>
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ item.req.id }}#order-detail">View</a>
             {% endif %}
           </td>
         </tr>
