@@ -23,8 +23,8 @@
     {% endif %}{% endfor %}
     <tr style="background:#f5f3ee;font-weight:700;">
       <td colspan="3" style="padding:8px 10px;border:1px solid #e3ded2;">Total</td>
-      <td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">{{ request_obj.currency }} {{ request_obj.items_actual_total|intcomma }}</td>
-      {% if request_obj.items_actual_total_idr %}<td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">IDR {{ request_obj.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
+      <td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">{{ request_obj.items_actual_total|intcomma }}</td>
+      {% if request_obj.items_actual_total_idr %}<td style="padding:8px 10px;border:1px solid #e3ded2;text-align:right;">{{ request_obj.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
     </tr>
   </table>
 
