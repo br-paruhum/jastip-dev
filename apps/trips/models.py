@@ -591,6 +591,10 @@ class Transaction(models.Model):
         """
         return (self.request.invoice_total - self.commission_amount).quantize(TWO_PLACES)
 
+    @property
+    def payout_to_traveler_idr(self) -> "Decimal | None":
+        return self.request._idr_equivalent(self.payout_to_traveler)
+
 
 class Payment(models.Model):
     """A single money movement. Manual now, gateway-ready by design."""
