@@ -76,6 +76,10 @@ def request_create(request, plan_id):
     if plan.traveler_id == request.user.id:
         messages.error(request, "You cannot block your own travel plan.")
         return redirect(plan.get_absolute_url())
+    excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
+    if plan.buy_requests.filter(buyer=request.user).exclude(status__in=excluded).exists():
+        messages.info(request, "You already have an active order on this travel plan.")
+        return redirect(reverse("accounts:profile") + "#buying-order")
 
     if request.method == "POST":
         form = BuyRequestForm(request.POST)
