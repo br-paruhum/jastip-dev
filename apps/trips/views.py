@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 
@@ -78,7 +79,11 @@ def plan_create(request):
             return redirect(reverse("accounts:profile") + "#travel-plans")
     else:
         form = TravelPlanForm()
-    return render(request, "trips/plan_form.html", {"form": form})
+    country_currency_map_json = json.dumps(ExchangeRate.country_currency_map())
+    return render(
+        request, "trips/plan_form.html",
+        {"form": form, "country_currency_map_json": country_currency_map_json},
+    )
 
 
 def plan_detail(request, pk):

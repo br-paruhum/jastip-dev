@@ -120,7 +120,8 @@
                   <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
               </div>
               <div class="form-field">
-                <label>Shipment Cost per kg</label>{{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
+                <label>Shipment Cost per kg <span data-shipment-currency-suffix>(IDR)</span></label>
+                {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
                 <p class="help">Currency is set automatically from your From Country.</p>
               </div>
               <div style="text-align:center">
@@ -339,6 +340,7 @@
 <script src="{% static 'js/money.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
 <script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
+<script id="country-currency-map" type="application/json">{{ country_currency_map_json|safe }}</script>
 <script>
 (function () {
   var links = document.querySelectorAll('[data-tab]');
@@ -377,6 +379,24 @@
     toggle.addEventListener('click', function () {
       wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
     });
+  }
+
+  // Live currency hint on the inline "Post a Travel Plan" form, scoped to its
+  // own wrap since the "Post an Order" form on this same page also has a
+  // from_country field with the same id.
+  if (wrap) {
+    var mapEl = document.getElementById('country-currency-map');
+    var countryCurrency = mapEl ? JSON.parse(mapEl.textContent) : {};
+    var planCountrySelect = wrap.querySelector('select[name="from_country"]');
+    var planCurrencySuffix = wrap.querySelector('[data-shipment-currency-suffix]');
+    if (planCountrySelect && planCurrencySuffix) {
+      var updatePlanCurrency = function () {
+        var country = (planCountrySelect.value || '').trim().toLowerCase();
+        planCurrencySuffix.textContent = '(' + (countryCurrency[country] || 'IDR') + ')';
+      };
+      planCountrySelect.addEventListener('change', updatePlanCurrency);
+      updatePlanCurrency();
+    }
   }
 
   // Toggle the inline "Post an Order" form.

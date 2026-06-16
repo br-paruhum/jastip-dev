@@ -1156,6 +1156,19 @@ class ExchangeRate(models.Model):
                     return rate.code
         return Currency.IDR
 
+    @classmethod
+    def country_currency_map(cls) -> dict:
+        """Same mapping as `currency_for_country`, exposed as a lowercased
+        country-name -> currency-code dict for client-side lookups (e.g. live
+        currency hints while a form is being filled in, before submission)."""
+        mapping = {}
+        for rate in cls.objects.filter(is_active=True).exclude(apply_to_countries=""):
+            for name in rate.apply_to_countries.split(","):
+                name = name.strip().lower()
+                if name:
+                    mapping[name] = rate.code
+        return mapping
+
 
 class Message(models.Model):
     """A chat message between the buyer and traveler on a request (admin can

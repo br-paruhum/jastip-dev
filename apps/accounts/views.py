@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -13,7 +15,7 @@ from apps.trips.forms import (
     PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet,
     ReviewForm, ReviewItemFormSet, TravelPlanForm,
 )
-from apps.trips.models import BuyRequest, TravelerOffer, TravelPlan
+from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
 
@@ -250,6 +252,7 @@ def profile(request):
             "otp_form": OTPForm(),
             "password_form": ChangePasswordForm(user),
             "plan_form": TravelPlanForm(),
+            "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
             "new_order_form": OrderForm(),
             "new_order_formset": OrderItemFormSet(instance=BuyRequest(), prefix="bf_items"),
             "open_travel_rows": open_travel_rows,

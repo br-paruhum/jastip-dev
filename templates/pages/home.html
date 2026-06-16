@@ -71,7 +71,9 @@
               {% endif %}
             </td>
             <td class="action-cell">
-              {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
+              {% if user.is_authenticated and plan.traveler_id == user.id %}
+                <a class="btn btn-primary btn-sm" href="#" data-notice="You cannot order your own Travel Plan!">Order</a>
+              {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
                 <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>
               {% else %}
                 <span class="btn btn-sm btn-blocked">Full</span>

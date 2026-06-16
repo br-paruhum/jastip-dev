@@ -1,0 +1,49 @@
+{% comment %}
+Lightweight, self-hosted notice modal — used for short informational messages
+that shouldn't navigate the page away (e.g. "You cannot order your own Travel
+Plan!"). Trigger from any page by adding data-notice="message text" to a link
+or button; no extra wiring needed.
+{% endcomment %}
+<div id="notice-modal" class="notice-modal" role="dialog" aria-modal="true" aria-live="assertive" hidden>
+  <div class="notice-modal__backdrop" data-notice-close></div>
+  <div class="notice-modal__card">
+    <p class="notice-modal__text"></p>
+    <button type="button" class="btn btn-primary btn-sm" data-notice-close>OK</button>
+  </div>
+</div>
+
+<style>
+  .notice-modal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center}
+  .notice-modal__backdrop{position:absolute;inset:0;background:rgba(26,26,24,.45)}
+  .notice-modal__card{position:relative;background:var(--white);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:24px;max-width:360px;margin:16px;text-align:center}
+  .notice-modal__text{margin:0 0 16px;color:var(--slate);font-size:1rem;line-height:1.5}
+</style>
+
+<script>
+  (function () {
+    var modal = document.getElementById("notice-modal");
+    if (!modal) return;
+    var textEl = modal.querySelector(".notice-modal__text");
+
+    window.showNotice = function (message) {
+      textEl.textContent = message;
+      modal.hidden = false;
+    };
+
+    function close() { modal.hidden = true; }
+
+    modal.addEventListener("click", function (ev) {
+      if (ev.target.closest("[data-notice-close]")) close();
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && !modal.hidden) close();
+    });
+    document.addEventListener("click", function (ev) {
+      var trigger = ev.target.closest("[data-notice]");
+      if (!trigger) return;
+      ev.preventDefault();
+      window.showNotice(trigger.getAttribute("data-notice"));
+    });
+  })();
+</script>

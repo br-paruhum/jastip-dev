@@ -33,7 +33,8 @@
             <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
         </div>
         <div class="form-field">
-          <label>Shipment Cost per kg</label>{{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}
+          <label>Shipment Cost per kg <span data-shipment-currency-suffix>(IDR)</span></label>
+          {{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}
           <p class="help">Currency is set automatically from your From Country.</p>
         </div>
           <div style="text-align: center;">
@@ -49,4 +50,20 @@
 <script src="{% static 'js/money.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
 <script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
+<script id="country-currency-map" type="application/json">{{ country_currency_map_json|safe }}</script>
+<script>
+(function () {
+  var mapEl = document.getElementById('country-currency-map');
+  var countryCurrency = mapEl ? JSON.parse(mapEl.textContent) : {};
+  var countrySelect = document.querySelector('select[name="from_country"]');
+  var suffix = document.querySelector('[data-shipment-currency-suffix]');
+  if (!countrySelect || !suffix) return;
+  function update() {
+    var country = (countrySelect.value || '').trim().toLowerCase();
+    suffix.textContent = '(' + (countryCurrency[country] || 'IDR') + ')';
+  }
+  countrySelect.addEventListener('change', update);
+  update();
+})();
+</script>
 {% endblock %}
