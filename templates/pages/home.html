@@ -9,7 +9,10 @@
   <div class="container hero-grid">
     <div>
       <span class="eyebrow">Proxy Buying Service Made Easy</span>
-      <h1>Traveler: Find Product Buyer or Unused Baggage Buyer<br>Buyer: Find Traveler as Proxy Buyer or Just a Carrier</h1>
+      <h1 class="hero-title">
+        <span class="hero-label">Traveler:</span> <span class="hero-sub">Find Product Buyer or Unused Baggage Buyer</span><br>
+        <span class="hero-label">Buyer:</span> <span class="hero-sub">Find Traveler as Proxy Buyer or Just a Carrier</span>
+      </h1>
       <div class="hero-cta">
         <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling - Post a travel plan</a>
         <a href="{% url 'trips:order_create' %}" class="btn btn-outline btn-buy">Find Proxy Buyer or Carrier</a>
