@@ -100,6 +100,16 @@ UNFOLD = {
                         "link": reverse_lazy("admin:trips_payment_changelist"),
                     },
                     {
+                        "title": _("- Leg transactions"),
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:trips_legtransaction_changelist"),
+                    },
+                    {
+                        "title": _("- Leg payments"),
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:trips_legpayment_changelist"),
+                    },
+                    {
                         "title": _("- Refunds"),
                         "icon": "currency_exchange",
                         "link": reverse_lazy("admin:trips_refund_changelist"),

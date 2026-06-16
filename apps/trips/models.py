@@ -798,6 +798,33 @@ class TravelerOffer(models.Model):
         return self.deposit_due > 0 and self.deposit_paid_amount >= self.deposit_due
 
     @property
+    def deposit_pending(self) -> bool:
+        """A deposit proof has been submitted but not yet verified by admin."""
+        if self.deposit_verified or not hasattr(self, "transaction"):
+            return False
+        return self.transaction.payments.filter(
+            direction=LegPayment.Direction.INBOUND,
+            kind=LegPayment.Kind.DEPOSIT,
+            status=LegPayment.PaymentStatus.PENDING,
+        ).exists()
+
+    @property
+    def deposit_proof_url(self) -> str:
+        """URL of the most recently uploaded deposit proof, if any."""
+        if not hasattr(self, "transaction"):
+            return ""
+        p = (
+            self.transaction.payments.filter(
+                direction=LegPayment.Direction.INBOUND,
+                kind=LegPayment.Kind.DEPOSIT,
+            )
+            .exclude(proof="")
+            .order_by("-id")
+            .first()
+        )
+        return p.proof.url if p and p.proof else ""
+
+    @property
     def address_revealed(self) -> bool:
         """Traveler's name and drop-off address stay hidden until the deposit clears."""
         return self.deposit_verified

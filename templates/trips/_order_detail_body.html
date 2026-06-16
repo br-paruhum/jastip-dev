@@ -106,7 +106,7 @@
         <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}/kg</span>
         {% if leg.deposit_verified %}
           <span class="badge badge-success" style="margin-left:auto">Deposit verified</span>
-        {% elif leg.deposit_paid_amount > 0 %}
+        {% elif leg.deposit_pending %}
           <span class="badge badge-warning" style="margin-left:auto">Deposit pending</span>
         {% else %}
           <span class="badge badge-muted" style="margin-left:auto">Deposit due</span>
@@ -119,7 +119,7 @@
           <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
           {% if leg.deposit_verified %}
             <span class="badge badge-success">Verified</span>
-          {% elif leg.deposit_paid_amount > 0 %}
+          {% elif leg.deposit_pending %}
             <span class="badge badge-warning">Awaiting verification</span>
           {% else %}
             <span class="muted">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</span>
@@ -144,6 +144,8 @@
                 {% csrf_token %}
                 <button class="btn btn-primary btn-sm" type="submit">Mark Dropped Off</button>
               </form>
+            {% elif leg.deposit_pending %}
+              <span class="muted">Pending fund verification</span>
             {% else %}
               <span class="muted">Pay deposit first</span>
             {% endif %}
@@ -245,13 +247,21 @@
 
       </div>
 
-      {% if not leg.deposit_verified and not leg.deposit_paid_amount %}
+      {% if not leg.deposit_verified %}
       <div style="padding:16px;border-top:1px solid var(--line);text-align:center">
-        <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
-          {% csrf_token %}
-          <input type="file" name="proof" accept="image/png,image/jpeg" required>
-          <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
-        </form>
+        {% if leg.deposit_pending %}
+          <p class="muted" style="margin:0 0 12px">Deposit proof submitted — pending fund verification.</p>
+          <div style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
+            {% if leg.deposit_proof_url %}<a href="{{ leg.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
+            <button class="btn btn-primary btn-sm" type="button" disabled>Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
+          </div>
+        {% else %}
+          <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
+            {% csrf_token %}
+            <input type="file" name="proof" accept="image/png,image/jpeg" required>
+            <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
+          </form>
+        {% endif %}
       </div>
       {% endif %}
     </div>
