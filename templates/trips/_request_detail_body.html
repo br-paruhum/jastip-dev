@@ -180,11 +180,13 @@
   {% elif req.status == "reship_requested" %}
     {% if is_buyer %}
       <p>Reshipment requested to:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
-      <p class="muted">Waiting for the traveler to confirm shipment cost and bank details.</p>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.buyer.buyer_invoice_address }}{% if req.buyer.buyer_destination_city %}
+{{ req.buyer.buyer_destination_city }}{% endif %}</blockquote>
+      <p class="muted">Waiting for the traveler to confirm shipment cost.</p>
     {% else %}
       <p>The buyer has requested reshipment to:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.buyer.buyer_invoice_address }}{% if req.buyer.buyer_destination_city %}
+{{ req.buyer.buyer_destination_city }}{% endif %}</blockquote>
       <div style="text-align:center">
         <a class="btn btn-primary" href="{% url 'accounts:profile' %}?reship_cost={{ req.id }}#reship-cost-order">Send Cost &amp; Bank Details</a>
       </div>
@@ -196,11 +198,7 @@
         {% if req.reshipment_cost_proof %}&nbsp;<a href="{{ req.reshipment_cost_proof.url }}" target="_blank" class="help">(View proof)</a>{% endif %}
       </p>
       <p>Please transfer to:</p>
-      <table class="invoice" style="max-width:440px;margin-bottom:12px">
-        <tr><td style="width:120px">Bank</td><td>: {{ req.reshipment_bank_name }}</td></tr>
-        <tr><td>Account No.</td><td>: <strong>{{ req.reshipment_bank_account_no }}</strong></td></tr>
-        <tr><td>Account Name</td><td>: <strong>{{ req.reshipment_bank_account_name }}</strong></td></tr>
-      </table>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ req.plan.traveler.traveler_bank_details }}</blockquote>
       {% if req.reshipment_proof %}
         <p class="muted">Payment proof uploaded &#10003; — waiting for traveler to ship.</p>
       {% else %}
@@ -209,7 +207,8 @@
       {% endif %}
     {% else %}
       <p>Cost sent to buyer. Delivery address:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.reshipment_address }}</blockquote>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.buyer.buyer_invoice_address }}{% if req.buyer.buyer_destination_city %}
+{{ req.buyer.buyer_destination_city }}{% endif %}</blockquote>
       {% if req.reshipment_proof %}
         <p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship.</p>
       {% else %}

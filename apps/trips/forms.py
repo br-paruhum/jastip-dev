@@ -408,34 +408,24 @@ class RefundBankForm(forms.ModelForm):
 
 
 class ReshipmentCostForm(forms.ModelForm):
-    """Traveler sends reshipment cost + bank details to buyer."""
+    """Traveler sends reshipment cost to buyer. Bank details for the buyer's
+    transfer come from the traveler's own profile (traveler_bank_details),
+    not re-entered here."""
 
     class Meta:
         model = BuyRequest
-        fields = [
-            "reshipment_cost_amount", "reshipment_cost_proof",
-            "reshipment_bank_name", "reshipment_bank_account_no", "reshipment_bank_account_name",
-        ]
+        fields = ["reshipment_cost_amount", "reshipment_cost_proof"]
         labels = {
             "reshipment_cost_amount": "Shipment cost (IDR)",
             "reshipment_cost_proof": "Cost proof (optional)",
-            "reshipment_bank_name": "Bank name",
-            "reshipment_bank_account_no": "Account number",
-            "reshipment_bank_account_name": "Account holder name",
         }
         widgets = {
             "reshipment_cost_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right", "placeholder": "e.g. 100,000"}),
             "reshipment_cost_proof": forms.FileInput(),
-            "reshipment_bank_name": forms.TextInput(attrs={"placeholder": "e.g. BCA"}),
-            "reshipment_bank_account_no": forms.TextInput(attrs={"placeholder": "Your account number"}),
-            "reshipment_bank_account_name": forms.TextInput(attrs={"placeholder": "Name on the account"}),
         }
 
     def clean(self):
         cleaned = super().clean()
-        for f in ("reshipment_bank_name", "reshipment_bank_account_no", "reshipment_bank_account_name"):
-            if not (cleaned.get(f) or "").strip():
-                self.add_error(f, "Required.")
         if not cleaned.get("reshipment_cost_amount"):
             self.add_error("reshipment_cost_amount", "Required.")
         return cleaned
