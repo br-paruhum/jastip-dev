@@ -123,7 +123,7 @@
             <span class="badge badge-warning">Awaiting verification</span>
           {% else %}
             <p class="muted" style="margin:0 0 6px">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</p>
-            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:12px">
+            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;margin-top:24px">
               {% csrf_token %}
               <input type="file" name="proof" accept="image/png,image/jpeg" required>
               <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
