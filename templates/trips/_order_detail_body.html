@@ -113,26 +113,16 @@
         {% endif %}
       </div>
 
-      {% if not leg.deposit_verified and not leg.deposit_paid_amount %}
-      <div style="padding:16px;text-align:center">
-        <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
-        <p class="muted" style="margin:0">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</p>
-        <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-direction:column;gap:10px;align-items:center;margin-top:24px">
-          {% csrf_token %}
-          <input type="file" name="proof" accept="image/png,image/jpeg" required>
-          <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
-        </form>
-        <p class="help" style="margin-top:14px">Drop-off address stays hidden until your deposit clears.</p>
-      </div>
-      {% else %}
       <div style="display:grid;gap:16px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
 
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
           {% if leg.deposit_verified %}
             <span class="badge badge-success">Verified</span>
-          {% else %}
+          {% elif leg.deposit_paid_amount > 0 %}
             <span class="badge badge-warning">Awaiting verification</span>
+          {% else %}
+            <span class="muted">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</span>
           {% endif %}
         </div>
 
@@ -253,6 +243,15 @@
           {% endif %}
         </div>
 
+      </div>
+
+      {% if not leg.deposit_verified and not leg.deposit_paid_amount %}
+      <div style="padding:16px;border-top:1px solid var(--line);text-align:center">
+        <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-direction:column;gap:10px;align-items:center">
+          {% csrf_token %}
+          <input type="file" name="proof" accept="image/png,image/jpeg" required>
+          <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
+        </form>
       </div>
       {% endif %}
     </div>
