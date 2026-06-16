@@ -458,12 +458,14 @@ class BuyRequest(models.Model):
     @property
     def estimated_shipment_cost(self) -> Decimal:
         """Shipment on the traveler's estimated weight (drives the deposit)."""
-        return self._q(self.estimated_weight_kg * self.plan.shipment_cost_per_kg)
+        rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
+        return self._q(self.estimated_weight_kg * rate)
 
     @property
     def shipment_cost(self) -> Decimal:
         """Actual shipment = traveler's final measured weight × rate."""
-        return self._q(self.actual_weight_kg * self.plan.shipment_cost_per_kg)
+        rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
+        return self._q(self.actual_weight_kg * rate)
 
     @property
     def has_actual_weight(self) -> bool:
@@ -505,12 +507,18 @@ class BuyRequest(models.Model):
         return sum(i.actual_quantity for i in self.items.all())
 
     # --- Margin (Est on estimated items, Act on actual items) ---
+    # Buyer-first orders have no margin: the buyer already owns the items, so
+    # there's no item markup — jastip's fee is entirely in the per-kg rate.
     @property
     def estimated_margin(self) -> Decimal:
+        if not self.plan_id:
+            return Decimal("0.00")
         return self._q(self.items_estimated_total * self.plan.margin_percent / Decimal("100"))
 
     @property
     def actual_margin(self) -> Decimal:
+        if not self.plan_id:
+            return Decimal("0.00")
         return self._q(self.items_actual_total * self.plan.margin_percent / Decimal("100"))
 
     # Backwards-compatible alias (actual margin drives the live invoice/payout).
