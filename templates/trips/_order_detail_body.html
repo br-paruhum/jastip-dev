@@ -9,7 +9,7 @@
   <table class="invoice" style="max-width:480px">
     <tr><td style="width:160px">Deadline</td><td>: {{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg{% if bf_order.partial_allowed %} (partial fulfillment allowed){% endif %}</td></tr>
-    <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
+    <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}{% if not bf_order.partial_allowed %} <span class="muted" style="font-size:.85em">(Partial not allowed)</span>{% endif %}</td></tr>
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
@@ -45,21 +45,31 @@
   {% if bf_order.pending_offers %}
   <div class="table-wrap">
     <table class="invoice">
-      <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Avail (kg)</strong></td><td><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
+      <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Avail (kg)</strong></td><td style="padding-left:16px"><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
       {% for offer in bf_order.pending_offers %}
       <tr>
         <td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</td>
         <td class="num-right">{{ offer.avail_kg }}</td>
-        <td>{{ offer.travel_date|date:"d-M-Y" }}</td>
+        <td style="padding-left:16px">{{ offer.travel_date|date:"d-M-Y" }}</td>
         <td>{{ offer.get_offer_status_display }}</td>
         <td>
           {% if bf_order.is_accepting_offers %}
-          <form method="post" action="{% url 'trips:offer_select' offer.id %}" style="display:flex;gap:6px;align-items:center">
-            {% csrf_token %}
-            <input type="number" step="0.01" min="0.01" name="allocated_weight_kg" style="width:80px"
-              value="{{ offer.avail_kg }}" required>
-            <button class="btn btn-primary btn-sm" type="submit">Select</button>
-          </form>
+            {% if offer.avail_kg >= bf_order.remaining_bid_weight_kg %}
+            <form method="post" action="{% url 'trips:offer_select' offer.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="allocated_weight_kg" value="{{ bf_order.remaining_bid_weight_kg }}">
+              <button class="btn btn-primary btn-sm" type="submit">Accept</button>
+            </form>
+            {% elif bf_order.partial_allowed %}
+            <form method="post" action="{% url 'trips:offer_select' offer.id %}" style="display:flex;gap:6px;align-items:center">
+              {% csrf_token %}
+              <input type="number" step="0.01" min="0.01" name="allocated_weight_kg" style="width:80px"
+                value="{{ offer.avail_kg }}" required>
+              <button class="btn btn-primary btn-sm" type="submit">Select</button>
+            </form>
+            {% else %}
+            <span class="muted" style="font-size:.85em">Insufficient kg</span>
+            {% endif %}
           {% endif %}
         </td>
       </tr>
