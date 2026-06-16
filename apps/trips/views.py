@@ -800,7 +800,7 @@ def request_clear(request, pk):
     return redirect(req.get_absolute_url())
 
 
-# --- Buyer: request reshipment + enter delivery address ---------------------
+# --- Buyer: request reshipment, using the address saved on their profile ----
 @profile_required
 @require_POST
 def request_reship_request(request, pk):
@@ -811,9 +811,9 @@ def request_reship_request(request, pk):
     if req.status != Status.READY_FOR_PICKUP:
         messages.error(request, "Reshipment can only be requested at Paid in Full stage.")
         return redirect(req.get_absolute_url())
-    address = request.POST.get("reshipment_address", "").strip()
+    address = req.buyer.buyer_invoice_address.strip()
     if not address:
-        messages.error(request, "Please enter your delivery address.")
+        messages.error(request, "Please fill in your Reshipment Address on your Profile page first.")
         return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
     req.reshipment_address = address
     req.save(update_fields=["reshipment_address", "updated_at"])
