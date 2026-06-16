@@ -315,8 +315,7 @@
           <span class="eyebrow">Traveler · Buyer First</span>
           <h2>Place an Offer</h2>
           <p class="muted">
-            Order <strong>{{ offer_form_order.reference }}</strong> ·
-            {{ offer_form_order.route }} ·
+            <strong>{{ offer_form_order.reference }}</strong> ·
             Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
             Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
             {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
@@ -329,12 +328,28 @@
                 <div class="form-field"><label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}</div>
               </div>
               <div class="form-row">
-                <div class="form-field"><label>From City</label>{{ offer_form_obj.from_city }}{{ offer_form_obj.from_city.errors }}</div>
-                <div class="form-field"><label>From Country</label>{{ offer_form_obj.from_country }}{{ offer_form_obj.from_country.errors }}</div>
+                <div class="form-field">
+                  <label>From City</label>
+                  <div class="static-field muted">{{ offer_form_order.from_city }}</div>
+                  <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
+                </div>
+                <div class="form-field">
+                  <label>From Country</label>
+                  <div class="static-field muted">{{ offer_form_order.from_country }}</div>
+                  <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
+                </div>
               </div>
               <div class="form-row">
-                <div class="form-field"><label>To City</label>{{ offer_form_obj.to_city }}{{ offer_form_obj.to_city.errors }}</div>
-                <div class="form-field"><label>To Country</label>{{ offer_form_obj.to_country }}{{ offer_form_obj.to_country.errors }}</div>
+                <div class="form-field">
+                  <label>To City</label>
+                  <div class="static-field muted">{{ offer_form_order.to_city }}</div>
+                  <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
+                </div>
+                <div class="form-field">
+                  <label>To Country</label>
+                  <div class="static-field muted">{{ offer_form_order.to_country }}</div>
+                  <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
+                </div>
               </div>
               <div class="form-row">
                 <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
@@ -343,11 +358,6 @@
               <div class="form-field">
                 <label>Drop-off Address</label>{{ offer_form_obj.drop_off_address }}{{ offer_form_obj.drop_off_address.errors }}
                 <p class="help">Hidden from the buyer until their deposit clears.</p>
-              </div>
-              <div class="form-field"><label>Drop-off Postal Code</label>{{ offer_form_obj.drop_off_postal_code }}{{ offer_form_obj.drop_off_postal_code.errors }}</div>
-              <div class="form-field">
-                <label>Pickup Address (destination)</label>{{ offer_form_obj.pickup_address }}{{ offer_form_obj.pickup_address.errors }}
-                <p class="help">Only revealed to the buyer after Package Arrived, if they choose Pickup.</p>
               </div>
               <div style="text-align:center;margin-top:12px">
                 <button class="btn btn-primary" type="submit">Submit Offer</button>

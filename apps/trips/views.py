@@ -198,6 +198,7 @@ def offer_create(request, order_id):
         offer = form.save(commit=False)
         offer.order = order
         offer.traveler = request.user
+        offer.pickup_address = request.user.traveler_address
         offer.save()
         order.recompute_status()
         messages.success(request, "Offer submitted. The buyer will review it.")

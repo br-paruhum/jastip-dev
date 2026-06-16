@@ -156,7 +156,7 @@ class TravelerOfferForm(forms.ModelForm):
         model = TravelerOffer
         fields = [
             "ask_cost_per_kg", "avail_kg",
-            "drop_off_address", "drop_off_postal_code", "pickup_address",
+            "drop_off_address",
             "travel_date", "travel_time",
             "from_city", "from_country", "to_city", "to_country",
         ]
@@ -166,7 +166,6 @@ class TravelerOfferForm(forms.ModelForm):
                 attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 5.0"}
             ),
             "drop_off_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Where the buyer should drop off the package"}),
-            "pickup_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Your destination address (revealed to buyer only after Package Arrived)"}),
             "travel_date": DATE_INPUT,
             "travel_time": forms.TimeInput(attrs={"type": "time"}),
         }
@@ -174,8 +173,7 @@ class TravelerOfferForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
-        for f in ("drop_off_address", "drop_off_postal_code", "pickup_address"):
-            self.fields[f].required = True
+        self.fields["drop_off_address"].required = True
 
     def clean_avail_kg(self):
         val = self.cleaned_data.get("avail_kg")
