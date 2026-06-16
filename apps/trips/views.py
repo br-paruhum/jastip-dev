@@ -201,6 +201,7 @@ def offer_create(request, order_id):
         offer.pickup_address = request.user.traveler_address
         offer.save()
         order.recompute_status()
+        workflow.on_offer_submitted(order, offer)
         messages.success(request, "Offer submitted. The buyer will review it.")
         return redirect(dashboard_url + "#travel-plans")
     for field, errs in form.errors.items():

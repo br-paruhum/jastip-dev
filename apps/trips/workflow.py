@@ -304,3 +304,23 @@ def on_cleared(request_obj):
     was already paid at CLEAR. Triggered by the daily `close_cleared` cron.
     """
     _set_status(request_obj, Status.CLOSED)
+
+
+def on_offer_submitted(order, offer):
+    """Buyer-first flow: traveler submitted an offer → notify the buyer."""
+    ctx = {
+        "order": order,
+        "offer": offer,
+        "traveler": offer.traveler,
+        "order_url": _site_url(order.get_absolute_url()),
+        "site_url": _site_url("/"),
+        "logo_url": _static_url("img/logo-email.png"),
+    }
+    send_email(
+        to_user=order.buyer,
+        subject=f"New offer on your order {order.reference}",
+        template="offer_received",
+        context=ctx,
+        event="offer_received",
+    )
+    notify_see_email(order.buyer, event="offer_received")

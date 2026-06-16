@@ -1,0 +1,26 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">New offer on your order</h2>
+  <p>A traveler has submitted an offer on your order <strong>{{ order.reference }}</strong>
+     ({{ order.from_city }} → {{ order.to_city }}).</p>
+  <table style="border-collapse:collapse;width:100%;margin:12px 0;">
+    <tr>
+      <td style="padding:6px 0;color:#666;width:40%">Traveler</td>
+      <td style="padding:6px 0;"><strong>{{ traveler.full_name }}</strong></td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#666;">Travel Date</td>
+      <td style="padding:6px 0;">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#666;">Route</td>
+      <td style="padding:6px 0;">{{ offer.from_city }}, {{ offer.from_country }} → {{ offer.to_city }}, {{ offer.to_country }}</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 0;color:#666;">Offering</td>
+      <td style="padding:6px 0;">{{ offer.avail_kg }} kg @ {{ order.currency }} {{ offer.ask_cost_per_kg }}/kg</td>
+    </tr>
+  </table>
+  <p>Log in to review the offer and select it if it works for you.</p>
+  {% include "_email_button.html" with url=order_url label="Review the offer" %}
+{% endblock %}
