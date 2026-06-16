@@ -56,7 +56,7 @@ class TravelPlanForm(forms.ModelForm):
         model = TravelPlan
         fields = [
             "travel_date", "travel_time", "from_city", "from_country", "to_city", "to_country",
-            "available_weight_kg", "shipment_currency", "shipment_cost_per_kg",
+            "available_weight_kg", "shipment_cost_per_kg",
             "margin_percent", "carrier_only",
         ]
         widgets = {

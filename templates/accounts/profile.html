@@ -119,9 +119,9 @@
                 <div class="form-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}
                   <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
               </div>
-              <div class="form-row">
-                <div class="form-field"><label>Shipment Currency</label>{{ plan_form.shipment_currency }}</div>
-                <div class="form-field"><label>Shipment Cost per kg</label>{{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}</div>
+              <div class="form-field">
+                <label>Shipment Cost per kg</label>{{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
+                <p class="help">Currency is set automatically from your From Country.</p>
               </div>
               <div style="text-align:center">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>

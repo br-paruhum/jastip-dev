@@ -72,6 +72,7 @@ def plan_create(request):
         if form.is_valid():
             plan = form.save(commit=False)
             plan.traveler = request.user
+            plan.shipment_currency = ExchangeRate.currency_for_country(plan.from_country)
             plan.save()
             messages.success(request, "Travel plan published.")
             return redirect(reverse("accounts:profile") + "#travel-plans")
