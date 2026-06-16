@@ -247,7 +247,7 @@
 
       {% if not leg.deposit_verified and not leg.deposit_paid_amount %}
       <div style="padding:16px;border-top:1px solid var(--line);text-align:center">
-        <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-direction:column;gap:10px;align-items:center">
+        <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
           {% csrf_token %}
           <input type="file" name="proof" accept="image/png,image/jpeg" required>
           <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
