@@ -364,6 +364,9 @@
   var names = Array.prototype.map.call(panels, function (p) { return p.dataset.panel; });
   function activate(name) {
     if (names.indexOf(name) === -1) name = 'profile';
+    // Collapse inline toggle forms whenever the user switches (or re-clicks) a tab.
+    if (wrap) wrap.style.display = 'none';
+    if (orderWrap) orderWrap.style.display = 'none';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
     // Transient detail panels (order-detail, plan-detail) keep their origin tab
     // highlighted in the sidebar via data-origin.
