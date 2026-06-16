@@ -6,12 +6,13 @@
 
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Order Details</h3>
-  <table class="invoice" style="max-width:480px">
-    <tr><td style="width:160px">Deadline</td><td>: {{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
-    <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg</td></tr>
-    <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
-    <tr><td>Partial</td><td>: {% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
-{% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
+  <table class="invoice">
+    <tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
+    <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
+    <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
+    <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+{% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
 
@@ -23,17 +24,17 @@
         <tr>
           <th class="lcell">Product</th>
           <th>Qty</th>
-          <th class="unit-cell">Unit</th>
-          <th>Unit Price ({{ bf_order.currency }})</th>
-          <th>Total ({{ bf_order.currency }})</th>
+          <th>Unit</th>
+          <th style="text-align:right">Unit Price ({{ bf_order.currency }})</th>
+          <th style="text-align:right">Total ({{ bf_order.currency }})</th>
         </tr>
       </thead>
       <tbody>
         {% for item in bf_order.items.all %}
         <tr>
           <td class="lcell">{{ item.name }}</td>
-          <td>{{ item.quantity }}</td>
-          <td class="unit-cell">{{ item.unit }}</td>
+          <td style="text-align:center">{{ item.quantity }}</td>
+          <td style="text-align:center">{{ item.unit }}</td>
           <td>{{ item.estimated_unit_cost|intcomma }}</td>
           <td>{{ item.estimated_line_total|intcomma }}</td>
         </tr>
@@ -95,7 +96,7 @@
 
 {% if bf_order.confirmed_legs %}
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Confirmed Legs</h3>
+  <h3 style="margin-top:0">Accepted Traveler's Ask</h3>
   <div style="display:flex;flex-direction:column;gap:16px">
     {% for leg in bf_order.confirmed_legs %}
     <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden">
@@ -122,7 +123,7 @@
             <span class="badge badge-warning">Awaiting verification</span>
           {% else %}
             <p class="muted" style="margin:0 0 6px">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</p>
-            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
+            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:12px">
               {% csrf_token %}
               <input type="file" name="proof" accept="image/png,image/jpeg" required>
               <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
