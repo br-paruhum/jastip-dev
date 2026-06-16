@@ -22,7 +22,15 @@ class User(AbstractUser):
     phone_country_code = models.CharField(max_length=6, blank=True, help_text="e.g. +62")
     phone_number = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False)
-    address = models.TextField(blank=True, help_text="Full delivery address (street, city, postal code, country)")
+    destination_city = models.CharField(
+        max_length=80, blank=True,
+        help_text="The city you'll actually receive your package in — may differ from the traveler's listed (often airport) city.",
+    )
+    address = models.TextField(
+        blank=True,
+        help_text="Pickup address at your destination country, used if you choose local Pickup instead of Reshipment. Also shown on customs invoices. Fill this in now or later, once you decide.",
+    )
+    bank_details = models.TextField(blank=True, help_text="For invoice disbursement purpose.")
 
     # WhatsApp OTP verification state.
     phone_otp = models.CharField(max_length=6, blank=True)

@@ -45,13 +45,25 @@
                   {{ profile_form.phone_number.errors }}
                 </div>
               </div>
-              <!-- Row 4: Delivery address -->
+              <!-- Row 4: City at destination -->
               <div class="form-field">
-                <label for="id_address">Delivery Address <span class="help">(used on customs invoices)</span></label>
+                <label for="id_destination_city">City at Destination <span class="help">(your actual city — may differ from the traveler's listed/airport city)</span></label>
+                {{ profile_form.destination_city }}
+                {{ profile_form.destination_city.errors }}
+              </div>
+              <!-- Row 5: Pickup address -->
+              <div class="form-field">
+                <label for="id_address">Pickup Address at Destination Country <span class="help">(used if you choose Pickup over Reshipment; also shown on customs invoices — fill in now or later)</span></label>
                 {{ profile_form.address }}
                 {{ profile_form.address.errors }}
               </div>
-              <!-- Row 5: Save centered -->
+              <!-- Row 6: Bank details -->
+              <div class="form-field">
+                <label for="id_bank_details">Bank Details <span class="help">(for invoice disbursement purpose)</span></label>
+                {{ profile_form.bank_details }}
+                {{ profile_form.bank_details.errors }}
+              </div>
+              <!-- Row 7: Save centered -->
               <div style="text-align:center;margin-top:10px">
                 <button class="btn btn-primary" type="submit">Save</button>
               </div>

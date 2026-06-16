@@ -9,15 +9,23 @@ class ProfileForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["full_name", "phone_country_code", "phone_number", "address"]
+        fields = [
+            "full_name", "phone_country_code", "phone_number",
+            "destination_city", "address", "bank_details",
+        ]
         widgets = {
             "full_name": forms.TextInput(attrs={"placeholder": "Your full name", "autocomplete": "name"}),
             "phone_country_code": forms.TextInput(attrs={"placeholder": "+62", "class": "country-code"}),
             "phone_number": forms.TextInput(attrs={"placeholder": "81234567890", "inputmode": "numeric"}),
+            "destination_city": forms.TextInput(attrs={"placeholder": "e.g. Surabaya"}),
             "address": forms.Textarea(attrs={
                 "rows": 3,
                 "placeholder": "e.g. Jl. Sudirman No. 1, Jakarta 10220, Indonesia",
                 "autocomplete": "street-address",
+            }),
+            "bank_details": forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": "Bank name, account number, account holder name",
             }),
         }
 
