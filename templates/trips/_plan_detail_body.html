@@ -9,15 +9,15 @@
     <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}</strong></td></tr>
     <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
     <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
-    <tr><td>Available Weight</td><td>{{ plan.available_weight_kg }} kg</td></tr>
-    <tr><td>Remaining Weight</td><td>{{ plan.remaining_weight_kg }} kg <span class="muted">(of {{ plan.available_weight_kg }} kg available)</span></td></tr>
-    <tr><td>Shipment Cost</td><td>{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
-    <tr><td>Margin</td><td>{{ plan.margin_percent }}%</td></tr>
+    <tr><td>Available Weight</td><td class="num-right">{{ plan.available_weight_kg }} kg</td></tr>
+    <tr><td>Remaining Weight</td><td class="num-right">{{ plan.remaining_weight_kg }} kg <span class="muted">(of {{ plan.available_weight_kg }} kg available)</span></td></tr>
+    <tr><td>Shipment Cost</td><td class="num-right">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
+    <tr><td>Margin</td><td class="num-right">{{ plan.margin_percent }}%</td></tr>
     <tr><td>Payment Term</td><td>{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
-    <a class="btn btn-primary" href="{% url 'trips:request_create' plan.id %}">Submit Order</a>
+    <button type="button" class="btn btn-primary" id="toggle-submit-order">Submit Order</button>
   </div>
   {% elif user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
@@ -25,3 +25,103 @@
   </div>
   {% endif %}
 </div></div>
+
+{% if plan.is_open and user != plan.traveler %}
+<div id="submit-order-wrap" class="card mt-2" style="display:none"><div class="card-body">
+  <span class="eyebrow">New Order · {{ plan.from_city }} → {{ plan.to_city }}</span>
+  <h2>What would you like the traveler to buy?</h2>
+  <p class="muted">Add up to 10 items. Photos are optional (png/jpeg/jpg, max 2 MB).
+    These details stay private between you and the traveler.</p>
+
+  <form method="post" action="{% url 'trips:request_create' plan.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+    {% csrf_token %}
+    <div class="card-body">
+      {{ plan_order_formset.management_form }}
+      {{ plan_order_formset.non_form_errors }}
+      <div id="submit-order-items">
+        {% for item_form in plan_order_formset %}
+        <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
+          {{ item_form.id }}
+          <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
+          <div class="form-row item-cols">
+            <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
+            <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
+            <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
+          </div>
+          <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
+          <button type="button" class="btn btn-sm btn-outline remove-submit-order-item">Remove</button>
+        </div></div>
+        {% endfor %}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="add-submit-order-item">+ Add Product</button>
+
+      <div class="form-field mt-2">
+        <label>Estimated Weight (kg) <span style="color:var(--danger)">*</span></label>
+        {{ plan_order_form.estimated_weight_kg }}{{ plan_order_form.estimated_weight_kg.errors }}
+        <p class="help">Your best estimate of the total package weight. The traveler will verify before accepting.</p>
+      </div>
+      <div class="form-field mt-2"><label>Notes to Traveler</label>{{ plan_order_form.buyer_notes }}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-primary" type="submit">Submit Order</button>
+      </div>
+    </div>
+  </form>
+</div></div>
+
+<template id="submit-order-empty-form">
+  <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
+    {{ plan_order_formset.empty_form.id }}
+    <span class="del-field" style="display:none">{{ plan_order_formset.empty_form.DELETE }}</span>
+    <div class="form-row item-cols">
+      <div class="form-field"><label>Product Name</label>{{ plan_order_formset.empty_form.name }}</div>
+      <div class="form-field"><label>Qty</label>{{ plan_order_formset.empty_form.quantity }}</div>
+      <div class="form-field"><label>Unit</label>{{ plan_order_formset.empty_form.unit }}</div>
+    </div>
+    <div class="form-field"><label>Photo (optional)</label>{{ plan_order_formset.empty_form.photo }}</div>
+    <button type="button" class="btn btn-sm btn-outline remove-submit-order-item">Remove</button>
+  </div></div>
+</template>
+<script>
+(function () {
+  var toggle = document.getElementById('toggle-submit-order');
+  var wrap = document.getElementById('submit-order-wrap');
+  if (toggle && wrap) {
+    toggle.addEventListener('click', function () {
+      wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+    });
+  }
+
+  var maxItems = {{ plan_order_formset.max_num }};
+  var totalForms = document.getElementById('id_{{ plan_order_formset.prefix }}-TOTAL_FORMS');
+  var container = document.getElementById('submit-order-items');
+  var addBtn = document.getElementById('add-submit-order-item');
+  if (!addBtn || !totalForms) return;
+
+  function refreshAddState() {
+    addBtn.disabled = parseInt(totalForms.value, 10) >= maxItems;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var count = parseInt(totalForms.value, 10);
+    if (count >= maxItems) { addBtn.disabled = true; return; }
+    var html = document.getElementById('submit-order-empty-form').innerHTML.replace(/__prefix__/g, count).trim();
+    var rowWrap = document.createElement('div');
+    rowWrap.innerHTML = html;
+    container.appendChild(rowWrap.firstElementChild);
+    totalForms.value = count + 1;
+    refreshAddState();
+  });
+
+  container.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('remove-submit-order-item')) return;
+    var row = e.target.closest('.item-row');
+    var del = row.querySelector('input[name$="-DELETE"]');
+    if (del) { del.checked = true; row.style.display = 'none'; }
+    else { row.parentNode.removeChild(row); }
+    refreshAddState();
+  });
+
+  refreshAddState();
+})();
+</script>
+{% endif %}

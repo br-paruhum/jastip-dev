@@ -178,13 +178,15 @@ table.offers tbody tr:hover { background: var(--ivory); }
 table.offers.offers-centered th { text-align: center; vertical-align: middle; }
 table.offers.offers-centered td.status-cell,
 table.offers.offers-centered td.action-cell,
+table.offers.offers-centered td.terms-cell { text-align: center; }
+table.offers.offers-centered td.avail-cell,
 table.offers.offers-centered td.margin-cell,
-table.offers.offers-centered td.terms-cell,
-table.offers.offers-centered td.avail-cell { text-align: center; }
 table.offers.offers-centered td.shipment-cell { text-align: right; }
 /* Fully centered variant (Completed table): every header and cell centered */
 table.offers.offers-allcenter th,
 table.offers.offers-allcenter td { text-align: center; }
+/* Numeric cell override inside an offers-allcenter table */
+table.offers.offers-allcenter td.num-cell { text-align: right; }
 .route-cell strong { color: var(--slate); display: block; }
 .route-cell span { color: var(--slate-400); font-size: .82rem; }
 .offers-notes { text-align: left; margin-top: 14px; font-size: .82rem; color: var(--slate-400); line-height: 1.5; }
@@ -300,6 +302,8 @@ table.offers.offers-allcenter td { text-align: center; }
   border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; }
 /* Right-aligned numeric input outside tables (e.g. Actual unit cost on purchase) */
 input.num-right { text-align: right; }
+/* Numeric inputs are right-aligned by default, site-wide. */
+input[type="number"], input.money-input { text-align: right; }
 
 /* Two-column (Estimate / Actual) invoice */
 table.invoice.inv2 { font-size: .9rem; }

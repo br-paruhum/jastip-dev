@@ -9,9 +9,9 @@ from django.views.decorators.http import require_POST
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import CHAT_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
-    AWBForm, BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
-    PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet, ReviewForm,
-    ReviewItemFormSet, TravelPlanForm,
+    AWBForm, BuyRequestForm, CustomFareForm, MessageForm, OrderForm, OrderItemFormSet,
+    PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet,
+    ReviewForm, ReviewItemFormSet, TravelPlanForm,
 )
 from apps.trips.models import BuyRequest, TravelerOffer, TravelPlan
 
@@ -153,6 +153,7 @@ def profile(request):
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
+    plan_order_form = plan_order_formset = None
     plan_id = request.GET.get("plan")
     if plan_id:
         plan = (
@@ -160,6 +161,9 @@ def profile(request):
         )
         if not plan or not (user == plan.traveler or user.is_staff):
             plan = None
+        else:
+            plan_order_form = BuyRequestForm()
+            plan_order_formset = RequestItemFormSet(instance=BuyRequest())
 
     # Review panel (?review=<id>#review-order) — traveler sends estimate.
     review_req = review_form = review_formset = review_is_edit = None
@@ -246,6 +250,8 @@ def profile(request):
             "otp_form": OTPForm(),
             "password_form": ChangePasswordForm(user),
             "plan_form": TravelPlanForm(),
+            "new_order_form": OrderForm(),
+            "new_order_formset": OrderItemFormSet(instance=BuyRequest(), prefix="bf_items"),
             "open_travel_rows": open_travel_rows,
             "closed_travel_rows": closed_travel_rows,
             "open_my_orders": open_my_orders,
@@ -253,6 +259,8 @@ def profile(request):
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,
+            "plan_order_form": plan_order_form,
+            "plan_order_formset": plan_order_formset,
             "review_req": review_req,
             "review_form": review_form,
             "review_formset": review_formset,

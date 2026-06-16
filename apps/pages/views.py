@@ -11,7 +11,8 @@ from django.views.decorators.http import require_GET
 from apps.blog.models import Post
 from apps.notifications.services import send_email
 from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OfferStatus, Status
-from apps.trips.models import BuyRequest, TravelPlan
+from apps.trips.forms import TravelerOfferForm
+from apps.trips.models import BuyRequest, TravelerOffer, TravelPlan
 
 from .forms import ContactForm
 from .models import ContactMessage, FAQItem, SitePage, SiteSettings
@@ -19,8 +20,14 @@ from .models import ContactMessage, FAQItem, SitePage, SiteSettings
 logger = logging.getLogger(__name__)
 
 
-def order_first(request):
-    from apps.trips.models import TravelerOffer
+def home(request):
+    plans = list(
+        TravelPlan.objects.exclude(status=Status.CLOSED)
+        .select_related("traveler")
+        .prefetch_related("buy_requests")[:30]
+    )
+    open_plans = [p for p in plans if not p.travel_date_passed]
+    transit_plans = [p for p in plans if p.travel_date_passed]
 
     orders = list(
         BuyRequest.objects.filter(plan__isnull=True)
@@ -37,28 +44,22 @@ def order_first(request):
                 order__in=orders, traveler=request.user, offer_status=OfferStatus.PENDING
             )
         }
-    open_orders, transit_orders, closed_orders = [], [], []
+    open_orders, transit_orders = [], []
     for order in orders:
         order.my_pending_offer_id = pending_lookup.get(order.id)
-        {"open": open_orders, "transit": transit_orders, "closed": closed_orders}[order.home_section].append(order)
-    return render(
-        request,
-        "pages/order_first.html",
-        {"open_orders": open_orders, "transit_orders": transit_orders, "closed_orders": closed_orders},
-    )
+        if order.home_section == "closed":
+            continue
+        if (
+            order.is_accepting_offers
+            and not order.my_pending_offer_id
+            and (not request.user.is_authenticated or order.buyer_id != request.user.id)
+        ):
+            order.offer_form = TravelerOfferForm(initial={
+                "from_city": order.from_city, "from_country": order.from_country,
+                "to_city": order.to_city, "to_country": order.to_country,
+            })
+        {"open": open_orders, "transit": transit_orders}[order.home_section].append(order)
 
-
-def home(request):
-    open_plans = (
-        TravelPlan.objects.exclude(status=Status.CLOSED)
-        .select_related("traveler")
-        .prefetch_related("buy_requests")[:30]
-    )
-    closed_plans = (
-        TravelPlan.objects.filter(status=Status.CLOSED)
-        .select_related("traveler")
-        .prefetch_related("buy_requests")[:20]
-    )
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works
     # (SimpleLazyObject doesn't proxy __ge__/__le__, causing silent False comparisons).
@@ -68,7 +69,9 @@ def home(request):
         "pages/home.html",
         {
             "open_plans": open_plans,
-            "closed_plans": closed_plans,
+            "transit_plans": transit_plans,
+            "open_orders": open_orders,
+            "transit_orders": transit_orders,
             "latest_posts": latest_posts,
             "MIN_REMAINING_WEIGHT_KG": min_remaining,
         },

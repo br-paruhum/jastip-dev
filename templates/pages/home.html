@@ -15,6 +15,7 @@
       <div class="hero-cta">
         <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling — Post a trip</a>
         <a href="#open-offers" class="btn btn-outline btn-buy">I want to buy</a>
+        <a href="{% url 'trips:order_create' %}" class="btn btn-outline btn-buy">Post an Order</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -25,7 +26,7 @@
 
 {% if ADSENSE_CLIENT %}<div class="container"><div class="adslot">Advertisement</div></div>{% endif %}
 
-<!-- SECTION 1: Open offers -->
+<!-- SECTION 2: Open Travel Plan -->
 <section id="open-offers">
   <div class="container">
     <div class="section-head">
@@ -63,18 +64,14 @@
             <td class="margin-cell">{{ plan.margin_percent }}%</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">
-              {% if plan.travel_date_passed %}
-                {% include "trips/_status_badge.html" with status="closed" label="Closed" tone="muted" %}
-              {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
+              {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
                 {% include "trips/_status_badge.html" with status="new" label="Open" tone="success" %}
               {% else %}
                 {% include "trips/_status_badge.html" with status="closed" label="Full" tone="danger" %}
               {% endif %}
             </td>
             <td class="action-cell">
-              {% if plan.travel_date_passed %}
-                <span class="btn btn-sm btn-blocked">Locked</span>
-              {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
+              {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
                 <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>
               {% else %}
                 <span class="btn btn-sm btn-blocked">Full</span>
@@ -95,39 +92,210 @@
   </div>
 </section>
 
-<!-- SECTION 2: Closed offers -->
+<!-- SECTION 3: Travel In Transit -->
 <section class="section-cream">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Completed</span>
-      <h2>Closed Transactions</h2>
-      <p>Recently completed trips — proof that the community delivers.</p>
+      <span class="eyebrow">On the move</span>
+      <h2>Travel In Transit</h2>
+      <p>Trips already underway — no longer accepting new orders.</p>
     </div>
-    {% if closed_plans %}
+    {% if transit_plans %}
     <div class="table-wrap">
-      <table class="offers offers-allcenter">
-        <thead><tr><th>Date</th><th>Route</th><th>Avail (kg)</th><th>Remaing (kg)</th><th>Status</th></tr></thead>
+      <table class="offers offers-centered">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Route</th>
+            <th>Avail<br>(kg)</th>
+            <th>Remaing<br>(kg)</th>
+            <th>Shipment<br>Cost/kg</th>
+            <th>Margin<br><sup>*)</sup></th>
+            <th>Payment<br>Terms</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
         <tbody>
-          {% for plan in closed_plans %}
+          {% for plan in transit_plans %}
           <tr>
             <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
-            <td class="route-cell"><strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
-              <span>{{ plan.from_country }} → {{ plan.to_country }}</span></td>
-            <td>{{ plan.available_weight_kg }}</td>
-            <td>{{ plan.remaining_weight_kg }}</td>
-            <td>{% include "trips/_status_badge.html" with status=plan.status label=plan.get_status_display tone=plan.status_tone %}</td>
+            <td class="route-cell">
+              <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
+              <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
+            </td>
+            <td class="avail-cell">{{ plan.available_weight_kg }}</td>
+            <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
+            <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
+            <td class="margin-cell">{{ plan.margin_percent }}%</td>
+            <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
+            <td class="status-cell">{% include "trips/_status_badge.html" with status="closed" label="In Transit" tone="warning" %}</td>
+            <td class="action-cell"><span class="btn btn-sm btn-blocked">Locked</span></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="text-center muted">No closed transactions yet.</p>
+    <p class="text-center muted">No trips in transit right now.</p>
     {% endif %}
   </div>
 </section>
 
-<!-- SECTION 3: Latest blog -->
+<!-- SECTION 4: Open Orders -->
+<section id="open-orders">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Live now</span>
+      <h2>Open Orders</h2>
+      <p>Respond with an offer if you're heading their way.</p>
+    </div>
+    {% if open_orders %}
+    <div class="table-wrap">
+      <table class="offers offers-centered">
+        <thead>
+          <tr>
+            <th>Deadline</th>
+            <th>Route</th>
+            <th>Bid<br>(kg)</th>
+            <th>Bid<br>Price/kg</th>
+            <th>Ask<br>(per offer)</th>
+            <th>Avail (kg)<br>offered</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in open_orders %}
+          <tr>
+            <td>{{ order.max_acceptable_date|date:"d-M-Y" }}</td>
+            <td class="route-cell">
+              <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
+              <span>{{ order.from_country }} → {{ order.to_country }}</span>
+            </td>
+            <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
+            <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>
+            <td>
+              {% for offer in order.traveler_offers.all %}
+                {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
+                  <span class="badge badge-muted">{{ order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</span>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td>
+              {% for offer in order.traveler_offers.all %}
+                {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
+                  <span class="badge badge-muted">{{ offer.avail_kg }}</span>
+                {% endif %}
+              {% endfor %}
+            </td>
+            <td class="status-cell">{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
+            <td class="action-cell">
+              {% if order.my_pending_offer_id %}
+                <form method="post" action="{% url 'trips:offer_withdraw' order.my_pending_offer_id %}" style="display:inline">
+                  {% csrf_token %}
+                  <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>
+                </form>
+              {% elif user.is_authenticated and order.buyer_id == user.id %}
+                <span class="btn btn-sm btn-blocked">Your order</span>
+              {% elif order.offer_form %}
+                <button type="button" class="btn btn-primary btn-sm" id="toggle-offer-{{ order.id }}">Place Offer</button>
+              {% else %}
+                <span class="btn btn-sm btn-blocked">Taken</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% if order.offer_form %}
+          <tr id="offer-row-{{ order.id }}" style="display:none">
+            <td colspan="8">
+              <div class="card mt-2"><div class="card-body">
+                <span class="eyebrow">Your Offer · {{ order.from_city }} → {{ order.to_city }}</span>
+                <form method="post" action="{% url 'trips:offer_create' order.id %}" class="card" style="margin-top:12px">
+                  {% csrf_token %}
+                  <div class="card-body">
+                    <div class="form-row">
+                      <div class="form-field"><label>Your Rate per kg</label>{{ order.offer_form.ask_cost_per_kg }}{{ order.offer_form.ask_cost_per_kg.errors }}</div>
+                      <div class="form-field"><label>Avail (kg)</label>{{ order.offer_form.avail_kg }}{{ order.offer_form.avail_kg.errors }}</div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-field"><label>From City</label>{{ order.offer_form.from_city }}{{ order.offer_form.from_city.errors }}</div>
+                      <div class="form-field"><label>From Country</label>{{ order.offer_form.from_country }}{{ order.offer_form.from_country.errors }}</div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-field"><label>To City</label>{{ order.offer_form.to_city }}{{ order.offer_form.to_city.errors }}</div>
+                      <div class="form-field"><label>To Country</label>{{ order.offer_form.to_country }}{{ order.offer_form.to_country.errors }}</div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-field"><label>Travel Date</label>{{ order.offer_form.travel_date }}{{ order.offer_form.travel_date.errors }}</div>
+                      <div class="form-field"><label>Travel Time</label>{{ order.offer_form.travel_time }}{{ order.offer_form.travel_time.errors }}</div>
+                    </div>
+                    <div class="form-field">
+                      <label>Drop-off Address</label>{{ order.offer_form.drop_off_address }}{{ order.offer_form.drop_off_address.errors }}
+                      <p class="help">Hidden from the buyer until their deposit clears.</p>
+                    </div>
+                    <div class="form-field"><label>Drop-off Postal Code</label>{{ order.offer_form.drop_off_postal_code }}{{ order.offer_form.drop_off_postal_code.errors }}</div>
+                    <div class="form-field">
+                      <label>Pickup Address (destination)</label>{{ order.offer_form.pickup_address }}{{ order.offer_form.pickup_address.errors }}
+                      <p class="help">Only revealed to the buyer after Package Arrived, if they choose Pickup.</p>
+                    </div>
+                    <div style="text-align:center;margin-top:12px">
+                      <button class="btn btn-primary" type="submit">Submit Offer</button>
+                    </div>
+                  </div>
+                </form>
+              </div></div>
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="offers-notes">
+      <p class="notes-head">Note:</p>
+      <p>*) Partial fulfillment allowed — this order can be split across multiple travelers.</p>
+    </div>
+    {% else %}
+    <p class="text-center muted">No open orders yet. <a href="{% url 'trips:order_create' %}">Be the first to post one.</a></p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 5: Orders In Transit -->
+<section class="section-cream">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">On the move</span>
+      <h2>Orders in Transit</h2>
+      <p>Packages already handed over to a traveler and en route.</p>
+    </div>
+    {% if transit_orders %}
+    <div class="table-wrap">
+      <table class="offers offers-allcenter">
+        <thead><tr><th>Route</th><th>Bid (kg)</th><th>Ask/kg</th><th>Allocated (kg)</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for order in transit_orders %}
+          {% for leg in order.confirmed_legs %}
+          <tr>
+            <td class="route-cell"><strong>{{ order.from_city }} → {{ order.to_city }}</strong>
+              <span>{{ order.from_country }} → {{ order.to_country }}</span></td>
+            <td class="num-cell">{{ order.bid_weight_kg }}</td>
+            <td class="num-cell">{{ order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
+            <td class="num-cell">{{ leg.allocated_weight_kg }}</td>
+            <td>{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-center muted">No orders in transit right now.</p>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 6: Latest blog -->
 <section>
   <div class="container">
     <div class="section-head">
@@ -153,4 +321,20 @@
   </div>
 </section>
 
+{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/money.js' %}"></script>
+<script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script>
+flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });
+document.querySelectorAll('[id^="toggle-offer-"]').forEach(function (btn) {
+  var id = btn.id.replace('toggle-offer-', '');
+  var row = document.getElementById('offer-row-' + id);
+  if (!row) return;
+  btn.addEventListener('click', function () {
+    row.style.display = row.style.display === 'none' ? '' : 'none';
+  });
+});
+</script>
 {% endblock %}

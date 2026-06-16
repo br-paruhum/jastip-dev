@@ -248,11 +248,11 @@
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice">
-    <tr><td><strong>Type</strong></td><td><strong>Amount</strong></td><td><strong>Status</strong></td><td><strong>When</strong></td></tr>
+    <tr><td><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td><strong>Status</strong></td><td><strong>When</strong></td></tr>
     {% for p in req.transaction.payments.all %}
     <tr>
       <td>{{ p.get_kind_display }}</td>
-      <td>{{ p.currency }} {{ p.amount|intcomma }}</td>
+      <td class="num-right">{{ p.currency }} {{ p.amount|intcomma }}</td>
       <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
           {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
           {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>

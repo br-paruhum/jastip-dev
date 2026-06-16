@@ -82,7 +82,13 @@ def plan_create(request):
 
 def plan_detail(request, pk):
     plan = get_object_or_404(TravelPlan.objects.select_related("traveler"), pk=pk)
-    return render(request, "trips/plan_detail.html", {"plan": plan})
+    plan_order_form = BuyRequestForm()
+    plan_order_formset = RequestItemFormSet(instance=BuyRequest())
+    return render(
+        request,
+        "trips/plan_detail.html",
+        {"plan": plan, "plan_order_form": plan_order_form, "plan_order_formset": plan_order_formset},
+    )
 
 
 # --- Buyer: block a plan + compose the request ------------------------------
@@ -135,7 +141,7 @@ def request_create(request, plan_id):
 def order_create(request):
     if request.method == "POST":
         form = OrderForm(request.POST)
-        formset = OrderItemFormSet(request.POST, request.FILES, instance=BuyRequest())
+        formset = OrderItemFormSet(request.POST, request.FILES, instance=BuyRequest(), prefix="bf_items")
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 order = form.save(commit=False)
@@ -161,7 +167,7 @@ def order_create(request):
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm()
-        formset = OrderItemFormSet(instance=BuyRequest())
+        formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
     return render(request, "trips/order_form.html", {"form": form, "formset": formset})
 
 
@@ -171,13 +177,13 @@ def offer_create(request, order_id):
     order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
     if order.buyer_id == request.user.id:
         messages.error(request, "You cannot place an offer on your own order.")
-        return redirect("pages:order_first")
+        return redirect(reverse("pages:home") + "#open-orders")
     if order.status not in OPEN_ORDER_STATUSES:
         messages.info(request, "This order is no longer accepting offers.")
-        return redirect("pages:order_first")
+        return redirect(reverse("pages:home") + "#open-orders")
     if order.traveler_offers.filter(traveler=request.user, offer_status=OfferStatus.PENDING).exists():
         messages.info(request, "You already have a pending offer on this order. Withdraw it first to submit a new one.")
-        return redirect("pages:order_first")
+        return redirect(reverse("pages:home") + "#open-orders")
 
     if request.method == "POST":
         form = TravelerOfferForm(request.POST)
@@ -188,7 +194,7 @@ def offer_create(request, order_id):
             offer.save()
             order.recompute_status()
             messages.success(request, "Offer submitted. The buyer will review it.")
-            return redirect("pages:order_first")
+            return redirect(reverse("pages:home") + "#open-orders")
     else:
         form = TravelerOfferForm(initial={
             "from_city": order.from_city, "from_country": order.from_country,
@@ -209,7 +215,7 @@ def offer_withdraw(request, pk):
         offer.save(update_fields=["offer_status", "updated_at"])
         offer.order.recompute_status()
         messages.success(request, "Offer withdrawn.")
-    return redirect("pages:order_first")
+    return redirect(reverse("pages:home") + "#open-orders")
 
 
 # --- Buyer: select a pending offer (single or partial-multi) ----------------

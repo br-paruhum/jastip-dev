@@ -19,17 +19,17 @@
   <h3 style="margin-top:0">Items</h3>
   <div class="table-wrap">
     <table class="invoice">
-      <tr><td><strong>Product</strong></td><td><strong>Qty</strong></td><td><strong>Unit</strong></td><td><strong>Unit Price</strong></td><td><strong>Total</strong></td></tr>
+      <tr><td><strong>Product</strong></td><td class="num-right"><strong>Qty</strong></td><td><strong>Unit</strong></td><td class="num-right"><strong>Unit Price</strong></td><td class="num-right"><strong>Total</strong></td></tr>
       {% for item in bf_order.items.all %}
       <tr>
         <td>{{ item.name }}</td>
-        <td>{{ item.quantity }}</td>
+        <td class="num-right">{{ item.quantity }}</td>
         <td>{{ item.unit }}</td>
-        <td>{{ bf_order.currency }} {{ item.estimated_unit_cost|intcomma }}</td>
-        <td>{{ bf_order.currency }} {{ item.estimated_line_total|intcomma }}</td>
+        <td class="num-right">{{ bf_order.currency }} {{ item.estimated_unit_cost|intcomma }}</td>
+        <td class="num-right">{{ bf_order.currency }} {{ item.estimated_line_total|intcomma }}</td>
       </tr>
       {% endfor %}
-      <tr><td colspan="4"><strong>Total</strong></td><td><strong>{{ bf_order.currency }} {{ bf_order.items_actual_total|intcomma }}</strong></td></tr>
+      <tr><td colspan="4"><strong>Total</strong></td><td class="num-right"><strong>{{ bf_order.currency }} {{ bf_order.items_actual_total|intcomma }}</strong></td></tr>
     </table>
   </div>
   {% if bf_order.customs_invoice_available %}
@@ -46,11 +46,11 @@
   {% if bf_order.pending_offers %}
   <div class="table-wrap">
     <table class="invoice">
-      <tr><td><strong>Ask/kg</strong></td><td><strong>Avail (kg)</strong></td><td><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
+      <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Avail (kg)</strong></td><td><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
       {% for offer in bf_order.pending_offers %}
       <tr>
-        <td>{{ bf_order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</td>
-        <td>{{ offer.avail_kg }}</td>
+        <td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</td>
+        <td class="num-right">{{ offer.avail_kg }}</td>
         <td>{{ offer.travel_date|date:"d-M-Y" }}</td>
         <td>{{ offer.get_offer_status_display }}</td>
         <td>
@@ -79,12 +79,12 @@
   <h3 style="margin-top:0">Confirmed Legs</h3>
   <div class="table-wrap">
     <table class="invoice">
-      <tr><td><strong>Ask/kg</strong></td><td><strong>Allocated (kg)</strong></td><td><strong>Deposit Due</strong></td><td><strong>Deposit</strong></td><td><strong>Drop-off</strong></td><td><strong>Progress</strong></td></tr>
+      <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Allocated (kg)</strong></td><td class="num-right"><strong>Deposit Due</strong></td><td><strong>Deposit</strong></td><td><strong>Drop-off</strong></td><td><strong>Progress</strong></td></tr>
       {% for leg in bf_order.confirmed_legs %}
       <tr>
-        <td>{{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
-        <td>{{ leg.allocated_weight_kg }}</td>
-        <td>{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</td>
+        <td class="num-right">{{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
+        <td class="num-right">{{ leg.allocated_weight_kg }}</td>
+        <td class="num-right">{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</td>
         <td>
           {% if leg.deposit_verified %}
             <span class="badge badge-success">Verified</span>

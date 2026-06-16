@@ -117,8 +117,90 @@
         <!-- Panel: My Orders (plan-first requests + buyer-first orders) -->
         <div data-panel="my-orders">
           <div style="text-align:right;margin-bottom:12px">
-            <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
+            <button type="button" class="btn btn-primary btn-sm" id="toggle-order-form">Post an Order</button>
           </div>
+
+          <!-- Inline "Post an Order" form (toggled by the button above) -->
+          <div id="order-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
+            <h3 style="margin-top:0">Post an Order</h3>
+            <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
+            <form method="post" action="{% url 'trips:order_create' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="form-row">
+                <div class="form-field"><label>From City</label>{{ new_order_form.from_city }}{{ new_order_form.from_city.errors }}</div>
+                <div class="form-field"><label>From Country</label>{{ new_order_form.from_country }}{{ new_order_form.from_country.errors }}</div>
+              </div>
+              <div class="form-row">
+                <div class="form-field"><label>To City</label>{{ new_order_form.to_city }}{{ new_order_form.to_city.errors }}</div>
+                <div class="form-field"><label>To Country</label>{{ new_order_form.to_country }}{{ new_order_form.to_country.errors }}</div>
+              </div>
+              <div class="form-field">
+                <label>Destination Address</label>{{ new_order_form.to_address }}{{ new_order_form.to_address.errors }}
+                <p class="help">Lets travelers see upfront whether a reship will be needed.</p>
+              </div>
+              <div class="form-field">
+                <label>Destination Postal Code</label>{{ new_order_form.to_postal_code }}{{ new_order_form.to_postal_code.errors }}
+              </div>
+
+              {{ new_order_formset.management_form }}
+              {{ new_order_formset.non_form_errors }}
+              <div id="new-order-items" class="mt-2">
+                {% for item_form in new_order_formset %}
+                <div class="item-row card" style="margin-bottom:14px;box-shadow:none">
+                  <div class="card-body">
+                    {{ item_form.id }}
+                    <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
+                    <div class="form-row item-cols">
+                      <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
+                      <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
+                      <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
+                      <div class="form-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
+                    </div>
+                    <p class="help">Price for this item — needed for the customs invoice.</p>
+                    <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
+                    <button type="button" class="btn btn-sm btn-outline remove-new-order-item">Remove</button>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              <button type="button" class="btn btn-ghost btn-sm" id="add-new-order-item">+ Add Product</button>
+
+              <div class="form-row mt-2">
+                <div class="form-field"><label>Bid Weight (kg)</label>{{ new_order_form.bid_weight_kg }}{{ new_order_form.bid_weight_kg.errors }}</div>
+                <div class="form-field"><label>Bid Price per kg</label>{{ new_order_form.bid_cost_per_kg }}{{ new_order_form.bid_cost_per_kg.errors }}</div>
+              </div>
+              <div class="form-field">
+                <label>Offer Deadline</label>{{ new_order_form.max_acceptable_date }}{{ new_order_form.max_acceptable_date.errors }}
+                <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
+              </div>
+              <div class="form-field">
+                <label>Allow this order to be split across multiple travelers</label>
+                {{ new_order_form.partial_allowed }}{{ new_order_form.partial_allowed.errors }}
+              </div>
+              <div class="form-field"><label>Notes to Travelers</label>{{ new_order_form.buyer_notes }}</div>
+
+              <div style="text-align:center;margin-top:12px">
+                <button class="btn btn-primary" type="submit">Post Order</button>
+              </div>
+            </form>
+          </div></div>
+
+          <template id="new-order-empty-form">
+            <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
+              {{ new_order_formset.empty_form.id }}
+              <span class="del-field" style="display:none">{{ new_order_formset.empty_form.DELETE }}</span>
+              <div class="form-row item-cols">
+                <div class="form-field"><label>Product Name</label>{{ new_order_formset.empty_form.name }}</div>
+                <div class="form-field"><label>Qty</label>{{ new_order_formset.empty_form.quantity }}</div>
+                <div class="form-field"><label>Unit</label>{{ new_order_formset.empty_form.unit }}</div>
+                <div class="form-field"><label>Unit Price</label>{{ new_order_formset.empty_form.estimated_unit_cost }}</div>
+              </div>
+              <p class="help">Price for this item — needed for the customs invoice.</p>
+              <div class="form-field"><label>Photo (optional)</label>{{ new_order_formset.empty_form.photo }}</div>
+              <button type="button" class="btn btn-sm btn-outline remove-new-order-item">Remove</button>
+            </div></div>
+          </template>
+
           {% include "accounts/_orders_table.html" with orders=open_my_orders empty="No active orders." heading="Current" %}
           {% include "accounts/_orders_table.html" with orders=closed_my_orders empty="No closed orders yet." heading="Closed" %}
         </div>
@@ -276,6 +358,45 @@
     toggle.addEventListener('click', function () {
       wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
     });
+  }
+
+  // Toggle the inline "Post an Order" form.
+  var orderToggle = document.getElementById('toggle-order-form');
+  var orderWrap = document.getElementById('order-form-wrap');
+  if (orderToggle && orderWrap) {
+    orderToggle.addEventListener('click', function () {
+      orderWrap.style.display = orderWrap.style.display === 'none' ? '' : 'none';
+    });
+  }
+
+  // Add/remove items on the inline "Post an Order" form.
+  var newOrderMaxItems = {{ new_order_formset.max_num }};
+  var newOrderTotalForms = document.getElementById('id_{{ new_order_formset.prefix }}-TOTAL_FORMS');
+  var newOrderContainer = document.getElementById('new-order-items');
+  var newOrderAddBtn = document.getElementById('add-new-order-item');
+  if (newOrderAddBtn && newOrderTotalForms) {
+    function refreshNewOrderAddState() {
+      newOrderAddBtn.disabled = parseInt(newOrderTotalForms.value, 10) >= newOrderMaxItems;
+    }
+    newOrderAddBtn.addEventListener('click', function () {
+      var count = parseInt(newOrderTotalForms.value, 10);
+      if (count >= newOrderMaxItems) { newOrderAddBtn.disabled = true; return; }
+      var html = document.getElementById('new-order-empty-form').innerHTML.replace(/__prefix__/g, count).trim();
+      var rowWrap = document.createElement('div');
+      rowWrap.innerHTML = html;
+      newOrderContainer.appendChild(rowWrap.firstElementChild);
+      newOrderTotalForms.value = count + 1;
+      refreshNewOrderAddState();
+    });
+    newOrderContainer.addEventListener('click', function (e) {
+      if (!e.target.classList.contains('remove-new-order-item')) return;
+      var row = e.target.closest('.item-row');
+      var del = row.querySelector('input[name$="-DELETE"]');
+      if (del) { del.checked = true; row.style.display = 'none'; }
+      else { row.parentNode.removeChild(row); }
+      refreshNewOrderAddState();
+    });
+    refreshNewOrderAddState();
   }
 })();
 </script>
