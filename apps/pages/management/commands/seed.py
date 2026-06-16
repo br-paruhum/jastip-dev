@@ -26,7 +26,11 @@ HOW_TO_BODY = (Path(__file__).resolve().parents[2] / "how_to_body.html").read_te
 
 PAGES = [
     ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY),
+    ("how-to-buyer-first", SitePage.Kind.GENERIC, "How It Works — Buyer First",
+     "<p>Coming soon — a guide to posting a Buyer First order and receiving traveler offers.</p>"),
     ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using Jastip.me.</p>"),
+    ("faq-buyer-first", SitePage.Kind.GENERIC, "FAQ — Buyer First",
+     "<p>Coming soon — frequently asked questions about Buyer First orders.</p>"),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """
 <p>We respect your privacy. Your name and phone number are never shown publicly — they are shared
 only with the counterparty of a transaction and the admin. We store the minimum data needed to
