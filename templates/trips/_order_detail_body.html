@@ -81,36 +81,52 @@
 {% if bf_order.confirmed_legs %}
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Confirmed Legs</h3>
-  <div class="table-wrap">
-    <table class="invoice">
-      <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Allocated (kg)</strong></td><td class="num-right"><strong>Deposit Due</strong></td><td><strong>Deposit</strong></td><td><strong>Drop-off</strong></td><td><strong>Progress</strong></td></tr>
-      {% for leg in bf_order.confirmed_legs %}
-      <tr>
-        <td class="num-right">{{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
-        <td class="num-right">{{ leg.allocated_weight_kg }}</td>
-        <td class="num-right">{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</td>
-        <td>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    {% for leg in bf_order.confirmed_legs %}
+    <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden">
+
+      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;padding:14px 16px;background:var(--cream-200,#f5f1ea);border-bottom:1px solid var(--line)">
+        <span style="font-size:1.1rem;font-weight:800;color:var(--slate)">{{ leg.allocated_weight_kg }} kg</span>
+        <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}/kg</span>
+        {% if leg.deposit_verified %}
+          <span class="badge badge-success" style="margin-left:auto">Deposit verified</span>
+        {% elif leg.deposit_paid_amount > 0 %}
+          <span class="badge badge-warning" style="margin-left:auto">Deposit pending</span>
+        {% else %}
+          <span class="badge badge-muted" style="margin-left:auto">Deposit due</span>
+        {% endif %}
+      </div>
+
+      <div style="display:grid;gap:16px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
           {% if leg.deposit_verified %}
             <span class="badge badge-success">Verified</span>
           {% elif leg.deposit_paid_amount > 0 %}
             <span class="badge badge-warning">Awaiting verification</span>
           {% else %}
-            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data">
+            <p class="muted" style="margin:0 0 6px">Due: {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</p>
+            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start">
               {% csrf_token %}
               <input type="file" name="proof" accept="image/png,image/jpeg" required>
               <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
             </form>
           {% endif %}
-        </td>
-        <td>
+        </div>
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Drop-off</div>
           {% if leg.address_revealed %}
             {{ leg.drop_off_address }}{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}
             <br><span class="help">Drop off by {{ leg.drop_off_deadline|date:"d-M-Y" }}</span>
           {% else %}
             <span class="muted">Hidden until deposit clears</span>
           {% endif %}
-        </td>
-        <td>
+        </div>
+
+        <div>
+          <div class="eyebrow" style="margin-bottom:6px">Next Step</div>
           {% if not leg.leg_status %}
             {% if leg.address_revealed %}
               <form method="post" action="{% url 'trips:leg_dropped_off' leg.id %}">
@@ -214,10 +230,11 @@
           {% else %}
             {{ leg.get_leg_status_display }}
           {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
   </div>
 </div></div>
 {% endif %}
