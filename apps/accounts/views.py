@@ -9,11 +9,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import CHAT_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
+from apps.trips.constants import CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, MessageForm, OrderForm, OrderItemFormSet,
     PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet,
-    ReviewForm, ReviewItemFormSet, TravelPlanForm,
+    ReviewForm, ReviewItemFormSet, TravelPlanForm, TravelerOfferForm,
 )
 from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
 
@@ -257,6 +257,27 @@ def profile(request):
             reship_req = _r
             reship_form = AWBForm(instance=_r)
 
+    # Offer-form panel (?offer=<order_id>#offer-form) — traveler places offer on a buyer-first order.
+    offer_form_order = offer_form_obj = None
+    offer_order_id = request.GET.get("offer")
+    if offer_order_id:
+        _offer_order = (
+            BuyRequest.objects.prefetch_related("traveler_offers")
+            .filter(pk=offer_order_id, plan__isnull=True)
+            .first()
+        )
+        if (
+            _offer_order
+            and _offer_order.buyer_id != user.id
+            and _offer_order.status in OPEN_ORDER_STATUSES
+            and not _offer_order.traveler_offers.filter(traveler=user, offer_status=OfferStatus.PENDING).exists()
+        ):
+            offer_form_order = _offer_order
+            offer_form_obj = TravelerOfferForm(initial={
+                "from_city": _offer_order.from_city, "from_country": _offer_order.from_country,
+                "to_city": _offer_order.to_city, "to_country": _offer_order.to_country,
+            })
+
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
     order_form_plan_id = request.GET.get("order_form")
@@ -313,6 +334,8 @@ def profile(request):
             "order_form_plan": order_form_plan,
             "order_form_buy": order_form_buy,
             "order_form_formset": order_form_formset,
+            "offer_form_order": offer_form_order,
+            "offer_form_obj": offer_form_obj,
             **order_ctx,
         },
     )

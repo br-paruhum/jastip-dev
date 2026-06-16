@@ -179,34 +179,33 @@ def order_create(request):
 
 # --- Traveler: respond to a buyer-first order with an offer ----------------
 @profile_required
+@require_POST
 def offer_create(request, order_id):
+    dashboard_url = reverse("accounts:profile")
     order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
     if order.buyer_id == request.user.id:
         messages.error(request, "You cannot place an offer on your own order.")
         return redirect(reverse("pages:home") + "#open-orders")
     if order.status not in OPEN_ORDER_STATUSES:
         messages.info(request, "This order is no longer accepting offers.")
-        return redirect(reverse("pages:home") + "#open-orders")
+        return redirect(dashboard_url + "#travel-plans")
     if order.traveler_offers.filter(traveler=request.user, offer_status=OfferStatus.PENDING).exists():
         messages.info(request, "You already have a pending offer on this order. Withdraw it first to submit a new one.")
-        return redirect(reverse("pages:home") + "#open-orders")
+        return redirect(dashboard_url + "#travel-plans")
 
-    if request.method == "POST":
-        form = TravelerOfferForm(request.POST)
-        if form.is_valid():
-            offer = form.save(commit=False)
-            offer.order = order
-            offer.traveler = request.user
-            offer.save()
-            order.recompute_status()
-            messages.success(request, "Offer submitted. The buyer will review it.")
-            return redirect(reverse("pages:home") + "#open-orders")
-    else:
-        form = TravelerOfferForm(initial={
-            "from_city": order.from_city, "from_country": order.from_country,
-            "to_city": order.to_city, "to_country": order.to_country,
-        })
-    return render(request, "trips/offer_form.html", {"order": order, "form": form})
+    form = TravelerOfferForm(request.POST)
+    if form.is_valid():
+        offer = form.save(commit=False)
+        offer.order = order
+        offer.traveler = request.user
+        offer.save()
+        order.recompute_status()
+        messages.success(request, "Offer submitted. The buyer will review it.")
+        return redirect(dashboard_url + "#travel-plans")
+    for field, errs in form.errors.items():
+        for err in errs:
+            messages.error(request, f"{field}: {err}")
+    return redirect(dashboard_url + f"?offer={order_id}#offer-form")
 
 
 # --- Traveler: withdraw a pending offer -------------------------------------

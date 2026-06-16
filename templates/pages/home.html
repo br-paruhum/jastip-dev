@@ -204,54 +204,12 @@
               {% elif user.is_authenticated and order.buyer_id == user.id %}
                 <span class="btn btn-sm btn-blocked">Your order</span>
               {% elif order.offer_form %}
-                <button type="button" class="btn btn-primary btn-sm" id="toggle-offer-{{ order.id }}">Place Offer</button>
+                <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ order.id }}#offer-form">Place Offer</a>
               {% else %}
                 <span class="btn btn-sm btn-blocked">Taken</span>
               {% endif %}
             </td>
           </tr>
-          {% if order.offer_form %}
-          <tr id="offer-row-{{ order.id }}" style="display:none">
-            <td colspan="9">
-              <div class="card mt-2"><div class="card-body">
-                <span class="eyebrow">Your Offer · {{ order.from_city }} → {{ order.to_city }}</span>
-                <form method="post" action="{% url 'trips:offer_create' order.id %}" class="card" style="margin-top:12px">
-                  {% csrf_token %}
-                  <div class="card-body">
-                    <div class="form-row">
-                      <div class="form-field"><label>Your Rate per kg</label>{{ order.offer_form.ask_cost_per_kg }}{{ order.offer_form.ask_cost_per_kg.errors }}</div>
-                      <div class="form-field"><label>Avail (kg)</label>{{ order.offer_form.avail_kg }}{{ order.offer_form.avail_kg.errors }}</div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-field"><label>From City</label>{{ order.offer_form.from_city }}{{ order.offer_form.from_city.errors }}</div>
-                      <div class="form-field"><label>From Country</label>{{ order.offer_form.from_country }}{{ order.offer_form.from_country.errors }}</div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-field"><label>To City</label>{{ order.offer_form.to_city }}{{ order.offer_form.to_city.errors }}</div>
-                      <div class="form-field"><label>To Country</label>{{ order.offer_form.to_country }}{{ order.offer_form.to_country.errors }}</div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-field"><label>Travel Date</label>{{ order.offer_form.travel_date }}{{ order.offer_form.travel_date.errors }}</div>
-                      <div class="form-field"><label>Travel Time</label>{{ order.offer_form.travel_time }}{{ order.offer_form.travel_time.errors }}</div>
-                    </div>
-                    <div class="form-field">
-                      <label>Drop-off Address</label>{{ order.offer_form.drop_off_address }}{{ order.offer_form.drop_off_address.errors }}
-                      <p class="help">Hidden from the buyer until their deposit clears.</p>
-                    </div>
-                    <div class="form-field"><label>Drop-off Postal Code</label>{{ order.offer_form.drop_off_postal_code }}{{ order.offer_form.drop_off_postal_code.errors }}</div>
-                    <div class="form-field">
-                      <label>Pickup Address (destination)</label>{{ order.offer_form.pickup_address }}{{ order.offer_form.pickup_address.errors }}
-                      <p class="help">Only revealed to the buyer after Package Arrived, if they choose Pickup.</p>
-                    </div>
-                    <div style="text-align:center;margin-top:12px">
-                      <button class="btn btn-primary" type="submit">Submit Offer</button>
-                    </div>
-                  </div>
-                </form>
-              </div></div>
-            </td>
-          </tr>
-          {% endif %}
           {% endfor %}
         </tbody>
       </table>
@@ -333,13 +291,5 @@
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
 <script>
 flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });
-document.querySelectorAll('[id^="toggle-offer-"]').forEach(function (btn) {
-  var id = btn.id.replace('toggle-offer-', '');
-  var row = document.getElementById('offer-row-' + id);
-  if (!row) return;
-  btn.addEventListener('click', function () {
-    row.style.display = row.style.display === 'none' ? '' : 'none';
-  });
-});
 </script>
 {% endblock %}
