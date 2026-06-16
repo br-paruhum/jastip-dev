@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import CHAT_STATUSES, LegStatus, OfferStatus, Status
+from apps.trips.constants import CHAT_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
     PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet, ReviewForm,
@@ -23,40 +23,98 @@ def _profile_tab(tab):
     return redirect(reverse("accounts:profile") + f"#{tab}")
 
 
+def _offer_status_display(offer):
+    """Status label + badge tone mirroring the old standalone offer table."""
+    if offer.offer_status == OfferStatus.PENDING:
+        return "Pending", "muted"
+    if offer.offer_status == OfferStatus.SELECTED:
+        if offer.leg_status:
+            return offer.get_leg_status_display(), STATUS_TONE.get(offer.leg_status, "muted")
+        return "Awaiting drop-off", "warning"
+    return offer.get_offer_status_display(), "muted"
+
+
+def _travel_rows(plans, offers):
+    """Combine a traveler's posted plans (one row per request-within-plan,
+    mirroring active_requests_with_capacity) with their buyer-first offers
+    into one sorted list of row dicts for the merged "My Travel Plans" tab.
+    Type is derived from origin (plan vs. offer), not UI navigation state."""
+    rows = []
+    for plan in plans:
+        cap_items = plan.active_requests_with_capacity
+        if cap_items:
+            for item in cap_items:
+                rows.append({
+                    "kind": "plan", "bf_kind": "traveler_first",
+                    "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
+                    "available": item.available, "remaining": item.remaining,
+                    "counterparty": item.req.buyer.full_name,
+                    "status_label": item.req.detail_status_label, "status_tone": item.req.status_tone,
+                    "req": item.req, "plan": plan, "sort_key": item.req.created_at,
+                })
+        else:
+            rows.append({
+                "kind": "plan_only", "bf_kind": "traveler_first",
+                "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
+                "available": plan.available_weight_kg, "remaining": plan.remaining_weight_kg,
+                "counterparty": None,
+                "status_label": plan.get_status_display(), "status_tone": plan.status_tone,
+                "plan": plan, "sort_key": plan.created_at,
+            })
+    for offer in offers:
+        label, tone = _offer_status_display(offer)
+        rows.append({
+            "kind": "offer", "bf_kind": "buyer_first",
+            "ref": offer.order.reference, "date": offer.travel_date, "route": offer.route,
+            "ask_cost_per_kg": offer.ask_cost_per_kg, "kg": offer.allocated_weight_kg or offer.avail_kg,
+            "currency": offer.order.currency,
+            "status_label": label, "status_tone": tone,
+            "offer": offer, "sort_key": offer.created_at,
+        })
+    rows.sort(key=lambda r: r["sort_key"], reverse=True)
+    return rows
+
+
 @login_required
 def profile(request):
     user = request.user
 
-    # Traveler side
+    # Traveler side: travel plans (own initiative) merged with buyer-first
+    # offers (responding to someone else's posted order) into one combined
+    # "My Travel Plans" tab — each row tagged Traveler First / Buyer First by
+    # how it originated, not by which button the user last clicked.
     my_plans = TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests")
     open_plans = [p for p in my_plans if not p.is_closed]
     closed_plans = [p for p in my_plans if p.is_closed]
 
-    # Buyer side — plan-first requests only; buyer-first orders get their own
-    # "My Orders" panel below (kept separate — see PLAN-buyer-first-orders.md §7a).
-    my_requests = BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan")
-    open_requests = [r for r in my_requests if r.status != Status.CLOSED]
-    closed_requests = [r for r in my_requests if r.status == Status.CLOSED]
-
-    # Buyer-first orders the user posted.
-    my_orders = BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
-    open_orders = [o for o in my_orders if o.status != Status.CLOSED]
-    closed_orders = [o for o in my_orders if o.status == Status.CLOSED]
-
-    # Buyer-first offers the user made as a traveler — own dashboard tab, since
-    # the per-leg actions (drop-off, weight verify, package received) are
-    # different from anything on the plan-first "My Travel Plans" tab.
     my_offers = TravelerOffer.objects.filter(traveler=user).select_related("order")
     closed_offer_statuses = {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
     closed_leg_statuses = {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
-    open_offers = [
+    open_offer_objs = [
         o for o in my_offers
         if o.offer_status not in closed_offer_statuses and o.leg_status not in closed_leg_statuses
     ]
-    closed_offers = [
+    closed_offer_objs = [
         o for o in my_offers
         if o.offer_status in closed_offer_statuses or o.leg_status in closed_leg_statuses
     ]
+    open_travel_rows = _travel_rows(open_plans, open_offer_objs)
+    closed_travel_rows = _travel_rows(closed_plans, closed_offer_objs)
+
+    # Buyer side: plan-first requests merged with buyer-first orders into one
+    # combined "My Orders" tab, tagged the same way — Traveler First if the
+    # order has a linked TravelPlan, Buyer First if it doesn't.
+    my_buying = list(BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
+    my_bf_orders = list(
+        BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
+    )
+    for r in my_buying:
+        r.bf_kind = "traveler_first"
+    for o in my_bf_orders:
+        o.bf_kind = "buyer_first"
+    all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
+    open_my_orders = [r for r in all_my_orders if r.status != Status.CLOSED]
+    closed_my_orders = [r for r in all_my_orders if r.status == Status.CLOSED]
 
     form = ProfileForm(instance=user)
 
@@ -188,14 +246,10 @@ def profile(request):
             "otp_form": OTPForm(),
             "password_form": ChangePasswordForm(user),
             "plan_form": TravelPlanForm(),
-            "open_plans": open_plans,
-            "closed_plans": closed_plans,
-            "open_requests": open_requests,
-            "closed_requests": closed_requests,
-            "open_orders": open_orders,
-            "closed_orders": closed_orders,
-            "open_offers": open_offers,
-            "closed_offers": closed_offers,
+            "open_travel_rows": open_travel_rows,
+            "closed_travel_rows": closed_travel_rows,
+            "open_my_orders": open_my_orders,
+            "closed_my_orders": closed_my_orders,
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

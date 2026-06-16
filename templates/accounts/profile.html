@@ -110,29 +110,17 @@
             </form>
           </div></div>
 
-          {% include "accounts/_plan_table.html" with plans=open_plans empty="No open travel plans." heading="Current" %}
-          {% include "accounts/_plan_table.html" with plans=closed_plans empty="No closed plans yet." heading="Closed" %}
+          {% include "accounts/_travel_table.html" with rows=open_travel_rows empty="No open travel plans or offers." heading="Current" %}
+          {% include "accounts/_travel_table.html" with rows=closed_travel_rows empty="No closed plans or offers yet." heading="Closed" %}
         </div>
 
-        <!-- Panel: My Buying Orders -->
-        <div data-panel="buying-order">
-          {% include "accounts/_request_table.html" with requests=open_requests empty="No active orders." heading="Current" %}
-          {% include "accounts/_request_table.html" with requests=closed_requests empty="No closed orders yet." heading="Closed" %}
-        </div>
-
-        <!-- Panel: My Orders (buyer-first) -->
+        <!-- Panel: My Orders (plan-first requests + buyer-first orders) -->
         <div data-panel="my-orders">
           <div style="text-align:right;margin-bottom:12px">
             <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
           </div>
-          {% include "accounts/_order_table.html" with orders=open_orders empty="No active orders." heading="Current" %}
-          {% include "accounts/_order_table.html" with orders=closed_orders empty="No closed orders yet." heading="Closed" %}
-        </div>
-
-        <!-- Panel: My Offers (buyer-first, traveler side) -->
-        <div data-panel="my-offers">
-          {% include "accounts/_offer_table.html" with offers=open_offers empty="No active offers." heading="Current" %}
-          {% include "accounts/_offer_table.html" with offers=closed_offers empty="No closed offers yet." heading="Closed" %}
+          {% include "accounts/_orders_table.html" with orders=open_my_orders empty="No active orders." heading="Current" %}
+          {% include "accounts/_orders_table.html" with orders=closed_my_orders empty="No closed orders yet." heading="Closed" %}
         </div>
 
         {% if order %}
@@ -141,7 +129,7 @@
         <div data-panel="order-detail" data-origin="{{ origin }}">
           {% include "trips/_request_detail_body.html" %}
         </div>
-        {% endwith %}{% else %}{% with origin="buying-order" origin_label="My Buying Order" %}
+        {% endwith %}{% else %}{% with origin="my-orders" origin_label="My Orders" %}
         <div data-panel="order-detail" data-origin="{{ origin }}">
           {% include "trips/_request_detail_body.html" %}
         </div>
@@ -199,7 +187,7 @@
 
         {% if order_form_plan %}
         <!-- Panel: Place new order (buyer) -->
-        <div data-panel="order-form" data-origin="buying-order">
+        <div data-panel="order-form" data-origin="my-orders">
           {% include "trips/_request_form_body.html" %}
         </div>
         {% endif %}
@@ -236,9 +224,7 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           <li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>
-          <li><a href="#buying-order" data-tab="buying-order">My Buying Orders</a></li>
           <li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>
-          <li><a href="#my-offers" data-tab="my-offers">My Offers</a></li>
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>

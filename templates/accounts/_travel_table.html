@@ -1,0 +1,89 @@
+{% load humanize %}
+<h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
+{% if rows %}
+<div class="table-wrap">
+  <table class="offers offers-centered offers-allcenter">
+    <thead><tr><th>Type</th><th>Ref</th><th>Date</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>
+          {% if row.bf_kind == "traveler_first" %}<span class="badge badge-muted">Traveler First</span>
+          {% else %}<span class="badge badge-warning">Buyer First</span>{% endif %}
+        </td>
+        <td>{{ row.ref }}
+          {% if row.kind == "offer" %}
+            <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|intcomma }}/kg · {{ row.kg }} kg</div>
+          {% else %}
+            <div class="muted" style="font-size:.8em">{{ row.available }}/{{ row.remaining }} kg avail{% if row.counterparty %} · {{ row.counterparty|truncatechars:14 }}{% endif %}</div>
+          {% endif %}
+        </td>
+        <td>{{ row.date|date:"d-M-Y" }}</td>
+        <td class="route-cell"><strong>{{ row.route }}</strong></td>
+        <td class="status-cell">{% include "trips/_status_badge.html" with label=row.status_label tone=row.status_tone %}</td>
+        <td class="action-cell">
+          {% if row.kind == "plan" %}
+            {% if row.req.status == 'request_received' or row.req.status == 'accepted' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ row.req.id }}#review-order">Manage</a>
+            {% elif row.req.status == 'deposit_paid' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ row.req.id }}#purchase-order">Manage</a>
+            {% elif row.req.status == 'items_purchased' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ row.req.id }}#arrive-order">Manage</a>
+            {% elif row.req.status == 'reship_requested' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship_cost={{ row.req.id }}#reship-cost-order">Manage</a>
+            {% elif row.req.status == 'reship_cost_sent' %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship={{ row.req.id }}#reship-order">Manage</a>
+            {% else %}
+              <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ row.req.id }}#order-detail">View</a>
+            {% endif %}
+          {% elif row.kind == "plan_only" %}
+            <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ row.plan.id }}#plan-detail">View</a>
+          {% else %}
+            {% if row.offer.offer_status == "pending" %}
+              <form method="post" action="{% url 'trips:offer_withdraw' row.offer.id %}">
+                {% csrf_token %}
+                <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>
+              </form>
+            {% elif row.offer.leg_status == "package_dropped_off" %}
+              <form method="post" action="{% url 'trips:leg_weight_verify' row.offer.id %}" style="display:flex;gap:6px;align-items:center;justify-content:center">
+                {% csrf_token %}
+                <input type="number" step="0.01" min="0.01" name="agreed_weight_kg" style="width:80px" placeholder="kg" required>
+                <button class="btn btn-primary btn-sm" type="submit">Verify Weight</button>
+              </form>
+            {% elif row.offer.leg_status == "weight_verified" %}
+              <p class="help" style="margin:0 0 4px">Final: {{ row.offer.agreed_weight_kg }} kg</p>
+              <form method="post" action="{% url 'trips:leg_received' row.offer.id %}">
+                {% csrf_token %}
+                <button class="btn btn-primary btn-sm" type="submit">Package Received</button>
+              </form>
+            {% elif row.offer.leg_status == "package_received" %}
+              <form method="post" action="{% url 'trips:leg_arrived' row.offer.id %}">
+                {% csrf_token %}
+                <button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button>
+              </form>
+            {% elif row.offer.leg_status == "reship_requested" %}
+              <form method="post" action="{% url 'trips:leg_reship_cost' row.offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:4px;align-items:center">
+                {% csrf_token %}
+                <input type="number" step="0.01" min="0.01" name="reshipment_cost_amount" placeholder="Cost" style="width:90px" required>
+                <input type="text" name="reshipment_bank_name" placeholder="Bank name" style="width:120px" required>
+                <input type="text" name="reshipment_bank_account_no" placeholder="Account no." style="width:120px" required>
+                <input type="text" name="reshipment_bank_account_name" placeholder="Account name" style="width:120px" required>
+                <input type="file" name="reshipment_cost_proof" accept="image/png,image/jpeg">
+                <button class="btn btn-primary btn-sm" type="submit">Send Cost</button>
+              </form>
+            {% elif row.offer.leg_status == "reship_cost_sent" %}
+              <form method="post" action="{% url 'trips:leg_reship_ship' row.offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:4px;align-items:center">
+                {% csrf_token %}
+                <input type="text" name="awb_number" placeholder="AWB number" style="width:120px" required>
+                <input type="file" name="awb_document">
+                <button class="btn btn-primary btn-sm" type="submit">Mark Shipped</button>
+              </form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}<p class="muted">{{ empty }}</p>{% endif %}
