@@ -39,7 +39,9 @@
                 <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
                 <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
                 <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
+                <div class="form-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
               </div>
+              <p class="help">Price for this item — needed for the customs invoice.</p>
               <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
               <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
             </div>
@@ -78,7 +80,9 @@
       <div class="form-field"><label>Product Name</label>{{ formset.empty_form.name }}</div>
       <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
       <div class="form-field"><label>Unit</label>{{ formset.empty_form.unit }}</div>
+      <div class="form-field"><label>Unit Price</label>{{ formset.empty_form.estimated_unit_cost }}</div>
     </div>
+    <p class="help">Price for this item — needed for the customs invoice.</p>
     <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
     <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
   </div></div>

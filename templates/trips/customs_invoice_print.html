@@ -41,7 +41,7 @@
   <div class="inv-meta">
     <div>
       <div class="inv-meta-label">Carried by</div>
-      <div class="inv-meta-val">{{ req.plan.traveler.full_name }}</div>
+      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}</div>
     </div>
     <div>
       <div class="inv-meta-label">Purchased for</div>
@@ -50,11 +50,11 @@
     </div>
     <div>
       <div class="inv-meta-label">Route</div>
-      <div class="inv-meta-val">{{ req.plan.from_city }}, {{ req.plan.from_country }} → {{ req.plan.to_city }}, {{ req.plan.to_country }}</div>
+      <div class="inv-meta-val">{{ req.route }}</div>
     </div>
     <div>
       <div class="inv-meta-label">Travel Date</div>
-      <div class="inv-meta-val">{{ req.plan.travel_date|date:"d-M-Y" }}</div>
+      <div class="inv-meta-val">{% if req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
       <div class="inv-meta-label" style="margin-top:10px">Reference</div>
       <div class="inv-meta-val">{{ req.reference }}</div>
     </div>

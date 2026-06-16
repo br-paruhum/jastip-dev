@@ -484,7 +484,11 @@ class BuyRequest(models.Model):
 
     @property
     def customs_invoice_available(self) -> bool:
-        """True once the traveler has recorded actual purchases."""
+        """True once the traveler has recorded actual purchases. Buyer-first
+        orders have no separate purchase step — the buyer declares price for
+        each item at posting time, so the invoice is available immediately."""
+        if self.plan_id is None:
+            return self.items.exists()
         unavailable = {
             Status.NEW, Status.REQUEST_RECEIVED, Status.ACCEPTED,
             Status.DEPOSIT_PAID, Status.REJECTED, Status.CANCELLED, Status.CLOSED,

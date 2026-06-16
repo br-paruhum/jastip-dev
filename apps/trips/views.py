@@ -25,6 +25,7 @@ from .forms import (
     CustomFareForm,
     MessageForm,
     OrderForm,
+    OrderItemFormSet,
     PurchaseItemFormSet,
     PurchaseWeightForm,
     RefundBankForm,
@@ -134,7 +135,7 @@ def request_create(request, plan_id):
 def order_create(request):
     if request.method == "POST":
         form = OrderForm(request.POST)
-        formset = RequestItemFormSet(request.POST, request.FILES, instance=BuyRequest())
+        formset = OrderItemFormSet(request.POST, request.FILES, instance=BuyRequest())
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 order = form.save(commit=False)
@@ -150,12 +151,17 @@ def order_create(request):
                     return redirect(request.path)
                 for idx, item in enumerate(items, start=1):
                     item.position = idx
+                    # No traveler "purchase" step in this flow — the buyer's
+                    # declared qty/price stand as final for the customs invoice.
+                    item.actual_quantity = item.quantity
+                    item.actual_unit_cost = item.estimated_unit_cost
+                    item.purchased_at = timezone.now()
                     item.save()
             messages.success(request, "Order posted. Travelers can now respond with offers.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm()
-        formset = RequestItemFormSet(instance=BuyRequest())
+        formset = OrderItemFormSet(instance=BuyRequest())
     return render(request, "trips/order_form.html", {"form": form, "formset": formset})
 
 
@@ -881,7 +887,16 @@ def kurs(request):
 
 @login_required
 def request_customs_invoice(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk, plan__traveler=request.user)
+    req = get_object_or_404(BuyRequest, pk=pk)
+    allowed = (
+        request.user.is_staff
+        or req.buyer_id == request.user.id
+        or (req.plan_id and req.plan.traveler_id == request.user.id)
+        or any(leg.traveler_id == request.user.id for leg in req.confirmed_legs)
+    )
+    if not allowed:
+        messages.error(request, "You don't have access to this customs invoice.")
+        return redirect(reverse("accounts:profile"))
     if not req.customs_invoice_available:
         messages.error(request, "Customs invoice is not available yet.")
         return redirect(req.get_absolute_url())

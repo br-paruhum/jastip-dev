@@ -233,6 +233,37 @@ RequestItemFormSet = inlineformset_factory(
     extra=3, max_num=10, validate_max=True, can_delete=True,
 )
 
+
+class OrderItemForm(forms.ModelForm):
+    """Buyer-first order item — unlike the traveler-first flow (where the
+    traveler fills in cost after actually buying it), there's no separate
+    purchase step here, so the buyer declares the price upfront for customs
+    invoice purposes."""
+
+    class Meta:
+        model = RequestItem
+        fields = ["name", "quantity", "unit", "photo", "estimated_unit_cost"]
+        widgets = {
+            "name": forms.TextInput(attrs={"placeholder": "Product Name"}),
+            "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
+            "estimated_unit_cost": ThousandSeparatorNumberInput(attrs={"placeholder": "Unit price"}),
+        }
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get("photo")
+        if photo and hasattr(photo, "size") and photo.size > 2 * 1024 * 1024:
+            raise forms.ValidationError("Image must be 2 MB or smaller.")
+        if photo and hasattr(photo, "content_type"):
+            if photo.content_type not in {"image/png", "image/jpeg", "image/jpg"}:
+                raise forms.ValidationError("Only PNG, JPG or JPEG images are allowed.")
+        return photo
+
+
+OrderItemFormSet = inlineformset_factory(
+    BuyRequest, RequestItem, form=OrderItemForm,
+    extra=3, max_num=10, validate_max=True, can_delete=True,
+)
+
 # Traveler sets the estimated cost of each item when reviewing.
 class ReviewItemForm(forms.ModelForm):
     class Meta:

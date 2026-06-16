@@ -16,6 +16,30 @@
 </div></div>
 
 <div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Items</h3>
+  <div class="table-wrap">
+    <table class="invoice">
+      <tr><td><strong>Product</strong></td><td><strong>Qty</strong></td><td><strong>Unit</strong></td><td><strong>Unit Price</strong></td><td><strong>Total</strong></td></tr>
+      {% for item in bf_order.items.all %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.unit }}</td>
+        <td>{{ bf_order.currency }} {{ item.estimated_unit_cost|intcomma }}</td>
+        <td>{{ bf_order.currency }} {{ item.estimated_line_total|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr><td colspan="4"><strong>Total</strong></td><td><strong>{{ bf_order.currency }} {{ bf_order.items_actual_total|intcomma }}</strong></td></tr>
+    </table>
+  </div>
+  {% if bf_order.customs_invoice_available %}
+  <div class="mt-2">
+    <a href="{% url 'trips:request_customs_invoice' bf_order.id %}" target="_blank" class="btn btn-outline btn-sm">Print Customs Invoice</a>
+  </div>
+  {% endif %}
+</div></div>
+
+<div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Pending Offers</h3>
   <p class="help">Remaining to allocate: <strong>{{ bf_order.remaining_bid_weight_kg }}</strong> kg
     {% if bf_order.confirmed_legs %} (of {{ bf_order.bid_weight_kg }} kg bid; {{ bf_order.total_allocated_weight_kg }} kg already allocated){% endif %}</p>
