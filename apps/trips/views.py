@@ -140,6 +140,7 @@ def order_create(request):
                 order = form.save(commit=False)
                 order.buyer = request.user
                 order.status = Status.OPEN
+                order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
                 formset.instance = order
                 items = formset.save(commit=False)

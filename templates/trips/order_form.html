@@ -52,16 +52,13 @@
           <div class="form-field"><label>Bid Weight (kg)</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}</div>
           <div class="form-field"><label>Bid Price per kg</label>{{ form.bid_cost_per_kg }}{{ form.bid_cost_per_kg.errors }}</div>
         </div>
-        <div class="form-row">
-          <div class="form-field"><label>Settlement Currency</label>{{ form.settlement_currency }}{{ form.settlement_currency.errors }}</div>
-          <div class="form-field"><label>Offer Deadline</label>{{ form.max_acceptable_date }}{{ form.max_acceptable_date.errors }}
-            <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
-          </div>
+        <div class="form-field">
+          <label>Offer Deadline</label>{{ form.max_acceptable_date }}{{ form.max_acceptable_date.errors }}
+          <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
         </div>
         <div class="form-field">
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal">
-            {{ form.partial_allowed }} Allow this order to be split across multiple travelers
-          </label>
+          <label>Allow this order to be split across multiple travelers</label>
+          {{ form.partial_allowed }}{{ form.partial_allowed.errors }}
         </div>
         <div class="form-field"><label>Notes to Travelers</label>{{ form.buyer_notes }}</div>
 

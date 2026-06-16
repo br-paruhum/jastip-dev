@@ -1112,6 +1112,12 @@ class ExchangeRate(models.Model):
     buy_rate = models.DecimalField(max_digits=14, decimal_places=4)
     is_active = models.BooleanField(default=True)
     sequence = models.PositiveSmallIntegerField(default=0, help_text="Lower = shown first.")
+    apply_to_countries = models.TextField(
+        blank=True, default="",
+        help_text="Comma-separated country names (matching the order form's country "
+                   "list, e.g. \"United States, Singapore\") that should settle in this "
+                   "currency. Buyer-first orders fall back to IDR if no match is found.",
+    )
     updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -1119,6 +1125,19 @@ class ExchangeRate(models.Model):
 
     def __str__(self):
         return f"{self.code} — sell {self.sell_rate:,.2f}"
+
+    @classmethod
+    def currency_for_country(cls, country: str) -> str:
+        """Resolve a buyer-first order's settlement currency from its From
+        Country, via each active rate's admin-assigned `apply_to_countries`
+        list. Falls back to IDR when nothing matches."""
+        if country:
+            needle = country.strip().lower()
+            for rate in cls.objects.filter(is_active=True).exclude(apply_to_countries=""):
+                names = (n.strip().lower() for n in rate.apply_to_countries.split(","))
+                if needle in names:
+                    return rate.code
+        return Currency.IDR
 
 
 class Message(models.Model):

@@ -77,12 +77,18 @@ class OrderForm(forms.ModelForm):
 
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+    partial_allowed = forms.TypedChoiceField(
+        choices=[("1", "Partial Allowed"), ("0", "Partial Not Allowed")],
+        coerce=lambda v: v == "1",
+        widget=forms.Select(),
+        initial="0",
+    )
 
     class Meta:
         model = BuyRequest
         fields = [
             "from_city", "from_country", "to_city", "to_country",
-            "to_address", "to_postal_code", "settlement_currency",
+            "to_address", "to_postal_code",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
             "partial_allowed", "buyer_notes",
         ]
@@ -90,16 +96,16 @@ class OrderForm(forms.ModelForm):
             "to_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Destination delivery address"}),
             "max_acceptable_date": DATE_INPUT,
             "bid_weight_kg": forms.NumberInput(
-                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 2.5"}
+                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal",
+                       "placeholder": "e.g. 2.5", "style": "text-align:right"}
             ),
-            "bid_cost_per_kg": ThousandSeparatorNumberInput(),
+            "bid_cost_per_kg": ThousandSeparatorNumberInput(attrs={"style": "text-align:right"}),
             "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
-        self.fields["settlement_currency"].required = True
 
     def clean_bid_weight_kg(self):
         val = self.cleaned_data.get("bid_weight_kg")
