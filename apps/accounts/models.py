@@ -31,10 +31,15 @@ class User(AbstractUser):
         help_text="Shown to the buyer if they choose to pick up the package from you instead of requesting reshipment.",
     )
     traveler_bank_details = models.TextField(blank=True, help_text="For invoice disbursement purpose.")
+    buyer_destination_city = models.CharField(
+        max_length=80, blank=True,
+        help_text="Your actual city at destination, since it may differ from the destination airport city.",
+    )
     buyer_invoice_address = models.TextField(
         blank=True,
-        help_text="Your delivery address, used on customs invoices. Fill this in now or later, once needed.",
+        help_text="Reshipment address, if you want the traveler to send your package at your cost — also used as the address data on the customs invoice.",
     )
+    buyer_bank_details = models.TextField(blank=True, help_text="For overpayment refund, if any.")
 
     ROLE_CHOICES = [("traveler", "Traveler"), ("buyer", "Buyer")]
     last_role_choice = models.CharField(max_length=10, choices=ROLE_CHOICES, blank=True, default="")
