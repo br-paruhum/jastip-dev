@@ -11,23 +11,37 @@ class ProfileForm(forms.ModelForm):
         model = User
         fields = [
             "full_name", "phone_country_code", "phone_number",
-            "destination_city", "address", "bank_details",
+            "traveler_destination_city", "traveler_address", "traveler_bank_details",
+            "buyer_invoice_address",
         ]
         widgets = {
             "full_name": forms.TextInput(attrs={"placeholder": "Your full name", "autocomplete": "name"}),
             "phone_country_code": forms.TextInput(attrs={"placeholder": "+62", "class": "country-code"}),
             "phone_number": forms.TextInput(attrs={"placeholder": "81234567890", "inputmode": "numeric"}),
-            "destination_city": forms.TextInput(attrs={"placeholder": "e.g. Surabaya"}),
-            "address": forms.Textarea(attrs={
+            "traveler_destination_city": forms.TextInput(attrs={"placeholder": "e.g. Surabaya"}),
+            "traveler_address": forms.Textarea(attrs={
                 "rows": 3,
                 "placeholder": "e.g. Jl. Sudirman No. 1, Jakarta 10220, Indonesia",
                 "autocomplete": "street-address",
             }),
-            "bank_details": forms.Textarea(attrs={
+            "traveler_bank_details": forms.Textarea(attrs={
                 "rows": 3,
                 "placeholder": "Bank name, account number, account holder name",
             }),
+            "buyer_invoice_address": forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": "e.g. Jl. Sudirman No. 1, Jakarta 10220, Indonesia",
+                "autocomplete": "street-address",
+            }),
         }
+
+    def __init__(self, *args, role=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if role == "traveler":
+            del self.fields["buyer_invoice_address"]
+        elif role == "buyer":
+            for name in ("traveler_destination_city", "traveler_address", "traveler_bank_details"):
+                del self.fields[name]
 
     def clean_phone_country_code(self):
         code = (self.cleaned_data["phone_country_code"] or "").strip()

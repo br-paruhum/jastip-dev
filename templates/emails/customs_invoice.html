@@ -31,7 +31,7 @@
   <p style="font-size:13px;color:#6b6660;margin:0 0 6px;">
     <strong>Route:</strong> {{ plan.from_city }}, {{ plan.from_country }} → {{ plan.to_city }}, {{ plan.to_country }}<br>
     <strong>Travel date:</strong> {{ plan.travel_date|date:"d-M-Y" }}<br>
-    <strong>Purchased for:</strong> {{ buyer.full_name }}{% if buyer.address %}<br>{{ buyer.address }}{% endif %}
+    <strong>Purchased for:</strong> {{ buyer.full_name }}{% if buyer.buyer_invoice_address %}<br>{{ buyer.buyer_invoice_address }}{% endif %}
   </p>
 
   {% include "_email_button.html" with url=customs_invoice_url label="Open printable invoice" %}

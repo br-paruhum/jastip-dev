@@ -22,15 +22,22 @@ class User(AbstractUser):
     phone_country_code = models.CharField(max_length=6, blank=True, help_text="e.g. +62")
     phone_number = models.CharField(max_length=20, blank=True)
     phone_verified = models.BooleanField(default=False)
-    destination_city = models.CharField(
+    traveler_destination_city = models.CharField(
         max_length=80, blank=True,
-        help_text="Your actual city at destination — shown to buyers before they order, since it may differ from the route's listed (often airport) city. As buyer, this is just informational.",
+        help_text="Your actual city at destination — shown to buyers before they order, since it may differ from the route's listed (often airport) city.",
     )
-    address = models.TextField(
+    traveler_address = models.TextField(
         blank=True,
-        help_text="Your own address. As traveler: shown to the buyer if they choose to pick up the package from you instead of requesting reshipment. As buyer: used as your delivery address on customs invoices. Fill this in now or later, once needed.",
+        help_text="Shown to the buyer if they choose to pick up the package from you instead of requesting reshipment.",
     )
-    bank_details = models.TextField(blank=True, help_text="For invoice disbursement purpose.")
+    traveler_bank_details = models.TextField(blank=True, help_text="For invoice disbursement purpose.")
+    buyer_invoice_address = models.TextField(
+        blank=True,
+        help_text="Your delivery address, used on customs invoices. Fill this in now or later, once needed.",
+    )
+
+    ROLE_CHOICES = [("traveler", "Traveler"), ("buyer", "Buyer")]
+    last_role_choice = models.CharField(max_length=10, choices=ROLE_CHOICES, blank=True, default="")
 
     # WhatsApp OTP verification state.
     phone_otp = models.CharField(max_length=6, blank=True)

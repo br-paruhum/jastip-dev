@@ -15,12 +15,10 @@
         <div data-panel="profile">
           <div class="card"><div class="card-body">
             <!-- Row 1: verified badge + message -->
-            {% if user.profile_complete %}
-              <p><span class="badge badge-success">Verified</span> You can post Travel Plan and submit Buying Order.</p>
-            {% else %}
-              <p class="muted">Complete your details below and verify your WhatsApp number to start posting
-                Travel Plans and Buying Orders.</p>
-            {% endif %}
+            <p>
+              {% if user.profile_complete %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-muted">Unverified</span>{% endif %}
+              {% if role == "traveler" %}You are a Traveler{% else %}You are a Buyer{% endif %}
+            </p>
 
             <form method="post" action="{% url 'accounts:profile_update' %}">
               {% csrf_token %}
@@ -45,24 +43,33 @@
                   {{ profile_form.phone_number.errors }}
                 </div>
               </div>
+              {% if role == "traveler" %}
               <!-- Row 4: City at destination -->
               <div class="form-field">
-                <label for="id_destination_city">City at Destination <span class="help">(as traveler: shown to buyers before they order, since your actual city may differ from the route's listed/airport city)</span></label>
-                {{ profile_form.destination_city }}
-                {{ profile_form.destination_city.errors }}
+                <label for="id_traveler_destination_city">City at Destination <span class="help">(shown to buyers before they order, since your actual city may differ from the route's listed/airport city)</span></label>
+                {{ profile_form.traveler_destination_city }}
+                {{ profile_form.traveler_destination_city.errors }}
               </div>
               <!-- Row 5: Pickup address -->
               <div class="form-field">
-                <label for="id_address">Pickup Address at Destination Country <span class="help">(as traveler: shown to the buyer if they choose Pickup over Reshipment; as buyer: used on customs invoices — fill in now or later)</span></label>
-                {{ profile_form.address }}
-                {{ profile_form.address.errors }}
+                <label for="id_traveler_address">Pickup Address at Destination Country <span class="help">(shown to the buyer if they choose Pickup over Reshipment)</span></label>
+                {{ profile_form.traveler_address }}
+                {{ profile_form.traveler_address.errors }}
               </div>
               <!-- Row 6: Bank details -->
               <div class="form-field">
-                <label for="id_bank_details">Bank Details <span class="help">(for invoice disbursement purpose)</span></label>
-                {{ profile_form.bank_details }}
-                {{ profile_form.bank_details.errors }}
+                <label for="id_traveler_bank_details">Bank Details <span class="help">(for invoice disbursement purpose)</span></label>
+                {{ profile_form.traveler_bank_details }}
+                {{ profile_form.traveler_bank_details.errors }}
               </div>
+              {% else %}
+              <!-- Row 4: Buyer invoice address -->
+              <div class="form-field">
+                <label for="id_buyer_invoice_address">Delivery Address <span class="help">(used on customs invoices — fill in now or later)</span></label>
+                {{ profile_form.buyer_invoice_address }}
+                {{ profile_form.buyer_invoice_address.errors }}
+              </div>
+              {% endif %}
               <!-- Row 7: Save centered -->
               <div style="text-align:center;margin-top:10px">
                 <button class="btn btn-primary" type="submit">Save</button>
@@ -86,6 +93,7 @@
           </div></div>
         </div>
 
+        {% if role == "traveler" %}
         <!-- Panel: My Travel Plans -->
         <div data-panel="travel-plans">
           <div style="text-align:right;margin-bottom:12px">
@@ -133,7 +141,9 @@
           {% include "accounts/_travel_table.html" with rows=open_travel_rows empty="No open travel plans or offers." heading="Current" %}
           {% include "accounts/_travel_table.html" with rows=closed_travel_rows empty="No closed plans or offers yet." heading="Closed" %}
         </div>
+        {% endif %}
 
+        {% if role == "buyer" %}
         <!-- Panel: My Orders (plan-first requests + buyer-first orders) -->
         <div data-panel="my-orders">
           <div style="text-align:right;margin-bottom:12px">
@@ -224,6 +234,7 @@
           {% include "accounts/_orders_table.html" with orders=open_my_orders empty="No active orders." heading="Current" %}
           {% include "accounts/_orders_table.html" with orders=closed_my_orders empty="No closed orders yet." heading="Closed" %}
         </div>
+        {% endif %}
 
         {% if order %}
         <!-- Panel: Order detail (embedded transaction view) -->
@@ -325,8 +336,8 @@
       <aside class="profile-side">
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
-          <li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>
-          <li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>
+          {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
+          {% if role == "buyer" %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>

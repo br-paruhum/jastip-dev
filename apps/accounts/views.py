@@ -25,6 +25,33 @@ def _profile_tab(tab):
     return redirect(reverse("accounts:profile") + f"#{tab}")
 
 
+def _resolve_role(request):
+    """Current Traveler/Buyer choice for this session, self-healing into the
+    session from the user's last choice if not set yet (e.g. a session that
+    predates this feature, or one that was never routed through choose_role)."""
+    role = request.session.get("role")
+    if role not in ("traveler", "buyer"):
+        role = request.user.last_role_choice or "traveler"
+        request.session["role"] = role
+    return role
+
+
+@login_required
+def choose_role(request):
+    if request.method == "POST":
+        role = request.POST.get("role")
+        if role not in ("traveler", "buyer"):
+            messages.error(request, "Please choose Traveler or Buyer.")
+            return redirect("accounts:choose_role")
+        request.session["role"] = role
+        request.user.last_role_choice = role
+        request.user.save(update_fields=["last_role_choice"])
+        next_url = request.session.pop("post_role_next", None)
+        return redirect(next_url or reverse("accounts:profile"))
+    current_role = request.user.last_role_choice or "traveler"
+    return render(request, "accounts/choose_role.html", {"current_role": current_role})
+
+
 def _offer_status_display(offer):
     """Status label + badge tone mirroring the old standalone offer table."""
     if offer.offer_status == OfferStatus.PENDING:
@@ -80,45 +107,50 @@ def _travel_rows(plans, offers):
 @login_required
 def profile(request):
     user = request.user
+    role = _resolve_role(request)
 
-    # Traveler side: travel plans (own initiative) merged with buyer-first
-    # offers (responding to someone else's posted order) into one combined
-    # "My Travel Plans" tab — each row tagged Traveler First / Buyer First by
-    # how it originated, not by which button the user last clicked.
-    my_plans = TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests")
-    open_plans = [p for p in my_plans if not p.is_closed]
-    closed_plans = [p for p in my_plans if p.is_closed]
+    open_travel_rows = closed_travel_rows = []
+    open_my_orders = closed_my_orders = []
 
-    my_offers = TravelerOffer.objects.filter(traveler=user).select_related("order")
-    closed_offer_statuses = {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
-    closed_leg_statuses = {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
-    open_offer_objs = [
-        o for o in my_offers
-        if o.offer_status not in closed_offer_statuses and o.leg_status not in closed_leg_statuses
-    ]
-    closed_offer_objs = [
-        o for o in my_offers
-        if o.offer_status in closed_offer_statuses or o.leg_status in closed_leg_statuses
-    ]
-    open_travel_rows = _travel_rows(open_plans, open_offer_objs)
-    closed_travel_rows = _travel_rows(closed_plans, closed_offer_objs)
+    if role == "traveler":
+        # Traveler side: travel plans (own initiative) merged with buyer-first
+        # offers (responding to someone else's posted order) into one combined
+        # "My Travel Plans" tab — each row tagged Traveler First / Buyer First by
+        # how it originated, not by which button the user last clicked.
+        my_plans = TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests")
+        open_plans = [p for p in my_plans if not p.is_closed]
+        closed_plans = [p for p in my_plans if p.is_closed]
 
-    # Buyer side: plan-first requests merged with buyer-first orders into one
-    # combined "My Orders" tab, tagged the same way — Traveler First if the
-    # order has a linked TravelPlan, Buyer First if it doesn't.
-    my_buying = list(BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
-    my_bf_orders = list(
-        BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
-    )
-    for r in my_buying:
-        r.bf_kind = "traveler_first"
-    for o in my_bf_orders:
-        o.bf_kind = "buyer_first"
-    all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
-    open_my_orders = [r for r in all_my_orders if r.status != Status.CLOSED]
-    closed_my_orders = [r for r in all_my_orders if r.status == Status.CLOSED]
+        my_offers = TravelerOffer.objects.filter(traveler=user).select_related("order")
+        closed_offer_statuses = {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
+        closed_leg_statuses = {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
+        open_offer_objs = [
+            o for o in my_offers
+            if o.offer_status not in closed_offer_statuses and o.leg_status not in closed_leg_statuses
+        ]
+        closed_offer_objs = [
+            o for o in my_offers
+            if o.offer_status in closed_offer_statuses or o.leg_status in closed_leg_statuses
+        ]
+        open_travel_rows = _travel_rows(open_plans, open_offer_objs)
+        closed_travel_rows = _travel_rows(closed_plans, closed_offer_objs)
+    else:
+        # Buyer side: plan-first requests merged with buyer-first orders into one
+        # combined "My Orders" tab, tagged the same way — Traveler First if the
+        # order has a linked TravelPlan, Buyer First if it doesn't.
+        my_buying = list(BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
+        my_bf_orders = list(
+            BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
+        )
+        for r in my_buying:
+            r.bf_kind = "traveler_first"
+        for o in my_bf_orders:
+            o.bf_kind = "buyer_first"
+        all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
+        open_my_orders = [r for r in all_my_orders if r.status != Status.CLOSED]
+        closed_my_orders = [r for r in all_my_orders if r.status == Status.CLOSED]
 
-    form = ProfileForm(instance=user)
+    form = ProfileForm(instance=user, role=role)
 
     # Transaction detail embedded as an in-page panel (?order=<id>#order-detail).
     order = None
@@ -248,6 +280,7 @@ def profile(request):
         request,
         "accounts/profile.html",
         {
+            "role": role,
             "profile_form": form,
             "otp_form": OTPForm(),
             "password_form": ChangePasswordForm(user),
@@ -288,7 +321,8 @@ def profile(request):
 @login_required
 @require_POST
 def profile_update(request):
-    form = ProfileForm(request.POST, instance=request.user)
+    role = _resolve_role(request)
+    form = ProfileForm(request.POST, instance=request.user, role=role)
     if form.is_valid():
         form.save()
         messages.success(request, "Profile saved. Please verify your WhatsApp number.")

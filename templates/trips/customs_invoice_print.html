@@ -45,8 +45,8 @@
     </div>
     <div>
       <div class="inv-meta-label">Purchased for</div>
-      <div class="inv-meta-val">{{ req.buyer.full_name }}{% if req.buyer.address %}
-{{ req.buyer.address }}{% endif %}</div>
+      <div class="inv-meta-val">{{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}
+{{ req.buyer.buyer_invoice_address }}{% endif %}</div>
     </div>
     <div>
       <div class="inv-meta-label">Route</div>

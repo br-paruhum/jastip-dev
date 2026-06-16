@@ -5,6 +5,7 @@ from . import views
 app_name = "accounts"
 
 urlpatterns = [
+    path("choose-role/", views.choose_role, name="choose_role"),
     path("dashboard/", views.profile, name="profile"),
     path("dashboard/update/", views.profile_update, name="profile_update"),
     path("dashboard/password/", views.password_change, name="password_change"),

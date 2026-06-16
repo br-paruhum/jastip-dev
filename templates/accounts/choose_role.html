@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Continue as — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:560px">
+    <span class="eyebrow">Welcome back</span>
+    <h1>Continue as...</h1>
+    <p class="muted">Choose how you'd like to use Jastip.me this time. You can switch again next time you log in.</p>
+
+    <form method="post" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="grid grid-2" style="gap:16px">
+        <button type="submit" name="role" value="traveler" class="card" style="text-align:center;padding:28px 16px;cursor:pointer;border:2px solid {% if current_role == 'traveler' %}var(--clay){% else %}var(--line){% endif %};background:none;width:100%">
+          <h3 style="margin:0 0 6px">Traveler</h3>
+          <p class="muted" style="margin:0">Post a travel plan, earn by carrying items.</p>
+        </button>
+        <button type="submit" name="role" value="buyer" class="card" style="text-align:center;padding:28px 16px;cursor:pointer;border:2px solid {% if current_role == 'buyer' %}var(--clay){% else %}var(--line){% endif %};background:none;width:100%">
+          <h3 style="margin:0 0 6px">Buyer</h3>
+          <p class="muted" style="margin:0">Post an order, get items brought to you.</p>
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

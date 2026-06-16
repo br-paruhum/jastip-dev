@@ -1,5 +1,7 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 
 
 def _site_url(path: str = "") -> str:
@@ -37,3 +39,13 @@ class AccountAdapter(DefaultAccountAdapter):
 
     def get_email_confirmation_url(self, request, emailconfirmation):
         return super().get_email_confirmation_url(request, emailconfirmation)
+
+    def post_login(self, request, user, **kwargs):
+        # Route every login (password, signup, social, login-by-code, MFA — they
+        # all funnel through this hook) through the Traveler/Buyer interstitial
+        # first, stashing the destination allauth would otherwise have used.
+        response = super().post_login(request, user, **kwargs)
+        if isinstance(response, HttpResponseRedirect):
+            request.session["post_role_next"] = response.url
+            return HttpResponseRedirect(reverse("accounts:choose_role"))
+        return response
