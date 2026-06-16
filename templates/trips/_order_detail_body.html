@@ -8,8 +8,9 @@
   <h3 style="margin-top:0">Order Details</h3>
   <table class="invoice" style="max-width:480px">
     <tr><td style="width:160px">Deadline</td><td>: {{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
-    <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg — <span class="muted" style="font-size:.85em">{% if bf_order.partial_allowed %}Partial allowed{% else %}Partial not allowed{% endif %}</span></td></tr>
+    <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
+    <tr><td>Partial</td><td>: {% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
@@ -17,18 +18,32 @@
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Items</h3>
   <div class="table-wrap">
-    <table class="invoice">
-      <tr><td><strong>Product</strong></td><td class="num-right"><strong>Qty</strong></td><td><strong>Unit</strong></td><td class="num-right"><strong>Unit Price</strong></td><td class="num-right"><strong>Total</strong></td></tr>
-      {% for item in bf_order.items.all %}
-      <tr>
-        <td>{{ item.name }}</td>
-        <td class="num-right">{{ item.quantity }}</td>
-        <td>{{ item.unit }}</td>
-        <td class="num-right">{{ bf_order.currency }} {{ item.estimated_unit_cost|intcomma }}</td>
-        <td class="num-right">{{ bf_order.currency }} {{ item.estimated_line_total|intcomma }}</td>
-      </tr>
-      {% endfor %}
-      <tr><td colspan="4"><strong>Total</strong></td><td class="num-right"><strong>{{ bf_order.currency }} {{ bf_order.items_actual_total|intcomma }}</strong></td></tr>
+    <table class="invoice inv2">
+      <thead>
+        <tr>
+          <th class="lcell">Product</th>
+          <th>Qty</th>
+          <th class="unit-cell">Unit</th>
+          <th>Unit Price ({{ bf_order.currency }})</th>
+          <th>Total ({{ bf_order.currency }})</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in bf_order.items.all %}
+        <tr>
+          <td class="lcell">{{ item.name }}</td>
+          <td>{{ item.quantity }}</td>
+          <td class="unit-cell">{{ item.unit }}</td>
+          <td>{{ item.estimated_unit_cost|intcomma }}</td>
+          <td>{{ item.estimated_line_total|intcomma }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total">
+          <td class="lcell">Total</td>
+          <td></td><td></td><td></td>
+          <td>{{ bf_order.currency }} {{ bf_order.items_actual_total|intcomma }}</td>
+        </tr>
+      </tbody>
     </table>
   </div>
 </div></div>
