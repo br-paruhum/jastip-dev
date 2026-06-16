@@ -1,0 +1,83 @@
+# Jastip production vhost. Canonical host = www.jastip.me; apex 301s to www.
+# (Cloudflare already redirects apex->www at the edge; the origin apex block below
+#  is a belt-and-braces fallback for any request that reaches the origin directly.)
+# Install:
+#   sudo cp jastip-prd.nginx /etc/nginx/sites-available/jastip-prd
+#   sudo cp security-headers.conf /etc/nginx/snippets/jastip-security-headers.conf
+#   sudo cp security-headers-admin.conf /etc/nginx/snippets/jastip-security-headers-admin.conf
+#   sudo ln -s /etc/nginx/sites-available/jastip-prd /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+# TLS reuses the existing Cloudflare Origin cert (already covers jastip.me + *.jastip.me).
+# Copy it to the prod-named paths first:
+#   sudo cp /etc/ssl/cloudflare/stg.jastip.me.pem /etc/ssl/cloudflare/jastip.me.pem
+#   sudo cp /etc/ssl/cloudflare/stg.jastip.me.key /etc/ssl/cloudflare/jastip.me.key
+
+# HTTP (apex + www) -> HTTPS www
+server {
+    listen 80;
+    listen [::]:80;
+    server_name jastip.me www.jastip.me;
+    return 301 https://www.jastip.me$request_uri;
+}
+
+# HTTPS apex -> www (canonical)
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name jastip.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/jastip.me.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/jastip.me.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    return 301 https://www.jastip.me$request_uri;
+}
+
+# HTTPS www — the application
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name www.jastip.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/jastip.me.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/jastip.me.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 5M;
+
+    location /static/ {
+        alias /var/www/jastip-prd/staticfiles/;
+        access_log off;
+        expires 30d;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "cross-origin" always;
+    }
+    location /media/ {
+        alias /var/www/jastip-prd/media/;
+        expires 7d;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "cross-origin" always;
+    }
+
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8020;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        include /etc/nginx/snippets/jastip-security-headers-admin.conf;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8020;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+    }
+}

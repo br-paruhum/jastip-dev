@@ -1,0 +1,54 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name stg.jastip.me;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name stg.jastip.me;
+
+    ssl_certificate     /etc/ssl/cloudflare/stg.jastip.me.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/stg.jastip.me.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    client_max_body_size 5M;
+
+    location /static/ {
+        alias /var/www/jastip-stg/staticfiles/;
+        access_log off;
+        expires 30d;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "cross-origin" always;
+    }
+    location /media/ {
+        alias /var/www/jastip-stg/media/;
+        expires 7d;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "cross-origin" always;
+    }
+
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8019;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        include /etc/nginx/snippets/jastip-security-headers-admin.conf;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8019;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        include /etc/nginx/snippets/jastip-security-headers.conf;
+        add_header Cross-Origin-Resource-Policy "same-origin" always;
+    }
+}
