@@ -115,7 +115,7 @@
 
       <div style="display:grid;gap:16px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
 
-        <div>
+        <div{% if not leg.deposit_verified and not leg.deposit_paid_amount %} style="grid-column:1/-1;text-align:center"{% endif %}>
           <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
           {% if leg.deposit_verified %}
             <span class="badge badge-success">Verified</span>
