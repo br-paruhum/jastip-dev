@@ -8,14 +8,11 @@
 <section class="hero">
   <div class="container hero-grid">
     <div>
-      <span class="eyebrow">Proxy purchasing service made easy</span>
-      <h1>Buy items from abroad or domestically - carried by travelers - secured by Jastip.me</h1>
-      <p class="lead">Travelers post their trip plan and spare luggage space. Buyers order what they
-        want to buy. Jastip.me holds the funds and keeps everyone safe for a small {{ COMMISSION_PERCENT }}% fee.</p>
+      <span class="eyebrow">Proxy Buying Service Made Easy</span>
+      <h1>Traveler: Find Product Buyer or Unused Baggage Buyer<br>Buyer: Find Traveler as Proxy Buyer or Just a Carrier</h1>
       <div class="hero-cta">
-        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling — Post a trip</a>
-        <a href="#open-offers" class="btn btn-outline btn-buy">I want to buy</a>
-        <a href="{% url 'trips:order_create' %}" class="btn btn-outline btn-buy">Post an Order</a>
+        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling - Post a travel plan</a>
+        <a href="{% url 'trips:order_create' %}" class="btn btn-outline btn-buy">Find Proxy Buyer or Carrier</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -39,10 +36,10 @@
       <table class="offers offers-centered">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Time</th>
             <th>Route</th>
+            <th>Offer<br>(kg)</th>
             <th>Avail<br>(kg)</th>
-            <th>Remaing<br>(kg)</th>
             <th>Shipment<br>Cost/kg</th>
             <th>Margin<br><sup>*)</sup></th>
             <th>Payment<br>Terms</th>
@@ -53,7 +50,7 @@
         <tbody>
           {% for plan in open_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</td>
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
@@ -61,7 +58,7 @@
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{{ plan.margin_percent }}%</td>
+            <td class="margin-cell">{% if plan.carrier_only %}CO{% else %}{{ plan.margin_percent }}%{% endif %}</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">
               {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
@@ -84,7 +81,8 @@
     </div>
     <div class="offers-notes">
       <p class="notes-head">Note:</p>
-      <p>*) On top of Ordered Items Cost as stated on seller's/store's invoice(s)</p>
+      <p>*) Proxy Buyer Only. Calculate on top of Ordered Items Cost as stated on seller's/store's invoice(s).</p>
+      <p>CO: Carrier Only.</p>
     </div>
     {% else %}
     <p class="text-center muted">No open offers yet. <a href="{% url 'trips:plan_create' %}">Be the first to post a trip.</a></p>
@@ -105,10 +103,10 @@
       <table class="offers offers-centered">
         <thead>
           <tr>
-            <th>Date</th>
+            <th>Time</th>
             <th>Route</th>
+            <th>Offer<br>(kg)</th>
             <th>Avail<br>(kg)</th>
-            <th>Remaing<br>(kg)</th>
             <th>Shipment<br>Cost/kg</th>
             <th>Margin<br><sup>*)</sup></th>
             <th>Payment<br>Terms</th>
@@ -119,7 +117,7 @@
         <tbody>
           {% for plan in transit_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}</td>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</td>
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
@@ -127,7 +125,7 @@
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{{ plan.margin_percent }}%</td>
+            <td class="margin-cell">{% if plan.carrier_only %}CO{% else %}{{ plan.margin_percent }}%{% endif %}</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status="closed" label="In Transit" tone="warning" %}</td>
             <td class="action-cell"><span class="btn btn-sm btn-blocked">Locked</span></td>
@@ -159,8 +157,9 @@
             <th>Route</th>
             <th>Bid<br>(kg)</th>
             <th>Bid<br>Price/kg</th>
-            <th>Ask<br>(per offer)</th>
-            <th>Avail (kg)<br>offered</th>
+            <th>Ask<br>(kg)</th>
+            <th>Ask<br>Price/kg</th>
+            <th>Avail<br>(kg)</th>
             <th>Status</th>
             <th>Action</th>
           </tr>
@@ -178,17 +177,18 @@
             <td>
               {% for offer in order.traveler_offers.all %}
                 {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
-                  <span class="badge badge-muted">{{ order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</span>
+                  <span class="badge badge-muted">{{ offer.avail_kg }}</span>
                 {% endif %}
               {% endfor %}
             </td>
             <td>
               {% for offer in order.traveler_offers.all %}
                 {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
-                  <span class="badge badge-muted">{{ offer.avail_kg }}</span>
+                  <span class="badge badge-muted">{{ order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</span>
                 {% endif %}
               {% endfor %}
             </td>
+            <td class="avail-cell">{{ order.remaining_bid_weight_kg }}</td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
             <td class="action-cell">
               {% if order.my_pending_offer_id %}
@@ -207,7 +207,7 @@
           </tr>
           {% if order.offer_form %}
           <tr id="offer-row-{{ order.id }}" style="display:none">
-            <td colspan="8">
+            <td colspan="9">
               <div class="card mt-2"><div class="card-body">
                 <span class="eyebrow">Your Offer · {{ order.from_city }} → {{ order.to_city }}</span>
                 <form method="post" action="{% url 'trips:offer_create' order.id %}" class="card" style="margin-top:12px">

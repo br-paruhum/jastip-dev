@@ -86,7 +86,10 @@
             <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
             <form method="post" action="{% url 'trips:plan_create' %}">
               {% csrf_token %}
-              <div class="form-field"><label>Travel Date</label>{{ plan_form.travel_date }}{{ plan_form.travel_date.errors }}</div>
+              <div class="form-row">
+                <div class="form-field"><label>Travel Date</label>{{ plan_form.travel_date }}{{ plan_form.travel_date.errors }}</div>
+                <div class="form-field"><label>Travel Time</label>{{ plan_form.travel_time }}{{ plan_form.travel_time.errors }}</div>
+              </div>
               <div class="form-row">
                 <div class="form-field"><label>From City</label>{{ plan_form.from_city }}{{ plan_form.from_city.errors }}</div>
                 <div class="form-field"><label>From Country</label>{{ plan_form.from_country }}{{ plan_form.from_country.errors }}</div>
@@ -95,10 +98,14 @@
                 <div class="form-field"><label>To City</label>{{ plan_form.to_city }}{{ plan_form.to_city.errors }}</div>
                 <div class="form-field"><label>To Country</label>{{ plan_form.to_country }}{{ plan_form.to_country.errors }}</div>
               </div>
+              <div class="form-field">
+                <label>Service</label>{{ plan_form.carrier_only }}{{ plan_form.carrier_only.errors }}
+                <p class="help">{{ plan_form.carrier_only.help_text }}</p>
+              </div>
               <div class="form-row">
                 <div class="form-field"><label>Available Weight (kg)</label>{{ plan_form.available_weight_kg }}{{ plan_form.available_weight_kg.errors }}</div>
                 <div class="form-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}
-                  <p class="help">Applied on top of the ordered items cost.</p></div>
+                  <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
               </div>
               <div class="form-row">
                 <div class="form-field"><label>Shipment Currency</label>{{ plan_form.shipment_currency }}</div>

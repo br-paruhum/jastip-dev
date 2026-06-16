@@ -42,21 +42,38 @@ class TravelPlanForm(forms.ModelForm):
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
 
+    carrier_only = forms.TypedChoiceField(
+        choices=[("0", "Proxy Buyer + Carrier"), ("1", "Carrier Only")],
+        coerce=lambda v: v == "1",
+        widget=forms.Select(),
+        initial="0",
+        required=False,
+        label="Service",
+        help_text="Carrier Only: you'll just carry luggage space, not buy items on the buyer's behalf.",
+    )
+
     class Meta:
         model = TravelPlan
         fields = [
-            "travel_date", "from_city", "from_country", "to_city", "to_country",
+            "travel_date", "travel_time", "from_city", "from_country", "to_city", "to_country",
             "available_weight_kg", "shipment_currency", "shipment_cost_per_kg",
-            "margin_percent",
+            "margin_percent", "carrier_only",
         ]
         widgets = {
             "travel_date": DATE_INPUT,
+            "travel_time": forms.TimeInput(attrs={"type": "time"}),
             "shipment_cost_per_kg": ThousandSeparatorNumberInput(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("carrier_only"):
+            cleaned["margin_percent"] = Decimal("0")
+        return cleaned
 
 
 class BuyRequestForm(forms.ModelForm):

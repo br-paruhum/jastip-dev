@@ -6,13 +6,13 @@
 
 <div class="card mt-2"><div class="card-body">
   <table class="invoice">
-    <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}</strong></td></tr>
+    <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</strong></td></tr>
     <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
     <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
     <tr><td>Available Weight</td><td class="num-right">{{ plan.available_weight_kg }} kg</td></tr>
     <tr><td>Remaining Weight</td><td class="num-right">{{ plan.remaining_weight_kg }} kg <span class="muted">(of {{ plan.available_weight_kg }} kg available)</span></td></tr>
     <tr><td>Shipment Cost</td><td class="num-right">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
-    <tr><td>Margin</td><td class="num-right">{{ plan.margin_percent }}%</td></tr>
+    <tr><td>Margin</td><td class="num-right">{% if plan.carrier_only %}Carrier Only{% else %}{{ plan.margin_percent }}%{% endif %}</td></tr>
     <tr><td>Payment Term</td><td>{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}

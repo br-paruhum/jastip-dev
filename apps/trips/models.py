@@ -33,6 +33,7 @@ class TravelPlan(models.Model):
     reference = models.CharField(max_length=12, unique=True, editable=False, blank=True)
 
     travel_date = models.DateField()
+    travel_time = models.TimeField(null=True, blank=True)
     from_city = models.CharField(max_length=80)
     from_country = models.CharField(max_length=80)
     to_city = models.CharField(max_length=80)
@@ -44,6 +45,10 @@ class TravelPlan(models.Model):
     margin_percent = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("0"),
         help_text="Applied on top of the ordered items cost.",
+    )
+    carrier_only = models.BooleanField(
+        default=False,
+        help_text="Traveler only carries luggage space — not willing to act as a proxy buyer.",
     )
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.NEW)
 

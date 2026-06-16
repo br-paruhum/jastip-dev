@@ -11,8 +11,9 @@
     <form method="post" class="card" style="margin-top:18px">
       {% csrf_token %}
       <div class="card-body">
-        <div class="form-field">
-          <label>Travel Date</label>{{ form.travel_date }}{{ form.travel_date.errors }}
+        <div class="form-row">
+          <div class="form-field"><label>Travel Date</label>{{ form.travel_date }}{{ form.travel_date.errors }}</div>
+          <div class="form-field"><label>Travel Time</label>{{ form.travel_time }}{{ form.travel_time.errors }}</div>
         </div>
         <div class="form-row">
           <div class="form-field"><label>From City</label>{{ form.from_city }}{{ form.from_city.errors }}</div>
@@ -22,10 +23,14 @@
           <div class="form-field"><label>To City</label>{{ form.to_city }}{{ form.to_city.errors }}</div>
           <div class="form-field"><label>To Country</label>{{ form.to_country }}{{ form.to_country.errors }}</div>
         </div>
+        <div class="form-field">
+          <label>Service</label>{{ form.carrier_only }}{{ form.carrier_only.errors }}
+          <p class="help">{{ form.carrier_only.help_text }}</p>
+        </div>
         <div class="form-row">
           <div class="form-field"><label>Available Weight (kg)</label>{{ form.available_weight_kg }}{{ form.available_weight_kg.errors }}</div>
           <div class="form-field"><label>Margin (%)</label>{{ form.margin_percent }}
-            <p class="help">Applied on top of the ordered items cost.</p></div>
+            <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
         </div>
         <div class="form-row">
           <div class="form-field"><label>Shipment Currency</label>{{ form.shipment_currency }}</div>

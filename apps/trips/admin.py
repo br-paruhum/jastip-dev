@@ -32,8 +32,8 @@ class RequestItemInline(TabularInline):
 
 @admin.register(TravelPlan)
 class TravelPlanAdmin(ModelAdmin):
-    list_display = ("reference", "route", "travel_date", "available_weight_kg", "status", "traveler")
-    list_filter = ("status", "shipment_currency", "travel_date")
+    list_display = ("reference", "route", "travel_date", "available_weight_kg", "carrier_only", "status", "traveler")
+    list_filter = ("status", "carrier_only", "shipment_currency", "travel_date")
     search_fields = ("reference", "from_city", "to_city", "traveler__email")
     date_hierarchy = "travel_date"
     autocomplete_fields = ("traveler",)
