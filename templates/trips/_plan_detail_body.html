@@ -8,7 +8,9 @@
   <table class="invoice">
     <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</strong></td></tr>
     <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
-    <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}</td></tr>
+    <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}
+      {% if plan.traveler.destination_city %}<br><span class="muted">Traveler's actual city: {{ plan.traveler.destination_city }}</span>{% endif %}
+    </td></tr>
     <tr><td>Available Weight</td><td class="num-right">{{ plan.available_weight_kg }} kg</td></tr>
     <tr><td>Remaining Weight</td><td class="num-right">{{ plan.remaining_weight_kg }} kg <span class="muted">(of {{ plan.available_weight_kg }} kg available)</span></td></tr>
     <tr><td>Shipment Cost</td><td class="num-right">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>

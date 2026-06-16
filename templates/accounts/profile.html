@@ -47,13 +47,13 @@
               </div>
               <!-- Row 4: City at destination -->
               <div class="form-field">
-                <label for="id_destination_city">City at Destination <span class="help">(your actual city — may differ from the traveler's listed/airport city)</span></label>
+                <label for="id_destination_city">City at Destination <span class="help">(as traveler: shown to buyers before they order, since your actual city may differ from the route's listed/airport city)</span></label>
                 {{ profile_form.destination_city }}
                 {{ profile_form.destination_city.errors }}
               </div>
               <!-- Row 5: Pickup address -->
               <div class="form-field">
-                <label for="id_address">Pickup Address at Destination Country <span class="help">(used if you choose Pickup over Reshipment; also shown on customs invoices — fill in now or later)</span></label>
+                <label for="id_address">Pickup Address at Destination Country <span class="help">(as traveler: shown to the buyer if they choose Pickup over Reshipment; as buyer: used on customs invoices — fill in now or later)</span></label>
                 {{ profile_form.address }}
                 {{ profile_form.address.errors }}
               </div>

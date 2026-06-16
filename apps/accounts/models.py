@@ -24,11 +24,11 @@ class User(AbstractUser):
     phone_verified = models.BooleanField(default=False)
     destination_city = models.CharField(
         max_length=80, blank=True,
-        help_text="The city you'll actually receive your package in — may differ from the traveler's listed (often airport) city.",
+        help_text="Your actual city at destination — shown to buyers before they order, since it may differ from the route's listed (often airport) city. As buyer, this is just informational.",
     )
     address = models.TextField(
         blank=True,
-        help_text="Pickup address at your destination country, used if you choose local Pickup instead of Reshipment. Also shown on customs invoices. Fill this in now or later, once you decide.",
+        help_text="Your own address. As traveler: shown to the buyer if they choose to pick up the package from you instead of requesting reshipment. As buyer: used as your delivery address on customs invoices. Fill this in now or later, once needed.",
     )
     bank_details = models.TextField(blank=True, help_text="For invoice disbursement purpose.")
 

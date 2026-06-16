@@ -136,6 +136,18 @@
 
   {% elif req.status == "ready_for_pickup" %}
     {% if is_buyer %}
+      {% if req.plan.traveler.address %}
+      <p><strong>Option 1 — Pick up locally:</strong> Visit the traveler at the address below to verify
+         the items and weight. When satisfied, click Confirm Pickup to release payment.</p>
+      <table class="invoice" style="max-width:400px;margin-bottom:12px">
+        <tr><td style="width:100px">Name</td><td>: {{ req.plan.traveler.full_name }}</td></tr>
+        <tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ req.plan.traveler.address }}</span>{% if req.plan.traveler.destination_city %}, {{ req.plan.traveler.destination_city }}{% endif %}</td></tr>
+        <tr><td>Email</td><td>: {{ req.plan.traveler.email }}</td></tr>
+        {% if req.plan.traveler.phone_e164 %}
+        <tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ req.plan.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ req.plan.traveler.phone_e164 }}</a></td></tr>
+        {% endif %}
+      </table>
+      {% else %}
       <p><strong>Option 1 — Pick up locally:</strong> Contact the traveler to arrange their address and
          best time to visit. When you are there, verify the items and weight. When satisfied, click
          Confirm Pickup to release payment.</p>
@@ -146,6 +158,7 @@
         <tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ req.plan.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ req.plan.traveler.phone_e164 }}</a></td></tr>
         {% endif %}
       </table>
+      {% endif %}
       {% if req.refund_due > 0 %}
         <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
