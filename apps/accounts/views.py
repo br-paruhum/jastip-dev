@@ -7,13 +7,13 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import CHAT_STATUSES, Status
+from apps.trips.constants import CHAT_STATUSES, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, MessageForm, PurchaseItemFormSet,
     PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet, ReviewForm,
     ReviewItemFormSet, TravelPlanForm,
 )
-from apps.trips.models import BuyRequest, TravelPlan
+from apps.trips.models import BuyRequest, TravelerOffer, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
 
@@ -32,10 +32,31 @@ def profile(request):
     open_plans = [p for p in my_plans if not p.is_closed]
     closed_plans = [p for p in my_plans if p.is_closed]
 
-    # Buyer side
-    my_requests = BuyRequest.objects.filter(buyer=user).select_related("plan")
+    # Buyer side — plan-first requests only; buyer-first orders get their own
+    # "My Orders" panel below (kept separate — see PLAN-buyer-first-orders.md §7a).
+    my_requests = BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan")
     open_requests = [r for r in my_requests if r.status != Status.CLOSED]
     closed_requests = [r for r in my_requests if r.status == Status.CLOSED]
+
+    # Buyer-first orders the user posted.
+    my_orders = BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
+    open_orders = [o for o in my_orders if o.status != Status.CLOSED]
+    closed_orders = [o for o in my_orders if o.status == Status.CLOSED]
+
+    # Buyer-first offers the user made as a traveler — own dashboard tab, since
+    # the per-leg actions (drop-off, weight verify, package received) are
+    # different from anything on the plan-first "My Travel Plans" tab.
+    my_offers = TravelerOffer.objects.filter(traveler=user).select_related("order")
+    closed_offer_statuses = {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
+    closed_leg_statuses = {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
+    open_offers = [
+        o for o in my_offers
+        if o.offer_status not in closed_offer_statuses and o.leg_status not in closed_leg_statuses
+    ]
+    closed_offers = [
+        o for o in my_offers
+        if o.offer_status in closed_offer_statuses or o.leg_status in closed_leg_statuses
+    ]
 
     form = ProfileForm(instance=user)
 
@@ -46,10 +67,19 @@ def profile(request):
     if order_id:
         order = (
             BuyRequest.objects.select_related("plan", "plan__traveler", "buyer")
+            .prefetch_related("traveler_offers")
             .filter(pk=order_id)
             .first()
         )
-        if order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
+        if order and order.plan_id is None:
+            # Buyer-first order: no traveler assigned yet (or several, via legs) —
+            # only the buyer (or staff) sees the detail panel for now. Kept out of
+            # the `order` key (reserved for plan-first orders) so the two detail
+            # panels in profile.html don't both try to render.
+            if user == order.buyer or user.is_staff:
+                order_ctx = {"bf_order": order}
+            order = None
+        elif order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
             is_traveler = user == order.plan.traveler
             is_buyer = user == order.buyer
             order_ctx = {
@@ -162,6 +192,10 @@ def profile(request):
             "closed_plans": closed_plans,
             "open_requests": open_requests,
             "closed_requests": closed_requests,
+            "open_orders": open_orders,
+            "closed_orders": closed_orders,
+            "open_offers": open_offers,
+            "closed_offers": closed_offers,
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

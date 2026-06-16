@@ -1,0 +1,23 @@
+{% load humanize %}
+<h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
+{% if orders %}
+<div class="table-wrap">
+  <table class="offers offers-centered offers-allcenter">
+    <thead><tr><th>Ref</th><th>Deadline</th><th>Route</th><th>Bid (kg)</th><th>Bid Price/kg</th><th>Offers</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td>{{ o.reference }}</td>
+        <td>{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
+        <td class="route-cell"><strong>{{ o.from_city }} → {{ o.to_city }}</strong></td>
+        <td>{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
+        <td>{{ o.currency }} {{ o.bid_cost_per_kg|intcomma }}</td>
+        <td>{{ o.traveler_offers.all|length }}</td>
+        <td class="status-cell">{% include "trips/_status_badge.html" with status=o.status label=o.get_status_display tone=o.status_tone %}</td>
+        <td class="action-cell"><a class="btn btn-outline btn-sm" href="{{ o.get_absolute_url }}">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}<p class="muted">{{ empty }}</p>{% endif %}

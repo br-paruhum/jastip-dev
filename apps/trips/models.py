@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -11,9 +12,13 @@ from django.utils.text import slugify
 
 from .constants import (
     ACTIVE_TX_STATUSES,
+    OPEN_ORDER_STATUSES,
     OPEN_PLAN_STATUSES,
     STATUS_TONE,
     Currency,
+    FulfillmentMethod,
+    LegStatus,
+    OfferStatus,
     Status,
 )
 
@@ -146,17 +151,42 @@ class TravelPlan(models.Model):
 
 
 class BuyRequest(models.Model):
-    """A buyer 'orders' a travel plan and lists items to purchase.
+    """A buyer 'orders' a travel plan and lists items to purchase — OR, when
+    ``plan`` is null, a buyer-first order posted with no traveler yet (see
+    PLAN-buyer-first-orders.md). Matching travelers respond via TravelerOffer;
+    once selected, each offer becomes an independent "leg" with its own
+    deposit and lifecycle (partial fulfillment can split one order across
+    several travelers).
 
     This carries the transaction lifecycle from 'Ordered' onward.
     """
 
-    plan = models.ForeignKey(TravelPlan, on_delete=models.CASCADE, related_name="buy_requests")
+    plan = models.ForeignKey(
+        TravelPlan, on_delete=models.CASCADE, related_name="buy_requests", null=True, blank=True
+    )
     buyer = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="buy_requests")
     reference = models.CharField(max_length=14, unique=True, editable=False, blank=True)
 
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUEST_RECEIVED)
     buyer_notes = models.TextField(blank=True)
+
+    # --- Buyer-first fields (used only when plan is null) ---
+    from_city = models.CharField(max_length=80, blank=True)
+    from_country = models.CharField(max_length=80, blank=True)
+    to_city = models.CharField(max_length=80, blank=True)
+    to_country = models.CharField(max_length=80, blank=True)
+    to_address = models.TextField(blank=True)
+    to_postal_code = models.CharField(max_length=20, blank=True)
+    settlement_currency = models.CharField(max_length=3, choices=Currency.choices, blank=True, default="")
+    max_acceptable_date = models.DateField(
+        null=True, blank=True,
+        help_text="Deadline for receiving TravelerOffers, and the drop-off grace-period deadline.",
+    )
+    bid_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
+    bid_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    partial_allowed = models.BooleanField(
+        default=False, help_text="Allow this order to be split across multiple travelers."
+    )
 
     # Estimated shipping weight of THIS package, set by the traveler at review.
     # Shipment cost is charged on this weight, not the plan's full capacity.
@@ -226,6 +256,139 @@ class BuyRequest(models.Model):
     def is_active(self) -> bool:
         return self.status in ACTIVE_TX_STATUSES
 
+    @property
+    def is_accepting_offers(self) -> bool:
+        return self.status in OPEN_ORDER_STATUSES
+
+    # --- Buyer-first resolvers (fall back to plan when present, else use the
+    # order's own fields — see PLAN-buyer-first-orders.md §4) ---
+    @property
+    def is_buyer_first(self) -> bool:
+        return self.plan_id is None
+
+    @property
+    def route(self) -> str:
+        if self.plan_id:
+            return self.plan.route
+        return f"{self.from_city}, {self.from_country} → {self.to_city}, {self.to_country}"
+
+    @property
+    def traveler_user(self):
+        """The traveler driving this order. Plan-first: the plan's traveler.
+        Buyer-first: only meaningful once exactly one leg is confirmed — a
+        partially-fulfilled order has several travelers, so this returns None
+        and callers should iterate ``confirmed_legs`` instead."""
+        if self.plan_id:
+            return self.plan.traveler
+        legs = self.confirmed_legs
+        return legs[0].traveler if len(legs) == 1 else None
+
+    @property
+    def effective_cost_per_kg(self) -> Decimal:
+        """Shipment rate driving cost calculations: the plan's rate, the
+        single confirmed leg's accepted ask, or — before any leg is
+        confirmed — the buyer's opening bid (for list-page display only)."""
+        if self.plan_id:
+            return self.plan.shipment_cost_per_kg
+        legs = self.confirmed_legs
+        if len(legs) == 1:
+            return legs[0].ask_cost_per_kg
+        return self.bid_cost_per_kg
+
+    @property
+    def confirmed_legs(self) -> list:
+        """Selected TravelerOffers ("legs") for this order, oldest first."""
+        return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.SELECTED]
+
+    @property
+    def pending_offers(self) -> list:
+        return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.PENDING]
+
+    @property
+    def total_allocated_weight_kg(self) -> Decimal:
+        return self._q(sum((leg.allocated_weight_kg or Decimal("0")) for leg in self.confirmed_legs))
+
+    @property
+    def remaining_bid_weight_kg(self) -> Decimal:
+        return self._q(self.bid_weight_kg - self.total_allocated_weight_kg)
+
+    @property
+    def is_fully_matched(self) -> bool:
+        return bool(self.confirmed_legs) and self.total_allocated_weight_kg >= self.bid_weight_kg
+
+    # Per-leg progress order used to find the "least-progressed active leg"
+    # for the order-level status rollup below.
+    _LEG_PROGRESS_ORDER = [
+        LegStatus.PACKAGE_DROPPED_OFF, LegStatus.WEIGHT_VERIFIED, LegStatus.PACKAGE_RECEIVED,
+        LegStatus.PACKAGE_ARRIVED, LegStatus.READY_FOR_PICKUP,
+        LegStatus.RESHIP_REQUESTED, LegStatus.RESHIP_COST_SENT, LegStatus.RESHIPPING,
+        LegStatus.CLEAR, LegStatus.CLOSED,
+    ]
+
+    @property
+    def in_transit(self) -> bool:
+        """True once any confirmed leg has been received by its traveler
+        (PACKAGE_RECEIVED or later) and that leg's travel date+time has
+        passed — see PLAN-buyer-first-orders.md §7. Until a leg is received,
+        travel hasn't actually started yet, so the order stays "Open"
+        regardless of how the calendar date compares."""
+        received_index = self._LEG_PROGRESS_ORDER.index(LegStatus.PACKAGE_RECEIVED)
+        now = timezone.localtime()
+        for leg in self.confirmed_legs:
+            if leg.leg_status not in self._LEG_PROGRESS_ORDER:
+                continue
+            if self._LEG_PROGRESS_ORDER.index(leg.leg_status) < received_index:
+                continue
+            leg_dt = timezone.make_aware(datetime.combine(leg.travel_date, leg.travel_time or time.min))
+            if leg_dt <= now:
+                return True
+        return False
+
+    @property
+    def home_section(self) -> str:
+        """Which of the 3 home-page sections this order belongs on — purely a
+        display classification, not a status (see PLAN-buyer-first-orders.md
+        §7)."""
+        if self.status == Status.CLOSED:
+            return "closed"
+        if self.in_transit:
+            return "transit"
+        return "open"
+
+    def recompute_status(self) -> None:
+        """Buyer-first orders don't set ``status`` directly once legs exist —
+        it's a rollup of the legs' progress (see PLAN-buyer-first-orders.md
+        §4). Call this after any offer/leg change. No-op for plan-first
+        orders, which keep their own explicit workflow."""
+        if self.plan_id:
+            return
+        legs = list(self.traveler_offers.all())
+        confirmed = [l for l in legs if l.offer_status == OfferStatus.SELECTED]
+        pending = [l for l in legs if l.offer_status == OfferStatus.PENDING]
+        # A DROPOFF_MISSED leg is a dead end — ignore it in the rollup unless
+        # every confirmed leg failed, in which case the order itself failed.
+        live = [l for l in confirmed if l.leg_status != LegStatus.DROPOFF_MISSED]
+
+        if confirmed and not live:
+            new_status = Status.DROPOFF_MISSED
+        elif live and all(l.leg_status == LegStatus.CLOSED for l in live):
+            new_status = Status.CLOSED
+        else:
+            active = [l for l in live if l.leg_status not in (None, LegStatus.CLOSED)]
+            if active:
+                least = min(active, key=lambda l: self._LEG_PROGRESS_ORDER.index(l.leg_status))
+                new_status = Status(least.leg_status)
+            elif self.is_fully_matched:
+                new_status = Status.TAKEN
+            elif pending:
+                new_status = Status.RESPONDED
+            else:
+                new_status = Status.OPEN
+
+        if new_status != self.status:
+            self.status = new_status
+            self.save(update_fields=["status", "updated_at"])
+
     _BUYER_STATUS_LABELS = {
         "accepted": "Estimate Received",
         "deposit_paid": "W/f Actual Cost",
@@ -257,7 +420,7 @@ class BuyRequest(models.Model):
     # --- Money ---
     @property
     def currency(self) -> str:
-        return self.plan.shipment_currency
+        return self.plan.shipment_currency if self.plan_id else self.settlement_currency
 
     def _idr_equivalent(self, amount: Decimal) -> "Decimal | None":
         """Convert a foreign-currency amount to IDR using the BCA TT Counter
@@ -514,6 +677,273 @@ class BuyRequest(models.Model):
         """Amount to refund the buyer (e.g. actual weight < estimate)."""
         u = self.unpaid_amount
         return -u if u < 0 else Decimal("0.00")
+
+
+class TravelerOffer(models.Model):
+    """A traveler's response to a buyer-first BuyRequest (order). Once selected
+    by the buyer it becomes an independent "leg" — its own deposit, drop-off,
+    and lifecycle — so a single order can be split across several travelers
+    (partial fulfillment) without the legs blocking each other.
+    """
+
+    order = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="traveler_offers")
+    traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="traveler_offers")
+
+    ask_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
+    avail_kg = models.DecimalField(
+        max_digits=6, decimal_places=2, help_text="Traveler's declared spare capacity — shown publicly."
+    )
+
+    # Hidden from the buyer until this leg's deposit clears.
+    drop_off_address = models.TextField(blank=True)
+    drop_off_postal_code = models.CharField(max_length=20, blank=True)
+    # Hidden until PACKAGE_ARRIVED and the buyer chooses Pickup (not Reship).
+    pickup_address = models.TextField(blank=True)
+
+    travel_date = models.DateField()
+    travel_time = models.TimeField(null=True, blank=True)
+    from_city = models.CharField(max_length=80)
+    from_country = models.CharField(max_length=80)
+    to_city = models.CharField(max_length=80)
+    to_country = models.CharField(max_length=80)
+
+    offer_status = models.CharField(max_length=10, choices=OfferStatus.choices, default=OfferStatus.PENDING)
+
+    # Set once selected (offer_status=SELECTED); must be <= avail_kg.
+    allocated_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    leg_status = models.CharField(max_length=24, choices=LegStatus.choices, null=True, blank=True)
+    agreed_weight_kg = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True,
+        help_text="Traveler's final measured weight at WEIGHT_VERIFIED — always authoritative.",
+    )
+    fulfillment_method = models.CharField(max_length=10, choices=FulfillmentMethod.choices, blank=True)
+
+    # Reshipment — mirrors BuyRequest's reshipment_* fields, but per leg: a
+    # partially-fulfilled order can have several legs each reshipping (or not)
+    # independently.
+    reshipment_address = models.TextField(blank=True)
+    reshipment_cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    reshipment_cost_proof = models.ImageField(upload_to="leg_reshipment_costs/", blank=True, null=True, storage=webp_storage)
+    reshipment_bank_name = models.CharField(max_length=120, blank=True)
+    reshipment_bank_account_no = models.CharField(max_length=60, blank=True)
+    reshipment_bank_account_name = models.CharField(max_length=120, blank=True)
+    reshipment_proof = models.ImageField(upload_to="leg_reshipment_proofs/", blank=True, null=True, storage=webp_storage)
+    awb_number = models.CharField(max_length=80, blank=True)
+    awb_document = models.FileField(upload_to="leg_awb/", blank=True, null=True)
+
+    # Buyer's bank details for receiving a refund on this leg, free text.
+    refund_bank_details = models.TextField(blank=True)
+
+    dropped_off_at = models.DateTimeField(null=True, blank=True)
+    weight_verified_at = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+    arrived_at = models.DateTimeField(null=True, blank=True)
+    cleared_at = models.DateTimeField(null=True, blank=True, help_text="When the buyer marked this leg Clear.")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["order", "offer_status"])]
+
+    def __str__(self):
+        return f"Offer by {self.traveler} on {self.order.reference} ({self.get_offer_status_display()})"
+
+    @property
+    def route(self) -> str:
+        return f"{self.from_city}, {self.from_country} → {self.to_city}, {self.to_country}"
+
+    @property
+    def drop_off_deadline(self):
+        """Buyer must hand over the package by travel_date − 1 day."""
+        from datetime import timedelta
+        return self.travel_date - timedelta(days=1)
+
+    @property
+    def deposit_due(self) -> Decimal:
+        """Deposit owed once selected: allocated weight × accepted ask rate."""
+        return ((self.allocated_weight_kg or Decimal("0")) * self.ask_cost_per_kg).quantize(TWO_PLACES)
+
+    @property
+    def deposit_paid_amount(self) -> Decimal:
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=LegPayment.Direction.INBOUND,
+            status=LegPayment.PaymentStatus.VERIFIED,
+            kind=LegPayment.Kind.DEPOSIT,
+        )
+        return sum((p.amount for p in qs), Decimal("0.00")).quantize(TWO_PLACES)
+
+    @property
+    def deposit_verified(self) -> bool:
+        return self.deposit_due > 0 and self.deposit_paid_amount >= self.deposit_due
+
+    @property
+    def address_revealed(self) -> bool:
+        """Traveler's name and drop-off address stay hidden until the deposit clears."""
+        return self.deposit_verified
+
+    @property
+    def pickup_address_revealed(self) -> bool:
+        """Traveler's destination address stays hidden until Pickup is chosen."""
+        return self.fulfillment_method == FulfillmentMethod.PICKUP
+
+    @property
+    def weight_delta(self) -> Decimal:
+        """(final measured weight − allocated) × accepted ask rate. Positive =
+        buyer owes a balance; negative = buyer overpaid (refund due)."""
+        final = self.agreed_weight_kg if self.agreed_weight_kg is not None else (self.allocated_weight_kg or Decimal("0"))
+        delta_kg = final - (self.allocated_weight_kg or Decimal("0"))
+        return (delta_kg * self.ask_cost_per_kg).quantize(TWO_PLACES)
+
+    @property
+    def extra_due(self) -> Decimal:
+        """Amount the buyer still owes (final weight came in heavier than allocated)."""
+        d = self.weight_delta
+        return d if d > 0 else Decimal("0.00")
+
+    @property
+    def refund_due(self) -> Decimal:
+        """Amount to refund the buyer (final weight came in lighter than allocated)."""
+        d = self.weight_delta
+        return -d if d < 0 else Decimal("0.00")
+
+    @property
+    def balance_paid_amount(self) -> Decimal:
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=LegPayment.Direction.INBOUND,
+            status=LegPayment.PaymentStatus.VERIFIED,
+            kind=LegPayment.Kind.BALANCE,
+        )
+        return sum((p.amount for p in qs), Decimal("0.00")).quantize(TWO_PLACES)
+
+    @property
+    def total_refunded(self) -> Decimal:
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=LegPayment.Direction.OUTBOUND,
+            status=LegPayment.PaymentStatus.VERIFIED,
+            kind=LegPayment.Kind.REFUND,
+        )
+        return sum((p.amount for p in qs), Decimal("0.00")).quantize(TWO_PLACES)
+
+    @property
+    def balance_settled(self) -> bool:
+        """True once the weight-delta is settled in whichever direction it goes."""
+        if self.extra_due > 0:
+            return self.balance_paid_amount >= self.extra_due
+        if self.refund_due > 0:
+            return self.total_refunded >= self.refund_due
+        return True
+
+    @property
+    def dropoff_refund_amount(self) -> Decimal:
+        """Outstanding deposit refund recorded after a missed drop-off
+        (created by the expire_missed_dropoffs cron) — verified or not, for
+        buyer-facing display. Unrelated to the weight-delta refund_due above."""
+        if not hasattr(self, "transaction"):
+            return Decimal("0.00")
+        qs = self.transaction.payments.filter(
+            direction=LegPayment.Direction.OUTBOUND, kind=LegPayment.Kind.REFUND,
+        )
+        return sum((p.amount for p in qs), Decimal("0.00")).quantize(TWO_PLACES)
+
+
+class LegTransaction(models.Model):
+    """Settlement record for a single confirmed leg (selected TravelerOffer)
+    of a buyer-first order. Kept independent of `Transaction` — a partially
+    fulfilled order has one deposit/payout per traveler, not one for the
+    whole order, so it can't share the BuyRequest-level transaction."""
+
+    leg = models.OneToOneField(TravelerOffer, on_delete=models.CASCADE, related_name="transaction")
+    commission_percent = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        default=Decimal(str(settings.PLATFORM_COMMISSION_PERCENT)),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Leg TX for {self.leg.order.reference} ({self.leg.traveler})"
+
+    @property
+    def currency(self) -> str:
+        return self.leg.order.currency
+
+    @property
+    def gross_amount(self) -> Decimal:
+        """Total amount earned by the traveler for this leg, based on final weight."""
+        leg = self.leg
+        weight = leg.agreed_weight_kg if leg.agreed_weight_kg is not None else leg.allocated_weight_kg
+        return ((weight or Decimal("0")) * leg.ask_cost_per_kg).quantize(TWO_PLACES)
+
+    @property
+    def commission_amount(self) -> Decimal:
+        return (self.gross_amount * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
+
+    @property
+    def payout_to_traveler(self) -> Decimal:
+        return (self.gross_amount - self.commission_amount).quantize(TWO_PLACES)
+
+
+class LegPayment(models.Model):
+    """A single money movement against a leg's deposit. Mirrors `Payment`'s
+    shape (same kinds of choices) but kept independent of it."""
+
+    class Direction(models.TextChoices):
+        INBOUND = "inbound", "Inbound (to admin)"
+        OUTBOUND = "outbound", "Outbound (from admin)"
+
+    class Kind(models.TextChoices):
+        DEPOSIT = "deposit", "Traveler deposit"
+        BALANCE = "balance", "Weight-delta balance"
+        PAYOUT = "payout", "Payout to traveler"
+        REFUND = "refund", "Refund"
+
+    class Method(models.TextChoices):
+        MANUAL = "manual", "Manual transfer"
+        GATEWAY = "gateway", "Payment gateway"
+
+    class PaymentStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        VERIFIED = "verified", "Verified / Paid"
+        FAILED = "failed", "Failed"
+
+    transaction = models.ForeignKey(LegTransaction, on_delete=models.CASCADE, related_name="payments")
+    direction = models.CharField(max_length=10, choices=Direction.choices)
+    kind = models.CharField(max_length=10, choices=Kind.choices)
+    method = models.CharField(max_length=10, choices=Method.choices, default=Method.MANUAL)
+
+    currency = models.CharField(max_length=3, choices=Currency.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    status = models.CharField(max_length=10, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    proof = models.ImageField(upload_to="leg_payments/proof/", blank=True, null=True, storage=webp_storage)
+
+    verified_by = models.ForeignKey(
+        USER, on_delete=models.SET_NULL, null=True, blank=True, related_name="verified_leg_payments"
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.amount:,.2f} {self.currency} ({self.get_status_display()})"
+
+    def mark_verified(self, by_user=None):
+        self.status = self.PaymentStatus.VERIFIED
+        self.verified_by = by_user
+        self.verified_at = timezone.now()
+        self.save(update_fields=["status", "verified_by", "verified_at"])
 
 
 class Refund(BuyRequest):

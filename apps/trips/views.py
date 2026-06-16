@@ -1,3 +1,4 @@
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from django.contrib import messages
@@ -9,12 +10,21 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import workflow
-from .constants import CHAT_STATUSES, OPEN_PLAN_STATUSES, Status
+from .constants import (
+    CHAT_STATUSES,
+    FulfillmentMethod,
+    LegStatus,
+    OPEN_ORDER_STATUSES,
+    OPEN_PLAN_STATUSES,
+    OfferStatus,
+    Status,
+)
 from .forms import (
     AWBForm,
     BuyRequestForm,
     CustomFareForm,
     MessageForm,
+    OrderForm,
     PurchaseItemFormSet,
     PurchaseWeightForm,
     RefundBankForm,
@@ -22,9 +32,19 @@ from .forms import (
     RequestItemFormSet,
     ReviewForm,
     ReviewItemFormSet,
+    TravelerOfferForm,
     TravelPlanForm,
 )
-from .models import BuyRequest, ExchangeRate, Payment, TravelPlan, Transaction
+from .models import (
+    BuyRequest,
+    ExchangeRate,
+    LegPayment,
+    LegTransaction,
+    Payment,
+    TravelerOffer,
+    TravelPlan,
+    Transaction,
+)
 
 
 def profile_required(view):
@@ -107,6 +127,434 @@ def request_create(request, plan_id):
         form = BuyRequestForm()
         formset = RequestItemFormSet(instance=BuyRequest())
     return render(request, "trips/request_form.html", {"plan": plan, "form": form, "formset": formset})
+
+
+# --- Buyer-first: post an order with no traveler yet ------------------------
+@profile_required
+def order_create(request):
+    if request.method == "POST":
+        form = OrderForm(request.POST)
+        formset = RequestItemFormSet(request.POST, request.FILES, instance=BuyRequest())
+        if form.is_valid() and formset.is_valid():
+            with db_transaction.atomic():
+                order = form.save(commit=False)
+                order.buyer = request.user
+                order.status = Status.OPEN
+                order.save()
+                formset.instance = order
+                items = formset.save(commit=False)
+                if not items:
+                    order.delete()
+                    messages.error(request, "Add at least one item.")
+                    return redirect(request.path)
+                for idx, item in enumerate(items, start=1):
+                    item.position = idx
+                    item.save()
+            messages.success(request, "Order posted. Travelers can now respond with offers.")
+            return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    else:
+        form = OrderForm()
+        formset = RequestItemFormSet(instance=BuyRequest())
+    return render(request, "trips/order_form.html", {"form": form, "formset": formset})
+
+
+# --- Traveler: respond to a buyer-first order with an offer ----------------
+@profile_required
+def offer_create(request, order_id):
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    if order.buyer_id == request.user.id:
+        messages.error(request, "You cannot place an offer on your own order.")
+        return redirect("pages:order_first")
+    if order.status not in OPEN_ORDER_STATUSES:
+        messages.info(request, "This order is no longer accepting offers.")
+        return redirect("pages:order_first")
+    if order.traveler_offers.filter(traveler=request.user, offer_status=OfferStatus.PENDING).exists():
+        messages.info(request, "You already have a pending offer on this order. Withdraw it first to submit a new one.")
+        return redirect("pages:order_first")
+
+    if request.method == "POST":
+        form = TravelerOfferForm(request.POST)
+        if form.is_valid():
+            offer = form.save(commit=False)
+            offer.order = order
+            offer.traveler = request.user
+            offer.save()
+            order.recompute_status()
+            messages.success(request, "Offer submitted. The buyer will review it.")
+            return redirect("pages:order_first")
+    else:
+        form = TravelerOfferForm(initial={
+            "from_city": order.from_city, "from_country": order.from_country,
+            "to_city": order.to_city, "to_country": order.to_country,
+        })
+    return render(request, "trips/offer_form.html", {"order": order, "form": form})
+
+
+# --- Traveler: withdraw a pending offer -------------------------------------
+@profile_required
+@require_POST
+def offer_withdraw(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, traveler=request.user)
+    if offer.offer_status != OfferStatus.PENDING:
+        messages.error(request, "Only a pending offer can be withdrawn.")
+    else:
+        offer.offer_status = OfferStatus.WITHDRAWN
+        offer.save(update_fields=["offer_status", "updated_at"])
+        offer.order.recompute_status()
+        messages.success(request, "Offer withdrawn.")
+    return redirect("pages:order_first")
+
+
+# --- Buyer: select a pending offer (single or partial-multi) ----------------
+@profile_required
+@require_POST
+def offer_select(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, offer_status=OfferStatus.PENDING)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can select an offer.")
+        return redirect(detail_url)
+    if order.status not in OPEN_ORDER_STATUSES:
+        messages.error(request, "This order is no longer accepting selections.")
+        return redirect(detail_url)
+
+    remaining = order.bid_weight_kg - order.total_allocated_weight_kg
+    try:
+        allocated = Decimal(request.POST.get("allocated_weight_kg", "0"))
+    except InvalidOperation:
+        allocated = Decimal("0")
+
+    if order.partial_allowed:
+        max_allowed = min(offer.avail_kg, remaining)
+    else:
+        max_allowed = remaining  # must take the whole remaining bid in one go
+
+    if allocated <= 0 or allocated > max_allowed:
+        messages.error(
+            request,
+            f"Allocated weight must be between 0 and {max_allowed} kg"
+            + ("" if order.partial_allowed else " (partial fulfillment is not allowed for this order)."),
+        )
+        return redirect(detail_url)
+
+    with db_transaction.atomic():
+        offer.offer_status = OfferStatus.SELECTED
+        offer.allocated_weight_kg = allocated
+        offer.save(update_fields=["offer_status", "allocated_weight_kg", "updated_at"])
+        LegTransaction.objects.get_or_create(leg=offer)
+        order.recompute_status()
+    messages.success(request, "Offer selected. Pay this leg's deposit to reveal the traveler's drop-off address.")
+    return redirect(detail_url)
+
+
+# --- Buyer: upload a leg's deposit payment proof -----------------------------
+@profile_required
+@require_POST
+def leg_deposit_pay(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, offer_status=OfferStatus.SELECTED)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can submit a payment.")
+        return redirect(detail_url)
+    if offer.deposit_verified:
+        messages.info(request, "This leg's deposit is already verified.")
+        return redirect(detail_url)
+
+    tx, _ = LegTransaction.objects.get_or_create(leg=offer)
+    LegPayment.objects.create(
+        transaction=tx,
+        direction=LegPayment.Direction.INBOUND,
+        kind=LegPayment.Kind.DEPOSIT,
+        currency=order.currency,
+        amount=offer.deposit_due,
+        proof=request.FILES.get("proof"),
+        note=request.POST.get("note", ""),
+    )
+    messages.success(request, "Deposit proof submitted. Admin will verify it shortly.")
+    return redirect(detail_url)
+
+
+# --- Buyer: mark a confirmed leg's package as dropped off --------------------
+@profile_required
+@require_POST
+def leg_dropped_off(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, offer_status=OfferStatus.SELECTED)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can mark a package as dropped off.")
+        return redirect(detail_url)
+    if not offer.address_revealed:
+        messages.error(request, "Pay this leg's deposit first.")
+        return redirect(detail_url)
+    if offer.leg_status:
+        messages.info(request, "This leg has already moved past drop-off.")
+        return redirect(detail_url)
+
+    offer.leg_status = LegStatus.PACKAGE_DROPPED_OFF
+    offer.dropped_off_at = timezone.now()
+    offer.save(update_fields=["leg_status", "dropped_off_at", "updated_at"])
+    order.recompute_status()
+    messages.success(request, "Package marked as dropped off. The traveler will verify the final weight.")
+    return redirect(detail_url)
+
+
+# --- Traveler: enter the final weight for a dropped-off leg -------------------
+@profile_required
+@require_POST
+def leg_weight_verify(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_DROPPED_OFF
+    )
+    detail_url = reverse("accounts:profile") + "#my-offers"
+    try:
+        weight = Decimal(request.POST.get("agreed_weight_kg", "0"))
+    except InvalidOperation:
+        weight = Decimal("0")
+    if weight <= 0:
+        messages.error(request, "Enter a valid final weight.")
+        return redirect(detail_url)
+
+    offer.agreed_weight_kg = weight
+    offer.leg_status = LegStatus.WEIGHT_VERIFIED
+    offer.weight_verified_at = timezone.now()
+    offer.save(update_fields=["agreed_weight_kg", "leg_status", "weight_verified_at", "updated_at"])
+    offer.order.recompute_status()
+    messages.success(request, "Final weight recorded — this is final and not subject to dispute.")
+    return redirect(detail_url)
+
+
+# --- Traveler: confirm custody of a weight-verified leg ------------------------
+@profile_required
+@require_POST
+def leg_received(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.WEIGHT_VERIFIED
+    )
+    detail_url = reverse("accounts:profile") + "#my-offers"
+    offer.leg_status = LegStatus.PACKAGE_RECEIVED
+    offer.received_at = timezone.now()
+    offer.save(update_fields=["leg_status", "received_at", "updated_at"])
+    offer.order.recompute_status()
+    messages.success(request, "Package received — custody confirmed.")
+    return redirect(detail_url)
+
+
+# --- Traveler: mark a received leg as arrived at destination -----------------
+@profile_required
+@require_POST
+def leg_arrived(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_RECEIVED
+    )
+    detail_url = reverse("accounts:profile") + "#my-offers"
+    offer.leg_status = LegStatus.PACKAGE_ARRIVED
+    offer.arrived_at = timezone.now()
+    offer.save(update_fields=["leg_status", "arrived_at", "updated_at"])
+    offer.order.recompute_status()
+    messages.success(
+        request,
+        "Marked as arrived. The buyer will settle any weight-delta balance and choose pickup or reship.",
+    )
+    return redirect(detail_url)
+
+
+# --- Buyer: pay a leg's weight-delta balance ---------------------------------
+@profile_required
+@require_POST
+def leg_balance_pay(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, leg_status=LegStatus.PACKAGE_ARRIVED)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can submit a payment.")
+        return redirect(detail_url)
+    if offer.extra_due <= 0:
+        messages.info(request, "No balance is due on this leg.")
+        return redirect(detail_url)
+    if offer.balance_settled:
+        messages.info(request, "This leg's balance is already settled.")
+        return redirect(detail_url)
+
+    tx, _ = LegTransaction.objects.get_or_create(leg=offer)
+    LegPayment.objects.create(
+        transaction=tx,
+        direction=LegPayment.Direction.INBOUND,
+        kind=LegPayment.Kind.BALANCE,
+        currency=order.currency,
+        amount=offer.extra_due,
+        proof=request.FILES.get("proof"),
+        note=request.POST.get("note", ""),
+    )
+    messages.success(request, "Balance payment proof submitted. Admin will verify it shortly.")
+    return redirect(detail_url)
+
+
+# --- Buyer: submit bank details for a leg's refund ----------------------------
+@profile_required
+@require_POST
+def leg_refund_bank(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, leg_status__in=[LegStatus.PACKAGE_ARRIVED, LegStatus.DROPOFF_MISSED]
+    )
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can submit refund details.")
+        return redirect(detail_url)
+    if offer.leg_status == LegStatus.PACKAGE_ARRIVED:
+        no_refund = offer.refund_due <= 0
+    else:
+        no_refund = offer.dropoff_refund_amount <= 0
+    if no_refund:
+        messages.error(request, "No refund is due on this leg.")
+        return redirect(detail_url)
+
+    details = request.POST.get("refund_bank_details", "").strip()
+    if not details:
+        messages.error(request, "Enter your bank details to receive the refund.")
+        return redirect(detail_url)
+    offer.refund_bank_details = details
+    offer.save(update_fields=["refund_bank_details", "updated_at"])
+    messages.success(request, "Refund bank details saved. Admin will transfer the refund shortly.")
+    return redirect(detail_url)
+
+
+# --- Buyer: choose Pickup or Reship for an arrived leg ------------------------
+@profile_required
+@require_POST
+def leg_choose_fulfillment(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, leg_status=LegStatus.PACKAGE_ARRIVED)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can choose pickup or reship.")
+        return redirect(detail_url)
+    if not offer.balance_settled:
+        messages.error(request, "Settle this leg's weight-delta balance first.")
+        return redirect(detail_url)
+
+    choice = request.POST.get("fulfillment_method")
+    if choice == FulfillmentMethod.PICKUP:
+        offer.fulfillment_method = FulfillmentMethod.PICKUP
+        offer.leg_status = LegStatus.READY_FOR_PICKUP
+        offer.save(update_fields=["fulfillment_method", "leg_status", "updated_at"])
+        order.recompute_status()
+        messages.success(request, "Pickup confirmed. The traveler's pickup address is now shown below.")
+    elif choice == FulfillmentMethod.RESHIP:
+        address = request.POST.get("reshipment_address", "").strip()
+        if not address:
+            messages.error(request, "Enter your delivery address to request reshipment.")
+            return redirect(detail_url)
+        offer.fulfillment_method = FulfillmentMethod.RESHIP
+        offer.reshipment_address = address
+        offer.leg_status = LegStatus.RESHIP_REQUESTED
+        offer.save(update_fields=["fulfillment_method", "reshipment_address", "leg_status", "updated_at"])
+        order.recompute_status()
+        messages.success(request, "Reshipment requested. The traveler has been notified.")
+    else:
+        messages.error(request, "Choose Pickup or Reship.")
+    return redirect(detail_url)
+
+
+# --- Traveler: send a leg's reshipment cost + bank details --------------------
+@profile_required
+@require_POST
+def leg_reship_cost(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.RESHIP_REQUESTED
+    )
+    detail_url = reverse("accounts:profile") + "#my-offers"
+    try:
+        amount = Decimal(request.POST.get("reshipment_cost_amount", "0"))
+    except InvalidOperation:
+        amount = Decimal("0")
+    if amount <= 0:
+        messages.error(request, "Enter the reshipment cost.")
+        return redirect(detail_url)
+
+    offer.reshipment_cost_amount = amount
+    offer.reshipment_bank_name = request.POST.get("reshipment_bank_name", "")
+    offer.reshipment_bank_account_no = request.POST.get("reshipment_bank_account_no", "")
+    offer.reshipment_bank_account_name = request.POST.get("reshipment_bank_account_name", "")
+    if request.FILES.get("reshipment_cost_proof"):
+        offer.reshipment_cost_proof = request.FILES["reshipment_cost_proof"]
+    offer.leg_status = LegStatus.RESHIP_COST_SENT
+    offer.save(update_fields=[
+        "reshipment_cost_amount", "reshipment_bank_name", "reshipment_bank_account_no",
+        "reshipment_bank_account_name", "reshipment_cost_proof", "leg_status", "updated_at",
+    ])
+    offer.order.recompute_status()
+    messages.success(request, "Reshipment cost sent. Buyer has been notified.")
+    return redirect(detail_url)
+
+
+# --- Buyer: upload a leg's reshipment payment proof ---------------------------
+@profile_required
+@require_POST
+def leg_reship_proof(request, pk):
+    offer = get_object_or_404(TravelerOffer, pk=pk, leg_status=LegStatus.RESHIP_COST_SENT)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can upload reshipment proof.")
+        return redirect(detail_url)
+    proof = request.FILES.get("reshipment_proof")
+    if not proof:
+        messages.error(request, "Please select a file to upload.")
+        return redirect(detail_url)
+    offer.reshipment_proof = proof
+    offer.save(update_fields=["reshipment_proof", "updated_at"])
+    messages.success(request, "Payment proof uploaded. Traveler has been notified.")
+    return redirect(detail_url)
+
+
+# --- Traveler: submit a leg's AWB -> shipped -----------------------------------
+@profile_required
+@require_POST
+def leg_reship_ship(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.RESHIP_COST_SENT
+    )
+    detail_url = reverse("accounts:profile") + "#my-offers"
+    awb = request.POST.get("awb_number", "").strip()
+    if not awb:
+        messages.error(request, "Enter an AWB number before submitting.")
+        return redirect(detail_url)
+    offer.awb_number = awb
+    if request.FILES.get("awb_document"):
+        offer.awb_document = request.FILES["awb_document"]
+    offer.leg_status = LegStatus.RESHIPPING
+    offer.save(update_fields=["awb_number", "awb_document", "leg_status", "updated_at"])
+    offer.order.recompute_status()
+    messages.success(request, "Package marked as shipped. Buyer has been notified.")
+    return redirect(detail_url)
+
+
+# --- Buyer: confirm a leg is Clear (picked up / received after reship) -------
+@profile_required
+@require_POST
+def leg_clear(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, leg_status__in=[LegStatus.READY_FOR_PICKUP, LegStatus.RESHIPPING]
+    )
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can confirm pickup and clearance.")
+        return redirect(detail_url)
+
+    offer.leg_status = LegStatus.CLEAR
+    offer.cleared_at = timezone.now()
+    offer.save(update_fields=["leg_status", "cleared_at", "updated_at"])
+    order.recompute_status()
+    messages.success(
+        request,
+        "Thank you — marked as Clear. This leg will close automatically and the traveler will be paid shortly.",
+    )
+    return redirect(detail_url)
 
 
 def request_detail(request, pk):

@@ -2,7 +2,8 @@ from django.db import models
 
 
 class Status(models.TextChoices):
-    """The 8-step jastip lifecycle (+ rejection / cancellation)."""
+    """The 8-step jastip lifecycle (+ rejection / cancellation), plus the
+    buyer-first order-level statuses (OPEN..DROPOFF_MISSED below)."""
 
     NEW = "new", "New"
     REQUEST_RECEIVED = "request_received", "W/f Estimate"
@@ -19,6 +20,64 @@ class Status(models.TextChoices):
     RESHIPPING = "reshipping", "In Transit"
     CLEAR = "clear", "Clear"
     CLOSED = "closed", "Closed"
+
+    # --- Buyer-first order-level statuses ---
+    OPEN = "open", "Awaiting Traveler"
+    RESPONDED = "responded", "Responded"
+    TAKEN = "taken", "Taken"
+    PACKAGE_DROPPED_OFF = "package_dropped_off", "Package Dropped Off"
+    WEIGHT_VERIFIED = "weight_verified", "Weight Verified"
+    PACKAGE_RECEIVED = "package_received", "Package Received"
+    NO_RESPONSE = "no_response", "No Response"
+    DROPOFF_MISSED = "dropoff_missed", "Dropoff Missed"
+
+
+# Order-level statuses that only exist on buyer-first orders (BuyRequest.plan is null).
+BUYER_FIRST_STATUSES = {
+    Status.OPEN, Status.RESPONDED, Status.TAKEN,
+    Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED,
+    Status.NO_RESPONSE, Status.DROPOFF_MISSED,
+}
+
+# Buyer-first orders still accepting TravelerOffers.
+OPEN_ORDER_STATUSES = {Status.OPEN, Status.RESPONDED}
+
+# Terminal buyer-first statuses (order never matched, or matching failed).
+BUYER_FIRST_TERMINAL_STATUSES = {Status.NO_RESPONSE, Status.DROPOFF_MISSED}
+
+
+class OfferStatus(models.TextChoices):
+    """Lifecycle of a single TravelerOffer before it is matched."""
+
+    PENDING = "pending", "Pending"
+    SELECTED = "selected", "Selected"
+    REJECTED = "rejected", "Rejected"
+    WITHDRAWN = "withdrawn", "Withdrawn"
+
+
+class LegStatus(models.TextChoices):
+    """Per-leg lifecycle once a TravelerOffer is selected (offer_status=SELECTED).
+    Mirrors a subset of Status — kept separate since several legs can be in
+    flight at once for the same BuyRequest (partial fulfillment)."""
+
+    PACKAGE_DROPPED_OFF = "package_dropped_off", "Package Dropped Off"
+    WEIGHT_VERIFIED = "weight_verified", "Weight Verified"
+    PACKAGE_RECEIVED = "package_received", "Package Received"
+    PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
+    READY_FOR_PICKUP = "ready_for_pickup", "Ready for Pickup"
+    # Same DB values as Status's reship trio, so BuyRequest.recompute_status()'s
+    # `Status(leg.leg_status)` cast keeps working for the order-level rollup.
+    RESHIP_REQUESTED = "reship_requested", "Reship Requested"
+    RESHIP_COST_SENT = "reship_cost_sent", "Reship Cost Sent"
+    RESHIPPING = "reshipping", "In Transit"
+    CLEAR = "clear", "Clear"
+    CLOSED = "closed", "Closed"
+    DROPOFF_MISSED = "dropoff_missed", "Dropoff Missed"
+
+
+class FulfillmentMethod(models.TextChoices):
+    PICKUP = "pickup", "Pickup"
+    RESHIP = "reship", "Reship"
 
 
 # Statuses where the travel plan is still accepting a new buyer block.
@@ -63,6 +122,14 @@ STATUS_TONE = {
     Status.RESHIPPING: "info",
     Status.CLEAR: "success",
     Status.CLOSED: "success",
+    Status.OPEN: "info",
+    Status.RESPONDED: "warning",
+    Status.TAKEN: "success",
+    Status.PACKAGE_DROPPED_OFF: "primary",
+    Status.WEIGHT_VERIFIED: "primary",
+    Status.PACKAGE_RECEIVED: "primary",
+    Status.NO_RESPONSE: "danger",
+    Status.DROPOFF_MISSED: "danger",
 }
 
 

@@ -2,9 +2,10 @@ from decimal import Decimal
 
 from django import forms
 from django.forms import inlineformset_factory
+from django.utils import timezone
 
 from .constants import COUNTRY_CHOICES, Currency
-from .models import BuyRequest, Message, RequestItem, TravelPlan
+from .models import BuyRequest, Message, RequestItem, TravelerOffer, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
 # submits dd-Mmm-yyyy (e.g. 19-Jun-2026) on every browser — the native
@@ -68,6 +69,110 @@ class BuyRequestForm(forms.ModelForm):
             ),
             "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
         }
+
+
+class OrderForm(forms.ModelForm):
+    """Buyer-first 'place an order' form — no traveler yet (see
+    PLAN-buyer-first-orders.md §3-4). Posts a BuyRequest with plan=None."""
+
+    from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+    to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+
+    class Meta:
+        model = BuyRequest
+        fields = [
+            "from_city", "from_country", "to_city", "to_country",
+            "to_address", "to_postal_code", "settlement_currency",
+            "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
+            "partial_allowed", "buyer_notes",
+        ]
+        widgets = {
+            "to_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Destination delivery address"}),
+            "max_acceptable_date": DATE_INPUT,
+            "bid_weight_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 2.5"}
+            ),
+            "bid_cost_per_kg": ThousandSeparatorNumberInput(),
+            "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        self.fields["settlement_currency"].required = True
+
+    def clean_bid_weight_kg(self):
+        val = self.cleaned_data.get("bid_weight_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter the package weight (kg).")
+        return val
+
+    def clean_bid_cost_per_kg(self):
+        val = self.cleaned_data.get("bid_cost_per_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter your opening price per kg.")
+        return val
+
+    def clean_max_acceptable_date(self):
+        val = self.cleaned_data.get("max_acceptable_date")
+        if not val:
+            raise forms.ValidationError("Set a deadline for receiving offers.")
+        if val <= timezone.now().date():
+            raise forms.ValidationError("Deadline must be in the future.")
+        return val
+
+
+class TravelerOfferForm(forms.ModelForm):
+    """Traveler's response to a buyer-first order (see PLAN-buyer-first-orders.md
+    §3, §8). Becomes a 'leg' once the buyer selects it."""
+
+    from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+    to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+
+    class Meta:
+        model = TravelerOffer
+        fields = [
+            "ask_cost_per_kg", "avail_kg",
+            "drop_off_address", "drop_off_postal_code", "pickup_address",
+            "travel_date", "travel_time",
+            "from_city", "from_country", "to_city", "to_country",
+        ]
+        widgets = {
+            "ask_cost_per_kg": ThousandSeparatorNumberInput(),
+            "avail_kg": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 5.0"}
+            ),
+            "drop_off_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Where the buyer should drop off the package"}),
+            "pickup_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Your destination address (revealed to buyer only after Package Arrived)"}),
+            "travel_date": DATE_INPUT,
+            "travel_time": forms.TimeInput(attrs={"type": "time"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        for f in ("drop_off_address", "drop_off_postal_code", "pickup_address"):
+            self.fields[f].required = True
+
+    def clean_avail_kg(self):
+        val = self.cleaned_data.get("avail_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter your spare carrying capacity (kg).")
+        return val
+
+    def clean_ask_cost_per_kg(self):
+        val = self.cleaned_data.get("ask_cost_per_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter your rate per kg.")
+        return val
+
+    def clean_travel_date(self):
+        val = self.cleaned_data.get("travel_date")
+        if not val:
+            raise forms.ValidationError("Travel date is required.")
+        if val <= timezone.now().date():
+            raise forms.ValidationError("Travel date must be in the future.")
+        return val
 
 
 class ReviewForm(forms.ModelForm):

@@ -10,13 +10,42 @@ from django.views.decorators.http import require_GET
 
 from apps.blog.models import Post
 from apps.notifications.services import send_email
-from apps.trips.constants import Status
-from apps.trips.models import TravelPlan
+from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OfferStatus, Status
+from apps.trips.models import BuyRequest, TravelPlan
 
 from .forms import ContactForm
 from .models import ContactMessage, FAQItem, SitePage, SiteSettings
 
 logger = logging.getLogger(__name__)
+
+
+def order_first(request):
+    from apps.trips.models import TravelerOffer
+
+    orders = list(
+        BuyRequest.objects.filter(plan__isnull=True)
+        .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
+        .select_related("buyer")
+        .prefetch_related("traveler_offers")
+        .order_by("max_acceptable_date")
+    )
+    pending_lookup = {}
+    if request.user.is_authenticated:
+        pending_lookup = {
+            off.order_id: off.id
+            for off in TravelerOffer.objects.filter(
+                order__in=orders, traveler=request.user, offer_status=OfferStatus.PENDING
+            )
+        }
+    open_orders, transit_orders, closed_orders = [], [], []
+    for order in orders:
+        order.my_pending_offer_id = pending_lookup.get(order.id)
+        {"open": open_orders, "transit": transit_orders, "closed": closed_orders}[order.home_section].append(order)
+    return render(
+        request,
+        "pages/order_first.html",
+        {"open_orders": open_orders, "transit_orders": transit_orders, "closed_orders": closed_orders},
+    )
 
 
 def home(request):

@@ -1,0 +1,195 @@
+{% load humanize %}
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+  <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
+  {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
+</div>
+
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Order Details</h3>
+  <table class="invoice" style="max-width:480px">
+    <tr><td style="width:160px">Deadline</td><td>: {{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg{% if bf_order.partial_allowed %} (partial fulfillment allowed){% endif %}</td></tr>
+    <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
+    <tr><td>Delivery Address</td><td>: {{ bf_order.to_address }}{% if bf_order.to_postal_code %}, {{ bf_order.to_postal_code }}{% endif %}</td></tr>
+    {% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
+  </table>
+</div></div>
+
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Pending Offers</h3>
+  <p class="help">Remaining to allocate: <strong>{{ bf_order.remaining_bid_weight_kg }}</strong> kg
+    {% if bf_order.confirmed_legs %} (of {{ bf_order.bid_weight_kg }} kg bid; {{ bf_order.total_allocated_weight_kg }} kg already allocated){% endif %}</p>
+  {% if bf_order.pending_offers %}
+  <div class="table-wrap">
+    <table class="invoice">
+      <tr><td><strong>Ask/kg</strong></td><td><strong>Avail (kg)</strong></td><td><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
+      {% for offer in bf_order.pending_offers %}
+      <tr>
+        <td>{{ bf_order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</td>
+        <td>{{ offer.avail_kg }}</td>
+        <td>{{ offer.travel_date|date:"d-M-Y" }}</td>
+        <td>{{ offer.get_offer_status_display }}</td>
+        <td>
+          {% if bf_order.is_accepting_offers %}
+          <form method="post" action="{% url 'trips:offer_select' offer.id %}" style="display:flex;gap:6px;align-items:center">
+            {% csrf_token %}
+            <input type="number" step="0.01" min="0.01" name="allocated_weight_kg" style="width:80px"
+              value="{{ offer.avail_kg }}" required>
+            <button class="btn btn-primary btn-sm" type="submit">Select</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <p class="help mt-2">Traveler's name and drop-off address stay hidden until a leg's deposit clears.
+    Enter the kg you want to allocate to this traveler before selecting{% if not bf_order.partial_allowed %} — this order does not allow partial fulfillment, so the allocation must cover the full remaining bid{% endif %}.</p>
+  {% else %}
+  <p class="muted">No pending offers right now.</p>
+  {% endif %}
+</div></div>
+
+{% if bf_order.confirmed_legs %}
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Confirmed Legs</h3>
+  <div class="table-wrap">
+    <table class="invoice">
+      <tr><td><strong>Ask/kg</strong></td><td><strong>Allocated (kg)</strong></td><td><strong>Deposit Due</strong></td><td><strong>Deposit</strong></td><td><strong>Drop-off</strong></td><td><strong>Progress</strong></td></tr>
+      {% for leg in bf_order.confirmed_legs %}
+      <tr>
+        <td>{{ bf_order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
+        <td>{{ leg.allocated_weight_kg }}</td>
+        <td>{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</td>
+        <td>
+          {% if leg.deposit_verified %}
+            <span class="badge badge-success">Verified</span>
+          {% elif leg.deposit_paid_amount > 0 %}
+            <span class="badge badge-warning">Awaiting verification</span>
+          {% else %}
+            <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="file" name="proof" accept="image/png,image/jpeg" required>
+              <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
+            </form>
+          {% endif %}
+        </td>
+        <td>
+          {% if leg.address_revealed %}
+            {{ leg.drop_off_address }}{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}
+            <br><span class="help">Drop off by {{ leg.drop_off_deadline|date:"d-M-Y" }}</span>
+          {% else %}
+            <span class="muted">Hidden until deposit clears</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not leg.leg_status %}
+            {% if leg.address_revealed %}
+              <form method="post" action="{% url 'trips:leg_dropped_off' leg.id %}">
+                {% csrf_token %}
+                <button class="btn btn-primary btn-sm" type="submit">Mark Dropped Off</button>
+              </form>
+            {% else %}
+              <span class="muted">Pay deposit first</span>
+            {% endif %}
+          {% elif leg.leg_status == "package_dropped_off" %}
+            <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
+          {% elif leg.leg_status == "weight_verified" %}
+            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg }} kg) — awaiting traveler confirmation</span>
+          {% elif leg.leg_status == "package_received" %}
+            <span class="badge badge-success">Received by traveler</span>
+          {% elif leg.leg_status == "package_arrived" %}
+            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg }} kg (allocated {{ leg.allocated_weight_kg }} kg)</p>
+            {% if leg.extra_due > 0 and not leg.balance_settled %}
+              <p class="muted" style="margin:0 0 4px">Balance due: {{ bf_order.currency }} {{ leg.extra_due|intcomma }}</p>
+              <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">
+                {% csrf_token %}
+                <input type="file" name="proof" accept="image/png,image/jpeg" required>
+                <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.extra_due|intcomma }}</button>
+              </form>
+            {% elif leg.refund_due > 0 and not leg.balance_settled %}
+              <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|intcomma }}</p>
+              {% if leg.refund_bank_details %}
+                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
+                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
+              {% else %}
+                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                  {% csrf_token %}
+                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
+                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
+                </form>
+              {% endif %}
+            {% elif not leg.fulfillment_method %}
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="fulfillment_method" value="pickup">
+                  <button class="btn btn-primary btn-sm" type="submit">Pickup</button>
+                </form>
+                <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}" style="display:flex;gap:6px;align-items:center">
+                  {% csrf_token %}
+                  <input type="hidden" name="fulfillment_method" value="reship">
+                  <input type="text" name="reshipment_address" placeholder="Delivery address" style="min-width:180px" required>
+                  <button class="btn btn-outline btn-sm" type="submit">Reship</button>
+                </form>
+              </div>
+            {% else %}
+              <span class="badge badge-warning">Settling…</span>
+            {% endif %}
+          {% elif leg.leg_status == "ready_for_pickup" %}
+            <p class="help" style="margin:0 0 4px">Pickup address: {{ leg.pickup_address }}</p>
+            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Confirm Picked Up (Clear)</button>
+            </form>
+          {% elif leg.leg_status == "reship_requested" %}
+            <span class="badge badge-warning">Reship requested — awaiting cost from traveler</span>
+          {% elif leg.leg_status == "reship_cost_sent" %}
+            <p class="help" style="margin:0 0 4px">
+              Cost: {{ bf_order.currency }} {{ leg.reshipment_cost_amount|intcomma }} —
+              {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
+            </p>
+            {% if leg.reshipment_proof %}
+              <span class="badge badge-success">Proof uploaded</span>
+            {% else %}
+              <form method="post" action="{% url 'trips:leg_reship_proof' leg.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="reshipment_proof" accept="image/png,image/jpeg" required>
+                <button class="btn btn-primary btn-sm" type="submit">Upload Payment Proof</button>
+              </form>
+            {% endif %}
+          {% elif leg.leg_status == "reshipping" %}
+            <p class="help" style="margin:0 0 4px">AWB: {{ leg.awb_number }}</p>
+            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Confirm Received (Clear)</button>
+            </form>
+          {% elif leg.leg_status == "clear" %}
+            <span class="badge badge-success">Clear — closing soon</span>
+          {% elif leg.leg_status == "closed" %}
+            <span class="badge badge-success">Closed</span>
+          {% elif leg.leg_status == "dropoff_missed" %}
+            <span class="badge badge-danger">Drop-off missed — leg cancelled</span>
+            {% if leg.dropoff_refund_amount > 0 %}
+              <p class="muted" style="margin:4px 0">Refund due: {{ bf_order.currency }} {{ leg.dropoff_refund_amount|intcomma }} (deposit minus 2.5% fee)</p>
+              {% if leg.refund_bank_details %}
+                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
+                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
+              {% else %}
+                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                  {% csrf_token %}
+                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
+                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            {{ leg.get_leg_status_display }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div></div>
+{% endif %}

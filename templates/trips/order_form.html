@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Post an Order — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:760px">
+    <span class="eyebrow">Buyer · Order First</span>
+    <h1>Post an Order</h1>
+    <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
+
+    <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-field"><label>From City</label>{{ form.from_city }}{{ form.from_city.errors }}</div>
+          <div class="form-field"><label>From Country</label>{{ form.from_country }}{{ form.from_country.errors }}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>To City</label>{{ form.to_city }}{{ form.to_city.errors }}</div>
+          <div class="form-field"><label>To Country</label>{{ form.to_country }}{{ form.to_country.errors }}</div>
+        </div>
+        <div class="form-field">
+          <label>Destination Address</label>{{ form.to_address }}{{ form.to_address.errors }}
+          <p class="help">Lets travelers see upfront whether a reship will be needed.</p>
+        </div>
+        <div class="form-field">
+          <label>Destination Postal Code</label>{{ form.to_postal_code }}{{ form.to_postal_code.errors }}
+        </div>
+
+        {{ formset.management_form }}
+        {{ formset.non_form_errors }}
+        <div id="items" class="mt-2">
+          {% for item_form in formset %}
+          <div class="item-row card" style="margin-bottom:14px;box-shadow:none">
+            <div class="card-body">
+              {{ item_form.id }}
+              <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
+              <div class="form-row item-cols">
+                <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
+                <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
+                <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
+              </div>
+              <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
+              <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add Product</button>
+
+        <div class="form-row mt-2">
+          <div class="form-field"><label>Bid Weight (kg)</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}</div>
+          <div class="form-field"><label>Bid Price per kg</label>{{ form.bid_cost_per_kg }}{{ form.bid_cost_per_kg.errors }}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Settlement Currency</label>{{ form.settlement_currency }}{{ form.settlement_currency.errors }}</div>
+          <div class="form-field"><label>Offer Deadline</label>{{ form.max_acceptable_date }}{{ form.max_acceptable_date.errors }}
+            <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
+          </div>
+        </div>
+        <div class="form-field">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal">
+            {{ form.partial_allowed }} Allow this order to be split across multiple travelers
+          </label>
+        </div>
+        <div class="form-field"><label>Notes to Travelers</label>{{ form.buyer_notes }}</div>
+
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn btn-primary" type="submit">Post Order</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<template id="empty-form">
+  <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
+    {{ formset.empty_form.id }}
+    <span class="del-field" style="display:none">{{ formset.empty_form.DELETE }}</span>
+    <div class="form-row item-cols">
+      <div class="form-field"><label>Product Name</label>{{ formset.empty_form.name }}</div>
+      <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
+      <div class="form-field"><label>Unit</label>{{ formset.empty_form.unit }}</div>
+    </div>
+    <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
+    <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
+  </div></div>
+</template>
+{% endblock %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/money.js' %}"></script>
+<script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
+<script>
+(function () {
+  var maxItems = {{ formset.max_num }};
+  var totalForms = document.getElementById('id_{{ formset.prefix }}-TOTAL_FORMS');
+  var container = document.getElementById('items');
+  var addBtn = document.getElementById('add-item');
+
+  function refreshAddState() {
+    addBtn.disabled = parseInt(totalForms.value, 10) >= maxItems;
+  }
+
+  addBtn.addEventListener('click', function () {
+    var count = parseInt(totalForms.value, 10);
+    if (count >= maxItems) { addBtn.disabled = true; return; }
+    var html = document.getElementById('empty-form').innerHTML.replace(/__prefix__/g, count).trim();
+    var wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    container.appendChild(wrap.firstElementChild);
+    totalForms.value = count + 1;
+    refreshAddState();
+  });
+
+  container.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('remove-item')) return;
+    var row = e.target.closest('.item-row');
+    var del = row.querySelector('input[name$="-DELETE"]');
+    if (del) { del.checked = true; row.style.display = 'none'; }
+    else { row.parentNode.removeChild(row); }
+    refreshAddState();
+  });
+
+  refreshAddState();
+})();
+</script>
+{% endblock %}
