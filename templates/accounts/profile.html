@@ -176,14 +176,6 @@
                 <div class="form-field"><label>To City</label>{{ new_order_form.to_city }}{{ new_order_form.to_city.errors }}</div>
                 <div class="form-field"><label>To Country</label>{{ new_order_form.to_country }}{{ new_order_form.to_country.errors }}</div>
               </div>
-              <div class="form-field">
-                <label>Destination Address</label>{{ new_order_form.to_address }}{{ new_order_form.to_address.errors }}
-                <p class="help">Lets travelers see upfront whether a reship will be needed.</p>
-              </div>
-              <div class="form-field">
-                <label>Destination Postal Code</label>{{ new_order_form.to_postal_code }}{{ new_order_form.to_postal_code.errors }}
-              </div>
-
               {{ new_order_formset.management_form }}
               {{ new_order_formset.non_form_errors }}
               <div id="new-order-items" class="mt-2">

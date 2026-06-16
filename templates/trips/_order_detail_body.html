@@ -10,8 +10,7 @@
     <tr><td style="width:160px">Deadline</td><td>: {{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Bid Weight</td><td>: {{ bf_order.bid_weight_kg }} kg{% if bf_order.partial_allowed %} (partial fulfillment allowed){% endif %}</td></tr>
     <tr><td>Bid Price/kg</td><td>: {{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
-    <tr><td>Delivery Address</td><td>: {{ bf_order.to_address }}{% if bf_order.to_postal_code %}, {{ bf_order.to_postal_code }}{% endif %}</td></tr>
-    {% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
+{% if bf_order.buyer_notes %}<tr><td>Notes</td><td>: {{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
 
