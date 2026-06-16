@@ -386,7 +386,7 @@ class ExchangeRateAdmin(ModelAdmin):
         "code", "name", "sell_rate", "buy_rate", "is_active", "sequence",
         "apply_to_countries", "updated_at",
     )
-    list_editable = ("name", "is_active", "sequence")
+    list_editable = ("name", "is_active", "sequence", "apply_to_countries")
     list_filter = ("is_active",)
     search_fields = ("code", "name", "apply_to_countries")
     readonly_fields = ("updated_at",)
