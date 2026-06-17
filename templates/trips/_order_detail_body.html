@@ -158,11 +158,17 @@
             <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|intcomma }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|intcomma }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
             {% endif %}
             {% if leg.extra_due > 0 and not leg.balance_settled %}
-              <p class="muted" style="margin:0 0 4px">Balance due: {{ bf_order.currency }} {{ leg.extra_due|intcomma }}</p>
+              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|intcomma }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+              <table class="invoice" style="max-width:360px;margin:0 0 10px">
+                <tr><td style="width:110px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+                <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+                <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+                <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+              </table>
               <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">
                 {% csrf_token %}
                 <input type="file" name="proof" accept="image/png,image/jpeg" required>
-                <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.extra_due|intcomma }}</button>
+                <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
               </form>
             {% elif leg.refund_due > 0 and not leg.balance_settled %}
               <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|intcomma }}</p>
@@ -256,10 +262,18 @@
             <button class="btn btn-primary btn-sm" type="button" disabled>Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
           </div>
         {% else %}
+          <p style="margin:0 0 8px">Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+          <table class="invoice" style="max-width:380px;margin:0 auto 12px;text-align:left">
+            <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+            <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+            <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+            <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+          </table>
+          <p class="help" style="margin:0 0 10px">Upload your transfer proof below.</p>
           <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
             {% csrf_token %}
             <input type="file" name="proof" accept="image/png,image/jpeg" required>
-            <button class="btn btn-primary btn-sm" type="submit">Pay {{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</button>
+            <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
           </form>
         {% endif %}
       </div>

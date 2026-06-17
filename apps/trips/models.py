@@ -904,6 +904,28 @@ class TravelerOffer(models.Model):
         n = self.settlement_net
         return -n if n < 0 else Decimal("0.00")
 
+    def _idr_equivalent(self, amount: Decimal) -> "Decimal | None":
+        """Convert an order-currency amount to IDR via the BCA sell rate, or
+        None when the order is already in IDR / no active rate exists."""
+        inv = self.order.currency
+        if inv == "IDR":
+            return None
+        try:
+            rate = ExchangeRate.objects.get(code=inv, is_active=True)
+            if not rate.sell_rate:
+                return None
+            return (amount * rate.sell_rate).quantize(TWO_PLACES)
+        except ExchangeRate.DoesNotExist:
+            return None
+
+    @property
+    def deposit_due_idr(self) -> "Decimal | None":
+        return self._idr_equivalent(self.deposit_due)
+
+    @property
+    def extra_due_idr(self) -> "Decimal | None":
+        return self._idr_equivalent(self.extra_due)
+
     @property
     def balance_paid_amount(self) -> Decimal:
         if not hasattr(self, "transaction"):
