@@ -62,7 +62,7 @@ def render_invoice_pdf(req) -> bytes:
     story = []
 
     # Header
-    story.append(Paragraph("Jastip.me", h))
+    story.append(Paragraph("ProxyBuying", h))
     story.append(Paragraph("Proxy purchasing invoice", sub))
     story.append(Spacer(1, 10))
 
@@ -174,8 +174,8 @@ def render_invoice_pdf(req) -> bytes:
     story.append(Paragraph(
         "* Actual shipment weight was based on Traveler final measurement. Buyer can verify this when "
         "picking up the package and should settle the discrepancy directly to traveler or totally waive it. "
-        "Jastip.me will not get involved on any dispute regarding this issue. As long as buyer click "
-        "&ldquo;Clear&rdquo; button, Jastip.me will paid traveler the full amount after deducting the "
+        "ProxyBuying will not get involved on any dispute regarding this issue. As long as buyer click "
+        "&ldquo;Clear&rdquo; button, ProxyBuying will paid traveler the full amount after deducting the "
         "2.5% commission.", small))
     story.append(Spacer(1, 14))
 

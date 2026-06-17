@@ -1,7 +1,7 @@
-# Jastip.me
+# ProxyBuying
 
 Proxy purchasing platform. Travelers with spare luggage space carry items for
-buyers who want goods from abroad; Jastip.me holds funds in escrow for a 2.5% fee.
+buyers who want goods from abroad; ProxyBuying holds funds in escrow for a 2.5% fee.
 
 - **Stack:** Django 5 · PostgreSQL · django-allauth (Google + email) · django-unfold admin · WhiteNoise
 - **Design:** Montserrat, Anthropic-inspired clay/ivory palette, responsive, SEO + AdSense ready
@@ -28,7 +28,7 @@ python manage.py seed           # site pages, FAQ, admin user, demo data
 python manage.py runserver 8019
 ```
 
-Visit http://127.0.0.1:8019 · admin at `/admin/` (`admin@jastip.me`, password
+Visit http://127.0.0.1:8019 · admin at `/admin/` (`admin@proxybuying.com`, password
 from `ADMIN_PASSWORD` env, default `ChangeMe!2026`).
 
 ### Google OAuth

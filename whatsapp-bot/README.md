@@ -1,6 +1,6 @@
-# Jastip WhatsApp bot (Baileys)
+# ProxyBuying WhatsApp bot (Baileys)
 
-A small Node service that sends WhatsApp messages on behalf of Jastip.me. Django
+A small Node service that sends WhatsApp messages on behalf of ProxyBuying. Django
 talks to it over HTTP (`apps/notifications/whatsapp.py` → `BaileysProvider`).
 
 > ⚠️ Baileys is an **unofficial** WhatsApp library. Use a dedicated number you're

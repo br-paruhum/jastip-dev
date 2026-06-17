@@ -1,4 +1,4 @@
-"""Django settings for the Jastip proxy-purchasing platform."""
+"""Django settings for the ProxyBuying proxy-purchasing platform."""
 
 from pathlib import Path
 
@@ -27,7 +27,7 @@ ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "http://localhost:8019,http://127.0.0.1:8019")
 
 SITE_ID = 1
-SITE_NAME = "Jastip.me"
+SITE_NAME = "ProxyBuying"
 SITE_DOMAIN = os.getenv("SITE_DOMAIN", "localhost:8019")
 
 # Only production should be indexed by search engines. Staging/dev stay noindex
@@ -172,15 +172,15 @@ if env_bool("EMAIL_USE_SMTP", False):
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = os.getenv("EMAIL_HOST", "")
     EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "admin@jastip.me")
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "admin@proxybuying.com")
     EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
     EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
     EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "Jastip.me <admin@jastip.me>")
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@jastip.me")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "ProxyBuying <admin@proxybuying.com>")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@proxybuying.com")
 
 # Send email + WhatsApp notifications off the request/response cycle (in a
 # background thread pool) so a slow SMTP/WhatsApp call never makes an action

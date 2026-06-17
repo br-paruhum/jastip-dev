@@ -28,7 +28,7 @@ PAGES = [
     ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY),
     ("how-to-buyer-first", SitePage.Kind.GENERIC, "How It Works — Buyer First",
      "<p>Coming soon — a guide to posting a Buyer First order and receiving traveler offers.</p>"),
-    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using Jastip.me.</p>"),
+    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using ProxyBuying.</p>"),
     ("faq-buyer-first", SitePage.Kind.GENERIC, "FAQ — Buyer First",
      "<p>Coming soon — frequently asked questions about Buyer First orders.</p>"),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """
@@ -36,13 +36,13 @@ PAGES = [
 only with the counterparty of a transaction and the admin. We store the minimum data needed to
 operate the service and never sell your data.</p>"""),
     ("terms-conditions", SitePage.Kind.TERMS, "Terms & Conditions", """
-<p>By using Jastip.me you agree to act in good faith. Jastip.me is a platform that facilitates
+<p>By using ProxyBuying you agree to act in good faith. ProxyBuying is a platform that facilitates
 proxy purchasing and holds funds in escrow for a 2.5% fee. All correspondence between travelers and
 buyers is conducted through email with a copy to admin.</p>"""),
 ]
 
 FAQS = [
-    ("How much does Jastip.me charge?", "A flat 2.5% commission on the deposit amount. The final balance is released without any extra fee."),
+    ("How much does ProxyBuying charge?", "A flat 2.5% commission on the deposit amount. The final balance is released without any extra fee."),
     ("Are my name and phone number public?", "No. They are shared only with your transaction counterparty and the admin."),
     ("How do payments work?", "Buyers transfer funds to the admin account. Admin verifies each transfer before advancing the transaction, keeping both sides safe."),
     ("What if the traveler rejects my request?", "The travel plan reopens and you can request from any other open trip. No funds change hands until a request is accepted and paid."),
@@ -77,7 +77,7 @@ class Command(BaseCommand):
         if not User.objects.filter(email=admin_email).exists():
             User.objects.create_superuser(
                 email=admin_email, password=os.getenv("ADMIN_PASSWORD", "ChangeMe!2026"),
-                full_name="Jastip Admin", phone_verified=True,
+                full_name="ProxyBuying Admin", phone_verified=True,
             )
             self.stdout.write(self.style.WARNING(
                 f"Created superuser {admin_email} (password from ADMIN_PASSWORD env or 'ChangeMe!2026')"
@@ -120,7 +120,7 @@ class Command(BaseCommand):
         if TravelPlan.objects.exists():
             return
         traveler, created = User.objects.get_or_create(
-            email="traveler.demo@jastip.me",
+            email="traveler.demo@proxybuying.com",
             defaults={"full_name": "Demo Traveler", "phone_country_code": "+62",
                       "phone_number": "81200000001", "phone_verified": True},
         )

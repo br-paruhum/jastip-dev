@@ -31,11 +31,11 @@ cp .env.example .env
 # Edit .env:
 #   DEBUG=False
 #   SECRET_KEY=<generate>
-#   ALLOWED_HOSTS=stg.jastip.me
-#   CSRF_TRUSTED_ORIGINS=https://stg.jastip.me
-#   SITE_DOMAIN=stg.jastip.me
+#   ALLOWED_HOSTS=stg.proxybuying.com
+#   CSRF_TRUSTED_ORIGINS=https://stg.proxybuying.com
+#   SITE_DOMAIN=stg.proxybuying.com
 #   DATABASE_URL=postgres://jastip:STRONG_PASSWORD@127.0.0.1:5432/jastip_stg
-#   EMAIL_USE_SMTP=True  (+ EMAIL_HOST/USER/PASSWORD for admin@jastip.me)
+#   EMAIL_USE_SMTP=True  (+ EMAIL_HOST/USER/PASSWORD for admin@proxybuying.com)
 #   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_SECRET
 #   ADMIN_PASSWORD=<strong>
 
@@ -50,7 +50,7 @@ python manage.py collectstatic --noinput
 
 ```ini
 [Unit]
-Description=Jastip staging (gunicorn)
+Description=ProxyBuying staging (gunicorn)
 After=network.target
 
 [Service]
@@ -74,7 +74,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now jastip-stg
 ```nginx
 server {
     listen 80;
-    server_name stg.jastip.me;
+    server_name stg.proxybuying.com;
 
     location /static/ { alias /var/www/jastip-stg/staticfiles/; }
     location /media/  { alias /var/www/jastip-stg/media/; }
@@ -89,7 +89,7 @@ server {
 }
 ```
 
-Then `sudo certbot --nginx -d stg.jastip.me` for HTTPS.
+Then `sudo certbot --nginx -d stg.proxybuying.com` for HTTPS.
 
 ## 6. WhatsApp bot — runs as a systemd service (auto-starts on boot)
 
@@ -129,6 +129,6 @@ in the app user's crontab (server is on Asia/Jakarta, so this runs 01:00 WIB):
 
 ## Production
 
-Same steps with `jastip-prd`, `jastip_prd` DB, `jastip.me` host, a separate
+Same steps with `jastip-prd`, `jastip_prd` DB, `proxybuying.com` host, a separate
 gunicorn systemd unit on its own port, a `jastip-whatsapp-prd` service, and the
 cron pointed at `/var/www/jastip-prd`.

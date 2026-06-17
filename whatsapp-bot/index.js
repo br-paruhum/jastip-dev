@@ -1,5 +1,5 @@
 /**
- * Jastip.me WhatsApp microservice (Baileys).
+ * ProxyBuying WhatsApp microservice (Baileys).
  *
  * Exposes a tiny HTTP API the Django app calls to send WhatsApp messages.
  * On first run it prints a QR code — scan it with the admin WhatsApp account.
@@ -50,7 +50,7 @@ async function startSock() {
     auth: state,
     logger: baileysLogger,
     printQRInTerminal: false,
-    browser: ['Jastip.me', 'Chrome', '1.0'],
+    browser: ['ProxyBuying', 'Chrome', '1.0'],
     syncFullHistory: false,
     markOnlineOnConnect: false,
   });
@@ -60,7 +60,7 @@ async function startSock() {
   sock.ev.on('connection.update', (update) => {
     const { connection, lastDisconnect, qr } = update;
     if (qr) {
-      console.log('\n  Scan this QR with the Jastip admin WhatsApp');
+      console.log('\n  Scan this QR with the ProxyBuying admin WhatsApp');
       console.log('  (WhatsApp → Linked devices → Link a device):\n');
       qrcode.generate(qr, { small: true });
       console.log('\n  Waiting for you to scan… (a new QR appears every ~20s)\n');

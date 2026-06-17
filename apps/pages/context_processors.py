@@ -19,7 +19,7 @@ def site_globals(request):
         return SiteSettings.load().min_remaining_weight_kg
 
     return {
-        "SITE_NAME": getattr(settings, "SITE_NAME", "Jastip.me"),
+        "SITE_NAME": getattr(settings, "SITE_NAME", "ProxyBuying"),
         "SITE_DOMAIN": getattr(settings, "SITE_DOMAIN", ""),
         "ADSENSE_CLIENT": getattr(settings, "ADSENSE_CLIENT", ""),
         "TURNSTILE_SITE_KEY": getattr(settings, "TURNSTILE_SITE_KEY", ""),

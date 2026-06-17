@@ -27,17 +27,17 @@ POSTS = [
         "“Jastip” means entrusted-buying — travelers carry items home for buyers who want them. Here’s the whole idea in plain English.",
         "01-what-is-jastip.png",
         "2026-06-12",
-        """Ever wanted something that is only sold overseas — a skincare product, a pair of sneakers, a gadget — but the international shipping cost was almost as much as the item itself? Jastip.me was built for exactly that moment.
+        """Ever wanted something that is only sold overseas — a skincare product, a pair of sneakers, a gadget — but the international shipping cost was almost as much as the item itself? ProxyBuying was built for exactly that moment.
 
 “Jastip” is short for “jasa titip”, an Indonesian phrase that means “entrusted-buying service”. The idea is simple: travelers who already have a trip planned carry items home for buyers who want them. You get your product, the traveler earns a little for the space in their luggage, and everyone wins.
 
-Here is how it works in one breath: a traveler posts their trip — where they are going, when, and how much spare luggage weight they have. A buyer finds that trip, requests an item, and pays a deposit. The traveler buys the item abroad, brings it home, and hands it over. Jastip.me sits safely in the middle, holding the funds until both sides are happy.
+Here is how it works in one breath: a traveler posts their trip — where they are going, when, and how much spare luggage weight they have. A buyer finds that trip, requests an item, and pays a deposit. The traveler buys the item abroad, brings it home, and hands it over. ProxyBuying sits safely in the middle, holding the funds until both sides are happy.
 
 Why use a platform instead of just asking a friend? Three reasons: safety, fairness, and convenience. Your money is held securely and only released when the deal is done. Prices and weight are calculated transparently. And you do not need a friend flying at the right time — there is a whole community of travelers to match with.
 
-Jastip.me charges a small 2.5% fee on the transaction. That is it — no hidden mark-ups, no surprise charges.
+ProxyBuying charges a small 2.5% fee on the transaction. That is it — no hidden mark-ups, no surprise charges.
 
-Whether you are a buyer hunting for something from abroad, or a traveler who would like to turn empty luggage space into extra income, Jastip.me is the simplest way to make it happen. Welcome aboard.""",
+Whether you are a buyer hunting for something from abroad, or a traveler who would like to turn empty luggage space into extra income, ProxyBuying is the simplest way to make it happen. Welcome aboard.""",
     ),
     (
         "earn-money-travelling-abroad",
@@ -45,11 +45,11 @@ Whether you are a buyer hunting for something from abroad, or a traveler who wou
         "Fly home now and then? Your spare luggage space can pay for part of the flight — without changing your plans at all.",
         "02-earn-abroad.png",
         "2026-06-10",
-        """If you are studying or working overseas and fly home to Indonesia now and then, you are sitting on something valuable: spare luggage space. With Jastip.me, that space can become real income — without changing your travel plans at all.
+        """If you are studying or working overseas and fly home to Indonesia now and then, you are sitting on something valuable: spare luggage space. With ProxyBuying, that space can become real income — without changing your travel plans at all.
 
 Here is the idea. Before your next trip home, you post a Travel Plan: your route, your travel date, how many kilograms you can spare, and your rate per kilogram. Buyers back home browse trips like yours and send you requests for items they want from your city abroad. You decide which requests to accept.
 
-Once a buyer pays their deposit, Jastip.me confirms the funds are secured, and you go shopping — often for things you might be buying anyway. You record the actual cost and weight, fly home as planned, and hand over the items. After everyone confirms, you are paid the full amount, minus a small 2.5% platform fee.
+Once a buyer pays their deposit, ProxyBuying confirms the funds are secured, and you go shopping — often for things you might be buying anyway. You record the actual cost and weight, fly home as planned, and hand over the items. After everyone confirms, you are paid the full amount, minus a small 2.5% platform fee.
 
 A few reasons students and young professionals love it:
 
@@ -66,13 +66,13 @@ It is a friendly way to offset the cost of a flight home, help people get produc
         "You pay the platform, not a stranger — and funds are released only when you’re satisfied. Here’s the safety net explained.",
         "03-money-safe.png",
         "2026-06-08",
-        """Sending money for something a stranger will buy and carry for you can feel risky. That is exactly the problem Jastip.me is designed to solve. Here is how your money stays protected from start to finish.
+        """Sending money for something a stranger will buy and carry for you can feel risky. That is exactly the problem ProxyBuying is designed to solve. Here is how your money stays protected from start to finish.
 
-It starts with a deposit, not full payment. When a traveler accepts your order, you pay a deposit to the Jastip.me business account — not directly to the traveler. We verify the funds, then tell the traveler their deposit is secured so they can start purchasing. Your money is held by the platform, not handed to anyone yet.
+It starts with a deposit, not full payment. When a traveler accepts your order, you pay a deposit to the ProxyBuying business account — not directly to the traveler. We verify the funds, then tell the traveler their deposit is secured so they can start purchasing. Your money is held by the platform, not handed to anyone yet.
 
-The funds are released only when the deal is done. The traveler buys the items, brings them home, and you receive them. Once you have checked everything and marked the order as clear, the traveler is paid. If something is not right, the funds are still with Jastip.me while it gets sorted out — no one disappears with your money.
+The funds are released only when the deal is done. The traveler buys the items, brings them home, and you receive them. Once you have checked everything and marked the order as clear, the traveler is paid. If something is not right, the funds are still with ProxyBuying while it gets sorted out — no one disappears with your money.
 
-Everything is transparent. The item cost, the shipment weight, and the fees are all calculated openly and shown on your invoice. The only charge Jastip.me takes is a flat 2.5% fee on the transaction. There are no hidden mark-ups.
+Everything is transparent. The item cost, the shipment weight, and the fees are all calculated openly and shown on your invoice. The only charge ProxyBuying takes is a flat 2.5% fee on the transaction. There are no hidden mark-ups.
 
 Your privacy is protected too. Your name and phone number are never shown publicly — they are shared only with the counterparty of your transaction and the admin, so deals stay private and on-platform.
 
@@ -81,16 +81,16 @@ In short: you pay the platform, not a stranger; the money is released only when 
     (
         "buyers-guide-products-from-abroad",
         "A Buyer’s Guide: Authentic Products from Overseas, Hassle-Free",
-        "From finding the right trip to confirming delivery — the simple steps to getting an overseas product through Jastip.me.",
+        "From finding the right trip to confirming delivery — the simple steps to getting an overseas product through ProxyBuying.",
         "04-buyer-guide.png",
         "2026-06-05",
-        """Want a product that is only sold overseas, without paying sky-high shipping or worrying about whether it is genuine? Here is how to get it through Jastip.me, step by step.
+        """Want a product that is only sold overseas, without paying sky-high shipping or worrying about whether it is genuine? Here is how to get it through ProxyBuying, step by step.
 
-Find a trip that matches. Browse the open Travel Plans on Jastip.me. Each one shows the traveler’s route, travel date, available weight, and rate. Pick a trip coming from the city or country where your item is sold.
+Find a trip that matches. Browse the open Travel Plans on ProxyBuying. Each one shows the traveler’s route, travel date, available weight, and rate. Pick a trip coming from the city or country where your item is sold.
 
 Send your order. Click Order, sign in, and fill in what you want — the product, roughly how much it costs, and any details that matter (size, colour, variant). The traveler gets notified by email and WhatsApp.
 
-Wait for acceptance, then pay the deposit. The traveler reviews your request, estimates the cost and weight, and accepts. You then pay a deposit to the Jastip.me business account, held safely until the item is delivered.
+Wait for acceptance, then pay the deposit. The traveler reviews your request, estimates the cost and weight, and accepts. You then pay a deposit to the ProxyBuying business account, held safely until the item is delivered.
 
 Track the progress. The traveler buys your item, records the actual cost and weight, and can upload a photo. You can follow every step from your Profile page.
 
@@ -104,7 +104,7 @@ A few tips for a smooth purchase: be specific about the exact item and variant, 
         "The complete journey from placing an order to receiving your item — transparent at every step.",
         "05-eight-steps.png",
         "2026-06-02",
-        """Curious what actually happens between placing an order and receiving your item on Jastip.me? Here is the whole journey, start to finish.
+        """Curious what actually happens between placing an order and receiving your item on ProxyBuying? Here is the whole journey, start to finish.
 
 1. The traveler posts a Travel Plan — date, route, available weight, shipment cost, and margin.
 
@@ -112,7 +112,7 @@ A few tips for a smooth purchase: be specific about the exact item and variant, 
 
 3. The traveler reviews the request, estimates the cost and weight of each item, and accepts or rejects. The buyer is notified either way.
 
-4. If accepted, the buyer transfers the deposit to the Jastip.me business account. Once the funds are verified, the traveler is told the deposit is secured.
+4. If accepted, the buyer transfers the deposit to the ProxyBuying business account. Once the funds are verified, the traveler is told the deposit is secured.
 
 5. The traveler starts purchasing, records each item’s actual cost, uploads a photo (optional), and notes the actual weight. The invoice updates automatically, and the buyer can follow along from their Profile.
 

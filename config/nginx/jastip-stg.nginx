@@ -1,10 +1,16 @@
+# ProxyBuying staging vhost. Canonical host = stg.proxybuying.com.
+# Legacy stg.jastip.me 301-redirects to stg.proxybuying.com (reuses the old origin cert).
+# TLS uses the wildcard Cloudflare Origin cert for *.proxybuying.com.
+
+# HTTP (both hosts) -> HTTPS stg.proxybuying.com
 server {
     listen 80;
     listen [::]:80;
-    server_name stg.jastip.me;
-    return 301 https://$host$request_uri;
+    server_name stg.proxybuying.com stg.jastip.me;
+    return 301 https://stg.proxybuying.com$request_uri;
 }
 
+# HTTPS legacy stg.jastip.me -> stg.proxybuying.com (reuses old origin cert)
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl;
@@ -12,6 +18,19 @@ server {
 
     ssl_certificate     /etc/ssl/cloudflare/stg.jastip.me.pem;
     ssl_certificate_key /etc/ssl/cloudflare/stg.jastip.me.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    return 301 https://stg.proxybuying.com$request_uri;
+}
+
+# HTTPS stg.proxybuying.com — the application
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name stg.proxybuying.com;
+
+    ssl_certificate     /etc/ssl/cloudflare/proxybuying.com.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/proxybuying.com.key;
     ssl_protocols TLSv1.2 TLSv1.3;
 
     client_max_body_size 5M;

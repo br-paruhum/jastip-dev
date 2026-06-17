@@ -11,7 +11,7 @@ HOUSE_PROMOS = [
         "order": 1,
     },
     {
-        "title": "New to Jastip.me?",
+        "title": "New to ProxyBuying?",
         "body": "Learn how proxy purchasing works, step by step, before you place your first order.",
         "url": "/how-to/",
         "cta_label": "Learn more",

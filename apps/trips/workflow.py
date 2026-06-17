@@ -212,7 +212,7 @@ def on_new_message(message):
         )
         send_whatsapp(
             to_user=user,
-            text=f"Jastip.me: 📩 New message on request {req.reference}. Please open the request page to reply.",
+            text=f"ProxyBuying: 📩 New message on request {req.reference}. Please open the request page to reply.",
             event="chat_message",
         )
 

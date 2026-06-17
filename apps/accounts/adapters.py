@@ -19,7 +19,7 @@ def _static_url(path: str) -> str:
 
 class AccountAdapter(DefaultAccountAdapter):
     """Sends HTML account emails (confirmation, password reset) that extend
-    email_base.html with the Jastip.me logo header.
+    email_base.html with the ProxyBuying logo header.
     """
 
     def render_mail(self, template_prefix, email, context, headers=None):

@@ -1,46 +1,59 @@
-# Jastip production vhost. Canonical host = www.jastip.me; apex 301s to www.
-# (Cloudflare already redirects apex->www at the edge; the origin apex block below
-#  is a belt-and-braces fallback for any request that reaches the origin directly.)
+# ProxyBuying production vhost. Canonical host = www.proxybuying.com; apex 301s to www.
+# The legacy jastip.me hosts 301-redirect to the matching proxybuying.com URL so old
+# links/SEO keep working (Cloudflare also fronts both zones at the edge).
 # Install:
 #   sudo cp jastip-prd.nginx /etc/nginx/sites-available/jastip-prd
 #   sudo cp security-headers.conf /etc/nginx/snippets/jastip-security-headers.conf
 #   sudo cp security-headers-admin.conf /etc/nginx/snippets/jastip-security-headers-admin.conf
-#   sudo ln -s /etc/nginx/sites-available/jastip-prd /etc/nginx/sites-enabled/
+#   sudo ln -s /etc/nginx/sites-available/jastip-prd /etc/nginx/sites-enabled/   # (already linked)
 #   sudo nginx -t && sudo systemctl reload nginx
-# TLS reuses the existing Cloudflare Origin cert (already covers jastip.me + *.jastip.me).
-# Copy it to the prod-named paths first:
-#   sudo cp /etc/ssl/cloudflare/stg.jastip.me.pem /etc/ssl/cloudflare/jastip.me.pem
-#   sudo cp /etc/ssl/cloudflare/stg.jastip.me.key /etc/ssl/cloudflare/jastip.me.key
+# TLS uses the Cloudflare Origin cert for proxybuying.com (covers proxybuying.com + *.proxybuying.com):
+#   sudo cp cert.txt /etc/ssl/cloudflare/proxybuying.com.pem
+#   sudo cp key.txt  /etc/ssl/cloudflare/proxybuying.com.key   # chmod 600
+# The jastip.me redirect blocks keep using the existing /etc/ssl/cloudflare/jastip.me.* cert.
 
-# HTTP (apex + www) -> HTTPS www
+# HTTP (all hosts) -> HTTPS www.proxybuying.com
 server {
     listen 80;
     listen [::]:80;
-    server_name jastip.me www.jastip.me;
-    return 301 https://www.jastip.me$request_uri;
+    server_name proxybuying.com www.proxybuying.com jastip.me www.jastip.me;
+    return 301 https://www.proxybuying.com$request_uri;
 }
 
-# HTTPS apex -> www (canonical)
+# HTTPS legacy jastip.me (apex + www) -> proxybuying.com  (reuses old origin cert)
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl;
-    server_name jastip.me;
+    server_name jastip.me www.jastip.me;
 
     ssl_certificate     /etc/ssl/cloudflare/jastip.me.pem;
     ssl_certificate_key /etc/ssl/cloudflare/jastip.me.key;
     ssl_protocols TLSv1.2 TLSv1.3;
 
-    return 301 https://www.jastip.me$request_uri;
+    return 301 https://www.proxybuying.com$request_uri;
 }
 
-# HTTPS www — the application
+# HTTPS apex proxybuying.com -> www (canonical)
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl;
-    server_name www.jastip.me;
+    server_name proxybuying.com;
 
-    ssl_certificate     /etc/ssl/cloudflare/jastip.me.pem;
-    ssl_certificate_key /etc/ssl/cloudflare/jastip.me.key;
+    ssl_certificate     /etc/ssl/cloudflare/proxybuying.com.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/proxybuying.com.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    return 301 https://www.proxybuying.com$request_uri;
+}
+
+# HTTPS www.proxybuying.com — the application
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl;
+    server_name www.proxybuying.com;
+
+    ssl_certificate     /etc/ssl/cloudflare/proxybuying.com.pem;
+    ssl_certificate_key /etc/ssl/cloudflare/proxybuying.com.key;
     ssl_protocols TLSv1.2 TLSv1.3;
 
     client_max_body_size 5M;

@@ -395,7 +395,7 @@ def send_otp(request):
     code = user.generate_phone_otp()
     send_whatsapp(
         to_user=user,
-        text=f"Your Jastip.me verification code is {code}. It expires in 10 minutes.",
+        text=f"Your ProxyBuying verification code is {code}. It expires in 10 minutes.",
         event="phone_otp",
     )
     messages.info(request, "Verification code sent to your WhatsApp.")

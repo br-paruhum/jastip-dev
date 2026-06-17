@@ -137,4 +137,4 @@ def send_whatsapp(*, to_user=None, to_e164=None, text, event=""):
 
 def notify_see_email(user, event=""):
     """The recurring 'Please see your email' WhatsApp reminder."""
-    return send_whatsapp(to_user=user, text="Jastip.me: Please see your email.", event=event)
+    return send_whatsapp(to_user=user, text="ProxyBuying: Please see your email.", event=event)

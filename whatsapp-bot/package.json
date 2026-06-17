@@ -1,7 +1,7 @@
 {
   "name": "jastip-whatsapp-bot",
   "version": "1.0.0",
-  "description": "Baileys-based WhatsApp microservice for Jastip.me notifications",
+  "description": "Baileys-based WhatsApp microservice for ProxyBuying notifications",
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
