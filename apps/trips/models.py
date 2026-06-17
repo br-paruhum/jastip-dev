@@ -958,6 +958,33 @@ class TravelerOffer(models.Model):
         return True
 
     @property
+    def balance_pending(self) -> bool:
+        """A balance proof has been submitted but not yet verified by admin."""
+        if self.balance_settled or not hasattr(self, "transaction"):
+            return False
+        return self.transaction.payments.filter(
+            direction=LegPayment.Direction.INBOUND,
+            kind=LegPayment.Kind.BALANCE,
+            status=LegPayment.PaymentStatus.PENDING,
+        ).exists()
+
+    @property
+    def balance_proof_url(self) -> str:
+        """URL of the most recently uploaded balance proof, if any."""
+        if not hasattr(self, "transaction"):
+            return ""
+        p = (
+            self.transaction.payments.filter(
+                direction=LegPayment.Direction.INBOUND,
+                kind=LegPayment.Kind.BALANCE,
+            )
+            .exclude(proof="")
+            .order_by("-id")
+            .first()
+        )
+        return p.proof.url if p and p.proof else ""
+
+    @property
     def dropoff_refund_amount(self) -> Decimal:
         """Outstanding deposit refund recorded after a missed drop-off
         (created by the expire_missed_dropoffs cron) — verified or not, for

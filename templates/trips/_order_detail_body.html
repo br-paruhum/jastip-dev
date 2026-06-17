@@ -158,6 +158,10 @@
             <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|intcomma }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|intcomma }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
             {% endif %}
             {% if leg.extra_due > 0 and not leg.balance_settled %}
+              {% if leg.balance_pending %}
+              <p class="muted" style="margin:0 0 6px">Balance proof submitted — pending fund verification.</p>
+              {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
+              {% else %}
               <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|intcomma }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
               <table class="invoice" style="max-width:360px;margin:0 0 10px">
                 <tr><td style="width:110px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
@@ -170,6 +174,7 @@
                 <input type="file" name="proof" accept="image/png,image/jpeg" required>
                 <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
               </form>
+              {% endif %}
             {% elif leg.refund_due > 0 and not leg.balance_settled %}
               <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|intcomma }}</p>
               {% if leg.refund_bank_details %}
