@@ -328,7 +328,7 @@ def leg_weight_verify(request, pk):
     offer = get_object_or_404(
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_DROPPED_OFF
     )
-    detail_url = reverse("accounts:profile") + "#my-offers"
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     try:
         weight = Decimal(request.POST.get("agreed_weight_kg", "0"))
     except InvalidOperation:
@@ -353,7 +353,7 @@ def leg_received(request, pk):
     offer = get_object_or_404(
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.WEIGHT_VERIFIED
     )
-    detail_url = reverse("accounts:profile") + "#my-offers"
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     offer.leg_status = LegStatus.PACKAGE_RECEIVED
     offer.received_at = timezone.now()
     offer.save(update_fields=["leg_status", "received_at", "updated_at"])
@@ -369,7 +369,7 @@ def leg_arrived(request, pk):
     offer = get_object_or_404(
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_RECEIVED
     )
-    detail_url = reverse("accounts:profile") + "#my-offers"
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     offer.leg_status = LegStatus.PACKAGE_ARRIVED
     offer.arrived_at = timezone.now()
     offer.save(update_fields=["leg_status", "arrived_at", "updated_at"])
@@ -486,7 +486,7 @@ def leg_reship_cost(request, pk):
     offer = get_object_or_404(
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.RESHIP_REQUESTED
     )
-    detail_url = reverse("accounts:profile") + "#my-offers"
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     try:
         amount = Decimal(request.POST.get("reshipment_cost_amount", "0"))
     except InvalidOperation:
@@ -538,7 +538,7 @@ def leg_reship_ship(request, pk):
     offer = get_object_or_404(
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.RESHIP_COST_SENT
     )
-    detail_url = reverse("accounts:profile") + "#my-offers"
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     awb = request.POST.get("awb_number", "").strip()
     if not awb:
         messages.error(request, "Enter an AWB number before submitting.")

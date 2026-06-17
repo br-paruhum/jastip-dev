@@ -24,6 +24,61 @@
     </td></tr>
     {% if leg_offer.agreed_weight_kg %}<tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg }} kg</td></tr>{% endif %}
   </table>
-  <p class="help mt-2">Read-only overview. Your actions for this leg (weight verification, marking received, etc.)
-    appear in the <strong>My Travel Plans</strong> table once the buyer drops off the package.</p>
+</div></div>
+
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Next Step</h3>
+  {% if leg_offer.offer_status == "pending" %}
+    <p class="muted">Your offer is pending the buyer's decision.</p>
+  {% elif not leg_offer.leg_status %}
+    <p class="muted">Waiting for the buyer to pay the deposit and drop off the package. Once it's dropped off,
+      you'll weigh it and confirm receipt here.</p>
+  {% elif leg_offer.leg_status == "package_dropped_off" %}
+    <p class="help" style="margin:0 0 10px">The buyer has dropped off the package. Weigh it and enter the
+      final weight — this is final and not subject to dispute.</p>
+    <form method="post" action="{% url 'trips:leg_weight_verify' leg_offer.id %}" style="display:flex;flex-flow:row wrap;gap:14px;align-items:flex-end">
+      {% csrf_token %}
+      <div class="form-field" style="margin:0">
+        <label>Final Weight (kg)</label>
+        <input type="number" step="0.01" min="0.01" name="agreed_weight_kg" style="width:160px" placeholder="kg" required>
+      </div>
+      <button class="btn btn-primary btn-sm" type="submit">Verify Weight</button>
+    </form>
+  {% elif leg_offer.leg_status == "weight_verified" %}
+    <p class="help" style="margin:0 0 10px">Final weight: <strong>{{ leg_offer.agreed_weight_kg }} kg</strong>.
+      Confirm you've taken custody of the package.</p>
+    <form method="post" action="{% url 'trips:leg_received' leg_offer.id %}">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-sm" type="submit">Package Received</button>
+    </form>
+  {% elif leg_offer.leg_status == "package_received" %}
+    <p class="help" style="margin:0 0 10px">Package in your custody. Mark it arrived once you reach the destination.</p>
+    <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}">
+      {% csrf_token %}
+      <button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button>
+    </form>
+  {% elif leg_offer.leg_status == "package_arrived" %}
+    <p class="muted">Arrived. Awaiting the buyer to settle any weight-delta balance and choose pickup or reship.</p>
+  {% elif leg_offer.leg_status == "reship_requested" %}
+    <p class="help" style="margin:0 0 10px">The buyer wants this reshipped. Send the reship cost and your bank details.</p>
+    <form method="post" action="{% url 'trips:leg_reship_cost' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:280px">
+      {% csrf_token %}
+      <input type="number" step="0.01" min="0.01" name="reshipment_cost_amount" placeholder="Cost" required>
+      <input type="text" name="reshipment_bank_name" placeholder="Bank name" required>
+      <input type="text" name="reshipment_bank_account_no" placeholder="Account no." required>
+      <input type="text" name="reshipment_bank_account_name" placeholder="Account name" required>
+      <input type="file" name="reshipment_cost_proof" accept="image/png,image/jpeg">
+      <button class="btn btn-primary btn-sm" type="submit">Send Cost</button>
+    </form>
+  {% elif leg_offer.leg_status == "reship_cost_sent" %}
+    <p class="help" style="margin:0 0 10px">Once the buyer has paid the reship cost, enter the AWB and mark it shipped.</p>
+    <form method="post" action="{% url 'trips:leg_reship_ship' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:280px">
+      {% csrf_token %}
+      <input type="text" name="awb_number" placeholder="AWB number" required>
+      <input type="file" name="awb_document">
+      <button class="btn btn-primary btn-sm" type="submit">Mark Shipped</button>
+    </form>
+  {% else %}
+    <p class="muted">{{ leg_offer.get_leg_status_display }}</p>
+  {% endif %}
 </div></div>
