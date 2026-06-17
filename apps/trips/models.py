@@ -748,6 +748,12 @@ class TravelerOffer(models.Model):
     awb_number = models.CharField(max_length=80, blank=True)
     awb_document = models.FileField(upload_to="leg_awb/", blank=True, null=True)
 
+    # Customs duty the traveler paid at the destination for THIS leg, recorded
+    # at the arrival step. Reimbursable by the buyer (folded into the balance).
+    custom_fare_currency = models.CharField(max_length=3, choices=Currency.choices, blank=True, default="")
+    custom_fare_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    custom_fare_proof = models.ImageField(upload_to="leg_custom_fare/", blank=True, null=True, storage=webp_storage)
+
     # Buyer's bank details for receiving a refund on this leg, free text.
     refund_bank_details = models.TextField(blank=True)
 
@@ -843,16 +849,60 @@ class TravelerOffer(models.Model):
         return (delta_kg * self.ask_cost_per_kg).quantize(TWO_PLACES)
 
     @property
+    def custom_fare_in_order_currency(self) -> Decimal:
+        """Customs duty converted to the order's currency (BCA sell_rate = IDR
+        per 1 unit of foreign currency). Mirrors BuyRequest.actual_custom."""
+        if not self.custom_fare_amount:
+            return Decimal("0.00")
+        inv = self.order.currency
+        fare_ccy = self.custom_fare_currency or inv
+        if fare_ccy == inv:
+            return self.custom_fare_amount.quantize(TWO_PLACES)
+        if fare_ccy == "IDR" and inv != "IDR":
+            try:
+                rate = ExchangeRate.objects.get(code=inv, is_active=True)
+                if rate.sell_rate:
+                    return (self.custom_fare_amount / rate.sell_rate).quantize(TWO_PLACES)
+            except ExchangeRate.DoesNotExist:
+                pass
+        elif inv == "IDR" and fare_ccy != "IDR":
+            try:
+                rate = ExchangeRate.objects.get(code=fare_ccy, is_active=True)
+                if rate.sell_rate:
+                    return (self.custom_fare_amount * rate.sell_rate).quantize(TWO_PLACES)
+            except ExchangeRate.DoesNotExist:
+                pass
+        return self.custom_fare_amount.quantize(TWO_PLACES)
+
+    @property
+    def custom_fare_needs_conversion(self) -> bool:
+        return bool(
+            self.custom_fare_amount
+            and self.custom_fare_currency
+            and self.custom_fare_currency != self.order.currency
+        )
+
+    @property
+    def custom_fare_proof_url(self) -> str:
+        return self.custom_fare_proof.url if self.custom_fare_proof else ""
+
+    @property
+    def settlement_net(self) -> Decimal:
+        """What the buyer still owes the traveler at arrival: the weight-delta
+        plus the reimbursable customs duty. Negative = refund to the buyer."""
+        return (self.weight_delta + self.custom_fare_in_order_currency).quantize(TWO_PLACES)
+
+    @property
     def extra_due(self) -> Decimal:
-        """Amount the buyer still owes (final weight came in heavier than allocated)."""
-        d = self.weight_delta
-        return d if d > 0 else Decimal("0.00")
+        """Amount the buyer still owes (heavier weight and/or customs duty)."""
+        n = self.settlement_net
+        return n if n > 0 else Decimal("0.00")
 
     @property
     def refund_due(self) -> Decimal:
-        """Amount to refund the buyer (final weight came in lighter than allocated)."""
-        d = self.weight_delta
-        return -d if d < 0 else Decimal("0.00")
+        """Amount to refund the buyer (lighter weight outweighs any duty)."""
+        n = self.settlement_net
+        return -n if n < 0 else Decimal("0.00")
 
     @property
     def balance_paid_amount(self) -> Decimal:
@@ -932,7 +982,10 @@ class LegTransaction(models.Model):
 
     @property
     def payout_to_traveler(self) -> Decimal:
-        return (self.gross_amount - self.commission_amount).quantize(TWO_PLACES)
+        # Customs duty is reimbursed in full (no commission charged on it).
+        return (
+            self.gross_amount - self.commission_amount + self.leg.custom_fare_in_order_currency
+        ).quantize(TWO_PLACES)
 
 
 class LegPayment(models.Model):

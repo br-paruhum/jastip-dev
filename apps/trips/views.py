@@ -24,6 +24,7 @@ from .forms import (
     AWBForm,
     BuyRequestForm,
     CustomFareForm,
+    LegCustomFareForm,
     MessageForm,
     OrderForm,
     OrderItemFormSet,
@@ -382,13 +383,21 @@ def leg_arrived(request, pk):
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_RECEIVED
     )
     detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
+    # Traveler records any customs duty paid at the destination (reimbursable).
+    form = LegCustomFareForm(request.POST, request.FILES, instance=offer)
+    if not form.is_valid():
+        for errs in form.errors.values():
+            for e in errs:
+                messages.error(request, e)
+        return redirect(detail_url)
+    form.save()
     offer.leg_status = LegStatus.PACKAGE_ARRIVED
     offer.arrived_at = timezone.now()
     offer.save(update_fields=["leg_status", "arrived_at", "updated_at"])
     offer.order.recompute_status()
     messages.success(
         request,
-        "Marked as arrived. The buyer will settle any weight-delta balance and choose pickup or reship.",
+        "Marked as arrived. The buyer will reimburse any customs duty and settle the balance, then choose pickup or reship.",
     )
     return redirect(detail_url)
 

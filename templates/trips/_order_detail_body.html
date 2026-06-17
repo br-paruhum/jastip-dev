@@ -154,6 +154,9 @@
             <span class="badge badge-success">Received by traveler</span>
           {% elif leg.leg_status == "package_arrived" %}
             <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg }} kg (allocated {{ leg.allocated_weight_kg }} kg)</p>
+            {% if leg.custom_fare_amount %}
+            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|intcomma }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|intcomma }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
+            {% endif %}
             {% if leg.extra_due > 0 and not leg.balance_settled %}
               <p class="muted" style="margin:0 0 4px">Balance due: {{ bf_order.currency }} {{ leg.extra_due|intcomma }}</p>
               <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">

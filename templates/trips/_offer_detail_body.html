@@ -49,9 +49,15 @@
     <p class="muted">Waiting for the buyer's deposit to clear before drop-off.</p>
     {% endif %}
   {% elif leg_offer.leg_status == "package_received" %}
-    <p class="help" style="margin:0 0 10px">Package in your custody. Mark it arrived once you reach the destination.</p>
-    <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}">
+    <p class="help" style="margin:0 0 10px">Package in your custody. When you reach the destination, add any customs
+      duty you paid there — it's reimbursable by the buyer, so upload the proof. Leave the amount zero if none.</p>
+    <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;max-width:420px">
       {% csrf_token %}
+      <div class="form-row">
+        <div class="form-field"><label>Custom Duty Currency</label>{{ leg_arrive_form.custom_fare_currency }}</div>
+        <div class="form-field"><label>Custom Duty Amount</label>{{ leg_arrive_form.custom_fare_amount }}</div>
+      </div>
+      <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ leg_arrive_form.custom_fare_proof }}</div>
       <button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button>
     </form>
   {% elif leg_offer.leg_status == "package_arrived" %}

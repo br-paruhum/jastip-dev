@@ -11,9 +11,9 @@ from django.views.decorators.http import require_POST
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
-    AWBForm, BuyRequestForm, CustomFareForm, MessageForm, OrderForm, OrderItemFormSet,
-    PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm, RequestItemFormSet,
-    ReviewForm, ReviewItemFormSet, TravelPlanForm, TravelerOfferForm,
+    AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
+    OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
+    RequestItemFormSet, ReviewForm, ReviewItemFormSet, TravelPlanForm, TravelerOfferForm,
 )
 from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
 
@@ -203,11 +203,13 @@ def profile(request):
     # offer (?offer=<id>#offer-detail). Read-only — the traveler's actions live
     # in the My Travel Plans table; this is just a leg overview both sides can see.
     leg_offer = None
+    leg_arrive_form = None
     offer_id = request.GET.get("offer")
     if offer_id:
         _o = TravelerOffer.objects.select_related("order").filter(pk=offer_id).first()
         if _o and (user == _o.traveler or user.is_staff):
             leg_offer = _o
+            leg_arrive_form = LegCustomFareForm(instance=_o)
 
     # Review panel (?review=<id>#review-order) — traveler sends estimate.
     review_req = review_form = review_formset = review_is_edit = None
@@ -327,6 +329,7 @@ def profile(request):
             "order": order,
             "plan": plan,
             "leg_offer": leg_offer,
+            "leg_arrive_form": leg_arrive_form,
             "plan_order_form": plan_order_form,
             "plan_order_formset": plan_order_formset,
             "review_req": review_req,
