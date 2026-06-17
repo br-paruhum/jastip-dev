@@ -53,12 +53,13 @@
       duty you paid there — it's reimbursable by the buyer, so upload the proof. Leave the amount zero if none.</p>
     <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;max-width:420px">
       {% csrf_token %}
+      {{ leg_arrive_form.custom_fare_currency }}
       <div class="form-row">
-        <div class="form-field"><label>Custom Duty Currency</label>{{ leg_arrive_form.custom_fare_currency }}</div>
+        <div class="form-field"><label>Custom Duty Currency</label><div class="static-field">IDR</div></div>
         <div class="form-field"><label>Custom Duty Amount</label>{{ leg_arrive_form.custom_fare_amount }}</div>
       </div>
       <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ leg_arrive_form.custom_fare_proof }}</div>
-      <button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button>
+      <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button></div>
     </form>
   {% elif leg_offer.leg_status == "package_arrived" %}
     <p class="muted">Arrived. Awaiting the buyer to settle any weight-delta balance and choose pickup or reship.</p>

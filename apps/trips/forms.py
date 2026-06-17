@@ -361,20 +361,25 @@ class CustomFareForm(forms.ModelForm):
 
 
 class LegCustomFareForm(forms.ModelForm):
-    """Traveler at a leg's arrival: customs duty paid at destination (defaults
-    to IDR). Reimbursable by the buyer."""
+    """Traveler at a leg's arrival: customs duty paid at destination. Always
+    in IDR (the destination currency); converted to the order currency via the
+    kurs/fx table. Reimbursable by the buyer."""
 
     class Meta:
         model = TravelerOffer
         fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
         widgets = {
+            "custom_fare_currency": forms.HiddenInput(),
             "custom_fare_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if not self.instance.custom_fare_currency:
-            self.initial["custom_fare_currency"] = Currency.IDR
+        self.initial["custom_fare_currency"] = Currency.IDR
+
+    def clean_custom_fare_currency(self):
+        # Duty is always paid in IDR at the destination — force it.
+        return Currency.IDR
 
 
 class MessageForm(forms.ModelForm):
