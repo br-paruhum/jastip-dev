@@ -140,10 +140,7 @@
           <div class="eyebrow" style="margin-bottom:6px">Next Step</div>
           {% if not leg.leg_status %}
             {% if leg.address_revealed %}
-              <form method="post" action="{% url 'trips:leg_dropped_off' leg.id %}">
-                {% csrf_token %}
-                <button class="btn btn-primary btn-sm" type="submit">Mark Dropped Off</button>
-              </form>
+              <span class="muted">Awaiting drop-off &amp; weighing by the traveler</span>
             {% elif leg.deposit_pending %}
               <span class="muted">Pending fund verification</span>
             {% else %}

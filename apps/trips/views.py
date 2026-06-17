@@ -325,10 +325,16 @@ def leg_dropped_off(request, pk):
 @profile_required
 @require_POST
 def leg_weight_verify(request, pk):
+    # The traveler records the drop-off and the final weight in one step,
+    # done in front of the buyer. Merges drop-off + weighing + receipt.
     offer = get_object_or_404(
-        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_DROPPED_OFF
+        TravelerOffer, pk=pk, traveler=request.user,
+        offer_status=OfferStatus.SELECTED, leg_status__isnull=True,
     )
     detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
+    if not offer.deposit_verified:
+        messages.error(request, "The buyer's deposit must clear before drop-off.")
+        return redirect(detail_url)
     try:
         weight = Decimal(request.POST.get("agreed_weight_kg", "0"))
     except InvalidOperation:
@@ -337,12 +343,18 @@ def leg_weight_verify(request, pk):
         messages.error(request, "Enter a valid final weight.")
         return redirect(detail_url)
 
+    now = timezone.now()
     offer.agreed_weight_kg = weight
-    offer.leg_status = LegStatus.WEIGHT_VERIFIED
-    offer.weight_verified_at = timezone.now()
-    offer.save(update_fields=["agreed_weight_kg", "leg_status", "weight_verified_at", "updated_at"])
+    offer.leg_status = LegStatus.PACKAGE_RECEIVED
+    offer.dropped_off_at = now
+    offer.weight_verified_at = now
+    offer.received_at = now
+    offer.save(update_fields=[
+        "agreed_weight_kg", "leg_status", "dropped_off_at",
+        "weight_verified_at", "received_at", "updated_at",
+    ])
     offer.order.recompute_status()
-    messages.success(request, "Final weight recorded — this is final and not subject to dispute.")
+    messages.success(request, f"Drop-off recorded — final weight {weight} kg. This is final and not subject to dispute.")
     return redirect(detail_url)
 
 

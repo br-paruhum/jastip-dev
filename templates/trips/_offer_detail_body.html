@@ -31,26 +31,20 @@
   {% if leg_offer.offer_status == "pending" %}
     <p class="muted">Your offer is pending the buyer's decision.</p>
   {% elif not leg_offer.leg_status %}
-    <p class="muted">Waiting for the buyer to pay the deposit and drop off the package. Once it's dropped off,
-      you'll weigh it and confirm receipt here.</p>
-  {% elif leg_offer.leg_status == "package_dropped_off" %}
-    <p class="help" style="margin:0 0 10px">The buyer has dropped off the package. Weigh it and enter the
-      final weight — this is final and not subject to dispute.</p>
+    {% if leg_offer.deposit_verified %}
+    <p class="help" style="margin:0 0 10px">The buyer is handing over the package. Weigh it in front of the buyer,
+      enter the final weight, and mark the drop-off — this weight is final and not subject to dispute.</p>
     <form method="post" action="{% url 'trips:leg_weight_verify' leg_offer.id %}" style="display:flex;flex-flow:row wrap;gap:14px;align-items:flex-end">
       {% csrf_token %}
       <div class="form-field" style="margin:0">
         <label>Final Weight (kg)</label>
         <input type="number" step="0.01" min="0.01" name="agreed_weight_kg" style="width:160px" placeholder="kg" required>
       </div>
-      <button class="btn btn-primary btn-sm" type="submit">Verify Weight</button>
+      <button class="btn btn-primary btn-sm" type="submit">Mark Drop-Off</button>
     </form>
-  {% elif leg_offer.leg_status == "weight_verified" %}
-    <p class="help" style="margin:0 0 10px">Final weight: <strong>{{ leg_offer.agreed_weight_kg }} kg</strong>.
-      Confirm you've taken custody of the package.</p>
-    <form method="post" action="{% url 'trips:leg_received' leg_offer.id %}">
-      {% csrf_token %}
-      <button class="btn btn-primary btn-sm" type="submit">Package Received</button>
-    </form>
+    {% else %}
+    <p class="muted">Waiting for the buyer's deposit to clear before drop-off.</p>
+    {% endif %}
   {% elif leg_offer.leg_status == "package_received" %}
     <p class="help" style="margin:0 0 10px">Package in your custody. Mark it arrived once you reach the destination.</p>
     <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}">
