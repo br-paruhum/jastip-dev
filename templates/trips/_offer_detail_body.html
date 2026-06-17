@@ -8,6 +8,9 @@
   {% else %}
     <span class="badge badge-muted">{{ leg_offer.get_offer_status_display }}</span>
   {% endif %}
+  {% if leg_offer.leg_status %}
+    <a class="btn btn-outline btn-sm" style="margin-left:auto" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}" target="_blank">Print Customs Invoice</a>
+  {% endif %}
 </div>
 
 <div class="card mt-2"><div class="card-body">
