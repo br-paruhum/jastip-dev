@@ -199,6 +199,16 @@ def profile(request):
             plan_order_form = BuyRequestForm()
             plan_order_formset = RequestItemFormSet(instance=BuyRequest())
 
+    # Buyer-first leg detail as an in-page panel for the *traveler* who owns the
+    # offer (?offer=<id>#offer-detail). Read-only — the traveler's actions live
+    # in the My Travel Plans table; this is just a leg overview both sides can see.
+    leg_offer = None
+    offer_id = request.GET.get("offer")
+    if offer_id:
+        _o = TravelerOffer.objects.select_related("order").filter(pk=offer_id).first()
+        if _o and (user == _o.traveler or user.is_staff):
+            leg_offer = _o
+
     # Review panel (?review=<id>#review-order) — traveler sends estimate.
     review_req = review_form = review_formset = review_is_edit = None
     review_id = request.GET.get("review")
@@ -316,6 +326,7 @@ def profile(request):
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,
+            "leg_offer": leg_offer,
             "plan_order_form": plan_order_form,
             "plan_order_formset": plan_order_formset,
             "review_req": review_req,

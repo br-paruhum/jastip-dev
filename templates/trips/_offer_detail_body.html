@@ -1,0 +1,29 @@
+{% load humanize %}
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+  <span class="eyebrow" style="margin:0">Leg {{ leg_offer.order.reference }} · {{ leg_offer.route }}</span>
+  {% if leg_offer.leg_status %}
+    {% include "trips/_status_badge.html" with label=leg_offer.get_leg_status_display tone="info" %}
+  {% elif leg_offer.offer_status == "selected" %}
+    <span class="badge badge-warning">Awaiting drop-off</span>
+  {% else %}
+    <span class="badge badge-muted">{{ leg_offer.get_offer_status_display }}</span>
+  {% endif %}
+</div>
+
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Your Leg</h3>
+  <table class="invoice">
+    <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
+    <tr><td>Allocated weight</td><td class="num-right">{{ leg_offer.allocated_weight_kg|default:leg_offer.avail_kg }} kg</td></tr>
+    <tr><td>Your ask rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|intcomma }} / kg</td></tr>
+    <tr><td>Drop-off deadline</td><td class="num-right">{{ leg_offer.drop_off_deadline|date:"d-M-Y" }}</td></tr>
+    <tr><td>Deposit</td><td class="num-right">
+      {% if leg_offer.deposit_verified %}<span class="badge badge-success">Verified</span>
+      {% elif leg_offer.deposit_pending %}<span class="badge badge-warning">Awaiting verification</span>
+      {% else %}<span class="badge badge-muted">Awaiting buyer's deposit</span>{% endif %}
+    </td></tr>
+    {% if leg_offer.agreed_weight_kg %}<tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg }} kg</td></tr>{% endif %}
+  </table>
+  <p class="help mt-2">Read-only overview. Your actions for this leg (weight verification, marking received, etc.)
+    appear in the <strong>My Travel Plans</strong> table once the buyer drops off the package.</p>
+</div></div>

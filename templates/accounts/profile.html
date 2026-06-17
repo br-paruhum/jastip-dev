@@ -267,6 +267,13 @@
         </div>
         {% endif %}
 
+        {% if leg_offer %}
+        <!-- Panel: Traveler's buyer-first leg detail (read-only) -->
+        <div data-panel="offer-detail" data-origin="travel-plans">
+          {% include "trips/_offer_detail_body.html" %}
+        </div>
+        {% endif %}
+
         {% if review_req %}
         <!-- Panel: Review order (traveler sends estimate) -->
         <div data-panel="review-order" data-origin="travel-plans">
