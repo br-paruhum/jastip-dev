@@ -86,3 +86,18 @@
     <p class="muted">{{ leg_offer.get_leg_status_display }}</p>
   {% endif %}
 </div></div>
+
+{% if leg_offer.payout_ready and leg_offer.transaction %}
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Your Payout</h3>
+  <table class="invoice" style="max-width:440px">
+    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.deposit_due|intcomma }}</td></tr>
+    <tr><td>Weight adjustment</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.weight_delta|intcomma }}</td></tr>
+    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|intcomma }}</td></tr>
+    <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|intcomma }}</td></tr>
+    <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|intcomma }}</td></tr>
+    <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|intcomma }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
+  </table>
+  <p class="help mt-2">The platform will transfer this amount to you (manually) once the buyer confirms pickup or receipt.</p>
+</div></div>
+{% endif %}

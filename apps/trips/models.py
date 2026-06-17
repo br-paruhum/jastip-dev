@@ -927,6 +927,15 @@ class TravelerOffer(models.Model):
         return self._idr_equivalent(self.extra_due)
 
     @property
+    def payout_ready(self) -> bool:
+        """The leg has arrived, so the traveler payout figures are final."""
+        return self.leg_status in {
+            LegStatus.PACKAGE_ARRIVED, LegStatus.READY_FOR_PICKUP,
+            LegStatus.RESHIP_REQUESTED, LegStatus.RESHIP_COST_SENT,
+            LegStatus.RESHIPPING, LegStatus.CLEAR, LegStatus.CLOSED,
+        }
+
+    @property
     def balance_paid_amount(self) -> Decimal:
         if not hasattr(self, "transaction"):
             return Decimal("0.00")
@@ -1035,6 +1044,19 @@ class LegTransaction(models.Model):
         return (
             self.gross_amount - self.commission_amount + self.leg.custom_fare_in_order_currency
         ).quantize(TWO_PLACES)
+
+    @property
+    def custom_fare(self) -> Decimal:
+        return self.leg.custom_fare_in_order_currency
+
+    @property
+    def subtotal_before_fee(self) -> Decimal:
+        """Carrying fee (final weight × ask) + reimbursable customs duty."""
+        return (self.gross_amount + self.custom_fare).quantize(TWO_PLACES)
+
+    @property
+    def payout_to_traveler_idr(self) -> "Decimal | None":
+        return self.leg._idr_equivalent(self.payout_to_traveler)
 
 
 class LegPayment(models.Model):
