@@ -188,19 +188,28 @@
                 </form>
               {% endif %}
             {% elif not leg.fulfillment_method %}
-              <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="fulfillment_method" value="pickup">
-                  <button class="btn btn-primary btn-sm" type="submit">Pickup</button>
-                </form>
-                <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}" style="display:flex;gap:6px;align-items:center">
-                  {% csrf_token %}
-                  <input type="hidden" name="fulfillment_method" value="reship">
-                  <input type="text" name="reshipment_address" placeholder="Delivery address" style="min-width:180px" required>
-                  <button class="btn btn-outline btn-sm" type="submit">Reship</button>
-                </form>
-              </div>
+              <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the traveler to set
+                the best time to visit. On the visit, verify the package and click <strong>Confirm Pickup</strong>
+                to release the payment.</p>
+              <table class="invoice" style="max-width:400px;margin:0 0 12px">
+                <tr><td style="width:100px">Name</td><td>: {{ leg.traveler.full_name }}</td></tr>
+                {% if leg.traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ leg.traveler.traveler_address }}</span>{% if leg.traveler.traveler_destination_city %}, {{ leg.traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
+                <tr><td>Email</td><td>: {{ leg.traveler.email }}</td></tr>
+                {% if leg.traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ leg.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ leg.traveler.phone_e164 }}</a></td></tr>{% endif %}
+              </table>
+              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}" style="margin:0 0 14px">
+                {% csrf_token %}
+                <input type="hidden" name="fulfillment_method" value="pickup">
+                <button class="btn btn-primary btn-sm" type="submit">Confirm Pickup</button>
+              </form>
+              <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
+              <p style="margin:0 0 6px"><strong>Option 2 — Request Reshipment:</strong> Ship the package to your
+                Reshipment Address (set on your Profile). The traveler will be notified to send the shipping cost.</p>
+              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="fulfillment_method" value="reship">
+                <button class="btn btn-outline btn-sm" type="submit">Request Reshipment</button>
+              </form>
             {% else %}
               <span class="badge badge-warning">Settling…</span>
             {% endif %}

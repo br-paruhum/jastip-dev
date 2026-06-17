@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import workflow
+from apps.notifications.services import send_email, send_whatsapp
 from .constants import (
     CHAT_STATUSES,
     FulfillmentMethod,
@@ -479,25 +480,63 @@ def leg_choose_fulfillment(request, pk):
 
     choice = request.POST.get("fulfillment_method")
     if choice == FulfillmentMethod.PICKUP:
+        # Buyer met the traveler and verified the package — release the payment.
         offer.fulfillment_method = FulfillmentMethod.PICKUP
-        offer.leg_status = LegStatus.READY_FOR_PICKUP
-        offer.save(update_fields=["fulfillment_method", "leg_status", "updated_at"])
+        offer.leg_status = LegStatus.CLEAR
+        offer.cleared_at = timezone.now()
+        offer.save(update_fields=["fulfillment_method", "leg_status", "cleared_at", "updated_at"])
         order.recompute_status()
-        messages.success(request, "Pickup confirmed. The traveler's pickup address is now shown below.")
+        messages.success(request, "Pickup confirmed — this leg will close and the traveler will be paid shortly.")
     elif choice == FulfillmentMethod.RESHIP:
-        address = request.POST.get("reshipment_address", "").strip()
+        address = (order.buyer.buyer_invoice_address or "").strip()
         if not address:
-            messages.error(request, "Enter your delivery address to request reshipment.")
+            messages.error(request, "Please set your Reshipment Address on your Profile page first.")
             return redirect(detail_url)
         offer.fulfillment_method = FulfillmentMethod.RESHIP
         offer.reshipment_address = address
         offer.leg_status = LegStatus.RESHIP_REQUESTED
         offer.save(update_fields=["fulfillment_method", "reshipment_address", "leg_status", "updated_at"])
         order.recompute_status()
-        messages.success(request, "Reshipment requested. The traveler has been notified.")
+        _notify_leg_reship_requested(offer)
+        messages.success(request, "Reshipment requested. The traveler has been notified by email and WhatsApp.")
     else:
         messages.error(request, "Choose Pickup or Reship.")
     return redirect(detail_url)
+
+
+def _notify_leg_reship_requested(offer):
+    """Email + WhatsApp the leg's traveler that the buyer requested reshipment.
+    Best-effort: a notification failure must not block the state transition."""
+    from types import SimpleNamespace
+
+    order = offer.order
+    traveler = offer.traveler
+    try:
+        send_whatsapp(
+            to_user=traveler,
+            text=(
+                f"Buyer requested reshipment for {order.reference}. "
+                f"Please log in to send the shipping cost and your bank details."
+            ),
+            event="leg_reship_requested",
+        )
+    except Exception:
+        pass
+    try:
+        send_email(
+            to_user=traveler,
+            subject=f"Buyer requested reshipment — {order.reference}",
+            template="reship_requested",
+            context={
+                "request_obj": SimpleNamespace(
+                    reference=order.reference, reshipment_address=offer.reshipment_address
+                ),
+                "request_url": reverse("accounts:profile") + f"?offer={offer.id}#offer-detail",
+            },
+            event="leg_reship_requested",
+        )
+    except Exception:
+        pass
 
 
 # --- Traveler: send a leg's reshipment cost + bank details --------------------
