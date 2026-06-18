@@ -32,7 +32,7 @@
       </tr>
       {% endfor %}
       <tr class="subtotal"><td class="lcell">Declared Value (for customs)</td><td>{{ req.est_qty_total }}</td><td></td><td></td><td>{{ req.items_estimated_total|intcomma }}</td></tr>
-      <tr><td class="lcell">Carry Fee (kg)</td><td>{{ req.estimated_weight_kg }}</td><td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td><td>{{ req.actual_shipment_cost|intcomma }}</td></tr>
+      <tr><td class="lcell">Carry Fee (kg)</td><td>{{ req.effective_weight_kg }}</td><td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td><td>{{ req.effective_shipment_cost|intcomma }}</td></tr>
       {% if req.actual_custom %}<tr><td class="lcell" colspan="4">Custom Duty (reimbursable)</td><td>{{ req.actual_custom|intcomma }}</td></tr>{% endif %}
       <tr class="total"><td class="lcell" colspan="4">Total Charge</td><td>{{ req.cargo_charge_total|intcomma }}</td></tr>
       <tr><td class="lcell" colspan="4">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>

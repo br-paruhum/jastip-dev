@@ -651,10 +651,16 @@ class BuyRequest(models.Model):
         )
 
     @property
+    def effective_shipment_cost(self) -> Decimal:
+        """Carry fee charged: actual (measured) weight × rate once verified, else the
+        estimate fixed at acceptance."""
+        return self.shipment_cost if self.has_actual_weight else self.estimated_shipment_cost
+
+    @property
     def cargo_charge_total(self) -> Decimal:
         """Cargo (Carrier): what the buyer actually pays = carry fee + reimbursable
         customs. The declared item value is NOT charged — the buyer owns the goods."""
-        return self._q(self.actual_shipment_cost + self.actual_custom)
+        return self._q(self.effective_shipment_cost + self.actual_custom)
 
     @property
     def cargo_balance_due(self) -> Decimal:
