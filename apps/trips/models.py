@@ -651,6 +651,17 @@ class BuyRequest(models.Model):
         )
 
     @property
+    def cargo_charge_total(self) -> Decimal:
+        """Cargo (Carrier): what the buyer actually pays = carry fee + reimbursable
+        customs. The declared item value is NOT charged — the buyer owns the goods."""
+        return self._q(self.actual_shipment_cost + self.actual_custom)
+
+    @property
+    def cargo_balance_due(self) -> Decimal:
+        """Cargo outstanding after the deposit — typically the customs reimbursement."""
+        return self._q(self.cargo_charge_total - self.deposit_paid_amount)
+
+    @property
     def invoice_unpaid_overpaid(self) -> Decimal:
         """Invoice statement line: actual Total Invoice − Deposit Paid.
         Positive = buyer still owes, negative = overpaid.

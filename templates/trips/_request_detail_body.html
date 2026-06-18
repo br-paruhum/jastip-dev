@@ -12,6 +12,37 @@
     <a href="{% url 'trips:request_customs_invoice' req.id %}" target="_blank" class="btn btn-outline btn-sm">Print Customs Invoice</a>
     {% endif %}
   </div>
+  {% if req.is_cargo %}
+  <div class="table-wrap">
+  <table class="invoice inv2">
+    <thead>
+      <tr>
+        <th class="lcell" style="text-align: center;">Declared Contents</th>
+        <th>Qty</th><th class="unit-cell">Unit</th><th>Unit Value</th><th>Value ({{ req.currency }})</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in req.items.all %}
+      <tr>
+        <td class="lcell">{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td class="unit-cell">{{ item.unit }}</td>
+        <td>{{ item.estimated_unit_cost|intcomma }}</td>
+        <td>{{ item.estimated_line_total|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="subtotal"><td class="lcell">Declared Value (for customs)</td><td>{{ req.est_qty_total }}</td><td></td><td></td><td>{{ req.items_estimated_total|intcomma }}</td></tr>
+      <tr><td class="lcell">Carry Fee (kg)</td><td>{{ req.estimated_weight_kg }}</td><td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td><td>{{ req.actual_shipment_cost|intcomma }}</td></tr>
+      {% if req.actual_custom %}<tr><td class="lcell" colspan="4">Custom Duty (reimbursable)</td><td>{{ req.actual_custom|intcomma }}</td></tr>{% endif %}
+      <tr class="total"><td class="lcell" colspan="4">Total Charge</td><td>{{ req.cargo_charge_total|intcomma }}</td></tr>
+      <tr><td class="lcell" colspan="4">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>
+      <tr><td class="lcell" colspan="4">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
+      <tr class="total"><td class="lcell" colspan="4">Balance Due</td><td>{{ req.cargo_balance_due|accounting }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <span class="help">&nbsp;&nbsp;&nbsp;You own the goods — you pay only the Carry Fee + reimbursable Custom Duty. The declared value is for the customs invoice.</span>
+  {% else %}
   <div class="table-wrap">
   <table class="invoice inv2">
     <thead>
@@ -72,6 +103,7 @@
   </table>
   </div>
   <span class="help">&nbsp;&nbsp;&nbsp;* Deposit Due is 50% of products ordered including margin + 100% of estimated shipment cost.</span>
+  {% endif %}
 </div></div>
 
 <!-- Notes (foldable) -->
