@@ -33,7 +33,7 @@ if [[ "$DO_MIGRATE" == "1" ]]; then
   "$PY" manage.py migrate
 fi
 
-echo "→ Jastip dev server starting on http://localhost:${PORT}/"
+echo "→ ProxyBuying dev server starting on http://localhost:${PORT}/"
 echo "  Blog:  http://localhost:${PORT}/blog/"
 echo "  Admin: http://localhost:${PORT}/admin/   (admin@jastip.me / ChangeMe!2026)"
 echo "  Press Ctrl-C to stop."
