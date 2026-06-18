@@ -49,7 +49,8 @@
 {% block extra_js %}
 <script src="{% static 'js/money.js' %}"></script>
 <script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
-<script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });</script>
+<script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });
+flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, allowInput: true });</script>
 <script id="country-currency-map" type="application/json">{{ country_currency_map_json|safe }}</script>
 <script>
 (function () {

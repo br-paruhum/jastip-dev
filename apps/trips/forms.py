@@ -16,6 +16,13 @@ DATE_INPUT = forms.DateInput(
     format="%d-%b-%Y",
 )
 
+# 24-hour time picker (flatpickr). Native <input type="time"> follows the browser
+# locale (can show AM/PM), so we use a text input + flatpickr in 24h mode instead.
+TIME_INPUT = forms.TimeInput(
+    attrs={"class": "timepicker", "placeholder": "HH:MM", "autocomplete": "off"},
+    format="%H:%M",
+)
+
 
 class ThousandSeparatorNumberInput(forms.TextInput):
     """Text input that displays thousand separators but submits a clean number.
@@ -62,7 +69,7 @@ class TravelPlanForm(forms.ModelForm):
         ]
         widgets = {
             "travel_date": DATE_INPUT,
-            "travel_time": forms.TimeInput(attrs={"type": "time"}),
+            "travel_time": TIME_INPUT,
             "shipment_cost_per_kg": ThousandSeparatorNumberInput(),
         }
 
@@ -172,7 +179,7 @@ class TravelerOfferForm(forms.ModelForm):
             ),
             "drop_off_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Where the buyer should drop off the package"}),
             "travel_date": DATE_INPUT,
-            "travel_time": forms.TimeInput(attrs={"type": "time"}),
+            "travel_time": TIME_INPUT,
         }
 
     def __init__(self, *args, **kwargs):
