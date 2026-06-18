@@ -3,22 +3,24 @@
 {% if orders %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Type</th><th>Ref</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Type</th><th>Ref</th><th>Route</th><th>Bid Weight<br>(kg)</th><th>Pending Weight<br>(kg)</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
       <tr>
         <td>
           {% if o.bf_kind == "traveler_first" %}<span class="badge badge-muted">Traveler First</span>
-          {% else %}<span class="badge badge-warning">Buyer First</span>{% endif %}
+          {% else %}<span class="badge badge-warning">Cargo Buyer</span>{% endif %}
         </td>
         <td>{{ o.reference }}
           {% if o.bf_kind == "traveler_first" %}
             <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {{ o.invoice_total|intcomma }}</div>
           {% else %}
-            <div class="muted" style="font-size:.8em">{{ o.bid_weight_kg }} kg{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %} · {{ o.traveler_offers.all|length }} offer{{ o.traveler_offers.all|length|pluralize }}</div>
+            <div class="muted" style="font-size:.8em">{{ o.traveler_offers.all|length }} offer{{ o.traveler_offers.all|length|pluralize }}</div>
           {% endif %}
         </td>
-        <td class="route-cell"><strong>{{ o.route }}</strong></td>
+        <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
+        <td>{% if o.bf_kind == "traveler_first" %}—{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}</td>
+        <td>{% if o.bf_kind == "traveler_first" %}—{% else %}{{ o.remaining_bid_weight_kg }}{% endif %}</td>
         <td class="status-cell">
           {% if o.bf_kind == "traveler_first" %}
             {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
