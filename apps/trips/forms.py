@@ -123,6 +123,10 @@ class OrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        # Start the bid fields blank instead of pre-filling the model's 0
+        # default — otherwise typing "5" into the leading 0 produces "50".
+        self.fields["bid_weight_kg"].initial = None
+        self.fields["bid_cost_per_kg"].initial = None
 
     def clean_bid_weight_kg(self):
         val = self.cleaned_data.get("bid_weight_kg")
