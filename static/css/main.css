@@ -196,6 +196,18 @@ table.offers.offers-allcenter td.num-cell { text-align: right; }
 .offers-notes .notes-head { font-weight: 700; color: var(--slate); margin: 0 0 4px; }
 .offers-notes p { margin: 0 0 2px; }
 
+/* Travel-plan detail card: 2-column label/value pairs (see reference) */
+table.plan-card-table { width: 100%; border-collapse: collapse; }
+table.plan-card-table td { padding: 9px 14px; border-bottom: 1px solid var(--line);
+  font-size: .92rem; vertical-align: top; }
+table.plan-card-table tr:last-child td { border-bottom: 0; }
+table.plan-card-table td.pc-label { color: var(--slate-600); white-space: nowrap; width: 1%; }
+table.plan-card-table td.pc-val { text-align: right; color: var(--slate); }
+table.plan-card-table tr.pc-head td { background: var(--clay-soft); font-weight: 700; color: var(--slate); }
+table.plan-card-table tr.pc-section td { background: var(--clay-soft); font-weight: 700;
+  color: var(--slate); text-align: center; }
+table.plan-card-table td.pc-terms { text-align: left; }
+
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
   letter-spacing: .02em; text-align: center; }

@@ -5,17 +5,35 @@
 </div>
 
 <div class="card mt-2"><div class="card-body">
-  <table class="invoice">
-    <tr><td>Travel date</td><td><strong>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</strong></td></tr>
-    <tr><td>From</td><td>{{ plan.from_city }}, {{ plan.from_country }}</td></tr>
-    <tr><td>To</td><td>{{ plan.to_city }}, {{ plan.to_country }}
-      {% if plan.traveler.traveler_destination_city %}<br><span class="muted">Traveler's actual city: {{ plan.traveler.traveler_destination_city }}</span>{% endif %}
-    </td></tr>
-    <tr><td>Available Weight</td><td class="num-right">{{ plan.available_weight_kg }} kg</td></tr>
-    <tr><td>Remaining Weight</td><td class="num-right">{{ plan.remaining_weight_kg }} kg <span class="muted">(of {{ plan.available_weight_kg }} kg available)</span></td></tr>
-    <tr><td>Shipment Cost</td><td class="num-right">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }} / kg</td></tr>
-    <tr><td>Margin</td><td class="num-right">{% if plan.carrier_only %}Carrier Only{% else %}{{ plan.margin_percent }}%{% endif %}</td></tr>
-    <tr><td>Payment Term</td><td>{{ PAYMENT_TERM|safe }}</td></tr>
+  <table class="plan-card-table">
+    <tr class="pc-head">
+      <td class="pc-label">Travel Date:</td>
+      <td class="pc-val">{{ plan.travel_date|date:"d-M-Y" }}</td>
+      <td class="pc-label">Time:</td>
+      <td class="pc-val">{% if plan.travel_time %}{{ plan.travel_time|time:"H:i" }}{% else %}12:00{% endif %}</td>
+    </tr>
+    <tr>
+      <td class="pc-label">From:</td>
+      <td class="pc-val">{{ plan.from_city }}, {{ plan.from_country }}</td>
+      <td class="pc-label">To:</td>
+      <td class="pc-val">{{ plan.to_city }}, {{ plan.to_country }}
+        {% if plan.traveler.traveler_destination_city %}<br><span class="muted" style="font-weight:400">Traveler's actual city: {{ plan.traveler.traveler_destination_city }}</span>{% endif %}
+      </td>
+    </tr>
+    <tr>
+      <td class="pc-label">Available Weight:</td>
+      <td class="pc-val">{{ plan.available_weight_kg }} kg</td>
+      <td class="pc-label">Remaining Weight:</td>
+      <td class="pc-val">{{ plan.remaining_weight_kg }} kg</td>
+    </tr>
+    <tr>
+      <td class="pc-label">Shipment Cost / kg:</td>
+      <td class="pc-val">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
+      <td class="pc-label">Margin:</td>
+      <td class="pc-val">{% if plan.carrier_only %}Carrier Only{% else %}{{ plan.margin_percent }}%{% endif %}</td>
+    </tr>
+    <tr class="pc-section"><td colspan="4">Payment Terms</td></tr>
+    <tr><td colspan="4" class="pc-terms">{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
