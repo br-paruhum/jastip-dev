@@ -53,7 +53,7 @@
         <tbody>
           {% for plan in open_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</td>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}<br>{% if plan.travel_time %}{{ plan.travel_time|time:"H:i" }}{% else %}12:00{% endif %}</td>
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
@@ -122,7 +122,7 @@
         <tbody>
           {% for plan in transit_plans %}
           <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</td>
+            <td>{{ plan.travel_date|date:"d-M-Y" }}<br>{% if plan.travel_time %}{{ plan.travel_time|time:"H:i" }}{% else %}12:00{% endif %}</td>
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
