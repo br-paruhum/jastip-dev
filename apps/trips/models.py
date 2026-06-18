@@ -431,12 +431,21 @@ class BuyRequest(models.Model):
         "reshipping": "In Transit",
     }
 
+    # Cargo (Carrier) flow has no estimate/purchase, so some statuses read
+    # differently for both sides (see PLAN-flow-taxonomy.md Flow 2).
+    _CARGO_STATUS_LABELS = {
+        "request_received": "W/f Review",
+        "accepted": "Accepted",
+    }
+
     @property
     def buyer_status_display(self) -> str:
         """Status label shown to the buyer — differs from the traveler's label
         for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
+        if self.is_cargo and self.status in self._CARGO_STATUS_LABELS:
+            return self._CARGO_STATUS_LABELS[self.status]
         return self._BUYER_STATUS_LABELS.get(self.status, self.get_status_display())
 
     @property
@@ -444,6 +453,8 @@ class BuyRequest(models.Model):
         """Status label shown in detail views and the traveler dashboard."""
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
+        if self.is_cargo and self.status in self._CARGO_STATUS_LABELS:
+            return self._CARGO_STATUS_LABELS[self.status]
         return self.get_status_display()
 
     def _items_purchased_date_label(self) -> str:
