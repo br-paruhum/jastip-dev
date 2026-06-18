@@ -200,7 +200,7 @@ def profile(request):
             plan = None
         else:
             plan_order_form = BuyRequestForm()
-            plan_order_formset = RequestItemFormSet(instance=BuyRequest())
+            plan_order_formset = (OrderItemFormSet if plan.carrier_only else RequestItemFormSet)(instance=BuyRequest())
 
     # Buyer-first leg detail as an in-page panel for the *traveler* who owns the
     # offer (?offer=<id>#offer-detail). Read-only — the traveler's actions live
@@ -310,7 +310,7 @@ def profile(request):
         ):
             order_form_plan = _plan
             order_form_buy = BuyRequestForm()
-            order_form_formset = RequestItemFormSet(instance=BuyRequest())
+            order_form_formset = (OrderItemFormSet if _plan.carrier_only else RequestItemFormSet)(instance=BuyRequest())
 
     return render(
         request,

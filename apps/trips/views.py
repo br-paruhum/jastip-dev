@@ -92,7 +92,8 @@ def plan_create(request):
 def plan_detail(request, pk):
     plan = get_object_or_404(TravelPlan.objects.select_related("traveler"), pk=pk)
     plan_order_form = BuyRequestForm()
-    plan_order_formset = RequestItemFormSet(instance=BuyRequest())
+    _ItemFormSet = OrderItemFormSet if plan.carrier_only else RequestItemFormSet
+    plan_order_formset = _ItemFormSet(instance=BuyRequest())
     return render(
         request,
         "trips/plan_detail.html",
@@ -120,9 +121,14 @@ def request_create(request, plan_id):
         messages.info(request, "You already have an active order on this travel plan.")
         return redirect(reverse("accounts:profile") + "#buying-order")
 
+    # Cargo (Carrier plan): the buyer owns the goods and declares the unit cost
+    # upfront for the customs invoice (no traveler purchase step), so use the
+    # item form that exposes the unit price — same as the buyer-first cargo flow.
+    ItemFormSet = OrderItemFormSet if plan.carrier_only else RequestItemFormSet
+
     if request.method == "POST":
         form = BuyRequestForm(request.POST)
-        formset = RequestItemFormSet(request.POST, request.FILES, instance=BuyRequest())
+        formset = ItemFormSet(request.POST, request.FILES, instance=BuyRequest())
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 buy = form.save(commit=False)
@@ -137,14 +143,20 @@ def request_create(request, plan_id):
                     return redirect(request.path)
                 for idx, item in enumerate(items, start=1):
                     item.position = idx
+                    if plan.carrier_only:
+                        # No purchase step — the buyer's declared qty/price stand
+                        # as final for the customs invoice.
+                        item.actual_quantity = item.quantity
+                        item.actual_unit_cost = item.estimated_unit_cost
+                        item.purchased_at = timezone.now()
                     item.save()
                 Transaction.objects.create(request=buy)
                 workflow.on_request_submitted(buy)
-            messages.success(request, "Request sent to the traveler.")
+            messages.success(request, "Cargo order sent to the carrier." if plan.carrier_only else "Request sent to the traveler.")
             return redirect(reverse("accounts:profile") + f"?order={buy.id}#order-detail")
     else:
         form = BuyRequestForm()
-        formset = RequestItemFormSet(instance=BuyRequest())
+        formset = ItemFormSet(instance=BuyRequest())
     return render(request, "trips/request_form.html", {"plan": plan, "form": form, "formset": formset})
 
 

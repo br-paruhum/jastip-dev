@@ -25,6 +25,10 @@
           <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
           <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
         </div>
+        {% if order_form_plan.carrier_only %}
+        <div class="form-field"><label>Cost per Unit ({{ order_form_plan.shipment_currency }})</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}
+          <p class="help">Declared value per unit — used for the customs invoice.</p></div>
+        {% endif %}
         <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
         <button type="button" class="btn btn-sm btn-outline remove-order-item">Remove</button>
       </div></div>
@@ -53,6 +57,10 @@
       <div class="form-field"><label>Qty</label>{{ order_form_formset.empty_form.quantity }}</div>
       <div class="form-field"><label>Unit</label>{{ order_form_formset.empty_form.unit }}</div>
     </div>
+    {% if order_form_plan.carrier_only %}
+    <div class="form-field"><label>Cost per Unit ({{ order_form_plan.shipment_currency }})</label>{{ order_form_formset.empty_form.estimated_unit_cost }}
+      <p class="help">Declared value per unit — used for the customs invoice.</p></div>
+    {% endif %}
     <div class="form-field"><label>Photo (optional)</label>{{ order_form_formset.empty_form.photo }}</div>
     <button type="button" class="btn btn-sm btn-outline remove-order-item">Remove</button>
   </div></div>
