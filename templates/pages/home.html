@@ -173,7 +173,7 @@
         <tbody>
           {% for order in open_orders %}
           <tr>
-            <td>{{ order.max_acceptable_date|date:"d-M-Y" }}<br><span class="type-badge {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span></td>
+            <td style="text-align:center">{{ order.max_acceptable_date|date:"d-M-Y" }}<br><span class="type-badge {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span></td>
             <td class="route-cell">
               <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
               <span>{{ order.from_country }} → {{ order.to_country }}</span>
