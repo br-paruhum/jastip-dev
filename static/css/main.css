@@ -203,8 +203,8 @@ table.plan-card-table td { padding: 9px 14px; border-bottom: 1px solid var(--lin
 table.plan-card-table tr:last-child td { border-bottom: 0; }
 table.plan-card-table td.pc-label { color: var(--slate-600); white-space: nowrap; width: 1%; }
 table.plan-card-table td.pc-val { text-align: right; color: var(--slate); }
-table.plan-card-table tr.pc-head td { background: var(--clay-soft); font-weight: 700; color: var(--slate); }
-table.plan-card-table tr.pc-section td { background: var(--clay-soft); font-weight: 700;
+table.plan-card-table tr.pc-head td { background: var(--cream); font-weight: 700; color: var(--slate); }
+table.plan-card-table tr.pc-section td { background: var(--cream); font-weight: 700;
   color: var(--slate); text-align: center; }
 table.plan-card-table td.pc-terms { text-align: left; }
 
