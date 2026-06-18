@@ -22,14 +22,14 @@ ASSETS = Path(__file__).resolve().parents[2] / "seed_assets"
 # (slug, title, excerpt, image filename, YYYY-MM-DD published, body)
 POSTS = [
     (
-        "what-is-jastip",
-        "What Is Jastip? Proxy Purchasing, Explained Simply",
-        "“Jastip” means entrusted-buying — travelers carry items home for buyers who want them. Here’s the whole idea in plain English.",
+        "what-is-proxybuying",
+        "What Is ProxyBuying? Proxy Purchasing, Explained Simply",
+        "“ProxyBuying” means entrusted-buying — travelers carry items home for buyers who want them. Here’s the whole idea in plain English.",
         "01-what-is-jastip.png",
         "2026-06-12",
         """Ever wanted something that is only sold overseas — a skincare product, a pair of sneakers, a gadget — but the international shipping cost was almost as much as the item itself? ProxyBuying was built for exactly that moment.
 
-“Jastip” is short for “jasa titip”, an Indonesian phrase that means “entrusted-buying service”. The idea is simple: travelers who already have a trip planned carry items home for buyers who want them. You get your product, the traveler earns a little for the space in their luggage, and everyone wins.
+The idea is simple: travelers who already have a trip planned carry items home for buyers who want them. You get your product, the traveler earns a little for the space in their luggage, and everyone wins.
 
 Here is how it works in one breath: a traveler posts their trip — where they are going, when, and how much spare luggage weight they have. A buyer finds that trip, requests an item, and pays a deposit. The traveler buys the item abroad, brings it home, and hands it over. ProxyBuying sits safely in the middle, holding the funds until both sides are happy.
 
@@ -61,8 +61,8 @@ No awkward chasing. Payments and reminders are handled by the platform, by email
 It is a friendly way to offset the cost of a flight home, help people get products they cannot easily find, and earn from space you would otherwise leave empty. If you have a trip coming up, post it — your first order might already be waiting.""",
     ),
     (
-        "how-jastip-keeps-your-money-safe",
-        "How Jastip Keeps Your Money Safe: Deposit, Escrow & the 2.5% Fee",
+        "how-proxybuying-keeps-your-money-safe",
+        "How ProxyBuying Keeps Your Money Safe: Deposit, Escrow & the 2.5% Fee",
         "You pay the platform, not a stranger — and funds are released only when you’re satisfied. Here’s the safety net explained.",
         "03-money-safe.png",
         "2026-06-08",
@@ -99,8 +99,8 @@ Receive and confirm. When the traveler arrives and the package is ready, you set
 A few tips for a smooth purchase: be specific about the exact item and variant, keep your cost estimate realistic, and use the in-app chat for any questions so everything stays on record. Do that, and getting authentic products from abroad becomes about as easy as ordering anything else online — just with a friendly traveler doing the carrying.""",
     ),
     (
-        "8-steps-of-a-jastip-transaction",
-        "From Order to Doorstep: The 8 Steps of a Jastip Transaction",
+        "8-steps-of-a-proxybuying-transaction",
+        "From Order to Doorstep: The 8 Steps of a ProxyBuying Transaction",
         "The complete journey from placing an order to receiving your item — transparent at every step.",
         "05-eight-steps.png",
         "2026-06-02",

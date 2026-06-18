@@ -94,7 +94,7 @@ class Command(BaseCommand):
         # Demo blog post
         if not Post.objects.exists():
             Post.objects.create(
-                title="5 things to know before you jastip",
+                title="5 things to know before you start proxy buying",
                 excerpt="A quick guide to safe, smooth proxy purchasing for first-time travelers and buyers.",
                 body="Proxy purchasing is all about trust and clear communication. Here are five tips...",
                 status=Post.Status.PUBLISHED, published_at=timezone.now(),
