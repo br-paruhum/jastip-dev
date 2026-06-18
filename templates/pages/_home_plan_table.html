@@ -9,7 +9,7 @@
         <th>Offer<br>(kg)</th>
         <th>Avail<br>(kg)</th>
         <th>Shipment<br>Cost/kg</th>
-        <th>Margin{% if not is_cargo %}<br><sup>*)</sup>{% endif %}</th>
+        {% if not is_cargo %}<th>Margin<br><sup>*)</sup></th>{% endif %}
         <th>Payment<br>Terms</th>
         <th>Status</th>
         <th>Action</th>
@@ -26,7 +26,7 @@
         <td class="avail-cell">{{ plan.available_weight_kg }}</td>
         <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
         <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-        <td class="margin-cell">{% if plan.carrier_only %}-{% else %}{{ plan.margin_percent }}%{% endif %}</td>
+        {% if not is_cargo %}<td class="margin-cell">{{ plan.margin_percent }}%</td>{% endif %}
         <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
         <td class="status-cell">
           {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
