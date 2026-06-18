@@ -76,8 +76,13 @@ def _travel_rows(plans, offers):
                 rows.append({
                     "kind": "plan", "bf_kind": "traveler_first",
                     "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
-                "is_closed": plan.is_closed,
-                    "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
+                    "is_closed": plan.is_closed,
+                    # Each cargo order on a carrier plan is its own transaction, so
+                    # label the row with the order's own REQ ref (what the buyer
+                    # sees) — not the plan ref, which made multiple orders on one
+                    # plan look like duplicate rows.
+                    "ref": item.req.reference, "plan_ref": plan.reference,
+                    "date": plan.travel_date, "route": plan.route,
                     "available": item.available, "remaining": item.remaining,
                     "counterparty": item.req.buyer.full_name,
                     "status_label": item.req.detail_status_label, "status_tone": item.req.status_tone,

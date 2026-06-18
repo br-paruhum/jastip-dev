@@ -9,7 +9,7 @@
       <tr class="{% if o.status == 'closed' %}row-closed{% endif %}">
         <td>{{ o.reference }}
           {% if o.bf_kind == "traveler_first" %}
-            <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {{ o.invoice_total|intcomma }}</div>
+            <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {% if o.is_cargo %}{{ o.cargo_charge_total|intcomma }}{% else %}{{ o.invoice_total|intcomma }}{% endif %}</div>
           {% else %}
             <div class="muted" style="font-size:.8em">{{ o.traveler_offers.all|length }} offer{{ o.traveler_offers.all|length|pluralize }}</div>
           {% endif %}
