@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import workflow
+from . import flow_types
 from apps.notifications.services import send_email, send_whatsapp
 from .constants import (
     CHAT_STATUSES,
@@ -111,6 +112,9 @@ def request_create(request, plan_id):
     if plan.traveler_id == request.user.id:
         messages.error(request, "You cannot block your own travel plan.")
         return redirect(plan.get_absolute_url())
+    if not flow_types.plan_accepts_item_order(plan):
+        messages.error(request, flow_types.CARRIER_PLAN_NEEDS_CARGO)
+        return redirect(plan.get_absolute_url())
     excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
     if plan.buy_requests.filter(buyer=request.user).exclude(status__in=excluded).exists():
         messages.info(request, "You already have an active order on this travel plan.")
@@ -193,6 +197,9 @@ def offer_create(request, order_id):
         return redirect(dashboard_url + "#travel-plans")
     if order.traveler_offers.filter(traveler=request.user, offer_status=OfferStatus.PENDING).exists():
         messages.info(request, "You already have a pending offer on this order. Withdraw it first to submit a new one.")
+        return redirect(dashboard_url + "#travel-plans")
+    if not flow_types.order_accepts_carry_offer(order):
+        messages.error(request, flow_types.PRODUCTS_ORDER_NEEDS_PROXY)
         return redirect(dashboard_url + "#travel-plans")
 
     form = TravelerOfferForm(request.POST)

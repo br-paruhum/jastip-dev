@@ -216,6 +216,12 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 .card-band-row { background: var(--cream); text-align: center; font-weight: 700; color: var(--slate);
   letter-spacing: .02em; margin: -20px -20px 0; padding: 12px 20px; }
 
+/* Transaction-type badge under the route in browse tables (see PLAN-flow-taxonomy.md) */
+.route-cell .route-type { display: inline-block; margin-top: 5px; font-size: .72rem; font-weight: 700;
+  padding: 1px 8px; border-radius: 6px; letter-spacing: .02em; }
+.route-cell .route-type.t-proxy { background: var(--cream); color: var(--slate); }
+.route-cell .route-type.t-carrier { background: var(--clay-soft); color: var(--clay-dark); }
+
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
   letter-spacing: .02em; text-align: center; }

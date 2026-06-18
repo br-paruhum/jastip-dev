@@ -57,6 +57,7 @@
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
+              <span class="route-type {% if plan.carrier_only %}t-carrier{% else %}t-proxy{% endif %}">{{ plan.type_label }}</span>
             </td>
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
@@ -73,6 +74,8 @@
             <td class="action-cell">
               {% if user.is_authenticated and plan.traveler_id == user.id %}
                 <a class="btn btn-primary btn-sm" href="#" data-notice="You cannot order your own Travel Plan!">Order</a>
+              {% elif plan.carrier_only %}
+                <a class="btn btn-primary btn-sm" href="#" data-notice="This is a Carrier plan — the traveler only carries cargo you already have, they don't shop for items. Placing an item order here isn't available yet (the Cargo order flow is coming soon).">Order</a>
               {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
                 <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>
               {% else %}
@@ -126,6 +129,7 @@
             <td class="route-cell">
               <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
               <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
+              <span class="route-type {% if plan.carrier_only %}t-carrier{% else %}t-proxy{% endif %}">{{ plan.type_label }}</span>
             </td>
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
@@ -176,6 +180,7 @@
             <td class="route-cell">
               <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
               <span>{{ order.from_country }} → {{ order.to_country }}</span>
+              <span class="route-type {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span>
             </td>
             <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
             <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>

@@ -35,7 +35,12 @@
     <tr class="pc-section"><td colspan="4">Payment Terms</td></tr>
     <tr><td colspan="4" class="pc-terms">{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
-  {% if plan.is_open and user != plan.traveler %}
+  {% if plan.carrier_only and user != plan.traveler %}
+  <div class="mt-2" style="text-align: center;">
+    <span class="badge badge-warning">Carrier plan — Cargo ordering coming soon</span>
+    <p class="help" style="margin-top:6px">This traveler only carries cargo you already have, they don't shop for items.</p>
+  </div>
+  {% elif plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
     <button type="button" class="btn btn-primary" id="toggle-submit-order">Submit Order</button>
   </div>
@@ -46,7 +51,7 @@
   {% endif %}
 </div></div>
 
-{% if plan.is_open and user != plan.traveler %}
+{% if plan.is_open and user != plan.traveler and not plan.carrier_only %}
 <div id="submit-order-wrap" class="card mt-2" style="display:none"><div class="card-body">
   <span class="eyebrow">New Order · {{ plan.from_city }} → {{ plan.to_city }}</span>
   <h2>What would you like the traveler to buy?</h2>
