@@ -30,9 +30,9 @@
 <section id="open-offers">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Live now</span>
-      <h2>Open Travel Plans — Proxy Buying</h2>
-      <p>Travelers who'll buy items abroad for you — order their luggage space.</p>
+      <span class="eyebrow">Traveler Ready as Proxy Buyer</span>
+      <h2>Open Travel Plans - Proxy Buying</h2>
+      <p>Traveler will buy products(s) ordered by Buyer and bring the package to Traveler's destination for Buyer.</p>
     </div>
     {% include "pages/_home_plan_table.html" with plans=open_plans_proxy is_cargo=False empty_msg="No open Proxy Buying travel plans yet." %}
   </div>
@@ -42,9 +42,9 @@
 <section class="section-cream" id="open-orders">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Live now</span>
-      <h2>Open Orders — Proxy Buying</h2>
-      <p>Buyers looking for a traveler to buy items abroad — respond with an offer.</p>
+      <span class="eyebrow">Buyer Looking for Proxy Buyer</span>
+      <h2>Open Orders - Proxy Buying</h2>
+      <p>Buyer will pay Traveler to buy product(s) they wants and bring the package to Traveler's destination for Buyer.</p>
     </div>
     {% include "pages/_home_order_table.html" with orders=open_orders_proxy is_cargo=False empty_msg="No open Proxy Buying orders yet." %}
   </div>
@@ -54,9 +54,9 @@
 <section>
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Live now</span>
-      <h2>Open Travel Plans — Cargo Only</h2>
-      <p>Carriers with spare luggage space — send cargo you already have.</p>
+      <span class="eyebrow">Traveler Ready as Carrier</span>
+      <h2>Open Travel Plans - Cargo Only</h2>
+      <p>Traveler will carry the package to their destination for Buyer.</p>
     </div>
     {% include "pages/_home_plan_table.html" with plans=open_plans_cargo is_cargo=True empty_msg="No open Cargo Only travel plans yet." %}
   </div>
@@ -66,9 +66,9 @@
 <section class="section-cream">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Live now</span>
-      <h2>Open Orders — Cargo Only</h2>
-      <p>Buyers looking for a carrier to ship cargo they already have — respond with an offer.</p>
+      <span class="eyebrow">Buyer Looking for Carrier</span>
+      <h2>Open Orders - Cargo Only</h2>
+      <p>Buyer will pay the package carried by Traveler to their destination.</p>
     </div>
     {% include "pages/_home_order_table.html" with orders=open_orders_cargo is_cargo=True empty_msg="No open Cargo Only orders yet." %}
   </div>
