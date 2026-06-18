@@ -153,6 +153,9 @@ TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Jakarta")
 USE_I18N = True
 USE_TZ = True
 
+# Force 24-hour time formats globally (admin + localized template output).
+FORMAT_MODULE_PATH = ["config.formats"]
+
 # --- Static / media ---------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
