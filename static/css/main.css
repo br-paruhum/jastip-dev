@@ -226,8 +226,12 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 .input-muted { background: var(--cream); color: var(--muted); cursor: not-allowed; }
 
 /* Dashboard "Hide closed items" toggle */
-.hide-closed-ctl { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-  font-size: .85rem; font-weight: 600; color: var(--slate-600); margin: 2px 0 12px; }
+.hide-closed-ctl { display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: .85rem; font-weight: 600; color: var(--slate-600); margin: 6px 0 14px;
+  padding: 7px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.hide-closed-ctl input { width: 16px; height: 16px; cursor: pointer; }
+/* Closed rows: faded so they're distinguishable; hidden when the toggle is on */
+.row-closed { opacity: .5; }
 .dash-tables.hide-closed .row-closed { display: none; }
 
 /* --- Badges --- */

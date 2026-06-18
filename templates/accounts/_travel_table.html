@@ -3,13 +3,10 @@
 {% if rows %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Type</th><th>Ref</th><th>Date</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Date</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for row in rows %}
       <tr class="{% if row.is_closed %}row-closed{% endif %}">
-        <td>
-          <span class="badge {% if row.type_is_cargo %}badge-warning{% else %}badge-muted{% endif %}">{{ row.type_label }}</span>
-        </td>
         <td>{{ row.ref }}
           {% if row.kind == "offer" %}
             <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|intcomma }}/kg · {{ row.kg }} kg</div>
