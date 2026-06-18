@@ -43,7 +43,7 @@ class TravelPlanForm(forms.ModelForm):
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
 
     carrier_only = forms.TypedChoiceField(
-        choices=[("0", "Proxy Buyer"), ("1", "Carrier")],
+        choices=[("0", "Proxy Buyer"), ("1", "Carrier Only")],
         coerce=lambda v: v == "1",
         widget=forms.Select(),
         initial="0",

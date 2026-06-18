@@ -125,7 +125,7 @@ class TravelPlan(models.Model):
     @property
     def type_label(self) -> str:
         """Traveler's transaction type for this plan (see PLAN-flow-taxonomy.md)."""
-        return "Carrier" if self.carrier_only else "Proxy Buyer"
+        return "Carrier Only" if self.carrier_only else "Proxy Buyer"
 
     @property
     def active_request(self):
@@ -298,7 +298,7 @@ class BuyRequest(models.Model):
     @property
     def counterparty_label(self) -> str:
         """The traveler's type label for this order."""
-        return "Carrier" if self.is_cargo else "Proxy Buyer"
+        return "Carrier Only" if self.is_cargo else "Proxy Buyer"
 
     @property
     def route(self) -> str:
