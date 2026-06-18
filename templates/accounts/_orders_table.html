@@ -8,8 +8,7 @@
       {% for o in orders %}
       <tr>
         <td>
-          {% if o.bf_kind == "traveler_first" %}<span class="badge badge-muted">Traveler First</span>
-          {% else %}<span class="badge badge-warning">Cargo Buyer</span>{% endif %}
+          <span class="badge {% if o.is_cargo %}badge-warning{% else %}badge-muted{% endif %}">{{ o.actor_label }}</span>
         </td>
         <td>{{ o.reference }}
           {% if o.bf_kind == "traveler_first" %}

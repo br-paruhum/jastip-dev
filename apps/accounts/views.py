@@ -75,6 +75,7 @@ def _travel_rows(plans, offers):
             for item in cap_items:
                 rows.append({
                     "kind": "plan", "bf_kind": "traveler_first",
+                    "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
                     "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
                     "available": item.available, "remaining": item.remaining,
                     "counterparty": item.req.buyer.full_name,
@@ -84,6 +85,7 @@ def _travel_rows(plans, offers):
         else:
             rows.append({
                 "kind": "plan_only", "bf_kind": "traveler_first",
+                "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
                 "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
                 "available": plan.available_weight_kg, "remaining": plan.remaining_weight_kg,
                 "counterparty": None,
@@ -94,6 +96,7 @@ def _travel_rows(plans, offers):
         label, tone = _offer_status_display(offer)
         rows.append({
             "kind": "offer", "bf_kind": "buyer_first",
+            "type_label": offer.order.counterparty_label, "type_is_cargo": offer.order.is_cargo,
             "ref": offer.order.reference, "date": offer.travel_date, "route": offer.route,
             "ask_cost_per_kg": offer.ask_cost_per_kg, "kg": offer.allocated_weight_kg or offer.avail_kg,
             "currency": offer.order.currency,

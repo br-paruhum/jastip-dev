@@ -43,13 +43,14 @@ class TravelPlanForm(forms.ModelForm):
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
 
     carrier_only = forms.TypedChoiceField(
-        choices=[("0", "Proxy Buyer + Carrier"), ("1", "Carrier Only")],
+        choices=[("0", "Proxy Buyer"), ("1", "Carrier")],
         coerce=lambda v: v == "1",
         widget=forms.Select(),
         initial="0",
         required=False,
         label="Service",
-        help_text="Carrier Only: you'll just carry luggage space, not buy items on the buyer's behalf.",
+        help_text="Proxy Buyer: you buy the items abroad for the buyer. "
+                  "Carrier: you only carry cargo the buyer already has — no buying.",
     )
 
     class Meta:

@@ -123,6 +123,11 @@ class TravelPlan(models.Model):
         return f"{self.from_city}, {self.from_country} → {self.to_city}, {self.to_country}"
 
     @property
+    def type_label(self) -> str:
+        """Traveler's transaction type for this plan (see PLAN-flow-taxonomy.md)."""
+        return "Carrier" if self.carrier_only else "Proxy Buyer"
+
+    @property
     def active_request(self):
         """The buy request currently driving this plan's lifecycle, if any."""
         return self.buy_requests.exclude(status=Status.REJECTED).order_by("-created_at").first()
@@ -191,6 +196,11 @@ class BuyRequest(models.Model):
     bid_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     partial_allowed = models.BooleanField(
         default=False, help_text="Allow this order to be split across multiple travelers."
+    )
+    cargo_only = models.BooleanField(
+        default=False,
+        help_text="Buyer-first only: buyer already has the goods and needs a Carrier to "
+                  "carry them (no proxy purchasing). False = Products Buyer; True = Cargo Buyer.",
     )
 
     # Estimated shipping weight of THIS package, set by the traveler at review.
@@ -270,6 +280,25 @@ class BuyRequest(models.Model):
     @property
     def is_buyer_first(self) -> bool:
         return self.plan_id is None
+
+    # --- Transaction type (see PLAN-flow-taxonomy.md). Plan-first inherits the
+    # plan's carrier_only; buyer-first uses this order's own cargo_only. ---
+    @property
+    def is_cargo(self) -> bool:
+        """True = carrying (cargo) transaction; False = proxy-buying (products)."""
+        if self.plan_id:
+            return self.plan.carrier_only
+        return self.cargo_only
+
+    @property
+    def actor_label(self) -> str:
+        """The buyer's type label for this order."""
+        return "Cargo Buyer" if self.is_cargo else "Products Buyer"
+
+    @property
+    def counterparty_label(self) -> str:
+        """The traveler's type label for this order."""
+        return "Carrier" if self.is_cargo else "Proxy Buyer"
 
     @property
     def route(self) -> str:

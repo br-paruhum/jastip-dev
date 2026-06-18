@@ -319,7 +319,7 @@
         {% if offer_form_order %}
         <!-- Panel: Place offer on a buyer-first order (traveler) -->
         <div data-panel="offer-form" data-origin="travel-plans">
-          <span class="eyebrow">Respond to Cargo Buyer</span>
+          <span class="eyebrow">Respond to {{ offer_form_order.actor_label }}</span>
           <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
             {% csrf_token %}
             <div class="card-body">

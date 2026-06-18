@@ -8,8 +8,7 @@
       {% for row in rows %}
       <tr>
         <td>
-          {% if row.bf_kind == "traveler_first" %}<span class="badge badge-muted">Traveler First</span>
-          {% else %}<span class="badge badge-warning">Buyer First</span>{% endif %}
+          <span class="badge {% if row.type_is_cargo %}badge-warning{% else %}badge-muted{% endif %}">{{ row.type_label }}</span>
         </td>
         <td>{{ row.ref }}
           {% if row.kind == "offer" %}
