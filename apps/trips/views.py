@@ -158,6 +158,9 @@ def order_create(request):
             with db_transaction.atomic():
                 order = form.save(commit=False)
                 order.buyer = request.user
+                # Only the Cargo Buyer flow (Flow 4) exists for buyer-first orders
+                # today; Phase 3 will let the buyer choose Products vs Cargo here.
+                order.cargo_only = True
                 order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
