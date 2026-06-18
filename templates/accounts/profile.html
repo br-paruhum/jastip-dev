@@ -319,17 +319,17 @@
         {% if offer_form_order %}
         <!-- Panel: Place offer on a buyer-first order (traveler) -->
         <div data-panel="offer-form" data-origin="travel-plans">
-          <span class="eyebrow">Traveler · Buyer First</span>
-          <h2>Place an Offer</h2>
-          <p class="muted">
-            <strong>{{ offer_form_order.reference }}</strong> ·
-            Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
-            Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
-            {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
-          </p>
+          <span class="eyebrow">Respond to Cargo Buyer</span>
           <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
             {% csrf_token %}
             <div class="card-body">
+              <div class="card-band-row">Place an Offer</div>
+              <p class="muted" style="margin-top:14px">
+                <strong>{{ offer_form_order.reference }}</strong> ·
+                Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
+                Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
+                {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
+              </p>
               <div class="form-row">
                 <div class="form-field"><label>Your Rate per kg</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
                 <div class="form-field"><label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}</div>
