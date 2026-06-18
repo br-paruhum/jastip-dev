@@ -6,7 +6,7 @@
     <thead><tr><th>Type</th><th>Ref</th><th>Date</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for row in rows %}
-      <tr>
+      <tr class="{% if row.is_closed %}row-closed{% endif %}">
         <td>
           <span class="badge {% if row.type_is_cargo %}badge-warning{% else %}badge-muted{% endif %}">{{ row.type_label }}</span>
         </td>

@@ -76,6 +76,7 @@ def _travel_rows(plans, offers):
                 rows.append({
                     "kind": "plan", "bf_kind": "traveler_first",
                     "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
+                "is_closed": plan.is_closed,
                     "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
                     "available": item.available, "remaining": item.remaining,
                     "counterparty": item.req.buyer.full_name,
@@ -86,6 +87,7 @@ def _travel_rows(plans, offers):
             rows.append({
                 "kind": "plan_only", "bf_kind": "traveler_first",
                 "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
+                "is_closed": plan.is_closed,
                 "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
                 "available": plan.available_weight_kg, "remaining": plan.remaining_weight_kg,
                 "counterparty": None,
@@ -94,9 +96,14 @@ def _travel_rows(plans, offers):
             })
     for offer in offers:
         label, tone = _offer_status_display(offer)
+        offer_closed = (
+            offer.offer_status in {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
+            or offer.leg_status in {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
+        )
         rows.append({
             "kind": "offer", "bf_kind": "buyer_first",
             "type_label": offer.order.counterparty_label, "type_is_cargo": offer.order.is_cargo,
+            "is_closed": offer_closed,
             "ref": offer.order.reference, "date": offer.travel_date, "route": offer.route,
             "ask_cost_per_kg": offer.ask_cost_per_kg, "kg": offer.allocated_weight_kg or offer.avail_kg,
             "currency": offer.order.currency,
@@ -112,35 +119,21 @@ def profile(request):
     user = request.user
     role = _resolve_role(request)
 
-    open_travel_rows = closed_travel_rows = []
-    open_my_orders = closed_my_orders = []
+    travel_rows_proxy = travel_rows_cargo = []
+    orders_proxy = orders_cargo = []
 
     if role == "traveler":
-        # Traveler side: travel plans (own initiative) merged with buyer-first
-        # offers (responding to someone else's posted order) into one combined
-        # "My Travel Plans" tab — each row tagged Traveler First / Buyer First by
-        # how it originated, not by which button the user last clicked.
-        my_plans = TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests")
-        open_plans = [p for p in my_plans if not p.is_closed]
-        closed_plans = [p for p in my_plans if p.is_closed]
-
-        my_offers = TravelerOffer.objects.filter(traveler=user).select_related("order")
-        closed_offer_statuses = {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
-        closed_leg_statuses = {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
-        open_offer_objs = [
-            o for o in my_offers
-            if o.offer_status not in closed_offer_statuses and o.leg_status not in closed_leg_statuses
-        ]
-        closed_offer_objs = [
-            o for o in my_offers
-            if o.offer_status in closed_offer_statuses or o.leg_status in closed_leg_statuses
-        ]
-        open_travel_rows = _travel_rows(open_plans, open_offer_objs)
-        closed_travel_rows = _travel_rows(closed_plans, closed_offer_objs)
+        # Traveler side: travel plans merged with buyer-first offers, split by
+        # transaction type into Proxy Buying vs Carrier Only. Closed rows stay
+        # inline (hidden via the dashboard's "hide closed" toggle).
+        my_plans = list(TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests"))
+        my_offers = list(TravelerOffer.objects.filter(traveler=user).select_related("order"))
+        all_travel_rows = _travel_rows(my_plans, my_offers)
+        travel_rows_proxy = [r for r in all_travel_rows if not r["type_is_cargo"]]
+        travel_rows_cargo = [r for r in all_travel_rows if r["type_is_cargo"]]
     else:
-        # Buyer side: plan-first requests merged with buyer-first orders into one
-        # combined "My Orders" tab, tagged the same way — Traveler First if the
-        # order has a linked TravelPlan, Buyer First if it doesn't.
+        # Buyer side: plan-first requests merged with buyer-first orders, split by
+        # transaction type into Proxy Buying vs Carrier Only.
         my_buying = list(BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
         my_bf_orders = list(
             BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
@@ -150,8 +143,8 @@ def profile(request):
         for o in my_bf_orders:
             o.bf_kind = "buyer_first"
         all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
-        open_my_orders = [r for r in all_my_orders if r.status != Status.CLOSED]
-        closed_my_orders = [r for r in all_my_orders if r.status == Status.CLOSED]
+        orders_proxy = [o for o in all_my_orders if not o.is_cargo]
+        orders_cargo = [o for o in all_my_orders if o.is_cargo]
 
     form = ProfileForm(instance=user, role=role)
 
@@ -324,10 +317,10 @@ def profile(request):
             "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
             "new_order_form": OrderForm(),
             "new_order_formset": OrderItemFormSet(instance=BuyRequest(), prefix="bf_items"),
-            "open_travel_rows": open_travel_rows,
-            "closed_travel_rows": closed_travel_rows,
-            "open_my_orders": open_my_orders,
-            "closed_my_orders": closed_my_orders,
+            "travel_rows_proxy": travel_rows_proxy,
+            "travel_rows_cargo": travel_rows_cargo,
+            "orders_proxy": orders_proxy,
+            "orders_cargo": orders_cargo,
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

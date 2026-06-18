@@ -225,6 +225,11 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 /* Muted/disabled form input (e.g. Margin when Carrier Only is selected) */
 .input-muted { background: var(--cream); color: var(--muted); cursor: not-allowed; }
 
+/* Dashboard "Hide closed items" toggle */
+.hide-closed-ctl { display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: .85rem; font-weight: 600; color: var(--slate-600); margin: 2px 0 12px; }
+.dash-tables.hide-closed .row-closed { display: none; }
+
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
   letter-spacing: .02em; text-align: center; }

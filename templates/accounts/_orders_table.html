@@ -6,7 +6,7 @@
     <thead><tr><th>Type</th><th>Ref</th><th>Route</th><th>Bid Weight<br>(kg)</th><th>Pending Weight<br>(kg)</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
-      <tr>
+      <tr class="{% if o.status == 'closed' %}row-closed{% endif %}">
         <td>
           <span class="badge {% if o.is_cargo %}badge-warning{% else %}badge-muted{% endif %}">{{ o.actor_label }}</span>
         </td>

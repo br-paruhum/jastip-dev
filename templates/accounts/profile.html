@@ -150,8 +150,11 @@
             </form>
           </div></div>
 
-          {% include "accounts/_travel_table.html" with rows=open_travel_rows empty="No open travel plans or offers." heading="Current" %}
-          {% include "accounts/_travel_table.html" with rows=closed_travel_rows empty="No closed plans or offers yet." heading="Closed" %}
+          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
+          <div class="dash-tables">
+            {% include "accounts/_travel_table.html" with rows=travel_rows_proxy empty="No Proxy Buying travel plans or offers yet." heading="Proxy Buying" %}
+            {% include "accounts/_travel_table.html" with rows=travel_rows_cargo empty="No Carrier Only travel plans or offers yet." heading="Carrier Only" %}
+          </div>
         </div>
         {% endif %}
 
@@ -235,8 +238,11 @@
             </div></div>
           </template>
 
-          {% include "accounts/_orders_table.html" with orders=open_my_orders empty="No active orders." heading="Current" %}
-          {% include "accounts/_orders_table.html" with orders=closed_my_orders empty="No closed orders yet." heading="Closed" %}
+          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
+          <div class="dash-tables">
+            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Proxy Buying orders yet." heading="Proxy Buying" %}
+            {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Carrier Only orders yet." heading="Carrier Only" %}
+          </div>
         </div>
         {% endif %}
 
@@ -539,5 +545,15 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     refreshNewOrderAddState();
   }
 })();
+</script>
+<script>
+// "Hide closed items" toggle — hides .row-closed rows within the panel's tables.
+document.querySelectorAll('.hide-closed-toggle').forEach(function (cb) {
+  cb.addEventListener('change', function () {
+    var panel = cb.closest('[data-panel]');
+    var tables = panel && panel.querySelector('.dash-tables');
+    if (tables) tables.classList.toggle('hide-closed', cb.checked);
+  });
+});
 </script>
 {% endblock %}
