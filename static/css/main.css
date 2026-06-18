@@ -208,6 +208,10 @@ table.plan-card-table tr.pc-section td { background: var(--cream); font-weight: 
   color: var(--slate); text-align: center; }
 table.plan-card-table td.pc-terms { text-align: left; }
 
+/* Card title band: centered cream first row spanning the whole offers table */
+table.offers thead tr.card-band th { background: var(--cream); text-align: center;
+  font-size: 1rem; letter-spacing: .02em; border-bottom: 2px solid var(--cream-200); }
+
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
   letter-spacing: .02em; text-align: center; }
