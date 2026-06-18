@@ -1,11 +1,9 @@
 {% load humanize %}
+<h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
 {% if orders %}
-<div class="table-wrap" style="margin-top:1rem">
+<div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead>
-      <tr class="card-band"><th colspan="5">{{ heading }}</th></tr>
-      <tr><th>Type</th><th>Ref</th><th>Route</th><th>Status</th><th>Action</th></tr>
-    </thead>
+    <thead><tr><th>Type</th><th>Ref</th><th>Route</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
       <tr>
@@ -34,4 +32,4 @@
     </tbody>
   </table>
 </div>
-{% else %}<h4 class="muted" style="margin-top:1rem">{{ heading }}</h4><p class="muted">{{ empty }}</p>{% endif %}
+{% else %}<p class="muted">{{ empty }}</p>{% endif %}
