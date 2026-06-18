@@ -73,8 +73,6 @@
             <td class="action-cell">
               {% if user.is_authenticated and plan.traveler_id == user.id %}
                 <a class="btn btn-primary btn-sm" href="#" data-notice="You cannot order your own Travel Plan!">Order</a>
-              {% elif plan.carrier_only %}
-                <a class="btn btn-primary btn-sm" href="#" data-notice="This is a Carrier plan — the traveler only carries cargo you already have, they don't shop for items. Placing an item order here isn't available yet (the Cargo order flow is coming soon).">Order</a>
               {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
                 <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>
               {% else %}

@@ -112,9 +112,9 @@ def request_create(request, plan_id):
     if plan.traveler_id == request.user.id:
         messages.error(request, "You cannot block your own travel plan.")
         return redirect(plan.get_absolute_url())
-    if not flow_types.plan_accepts_item_order(plan):
-        messages.error(request, flow_types.CARRIER_PLAN_NEEDS_CARGO)
-        return redirect(plan.get_absolute_url())
+    # Flow 2 (Phase 2a): Carrier plans now accept a cargo order (declared contents
+    # + weight, no purchase). The order's is_cargo follows the plan, so the same
+    # form is reused; the carry tail diverges from Flow 1 after acceptance.
     excluded = {Status.REJECTED, Status.CANCELLED, Status.CLOSED}
     if plan.buy_requests.filter(buyer=request.user).exclude(status__in=excluded).exists():
         messages.info(request, "You already have an active order on this travel plan.")

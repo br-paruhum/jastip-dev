@@ -307,7 +307,6 @@ def profile(request):
             and not _plan.is_closed
             and _plan.remaining_weight_kg >= min_kg
             and _plan.traveler_id != user.id
-            and not _plan.carrier_only  # Carrier plans can't take item orders (Flow 2 pending)
         ):
             order_form_plan = _plan
             order_form_buy = BuyRequestForm()

@@ -93,8 +93,16 @@
   <div class="fold-body">
 
   {% if is_traveler and req.status == "request_received" %}
+    {% if req.is_cargo %}
+    <p>Review the cargo and confirm the weight, then accept or reject.</p>
+    {% else %}
     <p>Review the request, set item costs, then accept or reject.</p>
-    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?review={{ req.id }}#review-order">Review request</a></div>
+    {% endif %}
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?review={{ req.id }}#review-order">Review {% if req.is_cargo %}cargo{% else %}request{% endif %}</a></div>
+
+  {% elif req.is_cargo %}
+    <p class="muted">This cargo order has been accepted. Deposit payment and the
+      drop-off → carry → delivery steps are coming in the next update (Phase 2b).</p>
 
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>
