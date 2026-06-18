@@ -61,7 +61,7 @@
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{% if plan.carrier_only %}<span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}<span class="type-badge t-proxy">{{ plan.type_label }}</span><br>{{ plan.margin_percent }}%{% endif %}</td>
+            <td class="margin-cell">{% if plan.carrier_only %}-<br><span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}{{ plan.margin_percent }}%<br><span class="type-badge t-proxy">{{ plan.type_label }}</span>{% endif %}</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">
               {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
@@ -131,7 +131,7 @@
             <td class="avail-cell">{{ plan.available_weight_kg }}</td>
             <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
             <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{% if plan.carrier_only %}<span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}<span class="type-badge t-proxy">{{ plan.type_label }}</span><br>{{ plan.margin_percent }}%{% endif %}</td>
+            <td class="margin-cell">{% if plan.carrier_only %}-<br><span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}{{ plan.margin_percent }}%<br><span class="type-badge t-proxy">{{ plan.type_label }}</span>{% endif %}</td>
             <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
             <td class="status-cell">{% include "trips/_status_badge.html" with status="closed" label="In Transit" tone="warning" %}</td>
             <td class="action-cell"><span class="btn btn-sm btn-blocked">Locked</span></td>
@@ -173,11 +173,10 @@
         <tbody>
           {% for order in open_orders %}
           <tr>
-            <td>{{ order.max_acceptable_date|date:"d-M-Y" }}</td>
+            <td>{{ order.max_acceptable_date|date:"d-M-Y" }}<br><span class="type-badge {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span></td>
             <td class="route-cell">
               <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
               <span>{{ order.from_country }} → {{ order.to_country }}</span>
-              <span class="route-type {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span>
             </td>
             <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
             <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>
