@@ -640,8 +640,11 @@ class BuyRequest(models.Model):
 
     @property
     def deposit_due(self) -> Decimal:
-        """Deposit = ((Estimated items + estimated margin) × 50%) + estimated
-        shipment. Fixed on estimates at acceptance."""
+        """Deposit fixed at acceptance. Cargo (Carrier) = the full carry fee
+        (weight × rate) — the traveler buys nothing. Proxy buying = ((estimated
+        items + margin) × 50%) + estimated shipment."""
+        if self.is_cargo:
+            return self.estimated_shipment_cost
         return self._q(
             (self.items_estimated_total + self.estimated_margin) * Decimal("0.5")
             + self.estimated_shipment_cost

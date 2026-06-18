@@ -19,7 +19,13 @@
         <td class="status-cell">{% include "trips/_status_badge.html" with label=row.status_label tone=row.status_tone %}</td>
         <td class="action-cell">
           {% if row.kind == "plan" %}
-            {% if row.req.status == 'request_received' or row.req.status == 'accepted' %}
+            {% if row.req.is_cargo %}
+              {% if row.req.status == 'request_received' %}
+                <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ row.req.id }}#review-order">Manage</a>
+              {% else %}
+                <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?order={{ row.req.id }}#order-detail">View</a>
+              {% endif %}
+            {% elif row.req.status == 'request_received' or row.req.status == 'accepted' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?review={{ row.req.id }}#review-order">Manage</a>
             {% elif row.req.status == 'deposit_paid' %}
               <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?purchase={{ row.req.id }}#purchase-order">Manage</a>
