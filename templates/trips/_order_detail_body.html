@@ -5,8 +5,8 @@
 </div>
 
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Order Details</h3>
   <table class="invoice">
+    <tr class="title-band"><td colspan="2">Order Details</td></tr>
     <tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>

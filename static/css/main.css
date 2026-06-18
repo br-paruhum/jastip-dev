@@ -208,6 +208,10 @@ table.plan-card-table tr.pc-section td { background: var(--cream); font-weight: 
   color: var(--slate); text-align: center; }
 table.plan-card-table td.pc-terms { text-align: left; }
 
+/* Centered cream title band as the first row of an invoice/detail card */
+table.invoice tr.title-band td { background: var(--cream); text-align: center; font-weight: 700;
+  color: var(--slate); letter-spacing: .02em; padding: 10px 14px; }
+
 /* --- Badges --- */
 .badge { display: inline-block; padding: .25rem .6rem; border-radius: var(--radius-sm); font-size: .74rem; font-weight: 700;
   letter-spacing: .02em; text-align: center; }
