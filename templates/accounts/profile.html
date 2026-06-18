@@ -140,7 +140,7 @@
                   <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
               </div>
               <div class="form-field">
-                <label>Shipment Cost per kg <span data-shipment-currency-suffix>(IDR)</span></label>
+                <label>Shipment Cost per kg</label>
                 {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
                 <p class="help">Currency is set automatically from your From Country.</p>
               </div>
@@ -479,6 +479,23 @@
       };
       planCountrySelect.addEventListener('change', updatePlanCurrency);
       updatePlanCurrency();
+    }
+
+    // Mute the Margin field when the plan is Carrier Only (margin doesn't apply).
+    var planService = wrap.querySelector('select[name="carrier_only"]');
+    var planMargin = wrap.querySelector('[name="margin_percent"]');
+    if (planService && planMargin) {
+      var updatePlanMargin = function () {
+        if (planService.value === '1') {
+          if (!planMargin.readOnly) { planMargin.dataset.prev = planMargin.value; }
+          planMargin.value = '0'; planMargin.readOnly = true; planMargin.classList.add('input-muted');
+        } else {
+          if (planMargin.readOnly) { planMargin.value = planMargin.dataset.prev || planMargin.value; }
+          planMargin.readOnly = false; planMargin.classList.remove('input-muted');
+        }
+      };
+      planService.addEventListener('change', updatePlanMargin);
+      updatePlanMargin();
     }
   }
 

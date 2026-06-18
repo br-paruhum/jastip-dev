@@ -33,7 +33,7 @@
             <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
         </div>
         <div class="form-field">
-          <label>Shipment Cost per kg <span data-shipment-currency-suffix>(IDR)</span></label>
+          <label>Shipment Cost per kg</label>
           {{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}
           <p class="help">Currency is set automatically from your From Country.</p>
         </div>
@@ -63,6 +63,24 @@
     suffix.textContent = '(' + (countryCurrency[country] || 'IDR') + ')';
   }
   countrySelect.addEventListener('change', update);
+  update();
+})();
+</script>
+<script>
+(function () {
+  var service = document.querySelector('select[name="carrier_only"]');
+  var margin = document.querySelector('[name="margin_percent"]');
+  if (!service || !margin) return;
+  function update() {
+    if (service.value === '1') {            // Carrier Only — no margin applies
+      if (!margin.readOnly) { margin.dataset.prev = margin.value; }
+      margin.value = '0'; margin.readOnly = true; margin.classList.add('input-muted');
+    } else {
+      if (margin.readOnly) { margin.value = margin.dataset.prev || margin.value; }
+      margin.readOnly = false; margin.classList.remove('input-muted');
+    }
+  }
+  service.addEventListener('change', update);
   update();
 })();
 </script>
