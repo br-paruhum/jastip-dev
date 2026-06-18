@@ -351,6 +351,11 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
 
 @media (max-width: 860px) {
   .hero-grid, .grid-3, .grid-2, .form-row, .footer-grid { grid-template-columns: 1fr; }
+  /* Item/purchase rows: first field (name) full width, the rest share a row,
+     so Qty/Unit stay readable on narrow screens instead of cramping. */
+  .form-row.item-cols, .form-row.purchase-cols { grid-template-columns: 1fr 1fr; }
+  .form-row.item-cols > .form-field:first-child,
+  .form-row.purchase-cols > .form-field:first-child { grid-column: 1 / -1; }
   .nav-links { position: fixed; inset: 68px 0 auto 0; background: #fff; flex-direction: column;
     align-items: flex-start; padding: 16px 20px; gap: 1rem; border-bottom: 1px solid var(--line);
     transform: translateY(-130%); transition: .25s ease; box-shadow: var(--shadow); }
