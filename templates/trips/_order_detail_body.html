@@ -9,6 +9,7 @@
     <tr class="title-band"><td colspan="2">Order Details</td></tr>
     <tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
+    <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
     <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
     <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
