@@ -3,7 +3,7 @@
 {% block content %}
 <section>
   <div class="container" style="max-width:760px">
-    <span class="eyebrow">{% if plan.carrier_only %}Send Cargo{% else %}Buyer request{% endif %} · {{ plan.from_city }} → {{ plan.to_city }}</span>
+    <span class="eyebrow">{% if plan.carrier_only %}Cargo Request{% else %}Buyer request{% endif %} · {{ plan.from_city }} → {{ plan.to_city }}</span>
     {% if plan.carrier_only %}
     <h1>What cargo would you like the carrier to carry?</h1>
     <p class="muted">Declare the contents of your package (for customs). Add up to 10 items.
@@ -51,7 +51,7 @@
         </div>
         <div class="form-field mt-2"><label>Notes to {% if plan.carrier_only %}Carrier{% else %}Traveler{% endif %}</label>{{ form.buyer_notes }}</div>
         <div style="display:flex;gap:10px;justify-content:center">
-          <button class="btn btn-primary" type="submit">{% if plan.carrier_only %}Send Cargo{% else %}Submit Order{% endif %}</button>
+          <button class="btn btn-primary" type="submit">{% if plan.carrier_only %}Send Request{% else %}Submit Order{% endif %}</button>
           <a class="btn btn-outline" href="{% url 'trips:request_create' plan.id %}">Reset</a>
         </div>
       </div>

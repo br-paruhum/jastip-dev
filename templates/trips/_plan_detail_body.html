@@ -37,7 +37,7 @@
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
-    <button type="button" class="btn btn-primary" id="toggle-submit-order">{% if plan.carrier_only %}Send Cargo{% else %}Submit Order{% endif %}</button>
+    <button type="button" class="btn btn-primary" id="toggle-submit-order">{% if plan.carrier_only %}Send Request{% else %}Submit Order{% endif %}</button>
   </div>
   {% elif user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
@@ -48,7 +48,7 @@
 
 {% if plan.is_open and user != plan.traveler %}
 <div id="submit-order-wrap" class="card mt-2" style="display:none"><div class="card-body">
-  <span class="eyebrow">{% if plan.carrier_only %}Send Cargo{% else %}New Order{% endif %} · {{ plan.from_city }} → {{ plan.to_city }}</span>
+  <span class="eyebrow">{% if plan.carrier_only %}Cargo Request{% else %}New Order{% endif %} · {{ plan.from_city }} → {{ plan.to_city }}</span>
   {% if plan.carrier_only %}
   <h2>What cargo would you like the carrier to carry?</h2>
   <p class="muted">Declare the contents of your package (for customs). Add up to 10 items.

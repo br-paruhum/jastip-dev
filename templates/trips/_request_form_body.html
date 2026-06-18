@@ -1,4 +1,4 @@
-<span class="eyebrow">{% if order_form_plan.carrier_only %}Send Cargo{% else %}New Order{% endif %} · {{ order_form_plan.from_city }} → {{ order_form_plan.to_city }}</span>
+<span class="eyebrow">{% if order_form_plan.carrier_only %}Cargo Request{% else %}New Order{% endif %} · {{ order_form_plan.from_city }} → {{ order_form_plan.to_city }}</span>
 {% if order_form_plan.carrier_only %}
 <h2>What cargo would you like the carrier to carry?</h2>
 <p class="muted">Declare the contents of your package (for customs). Add up to 10 items.
@@ -43,7 +43,7 @@
     </div>
     <div class="form-field mt-2"><label>Notes to {% if order_form_plan.carrier_only %}Carrier{% else %}Traveler{% endif %}</label>{{ order_form_buy.buyer_notes }}</div>
     <div style="display:flex;gap:10px;justify-content:center">
-      <button class="btn btn-primary" type="submit">{% if order_form_plan.carrier_only %}Send Cargo{% else %}Submit Order{% endif %}</button>
+      <button class="btn btn-primary" type="submit">{% if order_form_plan.carrier_only %}Send Request{% else %}Submit Order{% endif %}</button>
     </div>
   </div>
 </form>
