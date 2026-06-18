@@ -26,238 +26,55 @@
 
 {% if ADSENSE_CLIENT %}<div class="container"><div class="adslot">Advertisement</div></div>{% endif %}
 
-<!-- SECTION 2: Open Travel Plan -->
+<!-- Open Travel Plans — Proxy Buying -->
 <section id="open-offers">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Live now</span>
-      <h2>Open Travel Plans</h2>
-      <p>Find a traveler heading your way and order their luggage space.</p>
+      <h2>Open Travel Plans — Proxy Buying</h2>
+      <p>Travelers who'll buy items abroad for you — order their luggage space.</p>
     </div>
-    {% if open_plans %}
-    <div class="table-wrap">
-      <table class="offers offers-centered">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Route</th>
-            <th>Offer<br>(kg)</th>
-            <th>Avail<br>(kg)</th>
-            <th>Shipment<br>Cost/kg</th>
-            <th>Margin<br><sup>*)</sup></th>
-            <th>Payment<br>Terms</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for plan in open_plans %}
-          <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}<br>{% if plan.travel_time %}{{ plan.travel_time|time:"H:i" }}{% else %}12:00{% endif %}</td>
-            <td class="route-cell">
-              <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
-              <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
-            </td>
-            <td class="avail-cell">{{ plan.available_weight_kg }}</td>
-            <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
-            <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{% if plan.carrier_only %}-<br><span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}{{ plan.margin_percent }}%<br><span class="type-badge t-proxy">{{ plan.type_label }}</span>{% endif %}</td>
-            <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
-            <td class="status-cell">
-              {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
-                {% include "trips/_status_badge.html" with status="new" label="Open" tone="success" %}
-              {% else %}
-                {% include "trips/_status_badge.html" with status="closed" label="Full" tone="danger" %}
-              {% endif %}
-            </td>
-            <td class="action-cell">
-              {% if user.is_authenticated and plan.traveler_id == user.id %}
-                <a class="btn btn-primary btn-sm" href="#" data-notice="You cannot order your own Travel Plan!">Order</a>
-              {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
-                <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>
-              {% else %}
-                <span class="btn btn-sm btn-blocked">Full</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <div class="offers-notes">
-      <p class="notes-head">Note:</p>
-      <p>*) Proxy Buyer Only. Calculate on top of Ordered Items Cost as stated on seller's/store's invoice(s).</p>
-    </div>
-    {% else %}
-    <p class="text-center muted">No open offers yet. <a href="{% url 'trips:plan_create' %}">Be the first to post a trip.</a></p>
-    {% endif %}
+    {% include "pages/_home_plan_table.html" with plans=open_plans_proxy is_cargo=False empty_msg="No open Proxy Buying travel plans yet." %}
   </div>
 </section>
 
-<!-- SECTION 3: Travel In Transit -->
-<section class="section-cream">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">On the move</span>
-      <h2>Travel In Transit</h2>
-      <p>Trips already underway — no longer accepting new orders.</p>
-    </div>
-    {% if transit_plans %}
-    <div class="table-wrap">
-      <table class="offers offers-centered">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Route</th>
-            <th>Offer<br>(kg)</th>
-            <th>Avail<br>(kg)</th>
-            <th>Shipment<br>Cost/kg</th>
-            <th>Margin<br><sup>*)</sup></th>
-            <th>Payment<br>Terms</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for plan in transit_plans %}
-          <tr>
-            <td>{{ plan.travel_date|date:"d-M-Y" }}<br>{% if plan.travel_time %}{{ plan.travel_time|time:"H:i" }}{% else %}12:00{% endif %}</td>
-            <td class="route-cell">
-              <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
-              <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
-            </td>
-            <td class="avail-cell">{{ plan.available_weight_kg }}</td>
-            <td class="avail-cell">{{ plan.remaining_weight_kg }}</td>
-            <td class="shipment-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-            <td class="margin-cell">{% if plan.carrier_only %}-<br><span class="type-badge t-carrier">{{ plan.type_label }}</span>{% else %}{{ plan.margin_percent }}%<br><span class="type-badge t-proxy">{{ plan.type_label }}</span>{% endif %}</td>
-            <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
-            <td class="status-cell">{% include "trips/_status_badge.html" with status="closed" label="In Transit" tone="warning" %}</td>
-            <td class="action-cell"><span class="btn btn-sm btn-blocked">Locked</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text-center muted">No trips in transit right now.</p>
-    {% endif %}
-  </div>
-</section>
-
-<!-- SECTION 4: Open Orders -->
-<section id="open-orders">
+<!-- Open Orders — Proxy Buying -->
+<section class="section-cream" id="open-orders">
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Live now</span>
-      <h2>Open Orders</h2>
-      <p>Respond with an offer if you're heading their way.</p>
+      <h2>Open Orders — Proxy Buying</h2>
+      <p>Buyers looking for a traveler to buy items abroad — respond with an offer.</p>
     </div>
-    {% if open_orders %}
-    <div class="table-wrap">
-      <table class="offers offers-centered">
-        <thead>
-          <tr>
-            <th>Deadline</th>
-            <th>Route</th>
-            <th>Bid<br>(kg)</th>
-            <th>Bid<br>Price/kg</th>
-            <th>Ask<br>(kg)</th>
-            <th>Ask<br>Price/kg</th>
-            <th>Avail<br>(kg)</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for order in open_orders %}
-          <tr>
-            <td style="text-align:center">{{ order.max_acceptable_date|date:"d-M-Y" }}<br><span class="type-badge {% if order.is_cargo %}t-carrier{% else %}t-proxy{% endif %}">{{ order.actor_label }}</span></td>
-            <td class="route-cell">
-              <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
-              <span>{{ order.from_country }} → {{ order.to_country }}</span>
-            </td>
-            <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
-            <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>
-            <td>
-              {% for offer in order.traveler_offers.all %}
-                {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
-                  <span class="badge badge-muted">{{ offer.avail_kg }}</span>
-                {% endif %}
-              {% endfor %}
-            </td>
-            <td>
-              {% for offer in order.traveler_offers.all %}
-                {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
-                  <span class="badge badge-muted">{{ order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</span>
-                {% endif %}
-              {% endfor %}
-            </td>
-            <td class="avail-cell">{{ order.remaining_bid_weight_kg }}</td>
-            <td class="status-cell">{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
-            <td class="action-cell">
-              {% if order.my_pending_offer_id %}
-                <form method="post" action="{% url 'trips:offer_withdraw' order.my_pending_offer_id %}" style="display:inline">
-                  {% csrf_token %}
-                  <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>
-                </form>
-              {% elif user.is_authenticated and order.buyer_id == user.id %}
-                <span class="btn btn-sm btn-blocked">Your order</span>
-              {% elif order.offer_form %}
-                <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ order.id }}#offer-form">Place Offer</a>
-              {% else %}
-                <span class="btn btn-sm btn-blocked">Taken</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <div class="offers-notes">
-      <p class="notes-head">Note:</p>
-      <p>*) Partial fulfillment allowed — this order can be split across multiple travelers.</p>
-    </div>
-    {% else %}
-    <p class="text-center muted">No open orders yet. <a href="{% url 'trips:order_create' %}">Be the first to post one.</a></p>
-    {% endif %}
+    {% include "pages/_home_order_table.html" with orders=open_orders_proxy is_cargo=False empty_msg="No open Proxy Buying orders yet." %}
   </div>
 </section>
 
-<!-- SECTION 5: Orders In Transit -->
+<!-- Open Travel Plans — Cargo Only -->
+<section>
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Live now</span>
+      <h2>Open Travel Plans — Cargo Only</h2>
+      <p>Carriers with spare luggage space — send cargo you already have.</p>
+    </div>
+    {% include "pages/_home_plan_table.html" with plans=open_plans_cargo is_cargo=True empty_msg="No open Cargo Only travel plans yet." %}
+  </div>
+</section>
+
+<!-- Open Orders — Cargo Only -->
 <section class="section-cream">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">On the move</span>
-      <h2>Orders in Transit</h2>
-      <p>Packages already handed over to a traveler and en route.</p>
+      <span class="eyebrow">Live now</span>
+      <h2>Open Orders — Cargo Only</h2>
+      <p>Buyers looking for a carrier to ship cargo they already have — respond with an offer.</p>
     </div>
-    {% if transit_orders %}
-    <div class="table-wrap">
-      <table class="offers offers-allcenter">
-        <thead><tr><th>Route</th><th>Bid (kg)</th><th>Ask/kg</th><th>Allocated (kg)</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for order in transit_orders %}
-          {% for leg in order.confirmed_legs %}
-          <tr>
-            <td class="route-cell"><strong>{{ order.from_city }} → {{ order.to_city }}</strong>
-              <span>{{ order.from_country }} → {{ order.to_country }}</span></td>
-            <td class="num-cell">{{ order.bid_weight_kg }}</td>
-            <td class="num-cell">{{ order.currency }} {{ leg.ask_cost_per_kg|intcomma }}</td>
-            <td class="num-cell">{{ leg.allocated_weight_kg }}</td>
-            <td>{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
-          </tr>
-          {% endfor %}
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text-center muted">No orders in transit right now.</p>
-    {% endif %}
+    {% include "pages/_home_order_table.html" with orders=open_orders_cargo is_cargo=True empty_msg="No open Cargo Only orders yet." %}
   </div>
 </section>
 
-<!-- SECTION 6: Latest blog -->
+<!-- Latest blog -->
 <section>
   <div class="container">
     <div class="section-head">

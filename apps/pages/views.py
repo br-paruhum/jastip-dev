@@ -27,7 +27,8 @@ def home(request):
         .prefetch_related("buy_requests")[:30]
     )
     open_plans = [p for p in plans if not p.travel_date_passed]
-    transit_plans = [p for p in plans if p.travel_date_passed]
+    open_plans_proxy = [p for p in open_plans if not p.carrier_only]
+    open_plans_cargo = [p for p in open_plans if p.carrier_only]
 
     orders = list(
         BuyRequest.objects.filter(plan__isnull=True)
@@ -44,10 +45,10 @@ def home(request):
                 order__in=orders, traveler=request.user, offer_status=OfferStatus.PENDING
             )
         }
-    open_orders, transit_orders = [], []
+    open_orders = []
     for order in orders:
         order.my_pending_offer_id = pending_lookup.get(order.id)
-        if order.home_section == "closed":
+        if order.home_section != "open":  # drop transit + closed from the home page
             continue
         if (
             order.is_accepting_offers
@@ -58,7 +59,9 @@ def home(request):
                 "from_city": order.from_city, "from_country": order.from_country,
                 "to_city": order.to_city, "to_country": order.to_country,
             })
-        {"open": open_orders, "transit": transit_orders}[order.home_section].append(order)
+        open_orders.append(order)
+    open_orders_proxy = [o for o in open_orders if not o.is_cargo]
+    open_orders_cargo = [o for o in open_orders if o.is_cargo]
 
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works
@@ -68,10 +71,10 @@ def home(request):
         request,
         "pages/home.html",
         {
-            "open_plans": open_plans,
-            "transit_plans": transit_plans,
-            "open_orders": open_orders,
-            "transit_orders": transit_orders,
+            "open_plans_proxy": open_plans_proxy,
+            "open_plans_cargo": open_plans_cargo,
+            "open_orders_proxy": open_orders_proxy,
+            "open_orders_cargo": open_orders_cargo,
             "latest_posts": latest_posts,
             "MIN_REMAINING_WEIGHT_KG": min_remaining,
         },

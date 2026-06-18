@@ -1,0 +1,69 @@
+{% load humanize %}
+{% if orders %}
+<div class="table-wrap">
+  <table class="offers offers-centered">
+    <thead>
+      <tr>
+        <th>Deadline</th>
+        <th>Route</th>
+        <th>Bid<br>(kg)</th>
+        <th>Bid<br>Price/kg</th>
+        <th>Ask<br>(kg)</th>
+        <th>Ask<br>Price/kg</th>
+        <th>Avail<br>(kg)</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in orders %}
+      <tr>
+        <td style="text-align:center">{{ order.max_acceptable_date|date:"d-M-Y" }}</td>
+        <td class="route-cell">
+          <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
+          <span>{{ order.from_country }} → {{ order.to_country }}</span>
+        </td>
+        <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
+        <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>
+        <td>
+          {% for offer in order.traveler_offers.all %}
+            {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
+              <span class="badge badge-muted">{{ offer.avail_kg }}</span>
+            {% endif %}
+          {% endfor %}
+        </td>
+        <td>
+          {% for offer in order.traveler_offers.all %}
+            {% if offer.offer_status == "pending" or offer.offer_status == "selected" %}
+              <span class="badge badge-muted">{{ order.currency }} {{ offer.ask_cost_per_kg|intcomma }}</span>
+            {% endif %}
+          {% endfor %}
+        </td>
+        <td class="avail-cell">{{ order.remaining_bid_weight_kg }}</td>
+        <td class="status-cell">{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
+        <td class="action-cell">
+          {% if order.my_pending_offer_id %}
+            <form method="post" action="{% url 'trips:offer_withdraw' order.my_pending_offer_id %}" style="display:inline">
+              {% csrf_token %}
+              <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>
+            </form>
+          {% elif user.is_authenticated and order.buyer_id == user.id %}
+            <span class="btn btn-sm btn-blocked">Your order</span>
+          {% elif order.offer_form %}
+            <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ order.id }}#offer-form">Place Offer</a>
+          {% else %}
+            <span class="btn btn-sm btn-blocked">Taken</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="offers-notes">
+  <p class="notes-head">Note:</p>
+  <p>*) Partial fulfillment allowed — this order can be split across multiple travelers.</p>
+</div>
+{% else %}
+<p class="text-center muted">{{ empty_msg }} <a href="{% url 'trips:order_create' %}">Post an order.</a></p>
+{% endif %}
