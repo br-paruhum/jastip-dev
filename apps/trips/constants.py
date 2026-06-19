@@ -169,6 +169,16 @@ DEFAULT_PAYMENT_TERM = (
     "This payment is reimbursable to the traveler with proof of payment."
 )
 
+# Separate payment terms shown on Carrier Only travel plans (no proxy buying).
+DEFAULT_PAYMENT_TERM_CARRIER = (
+    "<ul>"
+    "<li>Full payment of shipment cost should be paid at the time Buyer hand "
+    "over the package to Traveler.</li>"
+    "<li>Custom duty at the destination city is paid Buyer. Traveler will cover "
+    "the duty payment and should be reimbursed upon showing the proof of payment.</li>"
+    "</ul>"
+)
+
 # Pre-filled (editable) note the buyer sends to the traveler with a request.
 DEFAULT_BUYER_NOTE = (
     "Please send me a message if you find difficulties finding my item(s) - "

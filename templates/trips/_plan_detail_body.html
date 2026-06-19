@@ -28,12 +28,10 @@
     </tr>
     <tr>
       <td class="pc-label">Shipment Cost / kg:</td>
-      <td class="pc-val">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
-      <td class="pc-label">Margin:</td>
-      <td class="pc-val">{% if plan.carrier_only %}Carrier Only{% else %}{{ plan.margin_percent }}%{% endif %}</td>
+      <td class="pc-val" colspan="3">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
     </tr>
     <tr class="pc-section"><td colspan="4">Payment Terms</td></tr>
-    <tr><td colspan="4" class="pc-terms">{{ PAYMENT_TERM|safe }}</td></tr>
+    <tr><td colspan="4" class="pc-terms">{% if plan.carrier_only %}{{ PAYMENT_TERM_CARRIER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">

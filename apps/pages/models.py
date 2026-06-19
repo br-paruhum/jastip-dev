@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.db import models
 from django.urls import reverse
 
-from apps.trips.constants import DEFAULT_PAYMENT_TERM
+from apps.trips.constants import DEFAULT_PAYMENT_TERM, DEFAULT_PAYMENT_TERM_CARRIER
 
 
 class SiteSettings(models.Model):
@@ -16,7 +16,14 @@ class SiteSettings(models.Model):
     payment_term = models.TextField(
         default=DEFAULT_PAYMENT_TERM,
         help_text=(
-            "Shown as the Payment Term on every trip's detail page. "
+            "Shown as the Payment Term on Proxy Buyer trip detail pages. "
+            "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
+        ),
+    )
+    payment_term_carrier = models.TextField(
+        default=DEFAULT_PAYMENT_TERM_CARRIER,
+        help_text=(
+            "Shown as the Payment Term on Carrier Only trip detail pages. "
             "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
         ),
     )
