@@ -15,6 +15,16 @@ db.sqlite3-journal
 # Env / secrets
 .env
 *.pem
+cert/
+db.sqlite3.bak*
+
+# Local working files (not part of the app)
+jastip-backup/
+how-to/
+new-how-to/
+references/
+logo/
+RESTORE.md
 
 # Node (whatsapp bot)
 node_modules/
