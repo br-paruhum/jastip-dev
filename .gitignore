@@ -39,3 +39,5 @@ graphify-out/
 .idea/
 .vscode/
 *.swp
+*.bak
+*.bak-*
