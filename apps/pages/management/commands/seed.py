@@ -17,7 +17,7 @@ from apps.accounts.models import User
 from apps.blog.models import Post
 from apps.pages.models import FAQItem, SitePage
 from apps.trips.constants import Currency, Status
-from apps.trips.models import TravelPlan
+from apps.trips.models import ExchangeRate, TravelPlan
 
 # Rich "How It Works" infographic body — single source of truth, also rendered
 # live at /how-to/.  Kept in its own file so it can be edited without bloating
@@ -39,6 +39,23 @@ operate the service and never sell your data.</p>"""),
 <p>By using ProxyBuying you agree to act in good faith. ProxyBuying is a platform that facilitates
 proxy purchasing and holds funds in escrow for a 2.5% fee. All correspondence between travelers and
 buyers is conducted through email with a copy to admin.</p>"""),
+]
+
+# Exchange-rate skeleton: one row per supported foreign currency so the admin
+# panel is never empty on a fresh DB. Rates start at 0 (guarded everywhere) and
+# are filled in by the daily `fetch_kurs` cron. (code, BCA-style name, sequence)
+EXCHANGE_RATES = [
+    ("USD", "US DOLLAR", 1),
+    ("SGD", "SINGAPORE DOLLAR", 2),
+    ("MYR", "MALAYSIAN RINGGIT", 3),
+    ("EUR", "EURO", 4),
+    ("GBP", "BRITISH POUND", 5),
+    ("AUD", "AUSTRALIAN DOLLAR", 6),
+    ("JPY", "JAPANESE YEN", 7),
+    ("CNY", "CHINESE YUAN", 8),
+    ("HKD", "HONG KONG DOLLAR", 9),
+    ("KRW", "SOUTH KOREAN WON", 10),
+    ("THB", "THAI BAHT", 11),
 ]
 
 FAQS = [
@@ -71,6 +88,14 @@ class Command(BaseCommand):
         for i, (q, a) in enumerate(FAQS):
             FAQItem.objects.update_or_create(question=q, defaults={"answer": a, "order": i})
         self.stdout.write(self.style.SUCCESS(f"{len(FAQS)} FAQ items ready"))
+
+        # Exchange-rate skeleton (rates filled in by the fetch_kurs cron)
+        for code, name, sequence in EXCHANGE_RATES:
+            ExchangeRate.objects.get_or_create(
+                code=code,
+                defaults={"name": name, "sell_rate": Decimal("0"), "sequence": sequence},
+            )
+        self.stdout.write(self.style.SUCCESS(f"{len(EXCHANGE_RATES)} exchange-rate rows ready"))
 
         # Admin user
         admin_email = settings.ADMIN_EMAIL

@@ -8,7 +8,7 @@ Intended to run daily at 09:00 WIB (server tz = Asia/Jakarta).
 Flow:
   1. GET the BCA kurs page to obtain a session cookie + the Sitecore dsid.
   2. POST to RefreshKurs with that dsid to receive JSON rates.
-  3. Extract TT Counter (RateType=1) SellRate + BuyRate per currency.
+  3. Extract TT Counter (RateType=1) SellRate (the FX Rate) per currency.
   4. Upsert into ExchangeRate (create or update; never delete so is_active
      choices made in admin are preserved).
 """
@@ -114,22 +114,20 @@ class Command(BaseCommand):
                 continue
 
             sell = tt["SellRate"]
-            buy = tt["BuyRate"]
 
             if dry:
-                self.stdout.write(f"  [dry] {code:6s} {name:6s}  sell={sell:>12,.2f}  buy={buy:>12,.2f}")
+                self.stdout.write(f"  [dry] {code:6s} {name:6s}  fx={sell:>12,.2f}")
                 continue
 
             obj, is_new = ExchangeRate.objects.get_or_create(
                 code=code,
-                defaults={"name": name, "sell_rate": sell, "buy_rate": buy, "updated_at": tt_ts},
+                defaults={"name": name, "sell_rate": sell, "updated_at": tt_ts},
             )
             if not is_new:
                 obj.name = name
                 obj.sell_rate = sell
-                obj.buy_rate = buy
                 obj.updated_at = tt_ts
-                obj.save(update_fields=["name", "sell_rate", "buy_rate", "updated_at"])
+                obj.save(update_fields=["name", "sell_rate", "updated_at"])
                 updated += 1
             else:
                 created += 1

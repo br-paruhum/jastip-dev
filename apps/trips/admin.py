@@ -1,6 +1,4 @@
 from django.contrib import admin, messages
-from django.db import models as db_models
-from django.forms import TextInput
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.html import format_html
@@ -383,7 +381,7 @@ class MessageAdmin(ModelAdmin):
 @admin.register(ExchangeRate)
 class ExchangeRateAdmin(ModelAdmin):
     list_display = (
-        "code", "name", "sell_rate", "buy_rate", "is_active", "sequence",
+        "code", "name", "sell_rate", "is_active", "sequence",
         "apply_to_countries", "updated_at",
     )
     list_editable = ("name", "is_active", "sequence", "apply_to_countries")
@@ -391,6 +389,3 @@ class ExchangeRateAdmin(ModelAdmin):
     search_fields = ("code", "name", "apply_to_countries")
     readonly_fields = ("updated_at",)
     ordering = ("sequence", "code")
-    formfield_overrides = {
-        db_models.CharField: {"widget": TextInput(attrs={"size": 20})},
-    }

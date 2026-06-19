@@ -1336,8 +1336,7 @@ class ExchangeRate(models.Model):
 
     code = models.CharField(max_length=6, primary_key=True)
     name = models.CharField(max_length=40)
-    sell_rate = models.DecimalField(max_digits=14, decimal_places=4)
-    buy_rate = models.DecimalField(max_digits=14, decimal_places=4)
+    sell_rate = models.DecimalField(max_digits=14, decimal_places=4, verbose_name="FX Rate")
     is_active = models.BooleanField(default=True)
     sequence = models.PositiveSmallIntegerField(default=0, help_text="Lower = shown first.")
     apply_to_countries = models.TextField(
