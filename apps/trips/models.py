@@ -347,6 +347,15 @@ class BuyRequest(models.Model):
         return self._q(self.bid_weight_kg - self.total_allocated_weight_kg)
 
     @property
+    def pending_weight_kg(self) -> Decimal:
+        """Cargo plan-first request: the requested weight still awaiting the
+        traveler's acceptance (Bid − Accepted, from the buyer's point of view).
+        Drops to 0 the moment the carrier accepts."""
+        if self.status == Status.REQUEST_RECEIVED:
+            return self._q(self.estimated_weight_kg)
+        return Decimal("0")
+
+    @property
     def is_fully_matched(self) -> bool:
         return bool(self.confirmed_legs) and self.total_allocated_weight_kg >= self.bid_weight_kg
 

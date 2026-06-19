@@ -15,8 +15,8 @@
           {% endif %}
         </td>
         <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
-        <td>{% if o.bf_kind == "traveler_first" %}—{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}</td>
-        <td>{% if o.bf_kind == "traveler_first" %}—{% else %}{{ o.remaining_bid_weight_kg }}{% endif %}</td>
+        <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.estimated_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}</td>
+        <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.pending_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.remaining_bid_weight_kg }}{% endif %}</td>
         <td class="status-cell">
           {% if o.bf_kind == "traveler_first" %}
             {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
