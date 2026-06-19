@@ -447,24 +447,32 @@ class BuyRequest(models.Model):
         "accepted": "Accepted",
     }
 
+    def _cargo_status_label(self):
+        """Cargo-specific badge label, or None when not a special cargo case.
+        Once a deposit proof is uploaded (status still 'accepted'), the badge
+        reads 'W/f Fund Verification' until admin verifies it."""
+        if not self.is_cargo:
+            return None
+        if self.status == Status.ACCEPTED and self.deposit_pending:
+            return "W/f Fund Verification"
+        return self._CARGO_STATUS_LABELS.get(self.status)
+
     @property
     def buyer_status_display(self) -> str:
         """Status label shown to the buyer — differs from the traveler's label
         for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
-        if self.is_cargo and self.status in self._CARGO_STATUS_LABELS:
-            return self._CARGO_STATUS_LABELS[self.status]
-        return self._BUYER_STATUS_LABELS.get(self.status, self.get_status_display())
+        return self._cargo_status_label() or self._BUYER_STATUS_LABELS.get(
+            self.status, self.get_status_display()
+        )
 
     @property
     def detail_status_label(self) -> str:
         """Status label shown in detail views and the traveler dashboard."""
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
-        if self.is_cargo and self.status in self._CARGO_STATUS_LABELS:
-            return self._CARGO_STATUS_LABELS[self.status]
-        return self.get_status_display()
+        return self._cargo_status_label() or self.get_status_display()
 
     def _items_purchased_date_label(self) -> str:
         """'Package Ready' before travel date, 'Package Carried' on/after."""
@@ -742,6 +750,33 @@ class BuyRequest(models.Model):
     @property
     def deposit_paid_amount(self) -> Decimal:
         return self._paid_of_kind(Payment.Kind.DEPOSIT)
+
+    @property
+    def deposit_pending(self) -> bool:
+        """A deposit proof has been submitted but not yet verified by admin."""
+        if not hasattr(self, "transaction"):
+            return False
+        return self.transaction.payments.filter(
+            direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.DEPOSIT,
+            status=Payment.PaymentStatus.PENDING,
+        ).exists()
+
+    @property
+    def deposit_proof_url(self) -> str:
+        """URL of the most recently uploaded deposit proof, if any."""
+        if not hasattr(self, "transaction"):
+            return ""
+        p = (
+            self.transaction.payments.filter(
+                direction=Payment.Direction.INBOUND,
+                kind=Payment.Kind.DEPOSIT,
+            )
+            .exclude(proof="")
+            .order_by("-id")
+            .first()
+        )
+        return p.proof.url if p and p.proof else ""
 
     @property
     def balance_paid_amount(self) -> Decimal:

@@ -139,17 +139,24 @@
 
   {% elif req.is_cargo and req.status == "accepted" %}
     {% if is_buyer %}
-    <p>Your cargo order was accepted by the carrier. Pay the carry deposit to lock it in.</p>
-    <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
-    <table class="invoice" style="max-width:440px;margin-bottom:12px">
-      <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-      <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-      <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-      <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-    </table>
-    <p class="help">Carry deposit = your package weight ({{ req.estimated_weight_kg }} kg) × the carrier's rate
-      ({{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). Upload your transfer proof below.</p>
-    {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
+      {% if req.deposit_pending %}
+      <p>Transfer proof submitted — awaiting admin verification of your deposit.</p>
+      {% if req.deposit_proof_url %}<p class="help">Your uploaded proof:
+        <a href="{{ req.deposit_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
+      <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+      {% else %}
+      <p>Your cargo order was accepted by the carrier. Pay the carry deposit to lock it in.</p>
+      <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+      <table class="invoice" style="max-width:440px;margin-bottom:12px">
+        <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+        <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+        <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+        <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+      </table>
+      <p class="help">Carry deposit = your package weight ({{ req.estimated_weight_kg }} kg) × the carrier's rate
+        ({{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). Upload your transfer proof below.</p>
+      {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
+      {% endif %}
     {% else %}
     <p class="muted">Cargo request accepted — awaiting the buyer's deposit.</p>
     {% endif %}
