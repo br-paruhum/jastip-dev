@@ -123,6 +123,18 @@ class TravelPlan(models.Model):
         return f"{self.from_city}, {self.from_country} → {self.to_city}, {self.to_country}"
 
     @property
+    def handover_deadline(self):
+        """Cargo: latest date the buyer should hand the package to the traveler.
+        The day before travel when departing after noon, otherwise two days
+        before (a missing time is treated as 12:00, i.e. the two-day case)."""
+        from datetime import timedelta
+
+        if not self.travel_date:
+            return None
+        days = 1 if (self.travel_time and self.travel_time > time(12, 0)) else 2
+        return self.travel_date - timedelta(days=days)
+
+    @property
     def type_label(self) -> str:
         """Traveler's transaction type for this plan (see PLAN-flow-taxonomy.md)."""
         return "Carrier Only" if self.carrier_only else "Proxy Buyer"
@@ -445,6 +457,7 @@ class BuyRequest(models.Model):
     _CARGO_STATUS_LABELS = {
         "request_received": "W/f Acceptance",
         "accepted": "Accepted",
+        "deposit_paid": "Deposit Verified",
     }
 
     def _cargo_status_label(self):

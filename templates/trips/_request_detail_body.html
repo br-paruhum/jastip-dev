@@ -161,6 +161,11 @@
     <p class="muted">Cargo request accepted — awaiting the buyer's deposit.</p>
     {% endif %}
 
+  {% elif req.is_cargo and req.status == "deposit_paid" %}
+    <p>Use the &ldquo;Messages&rdquo; tab below to communicate with the Traveler to set the place and time to hand over the package.</p>
+    {% if req.plan.handover_deadline %}<p>Please note that the deadline for handing over the package is
+      <strong>{{ req.plan.handover_deadline|date:"d-M-Y" }}</strong>.</p>{% endif %}
+
   {% elif req.is_cargo %}
     <p class="muted">Deposit received. The drop-off → carry → delivery steps are coming in the next update (Phase 2b).</p>
 
