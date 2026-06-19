@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def home(request):
     plans = list(
-        TravelPlan.objects.exclude(status=Status.CLOSED)
+        TravelPlan.objects.exclude(status__in=[Status.CLOSED, Status.CANCELLED])
         .select_related("traveler")
         .prefetch_related("buy_requests")[:30]
     )

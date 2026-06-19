@@ -89,6 +89,48 @@ def plan_create(request):
     )
 
 
+@profile_required
+def plan_edit(request, pk):
+    plan = get_object_or_404(TravelPlan, pk=pk)
+    if plan.traveler_id != request.user.id:
+        messages.error(request, "You can only edit your own travel plan.")
+        return redirect(reverse("accounts:profile") + "#travel-plans")
+    if not plan.can_edit:
+        messages.error(request, "This travel plan can no longer be edited.")
+        return redirect(reverse("accounts:profile") + "#travel-plans")
+    if request.method == "POST":
+        form = TravelPlanForm(request.POST, instance=plan)
+        if form.is_valid():
+            plan = form.save(commit=False)
+            plan.shipment_currency = ExchangeRate.currency_for_country(plan.from_country)
+            plan.save()
+            messages.success(request, "Travel plan updated.")
+            return redirect(reverse("accounts:profile") + "#travel-plans")
+    else:
+        form = TravelPlanForm(instance=plan)
+    country_currency_map_json = json.dumps(ExchangeRate.country_currency_map())
+    return render(
+        request, "trips/plan_form.html",
+        {"form": form, "country_currency_map_json": country_currency_map_json, "is_edit": True, "plan": plan},
+    )
+
+
+@profile_required
+@require_POST
+def plan_cancel(request, pk):
+    plan = get_object_or_404(TravelPlan, pk=pk)
+    if plan.traveler_id != request.user.id:
+        messages.error(request, "You can only cancel your own travel plan.")
+        return redirect(reverse("accounts:profile") + "#travel-plans")
+    if not plan.can_edit:
+        messages.error(request, "This travel plan can no longer be cancelled.")
+        return redirect(reverse("accounts:profile") + "#travel-plans")
+    plan.status = Status.CANCELLED
+    plan.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Travel plan cancelled.")
+    return redirect(reverse("accounts:profile") + "#travel-plans")
+
+
 def plan_detail(request, pk):
     plan = get_object_or_404(TravelPlan.objects.select_related("traveler"), pk=pk)
     plan_order_form = BuyRequestForm()
@@ -160,6 +202,65 @@ def request_create(request, plan_id):
     return render(request, "trips/request_form.html", {"plan": plan, "form": form, "formset": formset})
 
 
+# --- Buyer: edit / cancel a plan-first order before the traveler acts -------
+@profile_required
+def request_edit(request, pk):
+    req = get_object_or_404(BuyRequest.objects.select_related("plan"), pk=pk)
+    if req.buyer_id != request.user.id:
+        messages.error(request, "You can only edit your own order.")
+        return redirect(reverse("accounts:profile") + "#my-orders")
+    if not req.can_edit:
+        messages.error(request, "This order can no longer be edited.")
+        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    plan = req.plan
+    ItemFormSet = OrderItemFormSet if plan.carrier_only else RequestItemFormSet
+    if request.method == "POST":
+        form = BuyRequestForm(request.POST, instance=req)
+        formset = ItemFormSet(request.POST, request.FILES, instance=req)
+        if form.is_valid() and formset.is_valid():
+            with db_transaction.atomic():
+                buy = form.save()
+                formset.save()
+                items = list(buy.items.order_by("position", "id"))
+                if not items:
+                    db_transaction.set_rollback(True)
+                else:
+                    for idx, item in enumerate(items, start=1):
+                        item.position = idx
+                        if plan.carrier_only:
+                            item.actual_quantity = item.quantity
+                            item.actual_unit_cost = item.estimated_unit_cost
+                            if not item.purchased_at:
+                                item.purchased_at = timezone.now()
+                        item.save()
+            if not items:
+                messages.error(request, "Keep at least one item on the order.")
+                return redirect(request.path)
+            messages.success(request, "Order updated.")
+            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    else:
+        form = BuyRequestForm(instance=req)
+        formset = ItemFormSet(instance=req)
+    return render(request, "trips/request_form.html",
+                  {"plan": plan, "form": form, "formset": formset, "is_edit": True, "req": req})
+
+
+@profile_required
+@require_POST
+def request_cancel(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if req.buyer_id != request.user.id:
+        messages.error(request, "You can only cancel your own order.")
+        return redirect(reverse("accounts:profile") + "#my-orders")
+    if not req.can_edit:
+        messages.error(request, "This order can no longer be cancelled.")
+        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    req.status = Status.CANCELLED
+    req.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Order cancelled.")
+    return redirect(reverse("accounts:profile") + "#my-orders")
+
+
 # --- Buyer-first: post an order with no traveler yet ------------------------
 @profile_required
 def order_create(request):
@@ -196,6 +297,64 @@ def order_create(request):
         form = OrderForm()
         formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
     return render(request, "trips/order_form.html", {"form": form, "formset": formset})
+
+
+# --- Buyer: edit / cancel a buyer-first order before any offer -------------
+@profile_required
+def order_edit(request, pk):
+    order = get_object_or_404(BuyRequest, pk=pk, plan__isnull=True)
+    if order.buyer_id != request.user.id:
+        messages.error(request, "You can only edit your own order.")
+        return redirect(reverse("accounts:profile") + "#my-orders")
+    if not order.can_edit:
+        messages.error(request, "This order can no longer be edited.")
+        return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    if request.method == "POST":
+        form = OrderForm(request.POST, instance=order)
+        formset = OrderItemFormSet(request.POST, request.FILES, instance=order, prefix="bf_items")
+        if form.is_valid() and formset.is_valid():
+            with db_transaction.atomic():
+                order = form.save(commit=False)
+                order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
+                order.save()
+                formset.save()
+                items = list(order.items.order_by("position", "id"))
+                if not items:
+                    db_transaction.set_rollback(True)
+                else:
+                    for idx, item in enumerate(items, start=1):
+                        item.position = idx
+                        item.actual_quantity = item.quantity
+                        item.actual_unit_cost = item.estimated_unit_cost
+                        if not item.purchased_at:
+                            item.purchased_at = timezone.now()
+                        item.save()
+            if not items:
+                messages.error(request, "Keep at least one item on the order.")
+                return redirect(request.path)
+            messages.success(request, "Order updated.")
+            return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    else:
+        form = OrderForm(instance=order)
+        formset = OrderItemFormSet(instance=order, prefix="bf_items")
+    return render(request, "trips/order_form.html",
+                  {"form": form, "formset": formset, "is_edit": True, "order": order})
+
+
+@profile_required
+@require_POST
+def order_cancel(request, pk):
+    order = get_object_or_404(BuyRequest, pk=pk, plan__isnull=True)
+    if order.buyer_id != request.user.id:
+        messages.error(request, "You can only cancel your own order.")
+        return redirect(reverse("accounts:profile") + "#my-orders")
+    if not order.can_edit:
+        messages.error(request, "This order can no longer be cancelled.")
+        return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    order.status = Status.CANCELLED
+    order.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Order cancelled.")
+    return redirect(reverse("accounts:profile") + "#my-orders")
 
 
 # --- Traveler: respond to a buyer-first order with an offer ----------------
@@ -247,6 +406,33 @@ def offer_withdraw(request, pk):
         offer.order.recompute_status()
         messages.success(request, "Offer withdrawn.")
     return redirect(reverse("pages:home") + "#open-orders")
+
+
+# --- Traveler: edit a pending offer (before the buyer selects it) -----------
+@profile_required
+def offer_edit(request, pk):
+    offer = get_object_or_404(TravelerOffer.objects.select_related("order"), pk=pk)
+    if offer.traveler_id != request.user.id:
+        messages.error(request, "You can only edit your own offer.")
+        return redirect(reverse("accounts:profile") + "#travel-plans")
+    if not offer.can_edit:
+        messages.error(request, "This offer can no longer be edited.")
+        return redirect(reverse("accounts:profile") + f"?offer={offer.id}#offer-detail")
+    if request.method == "POST":
+        form = TravelerOfferForm(request.POST, instance=offer)
+        if form.is_valid():
+            edited = form.save(commit=False)
+            edited.pickup_address = request.user.traveler_address
+            edited.save()
+            offer.order.recompute_status()
+            messages.success(request, "Offer updated.")
+            return redirect(reverse("accounts:profile") + f"?offer={offer.id}#offer-detail")
+        for field, errs in form.errors.items():
+            for err in errs:
+                messages.error(request, f"{field}: {err}")
+    else:
+        form = TravelerOfferForm(instance=offer)
+    return render(request, "trips/offer_edit.html", {"form": form, "offer": offer})
 
 
 # --- Buyer: select a pending offer (single or partial-multi) ----------------

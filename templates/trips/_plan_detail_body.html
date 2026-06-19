@@ -42,6 +42,16 @@
     <span class="badge badge-muted">No longer open</span>
   </div>
   {% endif %}
+  {% if user == plan.traveler and plan.can_edit %}
+  <div class="mt-2" style="text-align:center">
+    <a class="btn btn-primary" href="{% url 'trips:plan_edit' plan.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:plan_cancel' plan.id %}" style="display:inline-block;margin-left:32px"
+          onsubmit="return confirm('Cancel this travel plan? It will be removed from the listings.');">
+      {% csrf_token %}
+      <button class="btn btn-outline" type="submit">Cancel</button>
+    </form>
+  </div>
+  {% endif %}
 </div></div>
 
 {% if plan.is_open and user != plan.traveler %}

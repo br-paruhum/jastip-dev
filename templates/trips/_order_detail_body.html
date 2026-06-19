@@ -296,3 +296,14 @@
   </div>
 </div></div>
 {% endif %}
+
+{% if bf_order.can_edit %}
+<div class="mt-2" style="text-align:center">
+  <a class="btn btn-primary" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+  <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block;margin-left:32px"
+        onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
+    {% csrf_token %}
+    <button class="btn btn-outline" type="submit">Cancel</button>
+  </form>
+</div>
+{% endif %}

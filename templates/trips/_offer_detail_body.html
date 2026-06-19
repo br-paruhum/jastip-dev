@@ -101,3 +101,14 @@
   <p class="help mt-2">The platform will transfer this amount to you (manually) once the buyer confirms pickup or receipt.</p>
 </div></div>
 {% endif %}
+
+{% if leg_offer.can_edit %}
+<div class="mt-2" style="text-align:center">
+  <a class="btn btn-primary" href="{% url 'trips:offer_edit' leg_offer.id %}">Edit</a>
+  <form method="post" action="{% url 'trips:offer_withdraw' leg_offer.id %}" style="display:inline-block;margin-left:32px"
+        onsubmit="return confirm('Cancel this offer? It will be withdrawn from the buyer.');">
+    {% csrf_token %}
+    <button class="btn btn-outline" type="submit">Cancel</button>
+  </form>
+</div>
+{% endif %}

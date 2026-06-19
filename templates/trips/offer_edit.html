@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load static humanize %}
+{% block title %}Edit offer — {{ SITE_NAME }}{% endblock %}
+{% block content %}
+<section>
+  <div class="container" style="max-width:620px">
+    <span class="eyebrow">Edit Offer · {{ offer.order.reference }}</span>
+    <h1>Edit Your Offer</h1>
+    <p class="muted">Bid {{ offer.order.bid_weight_kg }} kg @ {{ offer.order.currency }} {{ offer.order.bid_cost_per_kg|intcomma }}/kg ·
+      Deadline {{ offer.order.max_acceptable_date|date:"d-M-Y" }}. You can edit until the buyer selects your offer.</p>
+
+    <form method="post" class="card" style="margin-top:18px">
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-field"><label>Your Rate per kg</label>{{ form.ask_cost_per_kg }}{{ form.ask_cost_per_kg.errors }}</div>
+          <div class="form-field"><label>Avail (kg)</label>{{ form.avail_kg }}{{ form.avail_kg.errors }}</div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>From</label>
+            <div class="static-field muted">{{ offer.from_city }}, {{ offer.from_country }}</div>
+            <input type="hidden" name="from_city" value="{{ offer.from_city }}">
+            <input type="hidden" name="from_country" value="{{ offer.from_country }}">
+          </div>
+          <div class="form-field"><label>To</label>
+            <div class="static-field muted">{{ offer.to_city }}, {{ offer.to_country }}</div>
+            <input type="hidden" name="to_city" value="{{ offer.to_city }}">
+            <input type="hidden" name="to_country" value="{{ offer.to_country }}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Travel Date</label>{{ form.travel_date }}{{ form.travel_date.errors }}</div>
+          <div class="form-field"><label>Travel Time</label>{{ form.travel_time }}{{ form.travel_time.errors }}</div>
+        </div>
+        <div class="form-field"><label>Drop-off Address</label>{{ form.drop_off_address }}{{ form.drop_off_address.errors }}</div>
+        <div style="text-align:center;margin-top:12px">
+          <button class="btn btn-primary" type="submit">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'vendor/flatpickr/flatpickr.min.css' %}">{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/money.js' %}"></script>
+<script src="{% static 'vendor/flatpickr/flatpickr.min.js' %}"></script>
+<script>flatpickr(".datepicker", { dateFormat: "d-M-Y", allowInput: true });
+flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i", time_24hr: true, allowInput: true });</script>
+{% endblock %}

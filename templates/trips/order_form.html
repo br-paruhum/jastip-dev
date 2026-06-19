@@ -65,7 +65,7 @@
         <div class="form-field"><label>Notes to Travelers</label>{{ form.buyer_notes }}</div>
 
         <div style="text-align:center;margin-top:12px">
-          <button class="btn btn-primary" type="submit">Post Order</button>
+          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Post Order{% endif %}</button>
         </div>
       </div>
     </form>

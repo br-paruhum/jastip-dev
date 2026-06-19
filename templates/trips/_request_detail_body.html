@@ -420,3 +420,14 @@
   </div>
 </details>
 {% endif %}
+
+{% if is_buyer and req.can_edit %}
+<div class="mt-2" style="text-align:center">
+  <a class="btn btn-primary" href="{% url 'trips:request_edit' req.id %}">Edit</a>
+  <form method="post" action="{% url 'trips:request_cancel' req.id %}" style="display:inline-block;margin-left:32px"
+        onsubmit="return confirm('Cancel this order? It will be withdrawn from the traveler.');">
+    {% csrf_token %}
+    <button class="btn btn-outline" type="submit">Cancel</button>
+  </form>
+</div>
+{% endif %}

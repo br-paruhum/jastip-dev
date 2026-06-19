@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Post a travel plan — {{ SITE_NAME }}{% endblock %}
+{% block title %}{% if is_edit %}Edit travel plan{% else %}Post a travel plan{% endif %} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
   <div class="container" style="max-width:720px">
     <span class="eyebrow">Traveler</span>
-    <h1>Post a Travel Plan</h1>
-    <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
+    <h1>{% if is_edit %}Edit Travel Plan{% else %}Post a Travel Plan{% endif %}</h1>
+    <p class="muted">{% if is_edit %}Update your trip details. You can edit until a buyer orders or you are within 24h of travel.{% else %}List your trip and spare luggage space, buyers will be able to order it.{% endif %}</p>
 
     <form method="post" class="card" style="margin-top:18px">
       {% csrf_token %}
@@ -38,7 +38,7 @@
           <p class="help">Currency is set automatically from your From Country.</p>
         </div>
           <div style="text-align: center;">
-            <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
+            <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Submit Travel Plan{% endif %}</button>
           </div>  
       </div>
     </form>

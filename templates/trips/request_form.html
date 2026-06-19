@@ -51,7 +51,7 @@
         </div>
         <div class="form-field mt-2"><label>Notes to {% if plan.carrier_only %}Carrier{% else %}Traveler{% endif %}</label>{{ form.buyer_notes }}</div>
         <div style="display:flex;gap:10px;justify-content:center">
-          <button class="btn btn-primary" type="submit">{% if plan.carrier_only %}Send Request{% else %}Submit Order{% endif %}</button>
+          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% elif plan.carrier_only %}Send Request{% else %}Submit Order{% endif %}</button>
           <a class="btn btn-outline" href="{% url 'trips:request_create' plan.id %}">Reset</a>
         </div>
       </div>

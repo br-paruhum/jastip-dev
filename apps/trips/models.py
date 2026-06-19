@@ -113,6 +113,13 @@ class TravelPlan(ListingTimingMixin, models.Model):
         return self.status in OPEN_PLAN_STATUSES
 
     @property
+    def can_edit(self) -> bool:
+        """Owner may edit or cancel only while the plan is still open, no buyer
+        has ordered on it yet (counterparty hasn't responded), and it isn't
+        within 24h of departure (listing locked)."""
+        return self.is_open and not self.active_requests and not self.listing_locked
+
+    @property
     def active_requests(self):
         """All buy requests still in an active lifecycle (not rejected, cancelled, or closed).
         Iterates the prefetched buy_requests cache — no extra query per plan."""
@@ -447,6 +454,22 @@ class BuyRequest(ListingTimingMixin, models.Model):
         if self.plan_id or not self.max_acceptable_date:
             return None
         return timezone.make_aware(datetime.combine(self.max_acceptable_date, time.min))
+
+    @property
+    def can_edit(self) -> bool:
+        """Buyer may edit/cancel their order only before the counterparty engages
+        and outside the 24h listing lock.
+        - Plan-first (incl. cargo on a carrier plan): only while the traveler
+          hasn't acted (status REQUEST_RECEIVED) and the plan isn't within 24h
+          of departure.
+        - Buyer-first: only while OPEN, with no live (pending/selected) traveler
+          offer, and not past the 24h deadline lock."""
+        if self.plan_id:
+            return self.status == Status.REQUEST_RECEIVED and not self.plan.listing_locked
+        if self.status != Status.OPEN or self.listing_locked:
+            return False
+        live = {OfferStatus.PENDING, OfferStatus.SELECTED}
+        return not any(o.offer_status in live for o in self.traveler_offers.all())
 
     def recompute_status(self) -> None:
         """Buyer-first orders don't set ``status`` directly once legs exist —
@@ -991,6 +1014,13 @@ class TravelerOffer(models.Model):
         """Buyer must hand over the package by travel_date − 1 day."""
         from datetime import timedelta
         return self.travel_date - timedelta(days=1)
+
+    @property
+    def can_edit(self) -> bool:
+        """Traveler may edit/withdraw their offer only while it's still pending
+        (the buyer hasn't selected it) and the order isn't within 24h of its
+        offer deadline."""
+        return self.offer_status == OfferStatus.PENDING and not self.order.listing_locked
 
     @property
     def deposit_due(self) -> Decimal:
