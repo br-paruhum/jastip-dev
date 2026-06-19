@@ -61,9 +61,14 @@ def on_request_submitted(request_obj):
     """Step 2: buyer submitted a request -> notify traveler.
     Plan status is not touched — multiple buyers can be at different stages."""
     _set_status(request_obj, Status.REQUEST_RECEIVED, sync_plan=False)
+    subject = (
+        "New cargo carrying request for your trip"
+        if request_obj.is_cargo
+        else "New buying request for your trip"
+    )
     send_email(
         to_user=request_obj.plan.traveler,
-        subject="New buying request for your trip",
+        subject=subject,
         template="request_received",
         context=_ctx(request_obj),
         event="request_received",

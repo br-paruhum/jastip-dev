@@ -1,8 +1,15 @@
 {% extends "email_base.html" %}
 {% block body %}
+  {% if request_obj.is_cargo %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">New cargo carrying request</h2>
+  <p>You've received a new cargo carrying request <strong>{{ request_obj.reference }}</strong> for your trip
+     {{ plan.from_city }} → {{ plan.to_city }} on {{ plan.travel_date|date:"d-M-Y" }}.</p>
+  <p>Please review and accept or reject the request.</p>
+  {% else %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">New buying request</h2>
   <p>You've received a new buying request <strong>{{ request_obj.reference }}</strong> for your trip
      {{ plan.from_city }} → {{ plan.to_city }} on {{ plan.travel_date|date:"d-M-Y" }}.</p>
   <p>Please review the items, set your costs, and accept or reject the request.</p>
+  {% endif %}
   {% include "_email_button.html" with url=request_url label="Review the request" %}
 {% endblock %}

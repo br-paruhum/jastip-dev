@@ -1,9 +1,7 @@
 <span class="eyebrow">{% if order_form_plan.carrier_only %}Cargo Request{% else %}New Order{% endif %} · {{ order_form_plan.from_city }} → {{ order_form_plan.to_city }}</span>
 {% if order_form_plan.carrier_only %}
-<h2>What cargo would you like the carrier to carry?</h2>
-<p class="muted">Declare the contents of your package (for customs). Add up to 10 items.
-  Photos are optional (png/jpeg/jpg, max 2 MB). You'll hand the package to the carrier —
-  they only carry it, they don't buy anything. These details stay private between you and the carrier.</p>
+<h2>Cargo Request</h2>
+<p class="muted">Maximum {{ order_form_plan.remaining_weight_kg }} kg</p>
 {% else %}
 <h2>What would you like the traveler to buy?</h2>
 <p class="muted">Add up to 10 items. Photos are optional (png/jpeg/jpg, max 2 MB).
@@ -13,6 +11,10 @@
 <form method="post" action="{% url 'trips:request_create' order_form_plan.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
   {% csrf_token %}
   <div class="card-body">
+    {% if order_form_plan.carrier_only %}
+    <div class="card-band-row">Cargo Details</div>
+    <p class="muted">Product Name and Cost per Unit are required to be declared to Custom Duty at destination country. Add up to 10 products. Photos are optional (png/jpeg/jpg, max 2 MB).</p>
+    {% endif %}
     {{ order_form_formset.management_form }}
     {{ order_form_formset.non_form_errors }}
     <div id="order-items">

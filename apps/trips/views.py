@@ -757,7 +757,10 @@ def request_review(request, pk):
                         messages.success(request, "Estimate updated.")
                     else:
                         workflow.on_request_accepted(req)
-                        messages.success(request, "Estimate sent. The buyer has been notified.")
+                        if req.is_cargo:
+                            messages.success(request, "Acceptance sent. The buyer has been notified.")
+                        else:
+                            messages.success(request, "Estimate sent. The buyer has been notified.")
                     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
                 elif decision == "reject":
                     workflow.on_request_rejected(req, reason=request.POST.get("rejection_reason", ""))

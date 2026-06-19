@@ -434,7 +434,7 @@ class BuyRequest(models.Model):
     # Cargo (Carrier) flow has no estimate/purchase, so some statuses read
     # differently for both sides (see PLAN-flow-taxonomy.md Flow 2).
     _CARGO_STATUS_LABELS = {
-        "request_received": "W/f Review",
+        "request_received": "W/f Acceptance",
         "accepted": "Accepted",
     }
 
