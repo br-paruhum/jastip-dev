@@ -97,6 +97,14 @@ class BuyRequestForm(forms.ModelForm):
             "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # On a brand-new request, don't pre-fill the model's default 0 — show the
+        # placeholder instead so the buyer must enter a real weight (a stray 0
+        # would otherwise sail through as the package weight).
+        if self.instance.pk is None:
+            self.initial["estimated_weight_kg"] = None
+
 
 class OrderForm(forms.ModelForm):
     """Buyer-first 'place an order' form — no traveler yet (see
@@ -277,6 +285,13 @@ class OrderItemForm(forms.ModelForm):
             "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
             "estimated_unit_cost": ThousandSeparatorNumberInput(attrs={"placeholder": "Unit price"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Blank the model-default 0 on new item rows so the placeholder shows and
+        # the buyer can't accidentally declare a 0 value for customs.
+        if self.instance.pk is None:
+            self.initial["estimated_unit_cost"] = None
 
     def clean_photo(self):
         photo = self.cleaned_data.get("photo")
