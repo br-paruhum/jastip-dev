@@ -82,12 +82,16 @@ def on_request_accepted(request_obj):
     Plan status is not touched — multiple buyers can be at different stages."""
     _set_status(request_obj, Status.ACCEPTED, sync_plan=False)
     attachments = None
-    try:
-        from .invoices import render_invoice_pdf
-        pdf = render_invoice_pdf(request_obj)
-        attachments = [(f"invoice-{request_obj.reference}.pdf", pdf, "application/pdf")]
-    except Exception:  # pragma: no cover - never block the email on a PDF error
-        logger.exception("Invoice PDF generation failed for %s", request_obj.reference)
+    # The customs-invoice PDF is for the traveler to print and show at customs —
+    # not for the buyer. So cargo acceptance emails carry no attachment; the
+    # traveler prints it from the request page instead.
+    if not request_obj.is_cargo:
+        try:
+            from .invoices import render_invoice_pdf
+            pdf = render_invoice_pdf(request_obj)
+            attachments = [(f"invoice-{request_obj.reference}.pdf", pdf, "application/pdf")]
+        except Exception:  # pragma: no cover - never block the email on a PDF error
+            logger.exception("Invoice PDF generation failed for %s", request_obj.reference)
     send_email(
         to_user=request_obj.buyer,
         subject="Your request was accepted — please transfer the deposit",
