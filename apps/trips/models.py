@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -25,8 +25,30 @@ from .constants import (
 TWO_PLACES = Decimal("0.01")
 USER = settings.AUTH_USER_MODEL
 
+# Home-page marketplace listing window. A posting locks (shown "Closed",
+# action "Locked", no longer joinable) once we are within LISTING_LOCK_HOURS of
+# its anchor moment, and drops off the home page entirely once LISTING_LOCK_HOURS
+# past it. Display-only — the real lifecycle status is untouched, and the owner's
+# dashboard keeps the row until it actually closes.
+LISTING_LOCK_HOURS = 24
 
-class TravelPlan(models.Model):
+
+class ListingTimingMixin:
+    """Shared travel-time listing rules for home-page tables. Subclasses provide
+    ``_listing_anchor_dt`` (an aware datetime, or None)."""
+
+    @property
+    def listing_locked(self) -> bool:
+        dt = self._listing_anchor_dt
+        return bool(dt and timezone.now() >= dt - timedelta(hours=LISTING_LOCK_HOURS))
+
+    @property
+    def listing_expired(self) -> bool:
+        dt = self._listing_anchor_dt
+        return bool(dt and timezone.now() >= dt + timedelta(hours=LISTING_LOCK_HOURS))
+
+
+class TravelPlan(ListingTimingMixin, models.Model):
     """A traveler's offer: a trip with spare luggage capacity."""
 
     traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="travel_plans")
@@ -78,6 +100,13 @@ class TravelPlan(models.Model):
     @property
     def travel_date_passed(self) -> bool:
         return timezone.now().date() >= self.travel_date
+
+    @property
+    def _listing_anchor_dt(self):
+        """Departure moment: travel_date at travel_time (midnight if no time set)."""
+        if not self.travel_date:
+            return None
+        return timezone.make_aware(datetime.combine(self.travel_date, self.travel_time or time.min))
 
     @property
     def is_open(self) -> bool:
@@ -172,7 +201,7 @@ class TravelPlan(models.Model):
         return remaining if remaining > 0 else Decimal("0").quantize(TWO_PLACES)
 
 
-class BuyRequest(models.Model):
+class BuyRequest(ListingTimingMixin, models.Model):
     """A buyer 'orders' a travel plan and lists items to purchase — OR, when
     ``plan`` is null, a buyer-first order posted with no traveler yet (see
     PLAN-buyer-first-orders.md). Matching travelers respond via TravelerOffer;
@@ -409,6 +438,15 @@ class BuyRequest(models.Model):
         if self.in_transit:
             return "transit"
         return "open"
+
+    @property
+    def _listing_anchor_dt(self):
+        """Listing anchor for a buyer-first order = the offer deadline
+        (max_acceptable_date, at midnight). Plan-first orders aren't listed on
+        the home page, so they have no anchor."""
+        if self.plan_id or not self.max_acceptable_date:
+            return None
+        return timezone.make_aware(datetime.combine(self.max_acceptable_date, time.min))
 
     def recompute_status(self) -> None:
         """Buyer-first orders don't set ``status`` directly once legs exist —

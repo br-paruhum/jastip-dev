@@ -29,14 +29,18 @@
         {% if not is_cargo %}<td class="margin-cell">{{ plan.margin_percent }}%</td>{% endif %}
         <td class="terms-cell"><a href="{{ plan.get_absolute_url }}" title="View payment terms">View</a></td>
         <td class="status-cell">
-          {% if plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
+          {% if plan.listing_locked %}
+            {% include "trips/_status_badge.html" with status="closed" label="Closed" tone="muted" %}
+          {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
             {% include "trips/_status_badge.html" with status="new" label="Open" tone="success" %}
           {% else %}
             {% include "trips/_status_badge.html" with status="closed" label="Full" tone="danger" %}
           {% endif %}
         </td>
         <td class="action-cell">
-          {% if user.is_authenticated and plan.traveler_id == user.id %}
+          {% if plan.listing_locked %}
+            <span class="btn btn-sm btn-blocked" title="Departing within 24 hours — no longer accepting orders">Locked</span>
+          {% elif user.is_authenticated and plan.traveler_id == user.id %}
             <a class="btn btn-primary btn-sm" href="#" data-notice="You cannot order your own Travel Plan!">Order</a>
           {% elif plan.remaining_weight_kg >= MIN_REMAINING_WEIGHT_KG %}
             <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?order_form={{ plan.id }}#order-form">Order</a>

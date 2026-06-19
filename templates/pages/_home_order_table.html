@@ -40,9 +40,17 @@
           {% endfor %}
         </td>
         <td class="avail-cell">{{ order.remaining_bid_weight_kg }}</td>
-        <td class="status-cell">{% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}</td>
+        <td class="status-cell">
+          {% if order.listing_locked %}
+            {% include "trips/_status_badge.html" with status="closed" label="Closed" tone="muted" %}
+          {% else %}
+            {% include "trips/_status_badge.html" with status=order.status label=order.get_status_display tone=order.status_tone %}
+          {% endif %}
+        </td>
         <td class="action-cell">
-          {% if order.my_pending_offer_id %}
+          {% if order.listing_locked %}
+            <span class="btn btn-sm btn-blocked" title="Past the offer deadline window — no longer accepting offers">Locked</span>
+          {% elif order.my_pending_offer_id %}
             <form method="post" action="{% url 'trips:offer_withdraw' order.my_pending_offer_id %}" style="display:inline">
               {% csrf_token %}
               <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>

@@ -26,7 +26,9 @@ def home(request):
         .select_related("traveler")
         .prefetch_related("buy_requests")[:30]
     )
-    open_plans = [p for p in plans if not p.travel_date_passed]
+    # Keep a plan on the home page until 24h past departure; ones within 24h of
+    # departure still show but render as Closed/Locked (p.listing_locked).
+    open_plans = [p for p in plans if not p.listing_expired]
     open_plans_proxy = [p for p in open_plans if not p.carrier_only]
     open_plans_cargo = [p for p in open_plans if p.carrier_only]
 
@@ -48,10 +50,13 @@ def home(request):
     open_orders = []
     for order in orders:
         order.my_pending_offer_id = pending_lookup.get(order.id)
-        if order.home_section != "open":  # drop transit + closed from the home page
+        # Drop transit + closed, and anything 24h past its offer deadline.
+        if order.home_section != "open" or order.listing_expired:
             continue
+        # Within 24h of the deadline the order locks: still shown, but no join form.
         if (
-            order.is_accepting_offers
+            not order.listing_locked
+            and order.is_accepting_offers
             and not order.my_pending_offer_id
             and (not request.user.is_authenticated or order.buyer_id != request.user.id)
         ):
