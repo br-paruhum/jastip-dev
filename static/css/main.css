@@ -207,6 +207,11 @@ table.plan-card-table tr.pc-head td { background: var(--cream); font-weight: 700
 table.plan-card-table tr.pc-section td { background: var(--cream); font-weight: 700;
   color: var(--slate); text-align: center; }
 table.plan-card-table td.pc-terms { text-align: left; }
+/* Tighten bulleted payment terms (Carrier Only) so bullets align with the
+   cell's left edge instead of the browser-default ~40px indent. */
+table.plan-card-table td.pc-terms ul { margin: 0; padding-left: 1.1em; }
+table.plan-card-table td.pc-terms li { margin-bottom: .3rem; }
+table.plan-card-table td.pc-terms li:last-child { margin-bottom: 0; }
 
 /* Centered cream title band as the first row of an invoice/detail card */
 table.invoice tr.title-band td { background: var(--cream); text-align: center; font-weight: 700;
