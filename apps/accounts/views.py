@@ -362,8 +362,11 @@ def profile_update(request):
     role = _resolve_role(request)
     form = ProfileForm(request.POST, instance=request.user, role=role)
     if form.is_valid():
-        form.save()
-        messages.success(request, "Profile saved. Please verify your WhatsApp number.")
+        user = form.save()
+        if user.phone_verified:
+            messages.success(request, "Profile saved.")
+        else:
+            messages.success(request, "Profile saved. Please verify your WhatsApp number.")
     else:
         for field, errors in form.errors.items():
             for err in errors:
