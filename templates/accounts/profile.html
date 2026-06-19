@@ -135,13 +135,15 @@
                 <label>Service</label>{{ plan_form.carrier_only }}{{ plan_form.carrier_only.errors }}
                 <p class="help">{{ plan_form.carrier_only.help_text }}</p>
               </div>
-              <div class="form-row">
+              <div class="form-row" id="plan-cap-row">
                 <div class="form-field"><label>Available Weight (kg)</label>{{ plan_form.available_weight_kg }}{{ plan_form.available_weight_kg.errors }}</div>
-                <div class="form-field">
-                  <label>Shipment Cost per kg</label>
-                  {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
-                  <p class="help">Origin country currency will be set automatically.</p>
-                </div>
+                <div class="form-field" id="plan-margin-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}{{ plan_form.margin_percent.errors }}
+                  <p class="help">Applied on top of the ordered items cost.</p></div>
+              </div>
+              <div class="form-field" id="plan-shipment-field">
+                <label>Shipment Cost per kg</label>
+                {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
+                <p class="help">Origin country currency will be set automatically.</p>
               </div>
               <div style="text-align:center">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
@@ -487,21 +489,27 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
       updatePlanCurrency();
     }
 
-    // Mute the Margin field when the plan is Carrier Only (margin doesn't apply).
+    // Margin only applies to Proxy Buyer plans. When the service is Carrier
+    // Only, hide the Margin field entirely and let Shipment Cost slide up into
+    // the row to use the freed space. (Server-side clean() forces margin to 0.)
     var planService = wrap.querySelector('select[name="carrier_only"]');
-    var planMargin = wrap.querySelector('[name="margin_percent"]');
-    if (planService && planMargin) {
-      var updatePlanMargin = function () {
-        if (planService.value === '1') {
-          if (!planMargin.readOnly) { planMargin.dataset.prev = planMargin.value; }
-          planMargin.value = '0'; planMargin.readOnly = true; planMargin.classList.add('input-muted');
-        } else {
-          if (planMargin.readOnly) { planMargin.value = planMargin.dataset.prev || planMargin.value; }
-          planMargin.readOnly = false; planMargin.classList.remove('input-muted');
+    var planCapRow = document.getElementById('plan-cap-row');
+    var planMarginField = document.getElementById('plan-margin-field');
+    var planShipmentField = document.getElementById('plan-shipment-field');
+    if (planService && planCapRow && planMarginField && planShipmentField) {
+      var shipmentHome = planShipmentField.parentNode;
+      var shipmentAnchor = planShipmentField.nextSibling;
+      var updatePlanService = function () {
+        if (planService.value === '1') {            // Carrier Only
+          planMarginField.style.display = 'none';
+          planCapRow.appendChild(planShipmentField);
+        } else {                                      // Proxy Buyer (default)
+          planMarginField.style.display = '';
+          shipmentHome.insertBefore(planShipmentField, shipmentAnchor);
         }
       };
-      planService.addEventListener('change', updatePlanMargin);
-      updatePlanMargin();
+      planService.addEventListener('change', updatePlanService);
+      updatePlanService();
     }
   }
 
