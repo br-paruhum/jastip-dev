@@ -237,6 +237,17 @@ def profile(request):
             purchase_form = PurchaseWeightForm(instance=_r)
             purchase_formset = PurchaseItemFormSet(instance=_r)
 
+    # Receive panel (?receive=<id>#receive-order) — traveler confirms cargo receipt + final weight.
+    receive_req = receive_form = None
+    receive_id = request.GET.get("receive")
+    if receive_id:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+            pk=receive_id, plan__traveler=user
+        ).first()
+        if _r and _r.is_cargo and _r.status == Status.DEPOSIT_PAID:
+            receive_req = _r
+            receive_form = PurchaseWeightForm(instance=_r)
+
     # Arrive panel (?arrive=<id>#arrive-order) — traveler marks package arrived.
     arrive_req = arrive_form = None
     arrive_id = request.GET.get("arrive")
@@ -340,6 +351,8 @@ def profile(request):
             "purchase_req": purchase_req,
             "purchase_form": purchase_form,
             "purchase_formset": purchase_formset,
+            "receive_req": receive_req,
+            "receive_form": receive_form,
             "arrive_req": arrive_req,
             "arrive_form": arrive_form,
             "reship_cost_req": reship_cost_req,

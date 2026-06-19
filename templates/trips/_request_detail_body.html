@@ -162,9 +162,17 @@
     {% endif %}
 
   {% elif req.is_cargo and req.status == "deposit_paid" %}
-    <p>Use the &ldquo;Messages&rdquo; tab below to communicate with the Traveler to set the place and time to hand over the package.</p>
+    <p>Use the &ldquo;Messages&rdquo; tab below to communicate with the {% if is_buyer %}Traveler{% else %}Buyer{% endif %} to set the place and time to hand over the package.</p>
     {% if req.plan.handover_deadline %}<p>Please note that the deadline for handing over the package is
       <strong>{{ req.plan.handover_deadline|date:"d-M-Y" }}</strong>.</p>{% endif %}
+    {% if is_traveler %}
+    <p>Once the buyer hands you the package, weigh it and confirm receipt.</p>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?receive={{ req.id }}#receive-order">Package Received</a></div>
+    {% endif %}
+
+  {% elif req.is_cargo and req.status == "package_received" %}
+    <p class="muted">Package received by the traveler{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.
+      The carry → delivery steps are coming in a later update.</p>
 
   {% elif req.is_cargo %}
     <p class="muted">Deposit received. The drop-off → carry → delivery steps are coming in the next update (Phase 2b).</p>

@@ -295,6 +295,13 @@
         </div>
         {% endif %}
 
+        {% if receive_req %}
+        <!-- Panel: Confirm cargo receipt (traveler) -->
+        <div data-panel="receive-order" data-origin="travel-plans">
+          {% include "trips/_request_receive_body.html" %}
+        </div>
+        {% endif %}
+
         {% if arrive_req %}
         <!-- Panel: Mark arrived (traveler) -->
         <div data-panel="arrive-order" data-origin="travel-plans">

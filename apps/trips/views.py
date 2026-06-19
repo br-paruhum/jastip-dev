@@ -811,6 +811,32 @@ def request_purchase(request, pk):
     return render(request, "trips/request_purchase.html", {"req": req, "form": form, "formset": formset})
 
 
+# --- Traveler: confirm cargo receipt + final weight -> Package Received -----
+@profile_required
+@require_POST
+def request_receive(request, pk):
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if not _require_traveler(request, req):
+        messages.error(request, "Only the traveler can confirm receipt.")
+        return redirect(req.get_absolute_url())
+    if not req.is_cargo or req.status != Status.DEPOSIT_PAID:
+        messages.info(request, "You can confirm receipt after the deposit is verified.")
+        return redirect(req.get_absolute_url())
+
+    form = PurchaseWeightForm(request.POST, instance=req)
+    if form.is_valid():
+        weight = form.cleaned_data.get("actual_weight_kg") or Decimal("0")
+        if weight <= 0:
+            messages.error(request, "Enter the measured package weight (kg) before confirming receipt.")
+            return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
+        form.save()
+        workflow.on_cargo_package_received(req)
+        messages.success(request, "Package received — custody confirmed. The buyer has been notified.")
+        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    messages.error(request, "Enter a valid measured weight (kg).")
+    return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
+
+
 # --- Traveler: arrival + custom fare -> Package Arrived ---------------------
 @profile_required
 def request_arrive(request, pk):

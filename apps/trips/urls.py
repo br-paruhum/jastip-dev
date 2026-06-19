@@ -27,6 +27,7 @@ urlpatterns = [
     path("requests/<int:pk>/", views.request_detail, name="request_detail"),
     path("requests/<int:pk>/review/", views.request_review, name="request_review"),
     path("requests/<int:pk>/purchase/", views.request_purchase, name="request_purchase"),
+    path("requests/<int:pk>/receive/", views.request_receive, name="request_receive"),
     path("requests/<int:pk>/arrive/", views.request_arrive, name="request_arrive"),
     path("requests/<int:pk>/pay/", views.request_pay, name="request_pay"),
     path("requests/<int:pk>/clear/", views.request_clear, name="request_clear"),

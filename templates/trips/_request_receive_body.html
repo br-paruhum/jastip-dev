@@ -1,0 +1,18 @@
+{% load humanize %}
+<span class="eyebrow">Receive · {{ receive_req.reference }}</span>
+<h2>Confirm Package Received</h2>
+<p class="muted">Weigh the package the buyer handed over, enter the measured weight, then confirm receipt.
+  The carry fee is finalised on this weight; any difference from the deposit becomes a balance due or refund.</p>
+
+<form method="post" action="{% url 'trips:request_receive' receive_req.id %}" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="form-field">
+      <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
+      {{ receive_form.actual_weight_kg }}{{ receive_form.actual_weight_kg.errors }}
+      <p class="help">Estimated was {{ receive_req.estimated_weight_kg }} kg · carrier rate
+        {{ receive_req.currency }} {{ receive_req.plan.shipment_cost_per_kg|intcomma }}/kg.</p>
+    </div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">Package Received</button></div>
+  </div>
+</form>

@@ -156,6 +156,21 @@ def on_deposit_verified(request_obj):
     notify_see_email(request_obj.plan.traveler, event="deposit_paid")
 
 
+def on_cargo_package_received(request_obj):
+    """Cargo (Carrier) Phase 2b — step 1: the traveler received the package from
+    the buyer and recorded the final measured weight. Notify the buyer; the
+    carrier plan's status is untouched (multiple buyers, independent stages)."""
+    _set_status(request_obj, Status.PACKAGE_RECEIVED, sync_plan=False)
+    send_email(
+        to_user=request_obj.buyer,
+        subject="Your package was received by the traveler",
+        template="cargo_package_received",
+        context=_ctx(request_obj),
+        event="cargo_package_received",
+    )
+    notify_see_email(request_obj.buyer, event="cargo_package_received")
+
+
 def on_items_purchased(request_obj):
     """Step 5: traveler recorded purchases -> invoice ready, notify buyer + send customs invoice to traveler."""
     _set_status(request_obj, Status.ITEMS_PURCHASED)
