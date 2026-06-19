@@ -205,6 +205,27 @@ def on_package_arrived(request_obj):
     notify_see_email(request_obj.buyer, event="package_arrived")
 
 
+def on_cargo_arrived(request_obj):
+    """Cargo (Carrier) arrival. The traveler recorded any reimbursable customs
+    duty. If the buyer still owes a balance (customs + actual-weight top-up over
+    the deposit) -> PACKAGE_ARRIVED so they pay it. Otherwise the deposit already
+    covers the full carry fee -> straight to READY_FOR_PICKUP (pick up / reship);
+    any overpayment is refunded by admin."""
+    if request_obj.balance_extra_due > 0:
+        on_package_arrived(request_obj)
+        return
+    _set_status(request_obj, Status.READY_FOR_PICKUP)
+    for party in (request_obj.buyer, request_obj.plan.traveler):
+        send_email(
+            to_user=party,
+            subject="Package ready for pickup",
+            template="ready_for_pickup",
+            context=_ctx(request_obj),
+            event="ready_for_pickup",
+        )
+        notify_see_email(party, event="ready_for_pickup")
+
+
 def on_balance_verified(request_obj):
     """Step 7: admin verified the balance -> ready for pickup."""
     _set_status(request_obj, Status.READY_FOR_PICKUP)

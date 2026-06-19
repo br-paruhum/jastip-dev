@@ -207,9 +207,6 @@
         {% if req.balance_extra_due > 0 %}Awaiting the buyer's balance payment.{% else %}No balance due from the buyer.{% endif %}</p>
     {% endif %}
 
-  {% elif req.is_cargo %}
-    <p class="muted">The delivery → pickup steps are coming in the next update (Phase 2b).</p>
-
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>
     <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
@@ -274,7 +271,12 @@
         {% endif %}
       </table>
       {% endif %}
-      {% if req.refund_due > 0 %}
+      {% if req.is_cargo %}
+        {% if req.balance_refund_due > 0 %}
+        <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.balance_refund_due|intcomma }}</strong> —
+           admin will transfer it back to you within 48 hours.</p>
+        {% endif %}
+      {% elif req.refund_due > 0 %}
         <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
       {% endif %}

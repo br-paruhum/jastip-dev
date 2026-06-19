@@ -1367,17 +1367,22 @@ class Transaction(models.Model):
 
     @property
     def commission_amount(self) -> Decimal:
-        """Platform fee: 2.5% of the full invoice, deducted once at closing."""
-        return (self.request.invoice_total * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
+        """Platform fee: 2.5%, deducted once at closing. Cargo (Carrier) charges
+        it on the carry fee only — the reimbursed customs duty is a pass-through.
+        Proxy buying charges it on the full invoice."""
+        base = self.request.effective_shipment_cost if self.request.is_cargo else self.request.invoice_total
+        return (base * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
 
     @property
     def payout_to_traveler(self) -> Decimal:
         """Paid to the traveler when the transaction CLOSES (both parties
-        cleared): the full invoice (items + margin + shipment + custom fare)
-        minus the 2.5% platform fee. The deposit is only held by admin while
-        the traveler purchases — there is no payout before closing.
+        cleared), minus the 2.5% platform fee. Cargo (Carrier): carry fee +
+        reimbursed customs, fee on the carry fee only. Proxy buying: the full
+        invoice (items + margin + shipment + custom fare). The deposit is only
+        held by admin meanwhile — there is no payout before closing.
         """
-        return (self.request.invoice_total - self.commission_amount).quantize(TWO_PLACES)
+        gross = self.request.cargo_charge_total if self.request.is_cargo else self.request.invoice_total
+        return (gross - self.commission_amount).quantize(TWO_PLACES)
 
     @property
     def payout_to_traveler_idr(self) -> "Decimal | None":

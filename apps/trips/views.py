@@ -859,8 +859,16 @@ def request_arrive(request, pk):
         form = CustomFareForm(request.POST, request.FILES, instance=req)
         if form.is_valid():
             form.save()
-            workflow.on_package_arrived(req)
-            messages.success(request, "Marked as arrived. The buyer has been notified to pay the balance.")
+            if req.is_cargo:
+                workflow.on_cargo_arrived(req)
+                if req.status == Status.READY_FOR_PICKUP:
+                    msg = "Marked as arrived. The deposit covers the balance — the buyer can now pick up or reship."
+                else:
+                    msg = "Marked as arrived. The buyer has been notified to pay the outstanding balance."
+            else:
+                workflow.on_package_arrived(req)
+                msg = "Marked as arrived. The buyer has been notified to pay the balance."
+            messages.success(request, msg)
             return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
     else:
         form = CustomFareForm(instance=req)
