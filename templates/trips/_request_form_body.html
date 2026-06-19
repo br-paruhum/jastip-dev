@@ -14,6 +14,8 @@
     {% if order_form_plan.carrier_only %}
     <div class="card-band-row">Cargo Details</div>
     <p class="muted">Product Name and Cost per Unit are required to be declared to Custom Duty at destination country. Add up to 10 products. Photos are optional (png/jpeg/jpg, max 2 MB).</p>
+    {% else %}
+    <div class="card-band-row">Order Details</div>
     {% endif %}
     {{ order_form_formset.management_form }}
     {{ order_form_formset.non_form_errors }}

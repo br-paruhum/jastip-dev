@@ -12,6 +12,7 @@
     <form method="post" class="card" style="margin-top:18px">
       {% csrf_token %}
       <div class="card-body">
+        <div class="card-band-row">Offer Details</div>
         <div class="form-row">
           <div class="form-field"><label>Your Rate per kg</label>{{ form.ask_cost_per_kg }}{{ form.ask_cost_per_kg.errors }}</div>
           <div class="form-field"><label>Avail (kg)</label>{{ form.avail_kg }}{{ form.avail_kg.errors }}</div>

@@ -71,6 +71,7 @@
   <form method="post" action="{% url 'trips:request_create' plan.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
     {% csrf_token %}
     <div class="card-body">
+      <div class="card-band-row">{% if plan.carrier_only %}Cargo Details{% else %}Order Details{% endif %}</div>
       {{ plan_order_formset.management_form }}
       {{ plan_order_formset.non_form_errors }}
       <div id="submit-order-items">

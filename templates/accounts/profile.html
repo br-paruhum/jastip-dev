@@ -168,7 +168,7 @@
 
           <!-- Inline "Post an Order" form (toggled by the button above) -->
           <div id="order-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
-            <h3 style="margin-top:0">Post an Order</h3>
+            <div class="card-band-row">Post an Order</div>
             <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
             <form method="post" action="{% url 'trips:order_create' %}" enctype="multipart/form-data">
               {% csrf_token %}

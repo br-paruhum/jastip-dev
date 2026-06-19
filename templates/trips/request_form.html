@@ -18,6 +18,7 @@
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
       <div class="card-body">
+        <div class="card-band-row">{% if plan.carrier_only %}Cargo Details{% else %}Order Details{% endif %}</div>
         {{ formset.management_form }}
         {{ formset.non_form_errors }}
         <div id="items">

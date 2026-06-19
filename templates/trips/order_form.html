@@ -11,6 +11,7 @@
     <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
       {% csrf_token %}
       <div class="card-body">
+        <div class="card-band-row">Order Details</div>
         <div class="form-row">
           <div class="form-field"><label>From City</label>{{ form.from_city }}{{ form.from_city.errors }}</div>
           <div class="form-field"><label>From Country</label>{{ form.from_country }}{{ form.from_country.errors }}</div>
