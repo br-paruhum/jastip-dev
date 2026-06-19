@@ -171,15 +171,44 @@
     {% endif %}
 
   {% elif req.is_cargo and req.status == "package_received" %}
-    <p class="muted">Package received by the traveler{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.
-      The carry → delivery steps are coming in a later update.</p>
+    <p class="muted">Package received by the traveler{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.</p>
     {% if is_traveler %}
-    <p>Print the customs invoice to carry with the package and show at customs.</p>
-    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'trips:request_customs_invoice' req.id %}" target="_blank">Print Customs Invoice</a></div>
+    <p>Print the customs invoice to carry with the package, then once you arrive enter any customs duty paid and confirm arrival.</p>
+    <div style="text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <a class="btn btn-outline" href="{% url 'trips:request_customs_invoice' req.id %}" target="_blank">Print Customs Invoice</a>
+      <a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ req.id }}#arrive-order">Enter Arrival Details</a>
+    </div>
+    {% endif %}
+
+  {% elif req.is_cargo and req.status == "package_arrived" %}
+    {% if is_buyer %}
+      {% if req.balance_pending %}
+      <p>Transfer proof submitted — awaiting admin verification of your balance payment.</p>
+      {% if req.balance_proof_url %}<p class="help">Your uploaded proof:
+        <a href="{{ req.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
+      <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+      {% elif req.balance_extra_due > 0 %}
+      <p>The package has arrived{% if req.actual_custom %}, including reimbursable customs duty of <strong>{{ req.currency }} {{ req.actual_custom|intcomma }}</strong>{% endif %}. Please pay the outstanding balance of <strong>{{ req.currency }} {{ req.balance_extra_due|intcomma }}</strong>{% if req.balance_due_now_idr %} or <strong>IDR {{ req.balance_due_now_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+      <table class="invoice" style="max-width:400px;margin-bottom:12px">
+        <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+        <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+        <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+        <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+      </table>
+      {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
+      {% elif req.balance_refund_due > 0 %}
+      <p>The package has arrived. Your deposit <strong>exceeds</strong> the final charge — an overpaid
+         <strong>{{ req.currency }} {{ req.balance_refund_due|intcomma }}</strong> will be refunded by admin within 48 hours.</p>
+      {% else %}
+      <p>The package has arrived and your balance is fully settled — no further payment due. Delivery options are coming in the next update.</p>
+      {% endif %}
+    {% else %}
+      <p class="muted">Marked as arrived{% if req.actual_custom %} — customs duty {{ req.currency }} {{ req.actual_custom|intcomma }} recorded{% endif %}.
+        {% if req.balance_extra_due > 0 %}Awaiting the buyer's balance payment.{% else %}No balance due from the buyer.{% endif %}</p>
     {% endif %}
 
   {% elif req.is_cargo %}
-    <p class="muted">Deposit received. The drop-off → carry → delivery steps are coming in the next update (Phase 2b).</p>
+    <p class="muted">The delivery → pickup steps are coming in the next update (Phase 2b).</p>
 
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>

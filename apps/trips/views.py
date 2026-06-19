@@ -844,8 +844,15 @@ def request_arrive(request, pk):
     if not _require_traveler(request, req):
         messages.error(request, "Only the traveler can update arrival.")
         return redirect(req.get_absolute_url())
-    if req.status != Status.ITEMS_PURCHASED:
-        messages.info(request, "You can mark arrival after items are purchased.")
+    # Cargo (Carrier) has no purchase step — it arrives straight from Package
+    # Received; proxy buying arrives after the items are purchased.
+    arrivable = Status.PACKAGE_RECEIVED if req.is_cargo else Status.ITEMS_PURCHASED
+    if req.status != arrivable:
+        messages.info(
+            request,
+            "You can mark arrival after the package is received."
+            if req.is_cargo else "You can mark arrival after items are purchased.",
+        )
         return redirect(req.get_absolute_url())
 
     if request.method == "POST":
@@ -873,7 +880,7 @@ def request_pay(request, pk):
     if req.status == Status.ACCEPTED:
         kind, amount = Payment.Kind.DEPOSIT, req.deposit_due
     elif req.status == Status.PACKAGE_ARRIVED:
-        kind, amount = Payment.Kind.BALANCE, req.unpaid_amount
+        kind, amount = Payment.Kind.BALANCE, req.balance_due_now
     else:
         messages.error(request, "No payment is due at this stage.")
         return redirect(req.get_absolute_url())

@@ -255,7 +255,9 @@ def profile(request):
         _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
             pk=arrive_id, plan__traveler=user
         ).first()
-        if _r and _r.status == Status.ITEMS_PURCHASED:
+        # Cargo arrives from Package Received (no purchase step); proxy from Items Purchased.
+        _arrivable = Status.PACKAGE_RECEIVED if (_r and _r.is_cargo) else Status.ITEMS_PURCHASED
+        if _r and _r.status == _arrivable:
             arrive_req = _r
             arrive_form = CustomFareForm(instance=_r)
 

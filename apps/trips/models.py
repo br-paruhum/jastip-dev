@@ -462,11 +462,14 @@ class BuyRequest(models.Model):
 
     def _cargo_status_label(self):
         """Cargo-specific badge label, or None when not a special cargo case.
-        Once a deposit proof is uploaded (status still 'accepted'), the badge
-        reads 'W/f Fund Verification' until admin verifies it."""
+        Once a payment proof is uploaded (deposit while 'accepted', or the
+        balance while 'package_arrived'), the badge reads 'W/f Fund
+        Verification' until admin verifies it."""
         if not self.is_cargo:
             return None
         if self.status == Status.ACCEPTED and self.deposit_pending:
+            return "W/f Fund Verification"
+        if self.status == Status.PACKAGE_ARRIVED and self.balance_pending:
             return "W/f Fund Verification"
         return self._CARGO_STATUS_LABELS.get(self.status)
 
@@ -698,6 +701,30 @@ class BuyRequest(models.Model):
         return self._q(self.cargo_charge_total - self.deposit_paid_amount)
 
     @property
+    def balance_due_now(self) -> Decimal:
+        """Balance the buyer settles at Package Arrived. Cargo (Carrier): carry fee
+        on the actual weight + reimbursable customs − deposit already paid (the
+        declared item value is never billed). Proxy buying: the actual invoice
+        less everything paid. Positive = buyer owes; negative = refund owed."""
+        return self.cargo_balance_due if self.is_cargo else self.unpaid_amount
+
+    @property
+    def balance_due_now_idr(self) -> "Decimal | None":
+        return self._idr_equivalent(self.balance_due_now)
+
+    @property
+    def balance_extra_due(self) -> Decimal:
+        """Outstanding balance the buyer still owes at arrival (0 if none)."""
+        b = self.balance_due_now
+        return b if b > 0 else Decimal("0.00")
+
+    @property
+    def balance_refund_due(self) -> Decimal:
+        """Overpaid amount to refund the buyer at arrival (0 if none)."""
+        b = self.balance_due_now
+        return -b if b < 0 else Decimal("0.00")
+
+    @property
     def invoice_unpaid_overpaid(self) -> Decimal:
         """Invoice statement line: actual Total Invoice − Deposit Paid.
         Positive = buyer still owes, negative = overpaid.
@@ -795,6 +822,33 @@ class BuyRequest(models.Model):
     def balance_paid_amount(self) -> Decimal:
         """Verified non-deposit (balance / top-up) payments."""
         return self._paid_of_kind(Payment.Kind.BALANCE)
+
+    @property
+    def balance_pending(self) -> bool:
+        """A balance proof has been submitted but not yet verified by admin."""
+        if not hasattr(self, "transaction"):
+            return False
+        return self.transaction.payments.filter(
+            direction=Payment.Direction.INBOUND,
+            kind=Payment.Kind.BALANCE,
+            status=Payment.PaymentStatus.PENDING,
+        ).exists()
+
+    @property
+    def balance_proof_url(self) -> str:
+        """URL of the most recently uploaded balance proof, if any."""
+        if not hasattr(self, "transaction"):
+            return ""
+        p = (
+            self.transaction.payments.filter(
+                direction=Payment.Direction.INBOUND,
+                kind=Payment.Kind.BALANCE,
+            )
+            .exclude(proof="")
+            .order_by("-id")
+            .first()
+        )
+        return p.proof.url if p and p.proof else ""
 
     @property
     def unpaid_amount(self) -> Decimal:
