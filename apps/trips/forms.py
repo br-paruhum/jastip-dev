@@ -65,7 +65,7 @@ class TravelPlanForm(forms.ModelForm):
         fields = [
             "travel_date", "travel_time", "from_city", "from_country", "to_city", "to_country",
             "available_weight_kg", "shipment_cost_per_kg",
-            "margin_percent", "carrier_only",
+            "carrier_only",
         ]
         widgets = {
             "travel_date": DATE_INPUT,
@@ -76,12 +76,6 @@ class TravelPlanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
-
-    def clean(self):
-        cleaned = super().clean()
-        if cleaned.get("carrier_only"):
-            cleaned["margin_percent"] = Decimal("0")
-        return cleaned
 
 
 class BuyRequestForm(forms.ModelForm):

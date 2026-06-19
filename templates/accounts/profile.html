@@ -115,7 +115,7 @@
 
           <!-- Inline "Post a Travel Plan" form (toggled by the button above) -->
           <div id="plan-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
-            <h3 style="margin-top:0">Post a Travel Plan</h3>
+            <div class="card-band-row">Post a Travel Plan</div>
             <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
             <form method="post" action="{% url 'trips:plan_create' %}">
               {% csrf_token %}
@@ -137,13 +137,11 @@
               </div>
               <div class="form-row">
                 <div class="form-field"><label>Available Weight (kg)</label>{{ plan_form.available_weight_kg }}{{ plan_form.available_weight_kg.errors }}</div>
-                <div class="form-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}
-                  <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
-              </div>
-              <div class="form-field">
-                <label>Shipment Cost per kg</label>
-                {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
-                <p class="help">Currency is set automatically from your From Country.</p>
+                <div class="form-field">
+                  <label>Shipment Cost per kg</label>
+                  {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
+                  <p class="help">Origin country currency will be set automatically.</p>
+                </div>
               </div>
               <div style="text-align:center">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
