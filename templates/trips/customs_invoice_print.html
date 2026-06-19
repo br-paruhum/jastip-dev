@@ -66,12 +66,20 @@
         <th class="num">Qty</th>
         <th class="num">Unit Price ({{ req.currency }})</th>
         <th class="num">Total ({{ req.currency }})</th>
-        {% if req.items_actual_total_idr %}<th class="num">Total (IDR equiv.)</th>{% endif %}
+        {% if not req.is_cargo and req.items_actual_total_idr %}<th class="num">Total (IDR equiv.)</th>{% endif %}
       </tr>
     </thead>
     <tbody>
       {% for item in req.items.all %}
-      {% if item.actual_quantity > 0 %}
+      {% if req.is_cargo %}
+      {% comment %}Cargo has no purchase step — use the buyer's declared values.{% endcomment %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{{ item.estimated_unit_cost|intcomma }}</td>
+        <td class="num">{{ item.estimated_line_total|intcomma }}</td>
+      </tr>
+      {% elif item.actual_quantity > 0 %}
       <tr>
         <td>{{ item.name }}</td>
         <td class="num">{{ item.actual_quantity }}</td>
@@ -83,15 +91,20 @@
       {% endfor %}
       <tr class="total">
         <td colspan="3">Total</td>
-        <td class="num">{{ req.items_actual_total|intcomma }}</td>
-        {% if req.items_actual_total_idr %}<td class="num">{{ req.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
+        <td class="num">{% if req.is_cargo %}{{ req.items_estimated_total|intcomma }}{% else %}{{ req.items_actual_total|intcomma }}{% endif %}</td>
+        {% if not req.is_cargo and req.items_actual_total_idr %}<td class="num">{{ req.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
       </tr>
     </tbody>
   </table>
 
   <div class="footer-note">
+    {% if req.is_cargo %}
+    All values are buyer-declared values in {{ req.currency }} for the goods carried. This invoice is prepared
+    for customs declaration purposes only. Goods are carried personally by the traveler on behalf of the buyer named above.
+    {% else %}
     All prices are actual purchase prices in {{ req.currency }}. This invoice is prepared for customs
     declaration purposes only. Goods are carried personally by the traveler on behalf of the buyer named above.
+    {% endif %}
   </div>
 
 </div>

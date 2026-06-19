@@ -173,6 +173,10 @@
   {% elif req.is_cargo and req.status == "package_received" %}
     <p class="muted">Package received by the traveler{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.
       The carry → delivery steps are coming in a later update.</p>
+    {% if is_traveler %}
+    <p>Print the customs invoice to carry with the package and show at customs.</p>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'trips:request_customs_invoice' req.id %}" target="_blank">Print Customs Invoice</a></div>
+    {% endif %}
 
   {% elif req.is_cargo %}
     <p class="muted">Deposit received. The drop-off → carry → delivery steps are coming in the next update (Phase 2b).</p>
