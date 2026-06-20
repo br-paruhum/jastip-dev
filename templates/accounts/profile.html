@@ -16,9 +16,9 @@
           <div class="card"><div class="card-body">
             <div class="card-band-row">My Profile</div>
             <!-- Row 1: verified badge + message -->
-            <p>
+            <p style="text-align: center;">
               {% if user.profile_complete %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-muted">Unverified</span>{% endif %}
-              {% if role == "traveler" %}You are a Traveler{% else %}You are a Buyer{% endif %}
+              {% if role == "traveler" %}- You are a Traveler{% else %}You are a Buyer{% endif %}
             </p>
 
             <form method="post" action="{% url 'accounts:profile_update' %}">
@@ -35,58 +35,64 @@
                   <div class="static-field">{{ user.email }}</div>
                 </div>
               </div>
-              <!-- Row 3: Country Code | WhatsApp Number -->
-              <div class="form-row">
-                <div class="form-field"><label>Country Code</label>{{ profile_form.phone_country_code }}</div>
-                <div class="form-field">
-                  <label>WhatsApp Number</label>
-                  {{ profile_form.phone_number }}
-                  {{ profile_form.phone_number.errors }}
+              <!-- Credentials: foldable section, everything from Country Code down -->
+              <details class="fold">
+                <summary class="card-band-row" style="margin:16px -20px 0;cursor:pointer"><span style="flex:1;text-align:center">Credentials</span></summary>
+                <div class="fold-body" style="padding:16px 0 0">
+                <!-- Row 3: Country Code | WhatsApp Number -->
+                <div class="form-row">
+                  <div class="form-field"><label>Country Code</label>{{ profile_form.phone_country_code }}</div>
+                  <div class="form-field">
+                    <label>WhatsApp Number</label>
+                    {{ profile_form.phone_number }}
+                    {{ profile_form.phone_number.errors }}
+                  </div>
                 </div>
-              </div>
-              {% if role == "traveler" %}
-              <!-- Row 4: City at destination -->
-              <div class="form-field">
-                <label for="id_traveler_destination_city">City at Destination <span class="help">(shown to buyers before they order, since your actual city may differ from the route's listed/airport city)</span></label>
-                {{ profile_form.traveler_destination_city }}
-                {{ profile_form.traveler_destination_city.errors }}
-              </div>
-              <!-- Row 5: Pickup address -->
-              <div class="form-field">
-                <label for="id_traveler_address">Pickup Address at Destination Country <span class="help">(shown to the buyer if they choose Pickup over Reshipment)</span></label>
-                {{ profile_form.traveler_address }}
-                {{ profile_form.traveler_address.errors }}
-              </div>
-              <!-- Row 6: Bank details -->
-              <div class="form-field">
-                <label for="id_traveler_bank_details">Bank Details <span class="help">(for invoice disbursement purpose)</span></label>
-                {{ profile_form.traveler_bank_details }}
-                {{ profile_form.traveler_bank_details.errors }}
-              </div>
-              {% else %}
-              <!-- Row 4: City at destination -->
-              <div class="form-field">
-                <label for="id_buyer_destination_city">City at Destination <span class="help">(your actual city may differ from the destination airport city)</span></label>
-                {{ profile_form.buyer_destination_city }}
-                {{ profile_form.buyer_destination_city.errors }}
-              </div>
-              <!-- Row 5: Reshipment address -->
-              <div class="form-field">
-                <label for="id_buyer_invoice_address">Reshipment Address <span class="help">(if you want Traveler to send your package at your cost, and also to be used for address data in Custom Invoice)</span></label>
-                {{ profile_form.buyer_invoice_address }}
-                {{ profile_form.buyer_invoice_address.errors }}
-              </div>
-              <!-- Row 6: Bank details -->
-              <div class="form-field">
-                <label for="id_buyer_bank_details">Bank Details <span class="help">(for overpayment refund, if any)</span></label>
-                {{ profile_form.buyer_bank_details }}
-                {{ profile_form.buyer_bank_details.errors }}
-              </div>
-              {% endif %}
-              <!-- Row 7: Save centered -->
-              <div style="text-align:center;margin-top:10px">
-                <button class="btn btn-primary" type="submit">Save</button>
-              </div>
+                {% if role == "traveler" %}
+                <!-- Row 4: City at destination -->
+                <div class="form-field">
+                  <label for="id_traveler_destination_city">City at Destination<br> <span class="help">(shown to buyers before they order, since your actual city may differ from the route's listed/airport city)</span></label>
+                  {{ profile_form.traveler_destination_city }}
+                  {{ profile_form.traveler_destination_city.errors }}
+                </div>
+                <!-- Row 5: Pickup address -->
+                <div class="form-field">
+                  <label for="id_traveler_address">Pickup Address at Destination Country<br> <span class="help">(shown to the buyer if they choose Pickup over Reshipment)</span></label>
+                  {{ profile_form.traveler_address }}
+                  {{ profile_form.traveler_address.errors }}
+                </div>
+                <!-- Row 6: Bank details -->
+                <div class="form-field">
+                  <label for="id_traveler_bank_details">Bank Details <br><span class="help">(for invoice disbursement purpose)</span></label>
+                  {{ profile_form.traveler_bank_details }}
+                  {{ profile_form.traveler_bank_details.errors }}
+                </div>
+                {% else %}
+                <!-- Row 4: City at destination -->
+                <div class="form-field">
+                  <label for="id_buyer_destination_city">City at Destination<br> <span class="help">(your actual city may differ from the destination airport city)</span></label>
+                  {{ profile_form.buyer_destination_city }}
+                  {{ profile_form.buyer_destination_city.errors }}
+                </div>
+                <!-- Row 5: Reshipment address -->
+                <div class="form-field">
+                  <label for="id_buyer_invoice_address">Reshipment Address<br> <span class="help">(if you want Traveler to send your package at your cost, and also to be used for address data in Custom Invoice)</span></label>
+                  {{ profile_form.buyer_invoice_address }}
+                  {{ profile_form.buyer_invoice_address.errors }}
+                </div>
+                <!-- Row 6: Bank details -->
+                <div class="form-field">
+                  <label for="id_buyer_bank_details">Bank Details<br> <span class="help">(for overpayment refund, if any)</span></label>
+                  {{ profile_form.buyer_bank_details }}
+                  {{ profile_form.buyer_bank_details.errors }}
+                </div>
+                {% endif %}
+                <!-- Row 7: Save centered -->
+                <div style="text-align:center;margin-top:10px">
+                  <button class="btn btn-primary" type="submit">Save</button>
+                </div>
+                </div>
+              </details>
             </form>
 
             {% if user.full_name and not user.phone_verified %}
@@ -151,11 +157,11 @@
             </form>
           </div></div>
 
-          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
           <div class="dash-tables">
             {% include "accounts/_travel_table.html" with rows=travel_rows_proxy empty="No Proxy Buying travel plans or offers yet." heading="Proxy Buying" %}
             {% include "accounts/_travel_table.html" with rows=travel_rows_cargo empty="No Carrier Only travel plans or offers yet." heading="Carrier Only" %}
           </div>
+          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
         {% endif %}
 
@@ -244,11 +250,11 @@
             </div></div>
           </template>
 
-          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
           <div class="dash-tables">
             {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Proxy Buying orders yet." heading="Proxy Buying" %}
             {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Carrier Only orders yet." heading="Carrier Only" %}
           </div>
+          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
         {% endif %}
 
