@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from apps.notifications.services import notify_see_email, send_email, send_whatsapp
 
-from .constants import Status
+from .constants import OfferStatus, Status
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +31,24 @@ def _static_url(path: str) -> str:
     return _site_url(base + path)
 
 
+def _order_traveler(request_obj):
+    """The traveler/proxy to notify. Plan-first: the plan's traveler. Buyer-first
+    (Products is FCFS single-proxy): the single live offer's traveler."""
+    if request_obj.plan_id:
+        return request_obj.plan.traveler
+    live = [
+        o for o in request_obj.traveler_offers.all()
+        if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+    ]
+    return live[0].traveler if len(live) == 1 else None
+
+
 def _ctx(request_obj, **extra):
     ctx = {
         "request_obj": request_obj,
-        "plan": request_obj.plan,
+        "plan": request_obj.plan if request_obj.plan_id else None,
         "buyer": request_obj.buyer,
-        "traveler": request_obj.plan.traveler,
+        "traveler": _order_traveler(request_obj),
         "request_url": _site_url(request_obj.get_absolute_url()),
         "site_url": _site_url("/"),
         "logo_url": _static_url("img/logo-email.png"),
@@ -50,7 +62,8 @@ def _ctx(request_obj, **extra):
 def _set_status(request_obj, status, *, sync_plan=True):
     request_obj.status = status
     request_obj.save(update_fields=["status", "updated_at"])
-    if sync_plan:
+    # Buyer-first orders have no plan to sync.
+    if sync_plan and request_obj.plan_id:
         request_obj.plan.status = status
         request_obj.plan.save(update_fields=["status", "updated_at"])
 
@@ -145,15 +158,17 @@ def on_request_rejected(request_obj, reason=""):
 
 def on_deposit_verified(request_obj):
     """Step 4: admin verified the deposit -> funds forwarded to traveler."""
-    _set_status(request_obj, Status.DEPOSIT_PAID)
-    send_email(
-        to_user=request_obj.plan.traveler,
-        subject="Deposit received — you can start purchasing",
-        template="deposit_paid",
-        context=_ctx(request_obj),
-        event="deposit_paid",
-    )
-    notify_see_email(request_obj.plan.traveler, event="deposit_paid")
+    _set_status(request_obj, Status.DEPOSIT_PAID, sync_plan=bool(request_obj.plan_id))
+    traveler = _order_traveler(request_obj)
+    if traveler:
+        send_email(
+            to_user=traveler,
+            subject="Deposit received — you can start purchasing",
+            template="deposit_paid",
+            context=_ctx(request_obj),
+            event="deposit_paid",
+        )
+        notify_see_email(traveler, event="deposit_paid")
 
 
 def on_cargo_package_received(request_obj):
@@ -173,7 +188,7 @@ def on_cargo_package_received(request_obj):
 
 def on_items_purchased(request_obj):
     """Step 5: traveler recorded purchases -> invoice ready, notify buyer + send customs invoice to traveler."""
-    _set_status(request_obj, Status.ITEMS_PURCHASED)
+    _set_status(request_obj, Status.ITEMS_PURCHASED, sync_plan=bool(request_obj.plan_id))
     send_email(
         to_user=request_obj.buyer,
         subject="Your items have been purchased",
@@ -182,19 +197,21 @@ def on_items_purchased(request_obj):
         event="items_purchased",
     )
     notify_see_email(request_obj.buyer, event="items_purchased")
-    customs_url = _site_url(f"/trips/requests/{request_obj.pk}/customs-invoice/")
-    send_email(
-        to_user=request_obj.plan.traveler,
-        subject=f"Customs Invoice — {request_obj.reference}",
-        template="customs_invoice",
-        context=_ctx(request_obj, customs_invoice_url=customs_url),
-        event="customs_invoice",
-    )
+    traveler = _order_traveler(request_obj)
+    if traveler:
+        customs_url = _site_url(f"/trips/requests/{request_obj.pk}/customs-invoice/")
+        send_email(
+            to_user=traveler,
+            subject=f"Customs Invoice — {request_obj.reference}",
+            template="customs_invoice",
+            context=_ctx(request_obj, customs_invoice_url=customs_url),
+            event="customs_invoice",
+        )
 
 
 def on_package_arrived(request_obj):
     """Step 6: traveler arrived + paid custom fare -> notify buyer to settle."""
-    _set_status(request_obj, Status.PACKAGE_ARRIVED)
+    _set_status(request_obj, Status.PACKAGE_ARRIVED, sync_plan=bool(request_obj.plan_id))
     send_email(
         to_user=request_obj.buyer,
         subject="Your package has arrived — please pay the balance",
@@ -228,8 +245,10 @@ def on_cargo_arrived(request_obj):
 
 def on_balance_verified(request_obj):
     """Step 7: admin verified the balance -> ready for pickup."""
-    _set_status(request_obj, Status.READY_FOR_PICKUP)
-    for party in (request_obj.buyer, request_obj.plan.traveler):
+    _set_status(request_obj, Status.READY_FOR_PICKUP, sync_plan=bool(request_obj.plan_id))
+    for party in (request_obj.buyer, _order_traveler(request_obj)):
+        if not party:
+            continue
         send_email(
             to_user=party,
             subject="Package ready for pickup",
@@ -265,14 +284,15 @@ def on_new_message(message):
 def on_reship_requested(request_obj):
     """Buyer submitted delivery address → RESHIP_REQUESTED; traveler notified."""
     _set_status(request_obj, Status.RESHIP_REQUESTED, sync_plan=False)
+    traveler = _order_traveler(request_obj)
     send_email(
-        to_user=request_obj.plan.traveler,
+        to_user=traveler,
         subject=f"Buyer requested reshipment — {request_obj.reference}",
         template="reship_requested",
         context=_ctx(request_obj),
         event="reship_requested",
     )
-    notify_see_email(request_obj.plan.traveler, event="reship_requested")
+    notify_see_email(traveler, event="reship_requested")
 
 
 def on_reship_cost_sent(request_obj):
@@ -290,14 +310,15 @@ def on_reship_cost_sent(request_obj):
 
 def on_reship_proof_uploaded(request_obj):
     """Buyer uploaded reshipment payment proof — no status change; traveler notified."""
+    traveler = _order_traveler(request_obj)
     send_email(
-        to_user=request_obj.plan.traveler,
+        to_user=traveler,
         subject=f"Buyer uploaded reshipment payment proof — {request_obj.reference}",
         template="reship_proof_uploaded",
         context=_ctx(request_obj),
         event="reship_proof_uploaded",
     )
-    notify_see_email(request_obj.plan.traveler, event="reship_proof_uploaded")
+    notify_see_email(traveler, event="reship_proof_uploaded")
 
 
 def on_reshipped(request_obj):
@@ -325,14 +346,15 @@ def on_buyer_cleared(request_obj):
     request_obj.save(update_fields=["buyer_cleared", "cleared_at", "updated_at"])
     _set_status(request_obj, Status.CLEAR)
     # Traveler payout notification (full amount less the platform fee).
+    traveler = _order_traveler(request_obj)
     send_email(
-        to_user=request_obj.plan.traveler,
+        to_user=traveler,
         subject="Cleared — your full payment is being released",
         template="payout_released",
         context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
         event="cleared",
     )
-    notify_see_email(request_obj.plan.traveler, event="cleared")
+    notify_see_email(traveler, event="cleared")
     # Buyer thank-you / completion note.
     send_email(
         to_user=request_obj.buyer,

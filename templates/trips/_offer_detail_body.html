@@ -1,10 +1,16 @@
-{% load humanize %}
+{% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-  <span class="eyebrow" style="margin:0">Leg {{ leg_offer.order.reference }} · {{ leg_offer.route }}</span>
+  <span class="eyebrow" style="margin:0">{% if leg_offer.order.is_cargo %}Leg{% else %}Order{% endif %} {{ leg_offer.order.reference }} · {{ leg_offer.route }}</span>
   {% if leg_offer.leg_status %}
     {% include "trips/_status_badge.html" with label=leg_offer.get_leg_status_display tone="info" %}
   {% elif leg_offer.offer_status == "selected" %}
     <span class="badge badge-warning">Awaiting drop-off</span>
+  {% elif not leg_offer.order.is_cargo %}
+    {% if leg_offer.order.status == "responded" %}
+      {% include "trips/_status_badge.html" with label="Estimate Sent" tone="warning" %}
+    {% else %}
+      {% include "trips/_status_badge.html" with status=leg_offer.order.status label=leg_offer.order.get_status_display tone=leg_offer.order.status_tone %}
+    {% endif %}
   {% else %}
     <span class="badge badge-muted">{{ leg_offer.get_offer_status_display }}</span>
   {% endif %}
@@ -13,6 +19,7 @@
   {% endif %}
 </div>
 
+{% if leg_offer.order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Your Leg</h3>
   <table class="invoice">
@@ -28,11 +35,125 @@
     {% if leg_offer.agreed_weight_kg %}<tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg }} kg</td></tr>{% endif %}
   </table>
 </div></div>
+{% else %}
+<!-- Products: identical to the buyer's order detail (Order Details + full invoice
+     incl. deposit/settlement rows) so the buyer's deposit is based on exactly this
+     invoice. Travel date is this offer's date. -->
+<div class="card mt-2"><div class="card-body">
+  <table class="invoice">
+    <tr class="title-band"><td colspan="2">Order Details</td></tr>
+    <tr><td>Type</td><td class="num-right">{{ leg_offer.order.actor_label }}</td></tr>
+    <tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}</td></tr>
+    {% if leg_offer.order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ leg_offer.order.buyer_notes }}</td></tr>{% endif %}
+  </table>
+</div></div>
 
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Next Step</h3>
+  <h3 style="margin-top:0">Invoice — {{ leg_offer.order.currency }}</h3>
+  <div class="table-wrap">
+  <table class="invoice inv2">
+    <thead>
+      <tr>
+        <th rowspan="2" class="lcell" style="text-align:center;">Product Name</th>
+        <th colspan="3">Qty</th>
+        <th colspan="2">Unit Price</th>
+        <th colspan="2">Total ({{ leg_offer.order.currency }})</th>
+      </tr>
+      <tr><th>Est</th><th>Act</th><th class="unit-cell">Unit</th><th>Est</th><th>Actual</th><th>Est</th><th>Actual</th></tr>
+    </thead>
+    <tbody>
+      {% for item in leg_offer.order.items.all %}
+      <tr>
+        <td class="lcell">{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.actual_quantity }}</td>
+        <td class="unit-cell">{{ item.unit }}</td>
+        <td>{{ item.estimated_unit_cost|intcomma }}</td>
+        <td>{{ item.actual_unit_cost|intcomma }}</td>
+        <td>{{ item.estimated_line_total|intcomma }}</td>
+        <td>{{ item.actual_line_total|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="subtotal">
+        <td class="lcell">Sub-Total Items</td>
+        <td>{{ leg_offer.order.est_qty_total }}</td><td>{{ leg_offer.order.act_qty_total }}</td><td></td>
+        <td></td><td></td>
+        <td>{{ leg_offer.order.items_estimated_total|intcomma }}</td><td>{{ leg_offer.order.items_actual_total|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="lcell">Shipment (kg)</td>
+        <td>{{ leg_offer.order.estimated_weight_kg }}</td><td>{% if leg_offer.order.actual_weight_kg %}{{ leg_offer.order.actual_weight_kg }}{% endif %}</td><td></td>
+        <td></td><td>{{ leg_offer.order.effective_cost_per_kg|intcomma }}</td>
+        <td>{{ leg_offer.order.estimated_shipment_cost|intcomma }}</td><td>{{ leg_offer.order.shipment_cost|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="lcell">Custom Duty</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td>{{ leg_offer.order.estimated_custom|intcomma }}</td><td>{{ leg_offer.order.actual_custom|intcomma }}</td>
+      </tr>
+      <tr class="total">
+        <td class="lcell">Total Invoice</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td>{{ leg_offer.order.estimated_invoice_total|intcomma }}</td><td>{{ leg_offer.order.invoice_total|intcomma }}</td>
+      </tr>
+      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ leg_offer.order.deposit_due|intcomma }}</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ leg_offer.order.deposit_paid_amount|intcomma }})</td></tr>
+      <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ leg_offer.order.invoice_unpaid_overpaid|accounting }}</td></tr>
+      <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ leg_offer.order.final_settlement|accounting }}</td></tr>
+      <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>{{ leg_offer.order.total_due|accounting }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <span class="help">&nbsp;&nbsp;&nbsp;* Deposit Due is 50% of products ordered + 100% of estimated shipment cost. The buyer pays this deposit against this invoice.</span>
+</div></div>
+{% endif %}
+
+<details class="card fold mt-2" open>
+  <summary><h3>Next Step</h3></summary>
+  <div class="fold-body">
   {% if leg_offer.offer_status == "pending" %}
+    {% if leg_offer.order.is_cargo %}
     <p class="muted">Your offer is pending the buyer's decision.</p>
+    {% elif leg_offer.order.status == "responded" %}
+    <p class="muted">Waiting for Buyer's Deposit</p>
+    {% elif leg_offer.order.status == "accepted" %}
+    <p class="muted">Buyer submitted the deposit — awaiting admin verification.</p>
+    {% elif leg_offer.order.status == "deposit_paid" %}
+    <p>Deposit received. Enter the actual purchase prices to update the invoice.</p>
+    <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?purchase={{ leg_offer.order_id }}#purchase-order">Enter Actual Prices</a></div>
+    {% elif leg_offer.order.status == "items_purchased" %}
+      {% if leg_offer.travel_date_passed %}
+      <p>You've arrived. Process the arrival details and record any customs duty you paid.</p>
+      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Process Arrival Details</a></div>
+      {% else %}
+      <p class="muted">Items purchased. You can process arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
+      {% endif %}
+    {% elif leg_offer.order.status == "package_arrived" %}
+    <p class="muted">Buyer notified, wait for Unpaid Balance payment.</p>
+    {% elif leg_offer.order.status == "ready_for_pickup" %}
+    <p class="muted">Balance settled. Waiting for the buyer to pick up the package or request reshipment.</p>
+    {% elif leg_offer.order.status == "reship_requested" %}
+    <p>The buyer requested reshipment to:</p>
+    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
+{{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
+    <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?reship_cost={{ leg_offer.order_id }}#reship-cost-order">Send Cost &amp; Bank Details</a></div>
+    {% elif leg_offer.order.status == "reship_cost_sent" %}
+    <p>Cost sent to buyer. Delivery address:</p>
+    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
+{{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
+    {% if leg_offer.order.reshipment_proof %}<p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship.</p>{% else %}<p class="muted">Waiting for the buyer to upload reshipment payment proof.</p>{% endif %}
+    <div style="text-align:center;margin-top:12px"><a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship={{ leg_offer.order_id }}#reship-order">Submit AWB</a></div>
+    {% elif leg_offer.order.status == "reshipping" %}
+    <p>Package shipped. AWB / Tracking: <strong>{{ leg_offer.order.awb_number }}</strong>{% if leg_offer.order.awb_document %}&nbsp;<a href="{{ leg_offer.order.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}</p>
+    <p class="muted">Waiting for the buyer to confirm receipt.</p>
+    {% elif leg_offer.order.status == "clear" %}
+    <p><span class="badge badge-success">Clear</span> Pickup confirmed. Your payout (full amount less the 2.5% fee) is being released.</p>
+    {% elif leg_offer.order.status == "closed" %}
+    <p><span class="badge badge-success">Closed</span> Complete. Thank you!</p>
+    {% else %}
+    <p class="muted">{{ leg_offer.order.get_status_display }}</p>
+    {% endif %}
   {% elif not leg_offer.leg_status %}
     {% if leg_offer.deposit_verified %}
     <p class="help" style="margin:0 0 10px">The buyer is handing over the package. Weigh it in front of the buyer,
@@ -85,7 +206,8 @@
   {% else %}
     <p class="muted">{{ leg_offer.get_leg_status_display }}</p>
   {% endif %}
-</div></div>
+  </div>
+</details>
 
 {% if leg_offer.payout_ready and leg_offer.transaction %}
 <div class="card mt-2"><div class="card-body">

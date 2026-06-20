@@ -6,11 +6,15 @@
 <form method="post" action="{% url 'trips:request_arrive' arrive_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
   {% csrf_token %}
   <div class="card-body">
-    <div class="form-row">
-      <div class="form-field"><label>Custom Duty Currency</label>{{ arrive_form.custom_fare_currency }}</div>
+    <div class="card-band-row">Process Arrival Details</div>
+    <div class="form-row" style="margin-top:20px">
+      <div class="form-field"><label>Custom Duty Currency</label>
+        <div class="static-field muted">{{ arrive_req.destination_currency }}</div>
+        {{ arrive_form.custom_fare_currency }}
+      </div>
       <div class="form-field"><label>Custom Duty Amount</label>{{ arrive_form.custom_fare_amount }}</div>
     </div>
     <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ arrive_form.custom_fare_proof }}</div>
-    <div style="text-align:center"><button class="btn btn-primary" type="submit">Mark Arrived</button></div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.is_buyer_first and not arrive_req.is_cargo %}Package Arrived{% else %}Mark Arrived{% endif %}</button></div>
   </div>
 </form>

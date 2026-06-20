@@ -1,22 +1,30 @@
-{% load humanize %}
+{% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
-  {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
+  {% if not bf_order.is_cargo and bf_order.status == "responded" %}
+    {% include "trips/_status_badge.html" with label="Estimate Received" tone="warning" %}
+  {% else %}
+    {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
+  {% endif %}
 </div>
 
 <div class="card mt-2"><div class="card-body">
   <table class="invoice">
     <tr class="title-band"><td colspan="2">Order Details</td></tr>
+    <tr><td>Type</td><td class="num-right">{{ bf_order.actor_label }}</td></tr>
     <tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    {% if bf_order.is_cargo %}
     <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
     <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|intcomma }}</td></tr>
     <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
-    <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
+    {% endif %}
+    <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}</td></tr>
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
 
+{% if bf_order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Items</h3>
   <div class="table-wrap">
@@ -49,9 +57,75 @@
     </table>
   </div>
 </div></div>
-
+{% else %}
+<!-- Products (proxy buying) — Est/Actual invoice, mirrors the plan-first proxy
+     format. The buyer lists items only; the Proxy Buyer fills estimated prices
+     when they respond, and actuals after purchase. No item margin (buyer-first:
+     jastip's fee is in the per-kg rate). -->
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Next Step</h3>
+  <h3 style="margin-top:0">Invoice — {{ bf_order.currency }}</h3>
+  <div class="table-wrap">
+  <table class="invoice inv2">
+    <thead>
+      <tr>
+        <th rowspan="2" class="lcell" style="text-align:center;">Product Name</th>
+        <th colspan="3">Qty</th>
+        <th colspan="2">Unit Price</th>
+        <th colspan="2">Total ({{ bf_order.currency }})</th>
+      </tr>
+      <tr><th>Est</th><th>Act</th><th class="unit-cell">Unit</th><th>Est</th><th>Actual</th><th>Est</th><th>Actual</th></tr>
+    </thead>
+    <tbody>
+      {% for item in bf_order.items.all %}
+      <tr>
+        <td class="lcell">{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.actual_quantity }}</td>
+        <td class="unit-cell">{{ item.unit }}</td>
+        <td>{{ item.estimated_unit_cost|intcomma }}</td>
+        <td>{{ item.actual_unit_cost|intcomma }}</td>
+        <td>{{ item.estimated_line_total|intcomma }}</td>
+        <td>{{ item.actual_line_total|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="subtotal">
+        <td class="lcell">Sub-Total Items</td>
+        <td>{{ bf_order.est_qty_total }}</td><td>{{ bf_order.act_qty_total }}</td><td></td>
+        <td></td><td></td>
+        <td>{{ bf_order.items_estimated_total|intcomma }}</td><td>{{ bf_order.items_actual_total|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="lcell">Shipment (kg)</td>
+        <td>{{ bf_order.estimated_weight_kg }}</td><td>{% if bf_order.actual_weight_kg %}{{ bf_order.actual_weight_kg }}{% endif %}</td><td></td>
+        <td></td><td>{{ bf_order.effective_cost_per_kg|intcomma }}</td>
+        <td>{{ bf_order.estimated_shipment_cost|intcomma }}</td><td>{{ bf_order.shipment_cost|intcomma }}</td>
+      </tr>
+      <tr>
+        <td class="lcell">Custom Duty</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td>{{ bf_order.estimated_custom|intcomma }}</td><td>{{ bf_order.actual_custom|intcomma }}</td>
+      </tr>
+      <tr class="total">
+        <td class="lcell">Total Invoice</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td>{{ bf_order.estimated_invoice_total|intcomma }}</td><td>{{ bf_order.invoice_total|intcomma }}</td>
+      </tr>
+      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ bf_order.deposit_due|intcomma }}</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ bf_order.deposit_paid_amount|intcomma }})</td></tr>
+      <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ bf_order.invoice_unpaid_overpaid|accounting }}</td></tr>
+      <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ bf_order.final_settlement|accounting }}</td></tr>
+      <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>{{ bf_order.total_due|accounting }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <span class="help">&nbsp;&nbsp;&nbsp;* Deposit Due is 50% of products ordered + 100% of estimated shipment cost. Estimated prices are filled in by the Proxy Buyer when they respond; actuals are set after purchase.</span>
+</div></div>
+{% endif %}
+
+<details class="card fold mt-2" open>
+  <summary><h3>Next Step</h3></summary>
+  <div class="fold-body">
+  {% if bf_order.is_cargo %}
   {% if bf_order.pending_offers %}
   <div class="table-wrap">
     <table class="invoice">
@@ -91,7 +165,116 @@
   {% else %}
   <p class="muted">No pending offers right now.</p>
   {% endif %}
-</div></div>
+  {% else %}
+  {# Products (proxy buying): the buyer pays the deposit against the estimate. #}
+  {% if bf_order.deposit_pending %}
+    <p>Transfer proof submitted — awaiting admin verification of your deposit.</p>
+    {% if bf_order.deposit_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.deposit_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
+    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+  {% elif bf_order.status == "deposit_paid" or bf_order.status == "items_purchased" %}
+    <p class="muted">Deposit verified.</p>
+    {% if bf_order.deposit_proof_url %}<div style="text-align:center"><a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View Transfer Proof</a></div>{% endif %}
+    <p style="text-align:center;margin-top:10px">Payment Request for the Unpaid Balance will be sent to you after Traveler arrived and pay Custom Duty (if any).</p>
+  {% elif bf_order.status == "package_arrived" %}
+    {% if bf_order.balance_pending %}
+    <p>Balance proof submitted — awaiting admin verification.</p>
+    {% if bf_order.balance_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
+    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Payment Proof</button></div>
+    {% elif bf_order.balance_extra_due > 0 %}
+    <p>Your package has arrived.<br>Please pay the unpaid balance of <strong>{{ bf_order.currency }} {{ bf_order.balance_extra_due|intcomma }}</strong>{% if bf_order.balance_due_now_idr %} or <strong>IDR {{ bf_order.balance_due_now_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+    <table class="invoice" style="max-width:440px;margin-bottom:12px">
+      <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+      <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+      <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+      <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+    </table>
+    <form method="post" action="{% url 'trips:request_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
+      {% csrf_token %}
+      <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
+      <button class="btn btn-primary" type="submit">Submit Payment Proof</button>
+    </form>
+    {% elif bf_order.balance_refund_due > 0 %}
+    <p class="muted">Your deposit exceeded the final invoice. A refund of <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|intcomma }}</strong> will be processed to you.</p>
+    {% else %}
+    <p class="muted">Balance settled.</p>
+    {% endif %}
+  {% elif bf_order.status == "ready_for_pickup" %}
+    <p><strong>Option 1 — Pick up locally:</strong><br>Contact the Proxy Buyer for the best time to visit. After visiting, verify the items, then click "Confirm Pickup" to release the payment.</p>
+    <table class="invoice" style="max-width:400px;margin-bottom:12px">
+      <tr><td style="width:100px">Name</td><td>: {{ bf_order.proxy_traveler.full_name }}</td></tr>
+      {% if bf_order.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_address }}</span>{% if bf_order.proxy_traveler.traveler_destination_city %}, {{ bf_order.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
+      <tr><td>Email</td><td>: {{ bf_order.proxy_traveler.email }}</td></tr>
+      {% if bf_order.proxy_traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ bf_order.proxy_traveler.phone_e164|slice:'1:' }}" target="_blank">{{ bf_order.proxy_traveler.phone_e164 }}</a></td></tr>{% endif %}
+    </table>
+    {% if bf_order.balance_refund_due > 0 %}<p class="muted">You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|intcomma }}</strong> — admin will transfer it back within 48 hours.</p>{% endif %}
+    <form method="post" action="{% url 'trips:request_clear' bf_order.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
+      <button class="btn btn-primary" type="submit">Confirm Pickup</button>
+    </form>
+    <hr style="margin:16px 0">
+    <p><strong>Option 2 — Request reshipment:</strong> To have the package shipped to you, set your "Reshipment Address" in your Profile, then click Request Reshipment.</p>
+    <form method="post" action="{% url 'trips:request_reship_request' bf_order.id %}">{% csrf_token %}
+      <div style="text-align:center"><button class="btn btn-primary" type="submit">Request Reshipment</button></div>
+    </form>
+  {% elif bf_order.status == "reship_requested" %}
+    <p>Reshipment requested to:</p>
+    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.buyer.buyer_invoice_address }}{% if bf_order.buyer.buyer_destination_city %}
+{{ bf_order.buyer.buyer_destination_city }}{% endif %}</blockquote>
+    <p class="muted">Waiting for the Proxy Buyer to confirm the shipment cost.</p>
+  {% elif bf_order.status == "reship_cost_sent" %}
+    <p>Reshipment cost: <strong>{{ bf_order.currency }} {{ bf_order.reshipment_cost_amount|intcomma }}</strong>{% if bf_order.reshipment_cost_proof %}&nbsp;<a href="{{ bf_order.reshipment_cost_proof.url }}" target="_blank" class="help">(View proof)</a>{% endif %}</p>
+    <p>Please transfer to:</p>
+    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_bank_details }}</blockquote>
+    {% if bf_order.reshipment_proof %}<p class="muted">Payment proof uploaded &#10003; — waiting for the Proxy Buyer to ship.</p>{% else %}<p>Upload your payment proof once transferred:</p>{% include "trips/_reship_proof_form.html" with req=bf_order %}{% endif %}
+  {% elif bf_order.status == "reshipping" %}
+    <p>Your package is in transit. AWB / Tracking: <strong>{{ bf_order.awb_number }}</strong>{% if bf_order.awb_document %}&nbsp;<a href="{{ bf_order.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}</p>
+    <p class="muted">Once you receive it, confirm below to release the Proxy Buyer's payment.</p>
+    <form method="post" action="{% url 'trips:request_clear' bf_order.id %}" style="text-align:center">{% csrf_token %}<button class="btn btn-primary" type="submit">Confirm Received</button></form>
+  {% elif bf_order.status == "clear" %}
+    <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. The Proxy Buyer will be paid the full amount (less the 2.5% fee) shortly.</p>
+  {% elif bf_order.status == "closed" %}
+    <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
+  {% elif bf_order.status == "responded" and bf_order.pending_offers %}
+    <p>Your estimate is ready. Make the deposit to confirm — the Proxy Buyer then starts purchasing.</p>
+    <p>Please make a bank transfer of <strong>{{ bf_order.currency }} {{ bf_order.deposit_due|intcomma }}</strong>{% if bf_order.deposit_due_idr %} or <strong>IDR {{ bf_order.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+    <table class="invoice" style="max-width:440px;margin-bottom:12px">
+      <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+      <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+      <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+      <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+    </table>
+    <form method="post" action="{% url 'trips:order_deposit_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
+      {% csrf_token %}
+      <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
+      <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
+    </form>
+  {% else %}
+    <p class="muted">No estimate yet — waiting for a Proxy Buyer to respond.</p>
+  {% endif %}
+  {% endif %}
+  </div>
+</details>
+
+<!-- Payments (foldable) -->
+{% if bf_order.transaction.payments.all %}
+<details class="card fold mt-2">
+  <summary><h3>Payments</h3></summary>
+  <div class="fold-body">
+  <table class="invoice">
+    <tr><td><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td><strong>Status</strong></td><td><strong>When</strong></td></tr>
+    {% for p in bf_order.transaction.payments.all %}
+    <tr>
+      <td>{{ p.get_kind_display }}</td>
+      <td class="num-right">{{ p.currency }} {{ p.amount|intcomma }}</td>
+      <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
+          {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
+          {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
+      <td class="muted">{{ p.created_at|date:"d M H:i" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</details>
+{% endif %}
 
 {% if bf_order.confirmed_legs %}
 <div class="card mt-2"><div class="card-body">

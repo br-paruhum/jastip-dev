@@ -6,11 +6,17 @@
       <tr>
         <th>Deadline</th>
         <th>Route</th>
+        {% if is_cargo %}
         <th>Bid<br>(kg)</th>
         <th>Bid<br>Price/kg</th>
         <th>Ask<br>(kg)</th>
         <th>Ask<br>Price/kg</th>
         <th>Avail<br>(kg)</th>
+        {% else %}
+        <th>Shipment<br>Cost/kg</th>
+        <th>Margin</th>
+        <th>Payment<br>Terms</th>
+        {% endif %}
         <th>Status</th>
         <th>Action</th>
       </tr>
@@ -23,6 +29,7 @@
           <strong>{{ order.from_city }} → {{ order.to_city }}</strong>
           <span>{{ order.from_country }} → {{ order.to_country }}</span>
         </td>
+        {% if is_cargo %}
         <td class="avail-cell">{{ order.bid_weight_kg }}{% if order.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}</td>
         <td class="shipment-cell">{{ order.currency }} {{ order.bid_cost_per_kg|intcomma }}</td>
         <td>
@@ -40,6 +47,11 @@
           {% endfor %}
         </td>
         <td class="avail-cell">{{ order.remaining_bid_weight_kg }}</td>
+        {% else %}
+        <td class="shipment-cell">{% if order.effective_cost_per_kg %}{{ order.currency }} {{ order.effective_cost_per_kg|intcomma }}{% else %}—{% endif %}</td>
+        <td class="margin-cell">—</td>
+        <td class="terms-cell"><a href="{{ order.get_absolute_url }}" title="View payment terms">View</a></td>
+        {% endif %}
         <td class="status-cell">
           {% if order.listing_locked %}
             {% include "trips/_status_badge.html" with status="closed" label="Closed" tone="muted" %}
@@ -68,10 +80,12 @@
     </tbody>
   </table>
 </div>
+{% if is_cargo %}
 <div class="offers-notes">
   <p class="notes-head">Note:</p>
   <p>*) Partial fulfillment allowed — this order can be split across multiple travelers.</p>
 </div>
+{% endif %}
 {% else %}
 <p class="text-center muted">{{ empty_msg }} <a href="{% url 'trips:order_create' %}">Post an order.</a></p>
 {% endif %}

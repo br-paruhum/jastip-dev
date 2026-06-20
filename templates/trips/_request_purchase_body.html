@@ -7,6 +7,7 @@
   {% csrf_token %}
   {{ purchase_formset.management_form }}
   <div class="card-body">
+    <div class="card-band-row">Input Actual Cost</div>
     {% for f in purchase_formset %}
     <div class="card" style="box-shadow:none;margin-bottom:14px"><div class="card-body">
       <strong>{{ f.instance.name }}</strong> · requested ×{{ f.instance.quantity }} {{ f.id }}
@@ -25,7 +26,7 @@
       {{ purchase_form.actual_weight_kg }}{{ purchase_form.actual_weight_kg.errors }}
       <p class="help">Estimated was {{ purchase_req.estimated_weight_kg }} kg. Enter the final measured weight —
         the invoice's <em>Actual</em> shipment cost is calculated from it
-        (this weight × {{ purchase_req.currency }} {{ purchase_req.plan.shipment_cost_per_kg|intcomma }}/kg).</p>
+        (this weight × {{ purchase_req.currency }} {{ purchase_req.effective_cost_per_kg|intcomma }}/kg).</p>
     </div>
 
     <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">

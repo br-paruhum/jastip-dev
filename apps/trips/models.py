@@ -375,6 +375,15 @@ class BuyRequest(ListingTimingMixin, models.Model):
         legs = self.confirmed_legs
         if len(legs) == 1:
             return legs[0].ask_cost_per_kg
+        if not self.is_cargo:
+            # Products (FCFS single proxy): use the live proxy offer's quoted rate
+            # so the buyer sees the full estimated shipment before accepting it.
+            live = [
+                o for o in self.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+            ]
+            if len(live) == 1:
+                return live[0].ask_cost_per_kg
         return self.bid_cost_per_kg
 
     @property
@@ -560,6 +569,24 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def currency(self) -> str:
         return self.plan.shipment_currency if self.plan_id else self.settlement_currency
+
+    @property
+    def destination_currency(self) -> str:
+        """Currency at the destination country — customs duty is always paid here
+        (mirrors shipment always being in the origin currency). Resolved via the
+        fx/kurs table; falls back to IDR."""
+        country = self.to_country or (self.plan.to_country if self.plan_id else "")
+        return ExchangeRate.currency_for_country(country)
+
+    @property
+    def proxy_traveler(self):
+        """The traveler/proxy for UI display: the plan's traveler (plan-first) or
+        the single live offer's traveler (buyer-first Products, FCFS)."""
+        if self.plan_id:
+            return self.plan.traveler
+        live = [o for o in self.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+        return live[0].traveler if len(live) == 1 else None
 
     def _idr_equivalent(self, amount: Decimal) -> "Decimal | None":
         """Convert a foreign-currency amount to IDR using the BCA TT Counter
@@ -1014,6 +1041,12 @@ class TravelerOffer(models.Model):
         """Buyer must hand over the package by travel_date − 1 day."""
         from datetime import timedelta
         return self.travel_date - timedelta(days=1)
+
+    @property
+    def travel_date_passed(self) -> bool:
+        """True once the travel date has arrived — the proxy can now process
+        arrival (records customs duty, marks the package arrived)."""
+        return bool(self.travel_date and timezone.now().date() >= self.travel_date)
 
     @property
     def can_edit(self) -> bool:

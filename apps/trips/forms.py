@@ -118,6 +118,17 @@ class OrderForm(forms.ModelForm):
         widget=forms.Select(),
         initial="0",
     )
+    # Products (proxy buying, Flow 3) vs Cargo (carrying, Flow 4). Default Cargo
+    # so existing buyer-first behaviour is unchanged until the buyer chooses.
+    cargo_only = forms.TypedChoiceField(
+        choices=[
+            ("0", "Products — a Proxy Buyer purchases the items for me"),
+            ("1", "Cargo — I already have the goods; a Carrier just brings them"),
+        ],
+        coerce=lambda v: v == "1",
+        widget=forms.Select(),
+        initial="0",
+    )
 
     class Meta:
         model = BuyRequest
@@ -125,7 +136,7 @@ class OrderForm(forms.ModelForm):
             "from_city", "from_country", "to_city", "to_country",
             "to_address", "to_postal_code",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
-            "partial_allowed", "buyer_notes",
+            "cargo_only", "partial_allowed", "buyer_notes",
         ]
         widgets = {
             "to_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Destination delivery address"}),
@@ -141,22 +152,37 @@ class OrderForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        # The bool model fields don't preselect their string-keyed choices on
+        # edit (str(True) != "1"), so map them back explicitly.
+        if self.instance and self.instance.pk:
+            self.fields["cargo_only"].initial = "1" if self.instance.cargo_only else "0"
+            self.fields["partial_allowed"].initial = "1" if self.instance.partial_allowed else "0"
         # Start the bid fields blank instead of pre-filling the model's 0
         # default — otherwise typing "5" into the leading 0 produces "50".
         self.fields["bid_weight_kg"].initial = None
         self.fields["bid_cost_per_kg"].initial = None
+        # Bid weight/price + partial only apply to a Cargo order; the Products
+        # (proxy buying) flow has no buyer-set weight/price — the Proxy Buyer
+        # estimates them. Required-ness is enforced in clean() per type.
+        self.fields["bid_weight_kg"].required = False
+        self.fields["bid_cost_per_kg"].required = False
+        self.fields["partial_allowed"].required = False
 
-    def clean_bid_weight_kg(self):
-        val = self.cleaned_data.get("bid_weight_kg")
-        if not val or val <= 0:
-            raise forms.ValidationError("Enter the package weight (kg).")
-        return val
-
-    def clean_bid_cost_per_kg(self):
-        val = self.cleaned_data.get("bid_cost_per_kg")
-        if not val or val <= 0:
-            raise forms.ValidationError("Enter your opening price per kg.")
-        return val
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("cargo_only"):
+            # Cargo: bid weight + opening price are the carry-fee basis.
+            if not cleaned.get("bid_weight_kg") or cleaned["bid_weight_kg"] <= 0:
+                self.add_error("bid_weight_kg", "Enter the package weight (kg).")
+            if not cleaned.get("bid_cost_per_kg") or cleaned["bid_cost_per_kg"] <= 0:
+                self.add_error("bid_cost_per_kg", "Enter your opening price per kg.")
+        else:
+            # Products: no buyer-set weight/price/partial — the Proxy Buyer
+            # quotes estimates in their offer. Neutralise the Cargo-only fields.
+            cleaned["bid_weight_kg"] = Decimal("0")
+            cleaned["bid_cost_per_kg"] = Decimal("0")
+            cleaned["partial_allowed"] = False
+        return cleaned
 
     def clean_max_acceptable_date(self):
         val = self.cleaned_data.get("max_acceptable_date")
@@ -216,6 +242,20 @@ class TravelerOfferForm(forms.ModelForm):
         if val <= timezone.now().date():
             raise forms.ValidationError("Travel date must be in the future.")
         return val
+
+
+class ProxyOfferForm(TravelerOfferForm):
+    """Products (proxy buying) response — the proxy's offer essentials (rate +
+    travel details), used alongside the per-item estimate formset (ReviewItemFormSet)
+    and ReviewForm (estimated weight). No avail_kg: one proxy fulfils the whole
+    order (first-come-first-served), so capacity isn't split."""
+
+    class Meta(TravelerOfferForm.Meta):
+        fields = [
+            "ask_cost_per_kg", "drop_off_address",
+            "travel_date", "travel_time",
+            "from_city", "from_country", "to_city", "to_country",
+        ]
 
 
 class ReviewForm(forms.ModelForm):
@@ -379,14 +419,16 @@ class CustomFareForm(forms.ModelForm):
         fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
         widgets = {
             "custom_fare_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
+            # Currency is fixed to the destination country's currency (shown muted
+            # in the template); a plain file input avoids the clear/change widgets.
+            "custom_fare_currency": forms.HiddenInput(),
+            "custom_fare_proof": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Duty is almost always paid in IDR at the destination — preselect it,
-        # but leave the dropdown editable so the traveler can change it.
-        if not self.instance.custom_fare_currency:
-            self.initial["custom_fare_currency"] = Currency.IDR
+        # Customs duty is always paid in the destination country's currency.
+        self.initial["custom_fare_currency"] = self.instance.destination_currency
 
 
 class LegCustomFareForm(forms.ModelForm):

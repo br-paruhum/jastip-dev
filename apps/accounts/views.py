@@ -13,7 +13,8 @@ from apps.trips.constants import CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
-    RequestItemFormSet, ReviewForm, ReviewItemFormSet, TravelPlanForm, TravelerOfferForm,
+    ProxyOfferForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet, TravelPlanForm,
+    TravelerOfferForm,
 )
 from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
 
@@ -34,6 +35,16 @@ def _resolve_role(request):
         role = request.user.last_role_choice or "traveler"
         request.session["role"] = role
     return role
+
+
+def _order_is_proxy(req, user):
+    """True if `user` is the traveler/proxy for `req`: the plan's traveler
+    (plan-first) or the single live offer's traveler (buyer-first Products)."""
+    if req.plan_id:
+        return req.plan.traveler_id == user.id
+    live = [o for o in req.traveler_offers.all()
+            if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+    return len(live) == 1 and live[0].traveler_id == user.id
 
 
 @login_required
@@ -229,13 +240,19 @@ def profile(request):
     purchase_req = purchase_form = purchase_formset = None
     purchase_id = request.GET.get("purchase")
     if purchase_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
-            pk=purchase_id, plan__traveler=user
-        ).first()
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=purchase_id).first()
         if _r and _r.status in {Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED}:
-            purchase_req = _r
-            purchase_form = PurchaseWeightForm(instance=_r)
-            purchase_formset = PurchaseItemFormSet(instance=_r)
+            if _r.plan_id:
+                is_proxy = _r.plan.traveler_id == user.id
+            else:
+                # Buyer-first Products (FCFS): the single live offer's traveler.
+                live = [o for o in _r.traveler_offers.all()
+                        if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+                is_proxy = len(live) == 1 and live[0].traveler_id == user.id
+            if is_proxy:
+                purchase_req = _r
+                purchase_form = PurchaseWeightForm(instance=_r)
+                purchase_formset = PurchaseItemFormSet(instance=_r)
 
     # Receive panel (?receive=<id>#receive-order) — traveler confirms cargo receipt + final weight.
     receive_req = receive_form = None
@@ -252,23 +269,26 @@ def profile(request):
     arrive_req = arrive_form = None
     arrive_id = request.GET.get("arrive")
     if arrive_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
-            pk=arrive_id, plan__traveler=user
-        ).first()
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=arrive_id).first()
         # Cargo arrives from Package Received (no purchase step); proxy from Items Purchased.
         _arrivable = Status.PACKAGE_RECEIVED if (_r and _r.is_cargo) else Status.ITEMS_PURCHASED
         if _r and _r.status == _arrivable:
-            arrive_req = _r
-            arrive_form = CustomFareForm(instance=_r)
+            if _r.plan_id:
+                is_proxy = _r.plan.traveler_id == user.id
+            else:
+                live = [o for o in _r.traveler_offers.all()
+                        if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+                is_proxy = len(live) == 1 and live[0].traveler_id == user.id
+            if is_proxy:
+                arrive_req = _r
+                arrive_form = CustomFareForm(instance=_r)
 
     # Reship-cost panel (?reship_cost=<id>#reship-cost-order) — traveler sends cost + bank.
     reship_cost_req = reship_cost_form = None
     reship_cost_id = request.GET.get("reship_cost")
     if reship_cost_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
-            pk=reship_cost_id, plan__traveler=user
-        ).first()
-        if _r and _r.status == Status.RESHIP_REQUESTED:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=reship_cost_id).first()
+        if _r and _r.status == Status.RESHIP_REQUESTED and _order_is_proxy(_r, user):
             reship_cost_req = _r
             reship_cost_form = ReshipmentCostForm(instance=_r)
 
@@ -276,15 +296,14 @@ def profile(request):
     reship_req = reship_form = None
     reship_id = request.GET.get("reship")
     if reship_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
-            pk=reship_id, plan__traveler=user
-        ).first()
-        if _r and _r.status == Status.RESHIP_COST_SENT:
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=reship_id).first()
+        if _r and _r.status == Status.RESHIP_COST_SENT and _order_is_proxy(_r, user):
             reship_req = _r
             reship_form = AWBForm(instance=_r)
 
-    # Offer-form panel (?offer=<order_id>#offer-form) — traveler places offer on a buyer-first order.
+    # Offer-form panel (?offer=<order_id>#offer-form) — traveler responds to a buyer-first order.
     offer_form_order = offer_form_obj = None
+    proxy_review_form = proxy_review_formset = None
     offer_order_id = request.GET.get("offer")
     if offer_order_id:
         _offer_order = (
@@ -296,13 +315,28 @@ def profile(request):
             _offer_order
             and _offer_order.buyer_id != user.id
             and _offer_order.status in OPEN_ORDER_STATUSES
-            and not _offer_order.traveler_offers.filter(traveler=user, offer_status=OfferStatus.PENDING).exists()
         ):
-            offer_form_order = _offer_order
-            offer_form_obj = TravelerOfferForm(initial={
+            route_initial = {
                 "from_city": _offer_order.from_city, "from_country": _offer_order.from_country,
                 "to_city": _offer_order.to_city, "to_country": _offer_order.to_country,
-            })
+            }
+            if _offer_order.is_cargo:
+                # Cargo: carry offer; multiple travelers may offer (block dup self).
+                if not _offer_order.traveler_offers.filter(
+                    traveler=user, offer_status=OfferStatus.PENDING
+                ).exists():
+                    offer_form_order = _offer_order
+                    offer_form_obj = TravelerOfferForm(initial=route_initial)
+            else:
+                # Products: proxy "Estimated Cost" form. FCFS — only show it while
+                # no one holds a live (pending/selected) offer on this order.
+                if not _offer_order.traveler_offers.filter(
+                    offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+                ).exists():
+                    offer_form_order = _offer_order
+                    offer_form_obj = ProxyOfferForm(initial=route_initial)
+                    proxy_review_form = ReviewForm(instance=_offer_order)
+                    proxy_review_formset = ReviewItemFormSet(instance=_offer_order, prefix="est_items")
 
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
@@ -366,6 +400,8 @@ def profile(request):
             "order_form_formset": order_form_formset,
             "offer_form_order": offer_form_order,
             "offer_form_obj": offer_form_obj,
+            "proxy_review_form": proxy_review_form,
+            "proxy_review_formset": proxy_review_formset,
             **order_ctx,
         },
     )

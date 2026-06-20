@@ -45,12 +45,7 @@
             {% if row.offer.leg_status %}
               <a class="btn btn-outline btn-sm" style="margin-bottom:6px;display:inline-block" href="{% url 'trips:request_customs_invoice' row.offer.order_id %}" target="_blank">Print Customs Invoice</a>
             {% endif %}
-            {% if row.offer.offer_status == "pending" %}
-              <form method="post" action="{% url 'trips:offer_withdraw' row.offer.id %}">
-                {% csrf_token %}
-                <button class="btn btn-outline btn-sm" type="submit">Withdraw</button>
-              </form>
-            {% endif %}
+            {# Withdraw lives as "Cancel" inside the offer detail panel (via View). #}
           {% endif %}
         </td>
       </tr>
