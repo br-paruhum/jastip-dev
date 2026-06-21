@@ -171,6 +171,11 @@ class OrderForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields["cargo_only"].initial = "1" if self.instance.cargo_only else "0"
             self.fields["partial_allowed"].initial = "1" if self.instance.partial_allowed else "0"
+        else:
+            # New non-proxy order = Cargo (Flow-2). A Products order always goes
+            # through a Proxy Buyer now, so default the type to Cargo so "Post an
+            # Order" lands straight on the cargo form.
+            self.fields["cargo_only"].initial = "1"
         # Start the bid fields blank instead of pre-filling the model's 0
         # default — otherwise typing "5" into the leading 0 produces "50".
         self.fields["bid_weight_kg"].initial = None
@@ -532,9 +537,9 @@ class CustomFareForm(forms.ModelForm):
 
 
 class LegCustomFareForm(forms.ModelForm):
-    """Traveler at a leg's arrival: customs duty paid at destination. Always
-    in IDR (the destination currency); converted to the order currency via the
-    kurs/fx table. Reimbursable by the buyer."""
+    """Traveler at a leg's arrival: customs duty paid at destination, in that
+    country's currency (e.g. SGD for Singapore); converted to the order currency
+    via the kurs/fx table. Reimbursable by the buyer."""
 
     class Meta:
         model = TravelerOffer
@@ -546,11 +551,12 @@ class LegCustomFareForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.initial["custom_fare_currency"] = Currency.IDR
+        # Customs duty is paid in the leg's destination-country currency.
+        self.initial["custom_fare_currency"] = self.instance.destination_currency
 
     def clean_custom_fare_currency(self):
-        # Duty is always paid in IDR at the destination — force it.
-        return Currency.IDR
+        # Fixed to the destination currency — don't trust the hidden input.
+        return self.instance.destination_currency
 
 
 class MessageForm(forms.ModelForm):

@@ -40,9 +40,15 @@
   <div class="inv-meta">
     <div>
       <div class="inv-meta-label">Carried by</div>
+      {% if leg %}
+      <div class="inv-meta-val">{{ leg.traveler.full_name }} · {{ leg.carried_weight_kg|floatformat:1 }} kg{% if leg.traveler.traveler_address %}
+{{ leg.traveler.traveler_address }}{% endif %}{% if leg.traveler.traveler_destination_city %}
+{{ leg.traveler.traveler_destination_city }}{% endif %}</div>
+      {% else %}
       <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}{% if req.traveler_user.traveler_address %}
 {{ req.traveler_user.traveler_address }}{% endif %}{% if req.traveler_user.traveler_destination_city %}
 {{ req.traveler_user.traveler_destination_city }}{% endif %}</div>
+      {% endif %}
     </div>
     <div>
       <div class="inv-meta-label">Purchased for</div>
@@ -56,7 +62,7 @@
     </div>
     <div>
       <div class="inv-meta-label">Travel Date</div>
-      <div class="inv-meta-val">{% if req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
+      <div class="inv-meta-val">{% if leg %}{{ leg.travel_date|date:"d-M-Y" }}{% elif req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
       <div class="inv-meta-label" style="margin-top:10px">Reference</div>
       <div class="inv-meta-val">{{ req.reference }}</div>
     </div>
@@ -73,6 +79,21 @@
       </tr>
     </thead>
     <tbody>
+      {% if leg %}
+      {% comment %}Per-leg: only the goods this carrier carries.{% endcomment %}
+      {% for a in leg.customs_allocations %}
+      <tr>
+        <td>{{ a.item.name }}</td>
+        <td class="num">{{ a.quantity }}</td>
+        <td class="num">{{ a.unit_cost|intcomma }}</td>
+        <td class="num">{{ a.line_total|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="total">
+        <td colspan="3">Total</td>
+        <td class="num">{{ leg.customs_total|intcomma }}</td>
+      </tr>
+      {% else %}
       {% for item in req.items.all %}
       {% if req.is_cargo %}
       {% comment %}Cargo has no purchase step — use the buyer's declared values.{% endcomment %}
@@ -97,11 +118,16 @@
         <td class="num">{% if req.is_cargo %}{{ req.items_estimated_total|intcomma }}{% else %}{{ req.items_actual_total|intcomma }}{% endif %}</td>
         {% if not req.is_cargo and req.items_actual_total_idr %}<td class="num">{{ req.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
       </tr>
+      {% endif %}
     </tbody>
   </table>
 
   <div class="footer-note">
-    {% if req.is_cargo %}
+    {% if leg %}
+    All values are buyer-declared values in {{ req.currency }} for the portion of goods carried by this traveler.
+    The order is split across several carriers travelling separately; this invoice covers only this carrier's share.
+    Prepared for customs declaration purposes only, on behalf of the buyer named above.
+    {% elif req.is_cargo %}
     All values are buyer-declared values in {{ req.currency }} for the goods carried. This invoice is prepared
     for customs declaration purposes only. Goods are carried personally by the traveler on behalf of the buyer named above.
     {% else %}

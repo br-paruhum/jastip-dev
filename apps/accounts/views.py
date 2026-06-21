@@ -47,6 +47,21 @@ def _order_is_proxy(req, user):
     return len(live) == 1 and live[0].traveler_id == user.id
 
 
+def _assignment_rows(order):
+    """Grid for the buyer's 'Assign goods to carriers' panel: one row per item,
+    a cell (leg + current qty) per carrier, plus how many units remain."""
+    legs = order.confirmed_legs
+    rows = []
+    for item in order.items.all():
+        amap = {a.leg_id: a.quantity for a in item.leg_allocations.all()}
+        rows.append({
+            "item": item,
+            "cells": [{"leg": leg, "qty": amap.get(leg.id, 0)} for leg in legs],
+            "unassigned": item.unallocated_quantity,
+        })
+    return rows
+
+
 @login_required
 def choose_role(request):
     if request.method == "POST":
@@ -194,6 +209,10 @@ def profile(request):
                     "bf_order": order,
                     "is_order_proxy": is_order_proxy,
                     "is_order_buyer": user == order.buyer,
+                    "assignment_rows": (
+                        _assignment_rows(order)
+                        if order.is_multi_leg_cargo and user == order.buyer else None
+                    ),
                     "chat_messages": order.messages.select_related("sender").all(),
                     "message_form": MessageForm(),
                     "can_chat": (order.is_chat_participant(user) or user.is_staff)

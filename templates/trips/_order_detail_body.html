@@ -394,6 +394,49 @@
 </details>
 {% endif %}
 
+{% if is_order_buyer and assignment_rows %}
+<details class="card fold mt-2" open>
+  <summary><h3>Split Goods Across Carriers{% if bf_order.assignment_locked %} <span class="badge badge-muted">Locked — in transit</span>{% elif bf_order.needs_item_assignment %} <span class="badge badge-warning">Do this before drop-off</span>{% else %} <span class="badge badge-success">Done</span>{% endif %}</h3></summary>
+  <div class="fold-body">
+  {% if bf_order.assignment_locked %}
+  <p class="help">A carrier has already taken custody, so the split is locked. Each carrier's goods are shown below.</p>
+  <div class="table-wrap">
+  <table class="invoice">
+    <tr><th class="lcell">Item</th>{% for leg in bf_order.confirmed_legs %}<th class="num-right">{{ leg.traveler.full_name }}</th>{% endfor %}</tr>
+    {% for row in assignment_rows %}
+    <tr><td class="lcell">{{ row.item.name }} <span class="muted">(×{{ row.item.quantity }})</span></td>{% for cell in row.cells %}<td class="num-right">{{ cell.qty }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table>
+  </div>
+  {% else %}
+  <p class="help">Your carriers travel on different flights and each clears customs with only their goods. Set how many of each item each carrier takes <strong>before drop-off</strong> — this builds their customs invoices, and a carrier can't take custody until every unit is assigned.</p>
+  <form method="post" action="{% url 'trips:order_assign_items' bf_order.id %}">
+    {% csrf_token %}
+    <div class="table-wrap">
+    <table class="invoice">
+      <tr>
+        <th class="lcell">Item</th>
+        {% for leg in bf_order.confirmed_legs %}<th class="num-right">{{ leg.traveler.full_name }}<br><span class="muted" style="font-weight:400">{{ leg.allocated_weight_kg|floatformat:1 }} kg</span></th>{% endfor %}
+        <th class="num-right">Unassigned</th>
+      </tr>
+      {% for row in assignment_rows %}
+      <tr>
+        <td class="lcell">{{ row.item.name }} <span class="muted">(×{{ row.item.quantity }})</span></td>
+        {% for cell in row.cells %}
+        <td class="num-right"><input type="number" min="0" max="{{ row.item.quantity }}" name="alloc_{{ row.item.id }}_{{ cell.leg.id }}" value="{{ cell.qty }}" style="width:64px;text-align:right"></td>
+        {% endfor %}
+        <td class="num-right">{{ row.unassigned }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    </div>
+    <div style="text-align:center;margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">Save Assignment</button></div>
+  </form>
+  {% endif %}
+  </div>
+</details>
+{% endif %}
+
 {% if bf_order.confirmed_legs %}
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Accepted Traveler's Ask</h3>
@@ -429,15 +472,17 @@
         <div>
           <div class="eyebrow" style="margin-bottom:6px">Drop-off</div>
           {% if leg.address_revealed %}
-            {{ leg.drop_off_address }}{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}
-            <br><span class="help">Drop off by {{ leg.drop_off_deadline|date:"d-M-Y" }}</span>
+            {% if leg.drop_off_address %}{{ leg.drop_off_address }}{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}<br>{% endif %}<span class="help">Drop off by {{ leg.drop_off_deadline|date:"d-M-Y" }}</span>
           {% else %}
             <span class="muted">Hidden until deposit clears</span>
           {% endif %}
         </div>
 
+      </div>
+
+      <div style="padding:16px;border-top:1px solid var(--line)">
+        <div class="eyebrow" style="margin-bottom:8px">Next Step</div>
         <div>
-          <div class="eyebrow" style="margin-bottom:6px">Next Step</div>
           {% if not leg.leg_status %}
             {% if leg.address_revealed %}
               <span class="muted">Awaiting drop-off &amp; weighing by the traveler</span>
@@ -463,8 +508,8 @@
               {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
               {% else %}
               <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|floatformat:0|intcomma }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
-              <table class="invoice" style="max-width:360px;margin:0 0 10px">
-                <tr><td style="width:110px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+              <table class="invoice" style="max-width:540px;margin:0 0 10px">
+                <tr><td style="width:250px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
                 <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
                 <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
                 <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>

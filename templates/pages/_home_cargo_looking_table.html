@@ -19,10 +19,12 @@
           <strong>{{ o.from_city }} → {{ o.to_city }}</strong>
           <span>{{ o.from_country }} → {{ o.to_country }}</span>
         </td>
-        <td class="avail-cell">{{ o.estimated_weight_kg|floatformat:1 }}</td>
+        <td class="avail-cell">{{ o.board_weight|floatformat:1 }}</td>
         <td class="status-cell">
           {% if o.board_state == "covered" %}
             {% include "trips/_status_badge.html" with status="covered" label="Covered" tone="success" %}
+          {% elif o.board_state == "partial" %}
+            {% include "trips/_status_badge.html" with status="partial" label="Partial" tone="warning" %}
           {% elif o.board_state == "pending" %}
             {% include "trips/_status_badge.html" with status="pending" label="Pending" tone="muted" %}
           {% else %}

@@ -46,6 +46,7 @@ from .forms import (
 from .models import (
     BuyRequest,
     ExchangeRate,
+    ItemLegAllocation,
     LegPayment,
     LegTransaction,
     Payment,
@@ -726,6 +727,47 @@ def offer_select(request, pk):
     return redirect(detail_url)
 
 
+# --- Buyer: split the cargo goods across carriers (per-leg customs) ----------
+@profile_required
+@require_POST
+def order_assign_items(request, order_id):
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True, cargo_only=True)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if order.buyer_id != request.user.id:
+        messages.error(request, "Only the buyer can assign the goods.")
+        return redirect(detail)
+    legs = order.confirmed_legs
+    if len(legs) < 2:
+        messages.info(request, "Splitting goods is only needed when more than one carrier is selected.")
+        return redirect(detail)
+
+    over = []
+    with db_transaction.atomic():
+        for item in order.items.all():
+            total = 0
+            for leg in legs:
+                try:
+                    qty = max(int(request.POST.get(f"alloc_{item.id}_{leg.id}", "0") or "0"), 0)
+                except ValueError:
+                    qty = 0
+                total += qty
+                ItemLegAllocation.objects.update_or_create(
+                    item=item, leg=leg, defaults={"quantity": qty},
+                )
+            if total > item.quantity:
+                over.append(f"{item.name} ({total}/{item.quantity})")
+        if over:
+            db_transaction.set_rollback(True)
+
+    if over:
+        messages.error(request, "Assigned more than available for: " + ", ".join(over) + ". Nothing saved.")
+    elif order.items_fully_assigned:
+        messages.success(request, "Goods split across carriers — each carrier's customs invoice is ready.")
+    else:
+        messages.success(request, "Saved. Some units are still unassigned — assign them all before drop-off.")
+    return redirect(detail)
+
+
 # --- Buyer: upload a leg's deposit payment proof -----------------------------
 @profile_required
 @require_POST
@@ -792,6 +834,11 @@ def leg_weight_verify(request, pk):
     detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
     if not offer.deposit_verified:
         messages.error(request, "The buyer's deposit must clear before drop-off.")
+        return redirect(detail_url)
+    # Multi-carrier cargo: the buyer must split the goods first, so they hand you
+    # the right items at drop-off (and your customs invoice is ready).
+    if offer.order.is_multi_leg_cargo and not offer.order.items_fully_assigned:
+        messages.error(request, "The buyer hasn't split the goods across carriers yet — drop-off can't be recorded until they do.")
         return redirect(detail_url)
     try:
         weight = Decimal(request.POST.get("agreed_weight_kg", "0"))
@@ -1532,4 +1579,15 @@ def request_customs_invoice(request, pk):
     if not req.customs_invoice_available:
         messages.error(request, "Customs invoice is not available yet.")
         return redirect(req.get_absolute_url())
-    return render(request, "trips/customs_invoice_print.html", {"req": req})
+    # Per-leg customs for multi-carrier cargo: each carrier travels separately and
+    # declares only their assigned goods. Resolve which leg to show — an explicit
+    # ?leg=, else the requesting traveler's own leg.
+    leg = None
+    if req.is_cargo and req.is_multi_leg_cargo:
+        legs = req.confirmed_legs
+        leg_id = request.GET.get("leg")
+        if leg_id:
+            leg = next((l for l in legs if str(l.id) == str(leg_id)), None)
+        if leg is None:
+            leg = next((l for l in legs if l.traveler_id == request.user.id), None)
+    return render(request, "trips/customs_invoice_print.html", {"req": req, "leg": leg})

@@ -52,5 +52,6 @@ urlpatterns = [
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),
     path("requests/<int:pk>/customs-invoice/", views.request_customs_invoice, name="request_customs_invoice"),
     path("requests/<int:pk>/invoice/", views.request_invoice, name="request_invoice"),
+    path("orders/<int:order_id>/assign-items/", views.order_assign_items, name="order_assign_items"),
     path("fxrate/", views.kurs, name="fxrate"),
 ]

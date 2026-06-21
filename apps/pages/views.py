@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 
 import requests
 from django.conf import settings
@@ -34,36 +35,59 @@ def home(request):
         if not p.listing_expired
     ]
 
-    # Flow-1: proxy-sourced orders whose estimate has been sent are "Cargo Looking
-    # for a Traveler". We keep them on the board through the whole active carry
-    # lifecycle so other travelers can see progress (Open → Pending → Covered),
-    # not just the two parties involved. Once delivered/cleared they drop off.
+    # "Looking for Carrier" board = both flavours of cargo that needs a traveler:
+    #   Flow-1: proxy-sourced orders whose estimate is sent (FCFS — one traveler).
+    #   Flow-2: buyer-owned cargo orders (one buyer → many carriers, partial legs).
+    # We keep each on the board through its active carry lifecycle so other
+    # travelers can see progress (Open → Pending/Partial → Covered), then it drops
+    # off once delivered/cleared.
     CARRY_INFLIGHT = {
         Status.ACCEPTED, Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED,
         Status.PACKAGE_RECEIVED, Status.PACKAGE_ARRIVED,
     }
-    cargo_looking = list(
+    CARGO_DONE = {
+        Status.CLOSED, Status.CANCELLED, Status.DROPOFF_MISSED,
+        Status.CLEAR, Status.READY_FOR_PICKUP,
+    }
+    cargo_looking = []
+
+    # Flow-1 (proxy, FCFS one traveler) — unchanged.
+    for o in (
         BuyRequest.objects.filter(
             plan__isnull=True, cargo_only=False, proxy_buyer__isnull=False,
             status__in={Status.RESPONDED} | CARRY_INFLIGHT,
-        ).select_related("buyer").prefetch_related("traveler_offers").order_by("max_acceptable_date")
-    )
-    for o in cargo_looking:
-        live = [
-            off for off in o.traveler_offers.all()
-            if off.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
-        ]
+        ).select_related("buyer").prefetch_related("traveler_offers")
+    ):
+        live = [off for off in o.traveler_offers.all()
+                if off.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+        o.board_weight = o.estimated_weight_kg
         if o.status in CARRY_INFLIGHT:
-            # A traveler is locked in and carrying it — visible progress, no action.
-            o.board_state = "covered"
-            o.is_locked_fcfs = True
-            o.can_offer = False
+            o.board_state, o.is_locked_fcfs, o.can_offer = "covered", True, False
         else:  # RESPONDED
             o.board_state = "pending" if live else "open"
             o.is_locked_fcfs = bool(live)
             o.can_offer = not o.is_locked_fcfs and (
                 not request.user.is_authenticated or o.buyer_id != request.user.id
             )
+        cargo_looking.append(o)
+
+    # Flow-2 (buyer-owned cargo, one→many) — partial fulfillment across legs.
+    for o in (
+        BuyRequest.objects.filter(plan__isnull=True, cargo_only=True)
+        .exclude(status__in=CARGO_DONE)
+        .select_related("buyer").prefetch_related("traveler_offers")
+    ):
+        o.board_weight = o.remaining_bid_weight_kg  # capacity still needed
+        if o.is_fully_matched or o.in_transit:
+            o.board_state, o.is_locked_fcfs, o.can_offer = "covered", True, False
+        else:
+            # Carriers may keep offering until the bid weight is fully allocated.
+            o.board_state = "partial" if o.confirmed_legs else "open"
+            o.is_locked_fcfs = False
+            o.can_offer = (not request.user.is_authenticated or o.buyer_id != request.user.id)
+        cargo_looking.append(o)
+
+    cargo_looking.sort(key=lambda o: o.max_acceptable_date or date.max)
 
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works

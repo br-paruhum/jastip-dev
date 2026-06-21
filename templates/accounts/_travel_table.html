@@ -42,10 +42,7 @@
             <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ row.plan.id }}#plan-detail">View</a>
           {% else %}
             <a class="btn btn-outline btn-sm" style="margin-bottom:6px;display:inline-block" href="{% url 'accounts:profile' %}?offer={{ row.offer.id }}#offer-detail">View</a>
-            {% if row.offer.leg_status %}
-              <a class="btn btn-outline btn-sm" style="margin-bottom:6px;display:inline-block" href="{% url 'trips:request_customs_invoice' row.offer.order_id %}" target="_blank">Print Customs Invoice</a>
-            {% endif %}
-            {# Withdraw lives as "Cancel" inside the offer detail panel (via View). #}
+            {# Print Customs Invoice lives inside the offer detail panel (via View). #}
           {% endif %}
         </td>
       </tr>

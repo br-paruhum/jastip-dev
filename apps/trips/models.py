@@ -481,6 +481,28 @@ class BuyRequest(ListingTimingMixin, models.Model):
     def is_fully_matched(self) -> bool:
         return bool(self.confirmed_legs) and self.total_allocated_weight_kg >= self.bid_weight_kg
 
+    @property
+    def is_multi_leg_cargo(self) -> bool:
+        """Cargo carried by more than one carrier — goods must be split per leg
+        (each carrier clears customs separately on a different flight)."""
+        return self.is_cargo and len(self.confirmed_legs) > 1
+
+    @property
+    def items_fully_assigned(self) -> bool:
+        """Every declared unit is assigned to a carrier (per-leg customs ready)."""
+        return all(i.unallocated_quantity == 0 for i in self.items.all())
+
+    @property
+    def needs_item_assignment(self) -> bool:
+        """Buyer still has to split the goods across the carriers."""
+        return self.is_multi_leg_cargo and not self.items_fully_assigned
+
+    @property
+    def assignment_locked(self) -> bool:
+        """Once any carrier has taken custody (drop-off), the goods are physically
+        split — the buyer can no longer re-assign."""
+        return any(l.leg_status for l in self.confirmed_legs)
+
     # Per-leg progress order used to find the "least-progressed active leg"
     # for the order-level status rollup below.
     _LEG_PROGRESS_ORDER = [
@@ -1325,6 +1347,28 @@ class TravelerOffer(models.Model):
         return self.deposit_due > 0 and self.deposit_paid_amount >= self.deposit_due
 
     @property
+    def customs_allocations(self) -> list:
+        """The goods this carrier carries (cargo partial fulfilment) — only
+        items the buyer assigned to this leg, for the per-leg customs invoice."""
+        return [a for a in self.item_allocations.all() if a.quantity > 0]
+
+    @property
+    def customs_total(self) -> Decimal:
+        """Declared value of the goods this carrier carries."""
+        return sum((a.line_total for a in self.customs_allocations), Decimal("0")).quantize(TWO_PLACES)
+
+    @property
+    def carried_weight_kg(self) -> Decimal:
+        """Final weighed weight if recorded, else the allocated (booked) weight."""
+        return self.agreed_weight_kg if self.agreed_weight_kg is not None else (self.allocated_weight_kg or Decimal("0"))
+
+    @property
+    def destination_currency(self) -> str:
+        """Currency at this leg's destination country — customs duty is paid here.
+        Resolved via the fx/kurs table; falls back to IDR."""
+        return ExchangeRate.currency_for_country(self.to_country)
+
+    @property
     def deposit_pending(self) -> bool:
         """A deposit proof has been submitted but not yet verified by admin."""
         if self.deposit_verified or not hasattr(self, "transaction"):
@@ -1691,6 +1735,40 @@ class RequestItem(models.Model):
     @property
     def is_purchased(self) -> bool:
         return self.purchased_at is not None
+
+    @property
+    def allocated_quantity(self) -> int:
+        """Units already assigned to a carrier (cargo partial fulfilment)."""
+        return sum((a.quantity for a in self.leg_allocations.all()), 0)
+
+    @property
+    def unallocated_quantity(self) -> int:
+        return max(self.quantity - self.allocated_quantity, 0)
+
+
+class ItemLegAllocation(models.Model):
+    """How many units of a declared cargo item a specific carrier (leg) carries.
+    In partial fulfilment the goods are split across carriers who travel on
+    different flights, so each clears customs with only their share — this drives
+    the per-leg customs invoice."""
+
+    item = models.ForeignKey(RequestItem, on_delete=models.CASCADE, related_name="leg_allocations")
+    leg = models.ForeignKey("TravelerOffer", on_delete=models.CASCADE, related_name="item_allocations")
+    quantity = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("item", "leg")
+
+    def __str__(self):
+        return f"{self.item.name} ×{self.quantity} → leg {self.leg_id}"
+
+    @property
+    def unit_cost(self) -> Decimal:
+        return self.item.actual_unit_cost or self.item.estimated_unit_cost or Decimal("0")
+
+    @property
+    def line_total(self) -> Decimal:
+        return self.unit_cost * self.quantity
 
 
 class Transaction(models.Model):
