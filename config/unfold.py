@@ -90,6 +90,11 @@ UNFOLD = {
                         "link": reverse_lazy("admin:trips_buyrequest_changelist"),
                     },
                     {
+                        "title": _("- Traveler offers (legs)"),
+                        "icon": "local_shipping",
+                        "link": reverse_lazy("admin:trips_traveleroffer_changelist"),
+                    },
+                    {
                         "title": _("- Transactions"),
                         "icon": "payments",
                         "link": reverse_lazy("admin:trips_transaction_changelist"),

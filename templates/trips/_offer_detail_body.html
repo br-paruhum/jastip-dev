@@ -216,6 +216,11 @@
     <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|floatformat:0|intcomma }}</td></tr>
     <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|floatformat:0|intcomma }}</td></tr>
     <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
+    <tr><td>Status</td><td class="num-right">
+      {% if leg_offer.payout_paid_at %}<span class="badge badge-success">Paid {{ leg_offer.payout_paid_at|date:"d M Y" }}</span>
+      {% elif leg_offer.payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>
+      {% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}
+    </td></tr>
   </table>
   <p class="help mt-2">The platform will transfer this amount to you (manually) once the buyer confirms pickup or receipt.</p>
   </div>

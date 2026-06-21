@@ -1288,6 +1288,9 @@ class TravelerOffer(models.Model):
     received_at = models.DateTimeField(null=True, blank=True)
     arrived_at = models.DateTimeField(null=True, blank=True)
     cleared_at = models.DateTimeField(null=True, blank=True, help_text="When the buyer marked this leg Clear.")
+    # Carrier payout actually released by admin (set from the admin "mark paid"
+    # action, not the workflow) so the traveler's payout status reflects real money.
+    payout_paid_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1499,6 +1502,12 @@ class TravelerOffer(models.Model):
             LegStatus.RESHIP_REQUESTED, LegStatus.RESHIP_COST_SENT,
             LegStatus.RESHIPPING, LegStatus.CLEAR, LegStatus.CLOSED,
         }
+
+    @property
+    def payout_disbursable(self) -> bool:
+        """The leg cleared (buyer confirmed pickup/receipt), so the carrier
+        payout is eligible for the admin to release — not necessarily paid yet."""
+        return self.leg_status in {LegStatus.CLEAR, LegStatus.CLOSED}
 
     @property
     def balance_paid_amount(self) -> Decimal:

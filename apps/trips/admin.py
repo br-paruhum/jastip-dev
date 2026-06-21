@@ -240,15 +240,36 @@ class TravelerOfferAdmin(ModelAdmin):
 
     list_display = (
         "__str__", "order", "traveler", "ask_cost_per_kg", "avail_kg",
-        "offer_status", "allocated_weight_kg", "leg_status", "travel_date",
+        "offer_status", "allocated_weight_kg", "leg_status", "payout_col", "travel_date",
     )
     list_filter = ("offer_status", "leg_status", "travel_date")
     search_fields = ("order__reference", "traveler__email")
     autocomplete_fields = ("order", "traveler")
-    actions = ["reassign_deposit"]
+    actions = ["reassign_deposit", "mark_leg_payout_paid"]
 
     def has_add_permission(self, request):
         return False
+
+    @admin.display(description="Carrier payout — to pay out")
+    def payout_col(self, obj):
+        if not obj.order.is_cargo or not hasattr(obj, "transaction"):
+            return "—"
+        state = "paid" if obj.payout_paid_at else ("ready" if obj.payout_disbursable else "pending")
+        return format_html("<b>{} {}</b> ({})", obj.order.currency, f"{obj.transaction.payout_to_traveler:,.0f}", state)
+
+    @admin.action(description="Mark carrier leg payout paid")
+    def mark_leg_payout_paid(self, request, queryset):
+        done = skipped = 0
+        for leg in queryset:
+            if leg.payout_disbursable and not leg.payout_paid_at:
+                leg.payout_paid_at = timezone.now()
+                leg.save(update_fields=["payout_paid_at", "updated_at"])
+                done += 1
+            else:
+                skipped += 1
+        self.message_user(
+            request, f"Marked {done} leg payout(s) paid; skipped {skipped} "
+            "(leg not cleared yet or already paid).", messages.SUCCESS if done else messages.WARNING)
 
     def _ineligible_reason(self, leg) -> str:
         today = timezone.localtime().date()
