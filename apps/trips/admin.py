@@ -88,7 +88,7 @@ class BuyRequestAdmin(ModelAdmin):
 
     @admin.display(description="Carrier payout — to pay out")
     def traveler_payout_display(self, obj):
-        if not obj.is_proxy_buyer_first or not hasattr(obj, "transaction"):
+        if not (obj.is_proxy_buyer_first or obj.plan_id) or not hasattr(obj, "transaction"):
             return "—"
         state = "paid" if obj.traveler_paid_at else ("ready" if obj.traveler_payout_disbursable else "pending")
         return format_html("<b>{} {}</b> ({})", obj.currency, f"{obj.transaction.payout_to_traveler:,.0f}", state)
@@ -106,9 +106,10 @@ class BuyRequestAdmin(ModelAdmin):
 
     @admin.display(description="Carrier payout")
     def carrier_payout_col(self, obj):
-        if not obj.is_proxy_buyer_first or not hasattr(obj, "transaction"):
+        if not (obj.is_proxy_buyer_first or obj.plan_id) or not hasattr(obj, "transaction"):
             return "—"
-        return f"{obj.transaction.payout_to_traveler:,.0f} {obj.currency}"
+        state = "paid" if obj.traveler_paid_at else ("ready" if obj.traveler_payout_disbursable else "pending")
+        return f"{obj.transaction.payout_to_traveler:,.0f} {obj.currency} ({state})"
 
     @admin.display(description="Disbursement (P1/P2/Trv)")
     def disbursement_state(self, obj):

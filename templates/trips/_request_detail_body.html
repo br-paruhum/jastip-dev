@@ -355,7 +355,8 @@
     <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
        on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}.<br>
        The traveler will be paid the full amount after deducted by 2.5% platform fee shortly.
-       {% if is_traveler %}<br>Your payout is: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</nobr>{% if req.transaction.payout_to_traveler_idr %}</strong> - or equivalent to <strong>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>{% endif %}</strong>.{% endif %}</p>
+       {% if is_traveler %}<br>Your payout is: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</nobr>{% if req.transaction.payout_to_traveler_idr %}</strong> - or equivalent to <strong>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>{% endif %}</strong>.
+       &nbsp;{% if req.traveler_paid_at %}<span class="badge badge-success">Paid {{ req.traveler_paid_at|date:"d M Y" }}</span>{% elif req.traveler_payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>{% endif %}{% endif %}</p>
 
   {% elif req.status == "closed" %}
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>

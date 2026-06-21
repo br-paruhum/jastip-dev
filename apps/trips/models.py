@@ -807,8 +807,10 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def traveler_payout_disbursable(self) -> bool:
-        """Carrier payout is eligible to release (buyer cleared), not yet paid."""
-        return self.is_proxy_buyer_first and self.status in self._CLEARED_STATUSES
+        """Order-level carrier payout is eligible to release (buyer cleared), not
+        yet paid. Applies to the single-traveler flows — Flow-1 proxy and any
+        plan-first order — but NOT buyer-first cargo (that pays per leg)."""
+        return (self.is_proxy_buyer_first or self.plan_id is not None) and self.status in self._CLEARED_STATUSES
 
     def _q(self, value: Decimal) -> Decimal:
         return Decimal(value).quantize(TWO_PLACES)

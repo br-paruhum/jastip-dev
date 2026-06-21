@@ -438,7 +438,10 @@ def on_buyer_cleared(request_obj):
     # ELIGIBLE — admin releases the actual funds (and sends the "released" notices)
     # from the order admin actions. Cargo/plan-first still auto-notify the payout
     # here, since those release at Clear in one step.
-    if not request_obj.is_proxy_buyer_first:
+    # Order-level traveler payouts (Flow-1 proxy, plan-first) are released by
+    # admin from the order/offer admin action, which sends the "paid" notice — so
+    # no auto "being released" email here. (Buyer-first cargo pays per leg.)
+    if not (request_obj.is_proxy_buyer_first or request_obj.plan_id):
         traveler = _order_traveler(request_obj)
         send_email(
             to_user=traveler,
