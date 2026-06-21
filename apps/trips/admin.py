@@ -496,10 +496,10 @@ class MessageAdmin(ModelAdmin):
 
 @admin.register(ProxyBuyer)
 class ProxyBuyerAdmin(ModelAdmin):
-    list_display = ("name", "country", "margin_range", "email", "whatsapp", "user", "is_active", "sequence")
+    list_display = ("name", "country", "city", "margin_range", "email", "whatsapp", "user", "is_active", "sequence")
     list_editable = ("margin_range", "is_active", "sequence")
     list_filter = ("is_active", "country")
-    search_fields = ("name", "country", "email")
+    search_fields = ("name", "country", "city", "email")
     autocomplete_fields = ("user",)
     ordering = ("sequence", "country", "name")
 

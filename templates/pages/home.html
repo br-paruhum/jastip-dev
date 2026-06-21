@@ -46,7 +46,7 @@
     <div class="section-head">
       <span class="eyebrow">Cargo Owner Starts Here</span>
       <h2>Looking for Carrier</h2>
-      <p>Need a traveler to carry your goods.</p>
+      <p>Find traveler to carry your goods.</p>
       <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
     </div>
     {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No cargo looking for a traveler right now." %}
@@ -58,8 +58,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Traveler Starts Here</span>
-      <h2>Looking for Cargo</h2>
-      <p>Need buyer for your spare baggage.</p>
+      <h2>Looking for Cargo Buyer</h2>
+      <p>Find buyer for your spare baggage.</p>
       <a href="{% url 'trips:plan_create' %}" class="btn btn-primary btn-sm">Post a Travel Plan</a>
     </div>
     {% include "pages/_home_looking_for_cargo_table.html" with looking_for_cargo=looking_for_cargo empty_msg="No trips looking for cargo right now." %}

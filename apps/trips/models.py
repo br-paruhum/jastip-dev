@@ -1949,6 +1949,7 @@ class ProxyBuyer(models.Model):
 
     name = models.CharField(max_length=120)
     country = models.CharField(max_length=80, choices=COUNTRY_CHOICES)
+    city = models.CharField(max_length=80, blank=True)
     margin_range = models.CharField(
         max_length=20, blank=True,
         help_text="Indicative margin shown publicly, e.g. \"15-25%\". Free text — "
