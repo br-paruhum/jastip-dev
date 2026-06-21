@@ -70,6 +70,80 @@ def _set_status(request_obj, status, *, sync_plan=True):
 
 # --- Lifecycle steps --------------------------------------------------------
 
+def on_proxy_order_created(order):
+    """Flow-1 step 1: buyer posted an order and picked a proxy buyer -> notify the
+    proxy (email + WhatsApp) so they can send an estimate.
+
+    The proxy is an admin-curated entry that may exist *without* a linked Buyer
+    account, so we notify the ProxyBuyer's own admin-set email/WhatsApp fields
+    and only fall back to the linked user's contacts when those are blank."""
+    _notify_proxy(
+        order,
+        subject=f"New order to source {order.reference}",
+        template="proxy_new_order",
+        ctx=_ctx(order),
+        event="proxy_new_order",
+    )
+
+
+def _notify_proxy(order, *, subject, template, ctx, event):
+    """Notify the order's proxy buyer via their admin-set email/WhatsApp fields,
+    falling back to the linked user's contacts when those are blank. Curated
+    proxies may exist WITHOUT a linked account, so we don't require one."""
+    proxy = order.proxy_buyer if order.proxy_buyer_id else None
+    if not proxy:
+        return
+    proxy_user = proxy.user  # for NotificationLog.recipient (may be None)
+    email_to = proxy.email or (proxy_user.email if proxy_user else None)
+    # Baileys wants digits only; reuse the model's wa.me digit-stripping.
+    wa_to = "".join(ch for ch in proxy.whatsapp if ch.isdigit()) or (
+        proxy_user.phone_e164 if proxy_user else None
+    )
+    if email_to:
+        send_email(to_user=proxy_user, to_address=email_to, subject=subject,
+                   template=template, context=ctx, event=event)
+    if wa_to:
+        send_whatsapp(to_user=proxy_user, to_e164=wa_to,
+                      text="ProxyBuying: Please see your email.", event=event)
+
+
+def on_proxy_offer_accepted(order, offer):
+    """Flow-1 step 8: buyer accepted the traveler's shipment cost -> notify the
+    traveler (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""
+    ctx = _ctx(order, offer=offer)
+    send_email(
+        to_user=offer.traveler,
+        subject=f"Your offer on {order.reference} was accepted",
+        template="proxy_offer_accepted",
+        context=ctx,
+        event="offer_accepted",
+    )
+    notify_see_email(offer.traveler, event="offer_accepted")
+    proxy_user = order.proxy_buyer.user if order.proxy_buyer_id else None
+    if proxy_user and proxy_user.id != offer.traveler_id:
+        send_email(
+            to_user=proxy_user,
+            subject=f"Traveler confirmed for order {order.reference}",
+            template="proxy_offer_accepted",
+            context=ctx,
+            event="offer_accepted",
+        )
+        notify_see_email(proxy_user, event="offer_accepted")
+
+
+def on_proxy_offer_rejected(order, offer):
+    """Flow-1: buyer rejected the traveler's shipment cost -> notify the traveler;
+    the order returns to the 'Cargo Looking for Traveler' board."""
+    send_email(
+        to_user=offer.traveler,
+        subject=f"Your offer on {order.reference} was declined",
+        template="proxy_offer_rejected",
+        context=_ctx(order, offer=offer),
+        event="offer_rejected",
+    )
+    notify_see_email(offer.traveler, event="offer_rejected")
+
+
 def on_request_submitted(request_obj):
     """Step 2: buyer submitted a request -> notify traveler.
     Plan status is not touched — multiple buyers can be at different stages."""
@@ -186,6 +260,22 @@ def on_cargo_package_received(request_obj):
     notify_see_email(request_obj.buyer, event="cargo_package_received")
 
 
+def on_proxy_package_received(order):
+    """Flow-1 handover: the traveler took custody of the goods from the proxy and
+    recorded the actual carried weight. This makes the proxy's FIRST 50% ELIGIBLE
+    for disbursement (admin releases the actual money via the admin action; the
+    other 50% is held as buyer protection until the buyer clears). Notify buyer."""
+    _set_status(order, Status.PACKAGE_RECEIVED, sync_plan=False)
+    send_email(
+        to_user=order.buyer,
+        subject="Your package is on its way",
+        template="cargo_package_received",
+        context=_ctx(order),
+        event="cargo_package_received",
+    )
+    notify_see_email(order.buyer, event="cargo_package_received")
+
+
 def on_items_purchased(request_obj):
     """Step 5: traveler recorded purchases -> invoice ready, notify buyer + send customs invoice to traveler."""
     _set_status(request_obj, Status.ITEMS_PURCHASED, sync_plan=bool(request_obj.plan_id))
@@ -263,8 +353,7 @@ def on_new_message(message):
     """Notify the other participant(s) of a new chat message (email cc admin +
     WhatsApp ping). Admin posts notify both parties."""
     req = message.request
-    participants = [p for p in (req.buyer, req.plan.traveler) if p]
-    recipients = [u for u in participants if u != message.sender]
+    recipients = [u for u in req.chat_participants if u != message.sender]
     preview = (message.body or "")[:160]
     for user in recipients:
         send_email(
@@ -345,16 +434,20 @@ def on_buyer_cleared(request_obj):
     request_obj.cleared_at = timezone.now()
     request_obj.save(update_fields=["buyer_cleared", "cleared_at", "updated_at"])
     _set_status(request_obj, Status.CLEAR)
-    # Traveler payout notification (full amount less the platform fee).
-    traveler = _order_traveler(request_obj)
-    send_email(
-        to_user=traveler,
-        subject="Cleared — your full payment is being released",
-        template="payout_released",
-        context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
-        event="cleared",
-    )
-    notify_see_email(traveler, event="cleared")
+    # Flow-1: clearing only makes the proxy's held 2nd 50% and the carrier payout
+    # ELIGIBLE — admin releases the actual funds (and sends the "released" notices)
+    # from the order admin actions. Cargo/plan-first still auto-notify the payout
+    # here, since those release at Clear in one step.
+    if not request_obj.is_proxy_buyer_first:
+        traveler = _order_traveler(request_obj)
+        send_email(
+            to_user=traveler,
+            subject="Cleared — your full payment is being released",
+            template="payout_released",
+            context=_ctx(request_obj, payout=request_obj.transaction.payout_to_traveler),
+            event="cleared",
+        )
+        notify_see_email(traveler, event="cleared")
     # Buyer thank-you / completion note.
     send_email(
         to_user=request_obj.buyer,
@@ -371,6 +464,42 @@ def on_cleared(request_obj):
     was already paid at CLEAR. Triggered by the daily `close_cleared` cron.
     """
     _set_status(request_obj, Status.CLOSED)
+
+
+# --- Flow-1 disbursement notifications (fired from the admin "mark paid" actions
+#     once the money has actually been released, not at the status transition) ---
+def notify_proxy_first_disbursed(order):
+    _notify_proxy(
+        order,
+        subject=f"First payment released — {order.reference}",
+        template="proxy_first_disbursed",
+        ctx=_ctx(order, amount=order.proxy_disbursement_first_half),
+        event="proxy_first_disbursed",
+    )
+
+
+def notify_proxy_second_disbursed(order):
+    _notify_proxy(
+        order,
+        subject=f"Final payment released — {order.reference}",
+        template="proxy_final_disbursed",
+        ctx=_ctx(order, amount=order.proxy_disbursement_second_half),
+        event="proxy_final_disbursed",
+    )
+
+
+def notify_traveler_paid(order):
+    traveler = _order_traveler(order)
+    if not traveler:
+        return
+    send_email(
+        to_user=traveler,
+        subject="Cleared — your payment is being released",
+        template="payout_released",
+        context=_ctx(order, payout=order.transaction.payout_to_traveler),
+        event="cleared",
+    )
+    notify_see_email(traveler, event="cleared")
 
 
 def on_offer_submitted(order, offer):
@@ -391,3 +520,14 @@ def on_offer_submitted(order, offer):
         event="offer_received",
     )
     notify_see_email(order.buyer, event="offer_received")
+    # Flow-1: also notify the assigned proxy buyer (a traveler picked up their cargo).
+    proxy_user = order.proxy_buyer.user if order.proxy_buyer_id else None
+    if proxy_user and proxy_user.id != order.buyer_id:
+        send_email(
+            to_user=proxy_user,
+            subject=f"A traveler offered to carry order {order.reference}",
+            template="offer_received",
+            context=ctx,
+            event="offer_received",
+        )
+        notify_see_email(proxy_user, event="offer_received")

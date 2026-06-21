@@ -18,11 +18,7 @@
         <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.estimated_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}</td>
         <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.pending_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.remaining_bid_weight_kg }}{% endif %}</td>
         <td class="status-cell">
-          {% if o.bf_kind == "traveler_first" %}
-            {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
-          {% else %}
-            {% include "trips/_status_badge.html" with status=o.status label=o.get_status_display tone=o.status_tone %}
-          {% endif %}
+          {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
         </td>
         <td class="action-cell"><a class="btn btn-outline btn-sm" href="{{ o.get_absolute_url }}">Open</a></td>
       </tr>

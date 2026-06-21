@@ -30,7 +30,9 @@ from .forms import (
     MessageForm,
     OrderForm,
     OrderItemFormSet,
+    ProxyEstimateForm,
     ProxyOfferForm,
+    TravelerCargoOfferForm,
     PurchaseItemFormSet,
     PurchaseWeightForm,
     RefundBankForm,
@@ -47,6 +49,7 @@ from .models import (
     LegPayment,
     LegTransaction,
     Payment,
+    ProxyBuyer,
     TravelerOffer,
     TravelPlan,
     Transaction,
@@ -263,21 +266,35 @@ def request_cancel(request, pk):
 
 
 # --- Buyer-first: post an order with no traveler yet ------------------------
+def _resolve_proxy(proxy_id):
+    """Return the active ProxyBuyer for the given id, or None."""
+    if not proxy_id:
+        return None
+    return ProxyBuyer.objects.filter(pk=proxy_id, is_active=True).first()
+
+
 @profile_required
 def order_create(request):
+    # Flow-1 entry: the buyer picked a proxy on the home "Proxy Buyers" list, so
+    # this is always a Products order with the origin country fixed by the proxy.
+    proxy = _resolve_proxy(request.GET.get("proxy") or request.POST.get("proxy"))
     if request.method == "POST":
         # Cargo lists items WITH a declared unit price (customs); Products lists
         # items only (the Proxy Buyer estimates prices later) — same split as the
-        # plan-first flow (request_create).
-        cargo = request.POST.get("cargo_only") == "1"
+        # plan-first flow (request_create). A proxy order is always Products.
+        cargo = proxy is None and request.POST.get("cargo_only") == "1"
         ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
-        form = OrderForm(request.POST)
+        form = OrderForm(request.POST, proxy=proxy)
         formset = ItemFormSet(request.POST, request.FILES, instance=BuyRequest(), prefix="bf_items")
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 order = form.save(commit=False)
                 order.buyer = request.user
                 # cargo_only comes from the form (Products Flow 3 vs Cargo Flow 4).
+                if proxy is not None:
+                    order.proxy_buyer = proxy
+                    order.cargo_only = False
+                    order.from_country = proxy.country
                 order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
@@ -298,12 +315,16 @@ def order_create(request):
                         item.actual_unit_cost = item.estimated_unit_cost
                         item.purchased_at = timezone.now()
                     item.save()
-            messages.success(request, "Order posted. Travelers can now respond with offers.")
+            if proxy is not None:
+                workflow.on_proxy_order_created(order)
+                messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
+            else:
+                messages.success(request, "Order posted. Travelers can now respond with offers.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
-        form = OrderForm()
+        form = OrderForm(proxy=proxy)
         formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
-    return render(request, "trips/order_form.html", {"form": form, "formset": formset})
+    return render(request, "trips/order_form.html", {"form": form, "formset": formset, "proxy": proxy})
 
 
 # --- Buyer: edit / cancel a buyer-first order before any offer -------------
@@ -316,14 +337,19 @@ def order_edit(request, pk):
     if not order.can_edit:
         messages.error(request, "This order can no longer be edited.")
         return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    # A proxy (Flow-1) order keeps its proxy + Products typing on edit.
+    proxy = order.proxy_buyer
     if request.method == "POST":
-        cargo = request.POST.get("cargo_only") == "1"
+        cargo = proxy is None and request.POST.get("cargo_only") == "1"
         ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
-        form = OrderForm(request.POST, instance=order)
+        form = OrderForm(request.POST, instance=order, proxy=proxy)
         formset = ItemFormSet(request.POST, request.FILES, instance=order, prefix="bf_items")
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 order = form.save(commit=False)
+                if proxy is not None:
+                    order.cargo_only = False
+                    order.from_country = proxy.country
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
                 formset.save()
@@ -351,10 +377,10 @@ def order_edit(request, pk):
             messages.success(request, "Order updated.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
-        form = OrderForm(instance=order)
+        form = OrderForm(instance=order, proxy=proxy)
         formset = OrderItemFormSet(instance=order, prefix="bf_items")
     return render(request, "trips/order_form.html",
-                  {"form": form, "formset": formset, "is_edit": True, "order": order})
+                  {"form": form, "formset": formset, "is_edit": True, "order": order, "proxy": proxy})
 
 
 @profile_required
@@ -391,8 +417,15 @@ def offer_create(request, order_id):
     if not flow_types.order_accepts_carry_offer(order):
         messages.error(request, flow_types.PRODUCTS_ORDER_NEEDS_PROXY)
         return redirect(dashboard_url + "#travel-plans")
+    # Flow-1 Products: one traveler per order (FCFS) — block if anyone already
+    # holds a live offer. (Cargo orders may collect several travelers' offers.)
+    if not order.is_cargo and order.traveler_offers.filter(
+        offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+    ).exists():
+        messages.info(request, "Another traveler is already handling this cargo.")
+        return redirect(dashboard_url + "#travel-plans")
 
-    form = TravelerOfferForm(request.POST)
+    form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
     if form.is_valid():
         offer = form.save(commit=False)
         offer.order = order
@@ -464,6 +497,115 @@ def offer_estimate_create(request, order_id):
     return redirect(dashboard_url + f"?offer={order_id}#offer-form")
 
 
+# --- Proxy buyer (Flow-1): send the estimate on an assigned order ------------
+@profile_required
+@require_POST
+def proxy_estimate(request, order_id):
+    dashboard = reverse("accounts:profile")
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    panel = dashboard + f"?estimate={order.id}#estimate-form"
+    if not (order.proxy_buyer_id and order.proxy_buyer.user_id == request.user.id):
+        messages.error(request, "Only the assigned Proxy Buyer can send an estimate.")
+        return redirect(dashboard + "#proxy-orders")
+    if order.is_cargo:
+        messages.error(request, "This is a Cargo order — no proxy estimate applies.")
+        return redirect(dashboard + "#proxy-orders")
+    if order.status != Status.OPEN:
+        messages.info(request, "You have already sent an estimate for this order.")
+        return redirect(dashboard + f"?order={order.id}#order-detail")
+
+    form = ProxyEstimateForm(request.POST, instance=order)
+    formset = ReviewItemFormSet(request.POST, instance=order, prefix="est_items")
+    if form.is_valid() and formset.is_valid():
+        with db_transaction.atomic():
+            formset.save()                 # estimated_unit_cost on each item
+            order = form.save(commit=False)  # estimated_weight_kg + proxy_margin_percent
+            order.status = Status.RESPONDED
+            order.save()
+        messages.success(request, "Estimate sent. Your order is now looking for a traveler.")
+        return redirect(dashboard + f"?order={order.id}#order-detail")
+    for field, errs in form.errors.items():
+        for err in errs:
+            messages.error(request, f"{field}: {err}")
+    for err in formset.non_form_errors():
+        messages.error(request, err)
+    return redirect(panel)
+
+
+# --- Proxy buyer: record the purchase (actual costs) -> Package Ready ---------
+@profile_required
+@require_POST
+def proxy_purchase(request, order_id):
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    dash = reverse("accounts:profile")
+    detail = dash + f"?order={order.id}#order-detail"
+    if not (order.proxy_buyer_id and order.proxy_buyer.user_id == request.user.id
+            and not order.is_cargo):
+        messages.error(request, "Only the assigned Proxy Buyer can record the purchase.")
+        return redirect(dash + "#proxy-orders")
+    if not order.proxy_actuals_editable:
+        messages.info(request, "Actual costs can't be changed at this stage.")
+        return redirect(detail)
+    formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order)
+    if formset.is_valid():
+        items = formset.save(commit=False)
+        for item in items:
+            if item.actual_unit_cost and not item.purchased_at:
+                item.purchased_at = timezone.now()
+            item.save()
+        workflow.on_items_purchased(order)
+        messages.success(request, "Package marked ready. The buyer will pay the remaining balance.")
+        return redirect(detail)
+    for err in formset.non_form_errors():
+        messages.error(request, err)
+    return redirect(dash + f"?package_ready={order.id}#package-ready")
+
+
+# --- Buyer: accept / reject the traveler's shipment cost (Flow-1 step 7-8) ---
+@profile_required
+@require_POST
+def order_accept(request, order_id):
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can accept the shipment cost.")
+        return redirect(detail)
+    if order.is_cargo or order.status != Status.RESPONDED:
+        messages.error(request, "There is no shipment cost to accept at this stage.")
+        return redirect(detail)
+    offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
+    if not offer:
+        messages.error(request, "No traveler offer to accept.")
+        return redirect(detail)
+    order.status = Status.ACCEPTED
+    order.save(update_fields=["status", "updated_at"])
+    workflow.on_proxy_offer_accepted(order, offer)
+    messages.success(request, "Shipment cost accepted. Please pay the deposit to confirm.")
+    return redirect(detail)
+
+
+@profile_required
+@require_POST
+def order_reject(request, order_id):
+    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can reject the shipment cost.")
+        return redirect(detail)
+    if order.is_cargo or order.status != Status.RESPONDED:
+        messages.error(request, "There is no offer to reject at this stage.")
+        return redirect(detail)
+    offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
+    if not offer:
+        messages.error(request, "No traveler offer to reject.")
+        return redirect(detail)
+    offer.offer_status = OfferStatus.REJECTED
+    offer.save(update_fields=["offer_status", "updated_at"])
+    workflow.on_proxy_offer_rejected(order, offer)
+    messages.success(request, "Offer declined. Your order is open for other travelers again.")
+    return redirect(detail)
+
+
 # --- Buyer: pay the deposit on a Products order (against the proxy's estimate) -
 @profile_required
 @require_POST
@@ -476,15 +618,16 @@ def order_deposit_pay(request, order_id):
     if order.is_cargo:
         messages.error(request, "This is a Cargo order — use the cargo deposit flow.")
         return redirect(detail)
-    # Paying the deposit confirms the proxy's estimate. Allowed at RESPONDED
-    # (estimate received) or while re-uploading at ACCEPTED before verification.
-    if order.status == Status.RESPONDED and order.pending_offers:
-        order.status = Status.ACCEPTED
-        order.save(update_fields=["status", "updated_at"])
-    elif not (order.status == Status.ACCEPTED and not order.deposit_verified):
+    # The deposit is due once the buyer has accepted the traveler's shipment cost
+    # (status ACCEPTED). Once verified, the order advances to DEPOSIT_PAID, so
+    # ACCEPTED also covers re-uploading proof before verification.
+    if order.status != Status.ACCEPTED:
         messages.error(request, "No deposit is due at this stage.")
         return redirect(detail)
     tx, _ = Transaction.objects.get_or_create(request=order)
+    # Recorded in the order's invoice currency to keep the balance math
+    # consistent (invoice_total − payments are all one currency). The buyer is
+    # instructed to settle the IDR equivalent; admin reconciles via that.
     Payment.objects.create(
         transaction=tx,
         direction=Payment.Direction.INBOUND,
@@ -997,13 +1140,23 @@ def request_refund_bank(request, pk):
 @login_required
 @require_POST
 def request_message(request, pk):
-    req = get_object_or_404(BuyRequest.objects.select_related("plan", "plan__traveler", "buyer"), pk=pk)
-    if request.user not in (req.buyer, req.plan.traveler) and not request.user.is_staff:
+    req = get_object_or_404(
+        BuyRequest.objects.select_related("plan", "plan__traveler", "buyer", "proxy_buyer__user"), pk=pk
+    )
+    if not (request.user.is_staff or req.is_chat_participant(request.user)):
         messages.error(request, "You cannot post to this conversation.")
         return redirect("pages:home")
+    # Return the poster to the panel they were on: the traveler's offer detail for
+    # a buyer-first order, else the buyer/proxy order detail.
+    is_buyer_or_proxy = request.user.id == req.buyer_id or (
+        req.proxy_buyer_id and req.proxy_buyer.user_id == request.user.id)
+    if req.plan_id is None and not is_buyer_or_proxy and not request.user.is_staff:
+        back = _traveler_invoice_redirect(req)
+    else:
+        back = redirect(req.get_absolute_url())
     if req.status not in CHAT_STATUSES and not request.user.is_staff:
         messages.error(request, "Chat is not available at this stage.")
-        return redirect(req.get_absolute_url())
+        return back
     form = MessageForm(request.POST, request.FILES)
     if form.is_valid():
         msg = form.save(commit=False)
@@ -1013,7 +1166,7 @@ def request_message(request, pk):
         workflow.on_new_message(msg)
     else:
         messages.error(request, "Message cannot be empty.")
-    return redirect(req.get_absolute_url())
+    return back
 
 
 def _require_traveler(request, req):
@@ -1118,7 +1271,11 @@ def request_purchase(request, pk):
     return render(request, "trips/request_purchase.html", {"req": req, "form": form, "formset": formset})
 
 
-# --- Traveler: confirm cargo receipt + final weight -> Package Received -----
+# --- Traveler: confirm receipt + final weight -> Package Received -----------
+# Cargo: the traveler receives the package from the BUYER (after the deposit).
+# Flow-1 proxy: the traveler receives the goods from the PROXY (after the buyer
+# has paid the package-ready balance) — this is the handover that releases the
+# proxy's first 50%.
 @profile_required
 @require_POST
 def request_receive(request, pk):
@@ -1126,8 +1283,15 @@ def request_receive(request, pk):
     if not _require_traveler(request, req):
         messages.error(request, "Only the traveler can confirm receipt.")
         return redirect(req.get_absolute_url())
-    if not req.is_cargo or req.status != Status.DEPOSIT_PAID:
-        messages.info(request, "You can confirm receipt after the deposit is verified.")
+    if req.is_cargo:
+        receivable, on_received = Status.DEPOSIT_PAID, workflow.on_cargo_package_received
+    elif req.is_proxy_buyer_first:
+        receivable, on_received = Status.ITEMS_PURCHASED, workflow.on_proxy_package_received
+    else:
+        messages.info(request, "Receipt confirmation does not apply to this order.")
+        return redirect(req.get_absolute_url())
+    if req.status != receivable:
+        messages.info(request, "You can confirm receipt once the package is ready.")
         return redirect(req.get_absolute_url())
 
     form = PurchaseWeightForm(request.POST, instance=req)
@@ -1137,9 +1301,9 @@ def request_receive(request, pk):
             messages.error(request, "Enter the measured package weight (kg) before confirming receipt.")
             return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
         form.save()
-        workflow.on_cargo_package_received(req)
+        on_received(req)
         messages.success(request, "Package received — custody confirmed. The buyer has been notified.")
-        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+        return _traveler_invoice_redirect(req)
     messages.error(request, "Enter a valid measured weight (kg).")
     return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
 
@@ -1152,13 +1316,15 @@ def request_arrive(request, pk):
         messages.error(request, "Only the traveler can update arrival.")
         return redirect(req.get_absolute_url())
     # Cargo (Carrier) has no purchase step — it arrives straight from Package
-    # Received; proxy buying arrives after the items are purchased.
-    arrivable = Status.PACKAGE_RECEIVED if req.is_cargo else Status.ITEMS_PURCHASED
+    # Received. Flow-1 proxy arrives after the handover (Package Received) too.
+    # Plan-first proxy buying (traveler IS the proxy) arrives from Items Purchased.
+    waits_for_handover = req.is_cargo or req.is_proxy_buyer_first
+    arrivable = Status.PACKAGE_RECEIVED if waits_for_handover else Status.ITEMS_PURCHASED
     if req.status != arrivable:
         messages.info(
             request,
             "You can mark arrival after the package is received."
-            if req.is_cargo else "You can mark arrival after items are purchased.",
+            if waits_for_handover else "You can mark arrival after items are purchased.",
         )
         return redirect(req.get_absolute_url())
 
@@ -1325,6 +1491,20 @@ def request_reship_proof(request, pk):
 
 
 @login_required
+def request_invoice(request, pk):
+    """Full buyer invoice (all financials) as a printable page — the buyer's
+    counterpart to the customs invoice. Buyer + staff only."""
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if not (request.user.is_staff or req.buyer_id == request.user.id):
+        messages.error(request, "You don't have access to this invoice.")
+        return redirect(reverse("accounts:profile"))
+    if not req.items.exists():
+        messages.error(request, "This invoice has no items yet.")
+        return redirect(req.get_absolute_url())
+    return render(request, "trips/order_invoice_print.html", {"req": req})
+
+
+@login_required
 def kurs(request):
     rates = ExchangeRate.objects.filter(is_active=True).order_by("sequence", "code")
     last_updated = rates.order_by("-updated_at").values_list("updated_at", flat=True).first()
@@ -1339,6 +1519,12 @@ def request_customs_invoice(request, pk):
         or req.buyer_id == request.user.id
         or (req.plan_id and req.plan.traveler_id == request.user.id)
         or any(leg.traveler_id == request.user.id for leg in req.confirmed_legs)
+        # Flow-1 proxy order: the carrier is the single live offer's traveler
+        # (no leg is created), so let them open the customs invoice too.
+        or (not req.plan_id and any(
+            o.traveler_id == request.user.id
+            and o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+            for o in req.traveler_offers.all()))
     )
     if not allowed:
         messages.error(request, "You don't have access to this customs invoice.")

@@ -1,0 +1,43 @@
+{% load humanize %}
+<h2 style="margin:6px 0 0">Send Estimate</h2>
+<p><strong>Fill in the Unit Cost of each product, the estimated total weight, and your margin, then Send Estimate.</strong></p>
+<form method="post" action="{% url 'trips:proxy_estimate' estimate_order.id %}" class="card" style="margin-top:14px">
+  {% csrf_token %}
+  {{ estimate_formset.management_form }}
+  <div class="card-body">
+    <div class="card-band-row">Order Details</div>
+    <p class="muted" style="margin-top:14px">
+      <strong>{{ estimate_order.reference }}</strong> · {{ estimate_order.route }} ·
+      Deadline {{ estimate_order.max_acceptable_date|date:"d-M-Y" }}
+    </p>
+    <table class="invoice">
+      <tr>
+        <td style="text-align:center"><strong>Product Name</strong></td>
+        <td class="num-right"><strong>Qty</strong></td>
+        <td class="num-right"><strong>Unit Cost ({{ estimate_order.currency }})</strong></td>
+      </tr>
+      {% for f in estimate_formset %}
+      <tr>
+        <td>{{ f.instance.name }}{{ f.id }}</td>
+        <td class="num-right">{{ f.instance.quantity }} {{ f.instance.unit }}</td>
+        <td class="num-right">{{ f.estimated_unit_cost }}{{ f.estimated_unit_cost.errors }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    <div class="form-row mt-2">
+      <div class="form-field">
+        <label>Estimate Total Weight (kg)</label>
+        {{ estimate_form.estimated_weight_kg }}{{ estimate_form.estimated_weight_kg.errors }}
+      </div>
+      <div class="form-field">
+        <label>Margin (%)</label>
+        {{ estimate_form.proxy_margin_percent }}{{ estimate_form.proxy_margin_percent.errors }}
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-primary" type="submit">Send Estimate</button>
+    </div>
+    <p class="help mt-2">Once sent, your order goes to the “Cargo Looking for Traveler” board.</p>
+  </div>
+</form>

@@ -40,7 +40,9 @@
   <div class="inv-meta">
     <div>
       <div class="inv-meta-label">Carried by</div>
-      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}</div>
+      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}{% if req.traveler_user.traveler_address %}
+{{ req.traveler_user.traveler_address }}{% endif %}{% if req.traveler_user.traveler_destination_city %}
+{{ req.traveler_user.traveler_destination_city }}{% endif %}</div>
     </div>
     <div>
       <div class="inv-meta-label">Purchased for</div>

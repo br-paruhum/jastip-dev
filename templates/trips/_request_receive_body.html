@@ -1,8 +1,13 @@
 {% load humanize %}
 <span class="eyebrow">Receive · {{ receive_req.reference }}</span>
 <h2>Confirm Package Received</h2>
+{% if receive_req.is_proxy_buyer_first %}
+<p class="muted">Weigh the goods the proxy buyer handed over, enter the measured weight, then confirm receipt.
+  The carry fee is finalised on this weight, and confirming releases the proxy buyer's first payment.</p>
+{% else %}
 <p class="muted">Weigh the package the buyer handed over, enter the measured weight, then confirm receipt.
   The carry fee is finalised on this weight; any difference from the deposit becomes a balance due or refund.</p>
+{% endif %}
 
 <form method="post" action="{% url 'trips:request_receive' receive_req.id %}" class="card" style="margin-top:18px">
   {% csrf_token %}
@@ -11,7 +16,7 @@
       <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
       {{ receive_form.actual_weight_kg }}{{ receive_form.actual_weight_kg.errors }}
       <p class="help">Estimated was {{ receive_req.estimated_weight_kg }} kg · carrier rate
-        {{ receive_req.currency }} {{ receive_req.plan.shipment_cost_per_kg|intcomma }}/kg.</p>
+        {{ receive_req.currency }} {% if receive_req.plan %}{{ receive_req.plan.shipment_cost_per_kg|intcomma }}{% else %}{{ receive_req.effective_cost_per_kg|floatformat:0|intcomma }}{% endif %}/kg.</p>
     </div>
     <div style="text-align:center"><button class="btn btn-primary" type="submit">Package Received</button></div>
   </div>

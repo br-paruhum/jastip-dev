@@ -24,5 +24,10 @@ def plan_accepts_item_order(plan) -> bool:
 
 
 def order_accepts_carry_offer(order) -> bool:
-    """A carry offer (offer_create) is only valid on a Cargo buyer-first order."""
-    return order.is_cargo
+    """A carry offer (offer_create) is valid on a Cargo buyer-first order, or on a
+    Flow-1 Products order once the proxy buyer has sent the estimate (status
+    responded) — the package is now sourced and "Looking for a Traveler"."""
+    from .constants import Status
+    if order.is_cargo:
+        return True
+    return bool(getattr(order, "proxy_buyer_id", None)) and order.status == Status.RESPONDED

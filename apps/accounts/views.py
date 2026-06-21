@@ -9,12 +9,12 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
+from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
-    ProxyOfferForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet, TravelPlanForm,
-    TravelerOfferForm,
+    ProxyEstimateForm, ProxyOfferForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
+    TravelPlanForm, TravelerCargoOfferForm, TravelerOfferForm,
 )
 from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
 
@@ -135,18 +135,17 @@ def profile(request):
     user = request.user
     role = _resolve_role(request)
 
-    travel_rows_proxy = travel_rows_cargo = []
+    travel_rows = []
     orders_proxy = orders_cargo = []
+    proxy_orders = []
 
     if role == "traveler":
-        # Traveler side: travel plans merged with buyer-first offers, split by
-        # transaction type into Proxy Buying vs Carrier Only. Closed rows stay
-        # inline (hidden via the dashboard's "hide closed" toggle).
+        # Traveler side: travel plans merged with buyer-first offers into one
+        # "My Travel Plans" list (the traveler doesn't care about Proxy vs Carrier).
+        # Closed rows stay inline (hidden via the dashboard's "hide closed" toggle).
         my_plans = list(TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests"))
         my_offers = list(TravelerOffer.objects.filter(traveler=user).select_related("order"))
-        all_travel_rows = _travel_rows(my_plans, my_offers)
-        travel_rows_proxy = [r for r in all_travel_rows if not r["type_is_cargo"]]
-        travel_rows_cargo = [r for r in all_travel_rows if r["type_is_cargo"]]
+        travel_rows = _travel_rows(my_plans, my_offers)
     else:
         # Buyer side: plan-first requests merged with buyer-first orders, split by
         # transaction type into Proxy Buying vs Carrier Only.
@@ -161,6 +160,15 @@ def profile(request):
         all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
         orders_proxy = [o for o in all_my_orders if not o.is_cargo]
         orders_cargo = [o for o in all_my_orders if o.is_cargo]
+
+        # Flow-1: orders the buyer (acting as a Proxy Buyer) has been assigned to
+        # source — they respond with the estimate here.
+        proxy_orders = list(
+            BuyRequest.objects.filter(proxy_buyer__user=user, plan__isnull=True)
+            .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
+            .select_related("buyer", "proxy_buyer")
+            .order_by("max_acceptable_date")
+        )
 
     form = ProfileForm(instance=user, role=role)
 
@@ -177,11 +185,20 @@ def profile(request):
         )
         if order and order.plan_id is None:
             # Buyer-first order: no traveler assigned yet (or several, via legs) —
-            # only the buyer (or staff) sees the detail panel for now. Kept out of
-            # the `order` key (reserved for plan-first orders) so the two detail
-            # panels in profile.html don't both try to render.
-            if user == order.buyer or user.is_staff:
-                order_ctx = {"bf_order": order}
+            # the buyer, the assigned proxy buyer (Flow-1), or staff see the detail
+            # panel. Kept out of the `order` key (reserved for plan-first orders) so
+            # the two detail panels in profile.html don't both try to render.
+            is_order_proxy = bool(order.proxy_buyer_id) and order.proxy_buyer.user_id == user.id
+            if user == order.buyer or is_order_proxy or user.is_staff:
+                order_ctx = {
+                    "bf_order": order,
+                    "is_order_proxy": is_order_proxy,
+                    "is_order_buyer": user == order.buyer,
+                    "chat_messages": order.messages.select_related("sender").all(),
+                    "message_form": MessageForm(),
+                    "can_chat": (order.is_chat_participant(user) or user.is_staff)
+                                and order.status in CHAT_STATUSES,
+                }
             order = None
         elif order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
             is_traveler = user == order.plan.traveler
@@ -196,6 +213,33 @@ def profile(request):
             }
         else:
             order = None
+
+    # Proxy estimate panel (?estimate=<id>#estimate-form) — the assigned Proxy
+    # Buyer quotes per-item unit costs, total weight and margin (Flow-1).
+    estimate_order = estimate_form = estimate_formset = None
+    estimate_id = request.GET.get("estimate")
+    if estimate_id:
+        _e = BuyRequest.objects.select_related("proxy_buyer", "buyer").filter(
+            pk=estimate_id, plan__isnull=True
+        ).first()
+        if (_e and _e.proxy_buyer_id and _e.proxy_buyer.user_id == user.id
+                and not _e.is_cargo and _e.status == Status.OPEN):
+            estimate_order = _e
+            estimate_form = ProxyEstimateForm(instance=_e)
+            estimate_formset = ReviewItemFormSet(instance=_e, prefix="est_items")
+
+    # Proxy "Package Ready" panel (?package_ready=<id>#package-ready) — the proxy
+    # records the actual unit costs after purchasing (Flow-1 step 3).
+    package_ready_order = package_ready_formset = None
+    package_ready_id = request.GET.get("package_ready")
+    if package_ready_id:
+        _p = BuyRequest.objects.select_related("proxy_buyer").filter(
+            pk=package_ready_id, plan__isnull=True
+        ).first()
+        if (_p and _p.proxy_buyer_id and _p.proxy_buyer.user_id == user.id
+                and not _p.is_cargo and _p.proxy_actuals_editable):
+            package_ready_order = _p
+            package_ready_formset = PurchaseItemFormSet(instance=_p)
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
@@ -218,10 +262,17 @@ def profile(request):
     leg_arrive_form = None
     offer_id = request.GET.get("offer")
     if offer_id:
-        _o = TravelerOffer.objects.select_related("order").filter(pk=offer_id).first()
+        _o = TravelerOffer.objects.select_related("order", "order__proxy_buyer__user").filter(pk=offer_id).first()
         if _o and (user == _o.traveler or user.is_staff):
             leg_offer = _o
             leg_arrive_form = LegCustomFareForm(instance=_o)
+            _ord = _o.order
+            if _ord.is_chat_participant(user) or user.is_staff:
+                order_ctx = {
+                    "chat_messages": _ord.messages.select_related("sender").all(),
+                    "message_form": MessageForm(),
+                    "can_chat": _ord.status in CHAT_STATUSES,
+                }
 
     # Review panel (?review=<id>#review-order) — traveler sends estimate.
     review_req = review_form = review_formset = review_is_edit = None
@@ -254,34 +305,42 @@ def profile(request):
                 purchase_form = PurchaseWeightForm(instance=_r)
                 purchase_formset = PurchaseItemFormSet(instance=_r)
 
-    # Receive panel (?receive=<id>#receive-order) — traveler confirms cargo receipt + final weight.
+    def _is_order_traveler(_r):
+        """The acting user carries this order: plan-first → the plan's traveler;
+        buyer-first (cargo or Flow-1 proxy) → the single live offer's traveler."""
+        if _r.plan_id:
+            return _r.plan.traveler_id == user.id
+        live = [o for o in _r.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+        return len(live) == 1 and live[0].traveler_id == user.id
+
+    # Receive panel (?receive=<id>#receive-order) — traveler confirms receipt + final
+    # weight. Cargo: from the buyer at Deposit Paid. Flow-1 proxy: the handover from
+    # the proxy at Items Purchased (releases the proxy's first 50%).
     receive_req = receive_form = None
     receive_id = request.GET.get("receive")
     if receive_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
-            pk=receive_id, plan__traveler=user
-        ).first()
-        if _r and _r.is_cargo and _r.status == Status.DEPOSIT_PAID:
-            receive_req = _r
-            receive_form = PurchaseWeightForm(instance=_r)
+        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=receive_id).first()
+        if _r and _is_order_traveler(_r):
+            if (_r.is_cargo and _r.status == Status.DEPOSIT_PAID) or (
+                _r.is_proxy_buyer_first and _r.status == Status.ITEMS_PURCHASED
+            ):
+                receive_req = _r
+                receive_form = PurchaseWeightForm(instance=_r)
 
     # Arrive panel (?arrive=<id>#arrive-order) — traveler marks package arrived.
     arrive_req = arrive_form = None
     arrive_id = request.GET.get("arrive")
     if arrive_id:
         _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=arrive_id).first()
-        # Cargo arrives from Package Received (no purchase step); proxy from Items Purchased.
-        _arrivable = Status.PACKAGE_RECEIVED if (_r and _r.is_cargo) else Status.ITEMS_PURCHASED
-        if _r and _r.status == _arrivable:
-            if _r.plan_id:
-                is_proxy = _r.plan.traveler_id == user.id
-            else:
-                live = [o for o in _r.traveler_offers.all()
-                        if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
-                is_proxy = len(live) == 1 and live[0].traveler_id == user.id
-            if is_proxy:
-                arrive_req = _r
-                arrive_form = CustomFareForm(instance=_r)
+        # Cargo + Flow-1 proxy arrive from Package Received (after handover);
+        # plan-first proxy buying arrives straight from Items Purchased.
+        _arrivable = (Status.PACKAGE_RECEIVED
+                      if (_r and (_r.is_cargo or _r.is_proxy_buyer_first))
+                      else Status.ITEMS_PURCHASED)
+        if _r and _r.status == _arrivable and _is_order_traveler(_r):
+            arrive_req = _r
+            arrive_form = CustomFareForm(instance=_r)
 
     # Reship-cost panel (?reship_cost=<id>#reship-cost-order) — traveler sends cost + bank.
     reship_cost_req = reship_cost_form = None
@@ -327,16 +386,14 @@ def profile(request):
                 ).exists():
                     offer_form_order = _offer_order
                     offer_form_obj = TravelerOfferForm(initial=route_initial)
-            else:
-                # Products: proxy "Estimated Cost" form. FCFS — only show it while
-                # no one holds a live (pending/selected) offer on this order.
+            elif _offer_order.status == Status.RESPONDED:
+                # Flow-1 Products: a traveler carries the proxy-sourced cargo once
+                # the estimate is sent. FCFS — only while no one holds a live offer.
                 if not _offer_order.traveler_offers.filter(
                     offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
                 ).exists():
                     offer_form_order = _offer_order
-                    offer_form_obj = ProxyOfferForm(initial=route_initial)
-                    proxy_review_form = ReviewForm(instance=_offer_order)
-                    proxy_review_formset = ReviewItemFormSet(instance=_offer_order, prefix="est_items")
+                    offer_form_obj = TravelerCargoOfferForm(initial=route_initial)
 
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
@@ -369,10 +426,15 @@ def profile(request):
             "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
             "new_order_form": OrderForm(),
             "new_order_formset": OrderItemFormSet(instance=BuyRequest(), prefix="bf_items"),
-            "travel_rows_proxy": travel_rows_proxy,
-            "travel_rows_cargo": travel_rows_cargo,
+            "travel_rows": travel_rows,
             "orders_proxy": orders_proxy,
             "orders_cargo": orders_cargo,
+            "proxy_orders": proxy_orders,
+            "estimate_order": estimate_order,
+            "estimate_form": estimate_form,
+            "estimate_formset": estimate_formset,
+            "package_ready_order": package_ready_order,
+            "package_ready_formset": package_ready_formset,
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

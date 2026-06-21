@@ -87,8 +87,11 @@ OPEN_PLAN_STATUSES = {Status.NEW, Status.REOPEN}
 # onward). Keeping it closed during the estimate stage reduces the temptation
 # for buyers and travelers to exchange contact details and bypass the platform.
 CHAT_STATUSES = {
+    Status.ACCEPTED,
     Status.DEPOSIT_PAID,
     Status.ITEMS_PURCHASED,
+    Status.PACKAGE_RECEIVED,
+    Status.PACKAGE_ARRIVED,
 }
 
 # Statuses considered an in-progress (current/open) transaction on the home page.

@@ -11,6 +11,10 @@ urlpatterns = [
     path("orders/new/", views.order_create, name="order_create"),
     path("orders/<int:order_id>/offer/", views.offer_create, name="offer_create"),
     path("orders/<int:order_id>/estimate/", views.offer_estimate_create, name="offer_estimate_create"),
+    path("orders/<int:order_id>/proxy-estimate/", views.proxy_estimate, name="proxy_estimate"),
+    path("orders/<int:order_id>/proxy-purchase/", views.proxy_purchase, name="proxy_purchase"),
+    path("orders/<int:order_id>/accept/", views.order_accept, name="order_accept"),
+    path("orders/<int:order_id>/reject/", views.order_reject, name="order_reject"),
     path("orders/<int:order_id>/deposit/", views.order_deposit_pay, name="order_deposit_pay"),
     path("offers/<int:pk>/withdraw/", views.offer_withdraw, name="offer_withdraw"),
     path("offers/<int:pk>/edit/", views.offer_edit, name="offer_edit"),
@@ -47,5 +51,6 @@ urlpatterns = [
     path("requests/<int:pk>/message/", views.request_message, name="request_message"),
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),
     path("requests/<int:pk>/customs-invoice/", views.request_customs_invoice, name="request_customs_invoice"),
+    path("requests/<int:pk>/invoice/", views.request_invoice, name="request_invoice"),
     path("fxrate/", views.kurs, name="fxrate"),
 ]

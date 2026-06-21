@@ -1,0 +1,50 @@
+{% load humanize %}
+{% if cargo_looking %}
+<div class="table-wrap">
+  <table class="offers offers-centered">
+    <thead>
+      <tr>
+        <th>Deadline</th>
+        <th>Route</th>
+        <th>Weight<br>(kg)</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in cargo_looking %}
+      <tr>
+        <td style="text-align:center">{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
+        <td class="route-cell">
+          <strong>{{ o.from_city }} → {{ o.to_city }}</strong>
+          <span>{{ o.from_country }} → {{ o.to_country }}</span>
+        </td>
+        <td class="avail-cell">{{ o.estimated_weight_kg|floatformat:1 }}</td>
+        <td class="status-cell">
+          {% if o.board_state == "covered" %}
+            {% include "trips/_status_badge.html" with status="covered" label="Covered" tone="success" %}
+          {% elif o.board_state == "pending" %}
+            {% include "trips/_status_badge.html" with status="pending" label="Pending" tone="muted" %}
+          {% else %}
+            {% include "trips/_status_badge.html" with status="open" label="Open" tone="info" %}
+          {% endif %}
+        </td>
+        <td class="action-cell">
+          {% if o.is_locked_fcfs %}
+            <span class="btn btn-sm btn-blocked" title="A traveler is already handling this cargo">Locked</span>
+          {% elif o.can_offer %}
+            <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ o.id }}#offer-form">Offer</a>
+          {% elif user.is_authenticated and o.buyer_id == user.id %}
+            <span class="btn btn-sm btn-blocked">Your order</span>
+          {% else %}
+            <a class="btn btn-primary btn-sm" href="{% url 'account_login' %}">Offer</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-center muted">{{ empty_msg }}</p>
+{% endif %}

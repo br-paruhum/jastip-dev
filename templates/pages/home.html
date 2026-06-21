@@ -10,12 +10,14 @@
     <div>
       <span class="eyebrow">Proxy Buying Service Made Easy</span>
       <h1 class="hero-title">
-        <span class="hero-label">Traveler:</span> <span class="hero-sub">Find Product Buyer or Unused Baggage Buyer</span><br>
-        <span class="hero-label">Buyer:</span> <span class="hero-sub">Find Traveler as Proxy Buyer or Just a Carrier</span>
+        <span class="hero-label">Traveler:</span> <span class="hero-sub">Find Unused Baggage Buyer</span><br>
+        <span class="hero-label">Buyer:</span> <span class="hero-sub">Find Proxy Buyer or Carrier</span>
       </h1>
       <div class="hero-cta">
-        <a href="{% url 'trips:plan_create' %}" class="btn btn-primary">I'm traveling - Post a travel plan</a>
-        <a href="{% url 'trips:order_create' %}" class="btn btn-outline btn-buy">Find Proxy Buyer or Carrier</a>
+        <a href="#proxy-buyers" class="btn btn-primary">Find Proxy Buyer</a>
+        <a href="#looking-for-traveler" class="btn btn-primary">Find a Carrier</a>
+        <span class="hero-or" style="align-self:center;color:var(--muted);font-weight:600;padding:0 2px">or</span>
+        <a href="#looking-for-cargo" class="btn btn-outline btn-buy">Find Spare Baggage Buyer</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -26,51 +28,41 @@
 
 {% if ADSENSE_CLIENT %}<div class="container"><div class="adslot">Advertisement</div></div>{% endif %}
 
-<!-- Open Travel Plans — Proxy Buying -->
-<section id="open-offers">
+<!-- Proxy Buyers — pick one to start a proxy buying order -->
+<section class="section-cream" id="proxy-buyers">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Traveler Ready as Proxy Buyer</span>
-      <h2>Open Travel Plans - Proxy Buying</h2>
-      <p>Traveler will buy products(s) ordered by Buyer and bring the package to Traveler's destination for Buyer.</p>
+      <span class="eyebrow">Product Buyer Starts Here</span>
+      <h2>Proxy Buyers List</h2>
+      <p>Select a proxy buyer in the country where your products are sold. They source &amp; buy for you; a traveler carries the package to your destination.</p>
     </div>
-    {% include "pages/_home_plan_table.html" with plans=open_plans_proxy is_cargo=False empty_msg="No open Proxy Buying travel plans yet." %}
+    {% include "pages/_home_proxy_table.html" with proxy_buyers=proxy_buyers empty_msg="No proxy buyers available yet." %}
   </div>
 </section>
 
-<!-- Open Orders — Proxy Buying -->
-<section class="section-cream" id="open-orders">
+<!-- Board 1: Looking for Traveler — cargo (proxy-sourced) that needs a carrier -->
+<section id="looking-for-traveler">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Buyer Looking for Proxy Buyer</span>
-      <h2>Open Orders - Proxy Buying</h2>
-      <p>Buyer will pay Traveler to buy product(s) they wants and bring the package to Traveler's destination for Buyer.</p>
+      <span class="eyebrow">Cargo Owner Starts Here</span>
+      <h2>Looking for Carrier</h2>
+      <p>Need a traveler to carry your goods.</p>
+      <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
     </div>
-    {% include "pages/_home_order_table.html" with orders=open_orders_proxy is_cargo=False empty_msg="No open Proxy Buying orders yet." %}
+    {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No cargo looking for a traveler right now." %}
   </div>
 </section>
 
-<!-- Open Travel Plans — Cargo Only -->
-<section>
+<!-- Board 2: Looking for Cargo — posted trips with spare capacity to fill -->
+<section class="section-cream" id="looking-for-cargo">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Traveler Ready as Carrier</span>
-      <h2>Open Travel Plans - Cargo Only</h2>
-      <p>Traveler will carry the package to their destination for Buyer.</p>
+      <span class="eyebrow">Traveler Starts Here</span>
+      <h2>Looking for Cargo</h2>
+      <p>Need buyer for your spare baggage.</p>
+      <a href="{% url 'trips:plan_create' %}" class="btn btn-primary btn-sm">Post a Travel Plan</a>
     </div>
-    {% include "pages/_home_plan_table.html" with plans=open_plans_cargo is_cargo=True empty_msg="No open Cargo Only travel plans yet." %}
-  </div>
-</section>
-
-<!-- Open Orders — Cargo Only -->
-<section class="section-cream">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Buyer Looking for Carrier</span>
-      <h2>Open Orders - Cargo Only</h2>
-      <p>Buyer will pay the package carried by Traveler to their destination.</p>
-    </div>
-    {% include "pages/_home_order_table.html" with orders=open_orders_cargo is_cargo=True empty_msg="No open Cargo Only orders yet." %}
+    {% include "pages/_home_looking_for_cargo_table.html" with looking_for_cargo=looking_for_cargo empty_msg="No trips looking for cargo right now." %}
   </div>
 </section>
 

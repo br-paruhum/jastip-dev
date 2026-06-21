@@ -13,6 +13,7 @@ from .models import (
     LegTransaction,
     Message,
     Payment,
+    ProxyBuyer,
     Refund,
     RequestItem,
     TravelerOffer,
@@ -53,25 +54,118 @@ class MessageInline(TabularInline):
 class BuyRequestAdmin(ModelAdmin):
     """Read-only order browser. All buyer-payment verification (deposit and
     final/balance) is done on the Payments page — the single source of truth —
-    and overpaid refunds live under the dedicated Refunds section. This page no
-    longer carries money actions, so it can't be left in an inconsistent state."""
+    and overpaid refunds live under the dedicated Refunds section.
 
-    list_display = ("reference", "plan", "buyer", "status", "invoice_display", "unpaid_display", "created_at")
+    The only money actions here are the Flow-1 OUTBOUND disbursements (proxy 1st
+    & 2nd 50%, carrier payout): once you've actually transferred the funds, run
+    the matching action to stamp it Released — that's what the proxy/traveler
+    "Your Disbursement"/"Your Payout" tabs reflect, and it sends the notice."""
+
+    list_display = ("reference", "buyer", "status", "invoice_display", "proxy_net_col", "carrier_payout_col", "disbursement_state", "created_at")
     list_filter = ("status",)
     search_fields = ("reference", "buyer__email", "plan__reference")
     inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
-    readonly_fields = ("reference",)
-    actions = None  # no bulk/payment actions — browsing only
+    readonly_fields = ("reference", "proxy_disbursement_display", "traveler_payout_display")
+    actions = ["mark_proxy_first_disbursed", "mark_proxy_second_disbursed", "mark_traveler_paid"]
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
         return f"{obj.invoice_total:,.2f} {obj.currency}"
 
+    @admin.display(description="Proxy disbursement — to pay out")
+    def proxy_disbursement_display(self, obj):
+        if not obj.is_proxy_buyer_first or not obj.items_actual_total:
+            return "—"
+        return format_html(
+            "Net: <b>{} {}</b><br>1st half: {} {} ({})<br>2nd half: {} {} ({})",
+            obj.currency, f"{obj.proxy_disbursement_total:,.0f}",
+            obj.currency, f"{obj.proxy_disbursement_first_half:,.0f}",
+            "released" if obj.proxy_first_disbursed_at else ("ready" if obj.proxy_first_disbursable else "held"),
+            obj.currency, f"{obj.proxy_disbursement_second_half:,.0f}",
+            "released" if obj.proxy_second_disbursed_at else ("ready" if obj.proxy_second_disbursable else "held"),
+        )
+
+    @admin.display(description="Carrier payout — to pay out")
+    def traveler_payout_display(self, obj):
+        if not obj.is_proxy_buyer_first or not hasattr(obj, "transaction"):
+            return "—"
+        state = "paid" if obj.traveler_paid_at else ("ready" if obj.traveler_payout_disbursable else "pending")
+        return format_html("<b>{} {}</b> ({})", obj.currency, f"{obj.transaction.payout_to_traveler:,.0f}", state)
+
     @admin.display(description="Unpaid / (Overpaid)")
     def unpaid_display(self, obj):
         u = obj.unpaid_amount
         return f"({-u:,.2f}) {obj.currency}" if u < 0 else f"{u:,.2f} {obj.currency}"
+
+    @admin.display(description="Proxy net")
+    def proxy_net_col(self, obj):
+        if not obj.is_proxy_buyer_first or not obj.items_actual_total:
+            return "—"
+        return f"{obj.proxy_disbursement_total:,.0f} {obj.currency}"
+
+    @admin.display(description="Carrier payout")
+    def carrier_payout_col(self, obj):
+        if not obj.is_proxy_buyer_first or not hasattr(obj, "transaction"):
+            return "—"
+        return f"{obj.transaction.payout_to_traveler:,.0f} {obj.currency}"
+
+    @admin.display(description="Disbursement (P1/P2/Trv)")
+    def disbursement_state(self, obj):
+        if not obj.is_proxy_buyer_first:
+            return "—"
+        def mark(paid, eligible):
+            return "✅" if paid else ("⏳" if eligible else "·")
+        return "{} {} {}".format(
+            mark(obj.proxy_first_disbursed_at, obj.proxy_first_disbursable),
+            mark(obj.proxy_second_disbursed_at, obj.proxy_second_disbursable),
+            mark(obj.traveler_paid_at, obj.traveler_payout_disbursable),
+        )
+
+    @admin.action(description="Proxy: mark 1st half disbursed (released)")
+    def mark_proxy_first_disbursed(self, request, queryset):
+        done = skipped = 0
+        for req in queryset:
+            if req.proxy_first_disbursable and not req.proxy_first_disbursed_at:
+                req.proxy_first_disbursed_at = timezone.now()
+                req.save(update_fields=["proxy_first_disbursed_at", "updated_at"])
+                workflow.notify_proxy_first_disbursed(req)
+                done += 1
+            else:
+                skipped += 1
+        self.message_user(
+            request, f"Marked {done} proxy 1st-half disbursement(s) released; skipped {skipped} "
+            "(not eligible yet or already released).", messages.SUCCESS if done else messages.WARNING)
+
+    @admin.action(description="Proxy: mark 2nd half disbursed (released)")
+    def mark_proxy_second_disbursed(self, request, queryset):
+        done = skipped = 0
+        for req in queryset:
+            if req.proxy_second_disbursable and not req.proxy_second_disbursed_at:
+                req.proxy_second_disbursed_at = timezone.now()
+                req.save(update_fields=["proxy_second_disbursed_at", "updated_at"])
+                workflow.notify_proxy_second_disbursed(req)
+                done += 1
+            else:
+                skipped += 1
+        self.message_user(
+            request, f"Marked {done} proxy 2nd-half disbursement(s) released; skipped {skipped} "
+            "(buyer not cleared yet or already released).", messages.SUCCESS if done else messages.WARNING)
+
+    @admin.action(description="Traveler: mark carrier payout paid")
+    def mark_traveler_paid(self, request, queryset):
+        done = skipped = 0
+        for req in queryset:
+            if req.traveler_payout_disbursable and not req.traveler_paid_at:
+                req.traveler_paid_at = timezone.now()
+                req.save(update_fields=["traveler_paid_at", "updated_at"])
+                workflow.notify_traveler_paid(req)
+                done += 1
+            else:
+                skipped += 1
+        self.message_user(
+            request, f"Marked {done} carrier payout(s) paid; skipped {skipped} "
+            "(buyer not cleared yet or already paid).", messages.SUCCESS if done else messages.WARNING)
 
     def has_add_permission(self, request):
         return False
@@ -376,6 +470,51 @@ class MessageAdmin(ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(ProxyBuyer)
+class ProxyBuyerAdmin(ModelAdmin):
+    list_display = ("name", "country", "margin_range", "email", "whatsapp", "user", "is_active", "sequence")
+    list_editable = ("margin_range", "is_active", "sequence")
+    list_filter = ("is_active", "country")
+    search_fields = ("name", "country", "email")
+    autocomplete_fields = ("user",)
+    ordering = ("sequence", "country", "name")
+
+    def save_model(self, request, obj, form, change):
+        """A Proxy Buyer always operates the order through its own login, so we
+        guarantee a linked account. If admin didn't pick one, create (or reuse) a
+        Buyer account from the proxy's email and link it. The proxy is
+        admin-approved, so the email is pre-verified and no WhatsApp OTP is needed
+        — they only set a password via 'Forgot password' to start operating."""
+        super().save_model(request, obj, form, change)
+        if obj.user_id or not obj.email:
+            return
+        from allauth.account.models import EmailAddress
+
+        from apps.accounts.models import User
+
+        user = User.objects.filter(email__iexact=obj.email).first()
+        created = user is None
+        if created:
+            # password=None -> unusable; the proxy sets one via password reset.
+            user = User.objects.create_user(
+                email=obj.email, password=None,
+                full_name=obj.name, last_role_choice="buyer",
+                phone_verified=True,  # admin-approved: no self-verification required
+            )
+        EmailAddress.objects.get_or_create(
+            user=user, email=user.email,
+            defaults={"verified": True, "primary": True},
+        )
+        obj.user = user
+        obj.save(update_fields=["user"])
+        self.message_user(
+            request,
+            f"{'Created and linked' if created else 'Linked existing'} login {user.email}. "
+            "Ask them to set a password via 'Forgot password?' on the sign-in page.",
+            level=messages.SUCCESS,
+        )
 
 
 @admin.register(ExchangeRate)

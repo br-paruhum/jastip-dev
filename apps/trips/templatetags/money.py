@@ -29,15 +29,32 @@ def add_decimal(value, arg):
 
 
 @register.filter
-def accounting(value):
+def by_currency(value, currency):
+    """Thousand-separated amount with decimals chosen by currency: IDR shows
+    whole numbers (decimals are noise), every other currency shows 2 places so a
+    buyer paying in their local currency transfers the exact amount."""
+    try:
+        v = Decimal(value)
+    except (InvalidOperation, TypeError, ValueError):
+        return value
+    if (currency or "").upper() == "IDR":
+        return intcomma(v.quantize(Decimal("1")))
+    return intcomma(v.quantize(Decimal("0.01")))
+
+
+@register.filter
+def accounting(value, places=2):
     """Thousand-separated amount; negatives shown in parentheses (overpaid).
 
     e.g. 1234.5 -> "1,234.50"  ·  -1234.5 -> "(1,234.50)"
+    Pass places=0 to round to whole numbers (e.g. 1234.5 -> "1,235").
     """
     try:
         v = Decimal(value)
     except (InvalidOperation, TypeError, ValueError):
         return value
+    if int(places) == 0:
+        v = v.quantize(Decimal("1"))
     if v < 0:
         return f"({intcomma(-v)})"
     return intcomma(v)

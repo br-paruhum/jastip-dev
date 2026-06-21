@@ -149,9 +149,23 @@ class OrderForm(forms.ModelForm):
             "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, proxy=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.proxy = proxy
         self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        self.fields["max_acceptable_date"].label = "Order Deadline"
+        # Flow-1 (proxy buying): the order is always a Products order, the origin
+        # country is fixed by the chosen proxy, and the cargo/destination-logistics
+        # fields don't apply (the proxy estimates weight/price; the address comes
+        # from the buyer profile later). Drop them so the form only asks for what
+        # the buyer fills in: route cities, products, and the order deadline.
+        if proxy is not None:
+            for name in (
+                "cargo_only", "from_country", "to_address", "to_postal_code",
+                "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
+            ):
+                self.fields.pop(name, None)
+            return
         # The bool model fields don't preselect their string-keyed choices on
         # edit (str(True) != "1"), so map them back explicitly.
         if self.instance and self.instance.pk:
@@ -170,6 +184,11 @@ class OrderForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        # Proxy (Flow-1) order: the cargo/bid fields were dropped from the form,
+        # so leave them alone (the model defaults to 0/False) — re-adding them to
+        # cleaned_data would break instance construction.
+        if self.proxy is not None:
+            return cleaned
         if cleaned.get("cargo_only"):
             # Cargo: bid weight + opening price are the carry-fee basis.
             if not cleaned.get("bid_weight_kg") or cleaned["bid_weight_kg"] <= 0:
@@ -258,6 +277,56 @@ class ProxyOfferForm(TravelerOfferForm):
         ]
 
 
+class TravelerCargoOfferForm(forms.ModelForm):
+    """Traveler's carry offer on a 'Cargo Looking for Traveler' order (Flow-1/2):
+    offer weight + shipment rate/kg + travel date/time. No drop-off address — the
+    proxy buyer hands the package over to the traveler, so the buyer never drops
+    anything off."""
+
+    from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+    to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
+
+    class Meta:
+        model = TravelerOffer
+        fields = [
+            "ask_cost_per_kg", "avail_kg", "travel_date", "travel_time",
+            "from_city", "from_country", "to_city", "to_country",
+        ]
+        widgets = {
+            "ask_cost_per_kg": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
+            "avail_kg": forms.NumberInput(
+                attrs={"step": "0.1", "min": "0.1", "inputmode": "decimal",
+                       "placeholder": "e.g. 5.0", "class": "num-right"}
+            ),
+            "travel_date": DATE_INPUT,
+            "travel_time": TIME_INPUT,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+
+    def clean_avail_kg(self):
+        val = self.cleaned_data.get("avail_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter your offered carrying weight (kg).")
+        return val
+
+    def clean_ask_cost_per_kg(self):
+        val = self.cleaned_data.get("ask_cost_per_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter your shipment cost per kg.")
+        return val
+
+    def clean_travel_date(self):
+        val = self.cleaned_data.get("travel_date")
+        if not val:
+            raise forms.ValidationError("Travel date is required.")
+        if val <= timezone.now().date():
+            raise forms.ValidationError("Travel date must be in the future.")
+        return val
+
+
 class ReviewForm(forms.ModelForm):
     """Traveler-side review field: estimated weight of this package (kg).
 
@@ -282,6 +351,37 @@ class ReviewForm(forms.ModelForm):
         val = self.cleaned_data.get("estimated_weight_kg")
         if val in (None, ""):
             return self.instance.estimated_weight_kg or Decimal("0")
+        return val
+
+
+class ProxyEstimateForm(forms.ModelForm):
+    """Flow-1 (proxy buying) 'Send Estimate' — the proxy quotes the total weight
+    and their margin %; the per-item unit costs come from ReviewItemFormSet."""
+
+    class Meta:
+        model = BuyRequest
+        fields = ["estimated_weight_kg", "proxy_margin_percent"]
+        widgets = {
+            "estimated_weight_kg": forms.NumberInput(
+                attrs={"step": "0.1", "min": "0.1", "inputmode": "decimal",
+                       "placeholder": "e.g. 2.5", "class": "num-right"}
+            ),
+            "proxy_margin_percent": forms.NumberInput(
+                attrs={"step": "0.01", "min": "0", "inputmode": "decimal",
+                       "placeholder": "e.g. 20", "class": "num-right"}
+            ),
+        }
+
+    def clean_estimated_weight_kg(self):
+        val = self.cleaned_data.get("estimated_weight_kg")
+        if not val or val <= 0:
+            raise forms.ValidationError("Enter the estimated total weight (kg).")
+        return val
+
+    def clean_proxy_margin_percent(self):
+        val = self.cleaned_data.get("proxy_margin_percent")
+        if val is None or val < 0:
+            raise forms.ValidationError("Enter your margin (%).")
         return val
 
 

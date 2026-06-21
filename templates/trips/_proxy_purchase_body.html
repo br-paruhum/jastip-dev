@@ -1,0 +1,33 @@
+{% load humanize %}
+<h2 style="margin:6px 0 0">Package Ready</h2>
+<p><strong>Enter the actual unit cost you paid for each product, then mark the package ready. The buyer is then asked to pay the remaining balance.</strong></p>
+<form method="post" action="{% url 'trips:proxy_purchase' package_ready_order.id %}" enctype="multipart/form-data" class="card" style="margin-top:14px">
+  {% csrf_token %}
+  {{ package_ready_formset.management_form }}
+  <div class="card-body">
+    <div class="card-band-row">Actual Purchase</div>
+    <p class="muted" style="margin-top:14px">
+      <strong>{{ package_ready_order.reference }}</strong> · {{ package_ready_order.route }}
+    </p>
+    <table class="invoice">
+      <tr>
+        <td style="text-align:center"><strong>Product</strong></td>
+        <td class="num-right"><strong>Est Qty</strong></td>
+        <td class="num-right"><strong>Actual Qty</strong></td>
+        <td class="num-right"><strong>Actual Unit Cost ({{ package_ready_order.currency }})</strong></td>
+      </tr>
+      {% for f in package_ready_formset %}
+      <tr>
+        <td>{{ f.instance.name }}{{ f.id }}</td>
+        <td class="num-right">{{ f.instance.quantity }} {{ f.instance.unit }}</td>
+        <td class="num-right">{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</td>
+        <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
+      </tr>
+      {% if f.purchase_note %}<tr><td colspan="4">{{ f.purchase_note }} <span class="help">(note, e.g. out of stock / substituted)</span></td></tr>{% endif %}
+      {% endfor %}
+    </table>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-primary" type="submit">Mark Package Ready</button>
+    </div>
+  </div>
+</form>

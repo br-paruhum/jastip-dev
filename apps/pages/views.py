@@ -10,9 +10,8 @@ from django.views.decorators.http import require_GET
 
 from apps.blog.models import Post
 from apps.notifications.services import send_email
-from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OfferStatus, Status
-from apps.trips.forms import TravelerOfferForm
-from apps.trips.models import BuyRequest, TravelerOffer, TravelPlan
+from apps.trips.constants import OfferStatus, Status
+from apps.trips.models import BuyRequest, ProxyBuyer, TravelPlan
 
 from .forms import ContactForm
 from .models import ContactMessage, FAQItem, SitePage, SiteSettings
@@ -21,52 +20,50 @@ logger = logging.getLogger(__name__)
 
 
 def home(request):
-    plans = list(
-        TravelPlan.objects.exclude(status__in=[Status.CLOSED, Status.CANCELLED])
+    proxy_buyers = list(ProxyBuyer.objects.filter(is_active=True))
+
+    # Board 2 (Looking for Cargo): carrier-only posted trips with spare capacity.
+    # Keep a plan on the home page until 24h past departure; within 24h it still
+    # shows but renders Closed/Locked (p.listing_locked).
+    open_plans_cargo = [
+        p for p in TravelPlan.objects
+        .exclude(status__in=[Status.CLOSED, Status.CANCELLED])
+        .filter(carrier_only=True)
         .select_related("traveler")
         .prefetch_related("buy_requests")[:30]
-    )
-    # Keep a plan on the home page until 24h past departure; ones within 24h of
-    # departure still show but render as Closed/Locked (p.listing_locked).
-    open_plans = [p for p in plans if not p.listing_expired]
-    open_plans_proxy = [p for p in open_plans if not p.carrier_only]
-    open_plans_cargo = [p for p in open_plans if p.carrier_only]
+        if not p.listing_expired
+    ]
 
-    orders = list(
-        BuyRequest.objects.filter(plan__isnull=True)
-        .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
-        .select_related("buyer")
-        .prefetch_related("traveler_offers")
-        .order_by("max_acceptable_date")
+    # Flow-1: proxy-sourced orders whose estimate has been sent are "Cargo Looking
+    # for a Traveler". We keep them on the board through the whole active carry
+    # lifecycle so other travelers can see progress (Open → Pending → Covered),
+    # not just the two parties involved. Once delivered/cleared they drop off.
+    CARRY_INFLIGHT = {
+        Status.ACCEPTED, Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED,
+        Status.PACKAGE_RECEIVED, Status.PACKAGE_ARRIVED,
+    }
+    cargo_looking = list(
+        BuyRequest.objects.filter(
+            plan__isnull=True, cargo_only=False, proxy_buyer__isnull=False,
+            status__in={Status.RESPONDED} | CARRY_INFLIGHT,
+        ).select_related("buyer").prefetch_related("traveler_offers").order_by("max_acceptable_date")
     )
-    pending_lookup = {}
-    if request.user.is_authenticated:
-        pending_lookup = {
-            off.order_id: off.id
-            for off in TravelerOffer.objects.filter(
-                order__in=orders, traveler=request.user, offer_status=OfferStatus.PENDING
+    for o in cargo_looking:
+        live = [
+            off for off in o.traveler_offers.all()
+            if off.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+        ]
+        if o.status in CARRY_INFLIGHT:
+            # A traveler is locked in and carrying it — visible progress, no action.
+            o.board_state = "covered"
+            o.is_locked_fcfs = True
+            o.can_offer = False
+        else:  # RESPONDED
+            o.board_state = "pending" if live else "open"
+            o.is_locked_fcfs = bool(live)
+            o.can_offer = not o.is_locked_fcfs and (
+                not request.user.is_authenticated or o.buyer_id != request.user.id
             )
-        }
-    open_orders = []
-    for order in orders:
-        order.my_pending_offer_id = pending_lookup.get(order.id)
-        # Drop transit + closed, and anything 24h past its offer deadline.
-        if order.home_section != "open" or order.listing_expired:
-            continue
-        # Within 24h of the deadline the order locks: still shown, but no join form.
-        if (
-            not order.listing_locked
-            and order.is_accepting_offers
-            and not order.my_pending_offer_id
-            and (not request.user.is_authenticated or order.buyer_id != request.user.id)
-        ):
-            order.offer_form = TravelerOfferForm(initial={
-                "from_city": order.from_city, "from_country": order.from_country,
-                "to_city": order.to_city, "to_country": order.to_country,
-            })
-        open_orders.append(order)
-    open_orders_proxy = [o for o in open_orders if not o.is_cargo]
-    open_orders_cargo = [o for o in open_orders if o.is_cargo]
 
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works
@@ -76,10 +73,11 @@ def home(request):
         request,
         "pages/home.html",
         {
-            "open_plans_proxy": open_plans_proxy,
-            "open_plans_cargo": open_plans_cargo,
-            "open_orders_proxy": open_orders_proxy,
-            "open_orders_cargo": open_orders_cargo,
+            "proxy_buyers": proxy_buyers,
+            # Board 1 (Looking for Traveler) = proxy-sourced cargo orders.
+            "cargo_looking": cargo_looking,
+            # Board 2 (Looking for Cargo) = carrier-only posted trips with capacity.
+            "looking_for_cargo": open_plans_cargo,
             "latest_posts": latest_posts,
             "MIN_REMAINING_WEIGHT_KG": min_remaining,
         },

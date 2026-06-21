@@ -158,8 +158,7 @@
           </div></div>
 
           <div class="dash-tables">
-            {% include "accounts/_travel_table.html" with rows=travel_rows_proxy empty="No Proxy Buying travel plans or offers yet." heading="Proxy Buying" %}
-            {% include "accounts/_travel_table.html" with rows=travel_rows_cargo empty="No Carrier Only travel plans or offers yet." heading="Carrier Only" %}
+            {% include "accounts/_travel_table.html" with rows=travel_rows empty="No travel plans or offers yet." heading="My Travel Plans" %}
           </div>
           <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
@@ -273,8 +272,52 @@
 
         {% if bf_order %}
         <!-- Panel: Buyer-first order detail -->
-        <div data-panel="order-detail" data-origin="my-orders">
+        <div data-panel="order-detail" data-origin="{% if is_order_proxy %}proxy-orders{% else %}my-orders{% endif %}">
           {% include "trips/_order_detail_body.html" %}
+        </div>
+        {% endif %}
+
+        {% if proxy_orders %}
+        <!-- Panel: Orders to fulfill as Proxy Buyer (Flow-1) -->
+        <div data-panel="proxy-orders">
+          <h2 style="margin-top:0">My Proxy Buying</h2>
+          <p class="muted">Buyers chose you to source these products. Send your estimate (unit costs, total weight, margin).</p>
+          <div class="table-wrap">
+            <table class="offers offers-centered offers-allcenter">
+              <thead><tr><th>Ref</th><th>Route</th><th>Deadline</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody>
+                {% for o in proxy_orders %}
+                <tr>
+                  <td>{{ o.reference }}<div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }}</div></td>
+                  <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
+                  <td>{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
+                  <td class="status-cell">{% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}</td>
+                  <td class="action-cell">
+                    {% if o.status == "open" %}
+                      <a class="btn btn-primary btn-sm" href="?estimate={{ o.id }}#estimate-form">Send Estimate</a>
+                    {% else %}
+                      <a class="btn btn-outline btn-sm" href="?order={{ o.id }}#order-detail">Manage</a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if estimate_order %}
+        <!-- Panel: Send Estimate (proxy buyer, Flow-1) -->
+        <div data-panel="estimate-form" data-origin="proxy-orders">
+          {% include "trips/_proxy_estimate_body.html" %}
+        </div>
+        {% endif %}
+
+        {% if package_ready_order %}
+        <!-- Panel: Package Ready (proxy buyer records actual costs, Flow-1) -->
+        <div data-panel="package-ready" data-origin="proxy-orders">
+          {% include "trips/_proxy_purchase_body.html" %}
         </div>
         {% endif %}
 
@@ -399,58 +442,52 @@
             </div>
           </form>
           {% else %}
-          <!-- Products: "Estimated Cost" — proxy fills per-item unit cost + weight + rate -->
-          <h2 style="margin:6px 0 0">Estimated Cost</h2>
-          <p><strong>Fill in the Unit Costs, the estimated package weight, and your rate, then Submit Estimate.</strong></p>
-          <form method="post" action="{% url 'trips:offer_estimate_create' offer_form_order.id %}" class="card" style="margin-top:14px">
+          <!-- Products (Flow-1): traveler carry offer — rate + offer weight + travel date -->
+          <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
             {% csrf_token %}
-            {{ proxy_review_formset.management_form }}
             <div class="card-body">
-              <div class="card-band-row">Order Details</div>
+              <div class="card-band-row">Place an Offer</div>
               <p class="muted" style="margin-top:14px">
                 <strong>{{ offer_form_order.reference }}</strong> · {{ offer_form_order.route }} ·
+                Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg ·
                 Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
               </p>
-              <table class="invoice">
-                <tr>
-                  <td style="text-align:center"><strong>Product Name</strong></td>
-                  <td class="num-right"><strong>Qty</strong></td>
-                  <td class="num-right"><strong>Unit Cost ({{ offer_form_order.currency }})</strong></td>
-                </tr>
-                {% for f in proxy_review_formset %}
-                <tr>
-                  <td>{{ f.instance.name }}{{ f.id }}</td>
-                  <td class="num-right">{{ f.instance.quantity }}</td>
-                  <td class="num-right">{{ f.estimated_unit_cost }}{{ f.estimated_unit_cost.errors }}</td>
-                </tr>
-                {% endfor %}
-              </table>
-
-              <div class="form-field mt-2">
-                <label>Estimated weight of this package (kg)</label>
-                {{ proxy_review_form.estimated_weight_kg }}{{ proxy_review_form.estimated_weight_kg.errors }}
-                <p class="help">Shipment cost = this weight × your rate per kg.</p>
+              <div class="form-row">
+                <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
+                <div class="form-field"><label>Offer Weight (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}</div>
               </div>
               <div class="form-row">
-                <div class="form-field"><label>Your Rate per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
-                <div class="form-field"></div>
+                <div class="form-field">
+                  <label>From City</label>
+                  <div class="static-field muted">{{ offer_form_order.from_city }}</div>
+                  <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
+                </div>
+                <div class="form-field">
+                  <label>From Country</label>
+                  <div class="static-field muted">{{ offer_form_order.from_country }}</div>
+                  <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label>To City</label>
+                  <div class="static-field muted">{{ offer_form_order.to_city }}</div>
+                  <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
+                </div>
+                <div class="form-field">
+                  <label>To Country</label>
+                  <div class="static-field muted">{{ offer_form_order.to_country }}</div>
+                  <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
+                </div>
               </div>
               <div class="form-row">
                 <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
                 <div class="form-field"><label>Travel Time</label>{{ offer_form_obj.travel_time }}{{ offer_form_obj.travel_time.errors }}</div>
               </div>
-              <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
-              <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
-              <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
-              <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
-              <div class="form-field">
-                <label>Drop-off Address</label>{{ offer_form_obj.drop_off_address }}{{ offer_form_obj.drop_off_address.errors }}
-                <p class="help">Where the buyer should drop off the package — hidden from them until their deposit clears.</p>
-              </div>
               <div style="text-align:center;margin-top:12px">
-                <button class="btn btn-primary" type="submit">Submit Estimate</button>
+                <button class="btn btn-primary" type="submit">Submit Offer</button>
               </div>
-              <p class="help mt-2">Submitting locks this order to you (first-come-first-served). Withdraw your offer to release it.</p>
+              <p class="help mt-2">Submitting locks this cargo to you (first-come-first-served). Withdraw your offer to release it.</p>
             </div>
           </form>
           {% endif %}
@@ -490,6 +527,7 @@
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
           {% if role == "buyer" %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
+          {% if role == "buyer" and proxy_orders %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>

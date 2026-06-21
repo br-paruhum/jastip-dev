@@ -1,0 +1,143 @@
+{% load humanize money %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Invoice — {{ req.reference }}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Montserrat',Arial,sans-serif;color:#1a1a18;background:#fff;padding:28px}
+    .page{max-width:760px;margin:0 auto}
+    .no-print{margin-bottom:20px;display:flex;gap:12px;align-items:center}
+    .btn-print{background:#cc785c;color:#fff;border:0;padding:9px 22px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;letter-spacing:.02em}
+    .btn-back{color:#6b6660;font-size:14px;text-decoration:none}
+    .inv-title{font-size:18px;font-weight:700;text-align:center;letter-spacing:.06em;text-transform:uppercase;
+      border:2px solid #1a1a18;border-radius:8px;padding:12px;margin-bottom:20px}
+    .inv-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:20px;font-size:14px}
+    .inv-meta-label{font-weight:700;color:#6b6660;font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+    .inv-meta-val{white-space:pre-wrap;line-height:1.45}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:#f5f3ee;text-align:left;padding:8px 10px;border:1px solid #ccc;font-weight:600}
+    th.num,td.num{text-align:right}
+    td{padding:7px 10px;border:1px solid #ddd}
+    tr.subtotal td{font-weight:600;background:#faf9f6}
+    tr.total td{font-weight:700;background:#f5f3ee}
+    .footer-note{font-size:12px;color:#6b6660;margin-top:16px;border-top:1px solid #ddd;padding-top:12px;line-height:1.6}
+    @media print{
+      .no-print{display:none!important}
+      body{padding:12px}
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="no-print">
+    <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+
+  <div class="inv-title">Invoice</div>
+
+  <div class="inv-meta">
+    <div>
+      <div class="inv-meta-label">Billed To</div>
+      <div class="inv-meta-val">{{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}
+{{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}
+{{ req.buyer.buyer_destination_city }}{% endif %}</div>
+    </div>
+    <div>
+      <div class="inv-meta-label">Sourced By (Proxy Buyer)</div>
+      <div class="inv-meta-val">{% if req.proxy_buyer %}{{ req.proxy_buyer.name }} — {{ req.proxy_buyer.country }}{% else %}—{% endif %}</div>
+      <div class="inv-meta-label" style="margin-top:10px">Carried By</div>
+      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}</div>
+    </div>
+    <div>
+      <div class="inv-meta-label">Route</div>
+      <div class="inv-meta-val">{{ req.route }}</div>
+      <div class="inv-meta-label" style="margin-top:10px">Travel Date</div>
+      <div class="inv-meta-val">{% if req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.carry_offer %}{{ req.carry_offer.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
+    </div>
+    <div>
+      <div class="inv-meta-label">Reference</div>
+      <div class="inv-meta-val">{{ req.reference }}</div>
+      <div class="inv-meta-label" style="margin-top:10px">Order Date</div>
+      <div class="inv-meta-val">{{ req.created_at|date:"d-M-Y" }}</div>
+      <div class="inv-meta-label" style="margin-top:10px">Status</div>
+      <div class="inv-meta-val">{{ req.get_status_display }}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">Product Name</th>
+        <th class="num" colspan="2">Qty</th>
+        <th>Unit</th>
+        <th class="num" colspan="2">Unit Price ({{ req.currency }})</th>
+        <th class="num" colspan="2">Total ({{ req.currency }})</th>
+      </tr>
+      <tr>
+        <th class="num">Est</th><th class="num">Act</th><th></th>
+        <th class="num">Est</th><th class="num">Act</th>
+        <th class="num">Est</th><th class="num">Act</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in req.items.all %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td class="num">{{ item.quantity }}</td>
+        <td class="num">{{ item.actual_quantity }}</td>
+        <td>{{ item.unit }}</td>
+        <td class="num">{{ item.estimated_unit_cost|floatformat:0|intcomma }}</td>
+        <td class="num">{{ item.actual_unit_cost|floatformat:0|intcomma }}</td>
+        <td class="num">{{ item.estimated_line_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ item.actual_line_total|floatformat:0|intcomma }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="subtotal">
+        <td>Sub-Total Items</td>
+        <td class="num">{{ req.est_qty_total }}</td><td class="num">{{ req.act_qty_total }}</td>
+        <td></td><td></td><td></td>
+        <td class="num">{{ req.items_estimated_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.items_actual_total|floatformat:0|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>Margin{% if req.margin_percent %} ({{ req.margin_percent|floatformat:"-2" }}%){% endif %}</td>
+        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td class="num">{{ req.estimated_margin|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.actual_margin|floatformat:0|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>Shipment ({{ req.estimated_weight_kg|floatformat:1 }}{% if req.actual_weight_kg %} / {{ req.actual_weight_kg|floatformat:1 }}{% endif %} kg @ {{ req.effective_cost_per_kg|floatformat:0|intcomma }})</td>
+        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td class="num">{{ req.estimated_shipment_cost|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.shipment_cost|floatformat:0|intcomma }}</td>
+      </tr>
+      <tr>
+        <td>Custom Duty</td>
+        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td class="num">{{ req.estimated_custom|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.actual_custom|floatformat:0|intcomma }}</td>
+      </tr>
+      <tr class="total">
+        <td>Total Invoice</td>
+        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td class="num">{{ req.estimated_invoice_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.invoice_total|floatformat:0|intcomma }}</td>
+      </tr>
+      <tr><td colspan="7">Deposit Paid</td><td class="num">({{ req.deposit_paid_amount|floatformat:0|intcomma }})</td></tr>
+      <tr><td colspan="7">Balance Paid</td><td class="num">({{ req.balance_paid_amount|floatformat:0|intcomma }})</td></tr>
+      <tr class="total"><td colspan="7">Total Due / (Overpaid)</td><td class="num">{{ req.total_due|accounting:0 }}</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    All amounts are in {{ req.currency }}. Payment is settled in IDR (Indonesian Rupiah) at the buyer's bank
+    conversion rate. The Margin is the Proxy Buyer's sourcing fee; Shipment is the carrier's fee on the carried
+    weight; Custom Duty (if any) is reimbursed at actual cost. This invoice is issued for the buyer named above.
+  </div>
+
+</div>
+</body>
+</html>

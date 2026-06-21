@@ -1,0 +1,30 @@
+{% if proxy_buyers %}
+<div class="table-wrap">
+  <table class="offers offers-centered">
+    <thead>
+      <tr>
+        <th>Country</th>
+        <th>Margin</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pb in proxy_buyers %}
+      <tr>
+        <td style="text-align:center">{{ pb.country }}</td>
+        <td style="text-align:center">{{ pb.margin_range|default:"—" }}</td>
+        <td class="action-cell">
+          <a class="btn btn-primary btn-sm" href="{% url 'trips:order_create' %}?proxy={{ pb.id }}">Select</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="offers-notes">
+  <p class="notes-head">Notes:</p>
+  <p>Margin rate varies due to the session and type of products ordered.</p>
+</div>
+{% else %}
+<p class="text-center muted">{{ empty_msg }}</p>
+{% endif %}

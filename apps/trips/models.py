@@ -12,6 +12,7 @@ from django.utils.text import slugify
 
 from .constants import (
     ACTIVE_TX_STATUSES,
+    COUNTRY_CHOICES,
     OPEN_ORDER_STATUSES,
     OPEN_PLAN_STATUSES,
     STATUS_TONE,
@@ -223,6 +224,11 @@ class BuyRequest(ListingTimingMixin, models.Model):
         TravelPlan, on_delete=models.CASCADE, related_name="buy_requests", null=True, blank=True
     )
     buyer = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="buy_requests")
+    # Flow-1 (proxy buying): the admin-curated proxy buyer the buyer chose to
+    # source the products. Null for cargo orders and legacy/plan-first requests.
+    proxy_buyer = models.ForeignKey(
+        "ProxyBuyer", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders"
+    )
     reference = models.CharField(max_length=14, unique=True, editable=False, blank=True)
 
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUEST_RECEIVED)
@@ -250,6 +256,22 @@ class BuyRequest(ListingTimingMixin, models.Model):
         help_text="Buyer-first only: buyer already has the goods and needs a Carrier to "
                   "carry them (no proxy purchasing). False = Products Buyer; True = Cargo Buyer.",
     )
+    # Flow-1 (proxy buying): the proxy's markup on the products, set when they
+    # send their estimate. Drives the invoice Margin row, totals, and deposit.
+    proxy_margin_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=Decimal("0"),
+        help_text="Proxy buyer's margin % on the products (buyer-first Products only).",
+    )
+    # Proxy disbursement is split 50/50 as buyer protection: the first half is
+    # released when the traveler takes custody (handover), the second half only
+    # once the buyer CLEARS the package (pickup confirmed). The buyer carries the
+    # full goods-quality exposure, so we hold the proxy's other 50% until then.
+    proxy_first_disbursed_at = models.DateTimeField(null=True, blank=True)
+    proxy_second_disbursed_at = models.DateTimeField(null=True, blank=True)
+    # Flow-1 carrier payout actually released by admin (the carry fee + customs,
+    # less the platform fee). Set from the admin "mark paid" action, not the
+    # workflow — so the traveler's "Your Payout" status reflects real money out.
+    traveler_paid_at = models.DateTimeField(null=True, blank=True)
 
     # Estimated shipping weight of THIS package, set by the traveler at review.
     # Shipment cost is charged on this weight, not the plan's full capacity.
@@ -339,6 +361,20 @@ class BuyRequest(ListingTimingMixin, models.Model):
         return self.cargo_only
 
     @property
+    def is_proxy_buyer_first(self) -> bool:
+        """True for a Flow-1 order: a buyer-first Products order sourced by a
+        separate Proxy Buyer (NOT the traveler). The traveler only CARRIES the
+        goods, so for the traveler's economics this behaves exactly like cargo;
+        the product+margin is disbursed to the proxy instead."""
+        return self.plan_id is None and self.proxy_buyer_id is not None and not self.cargo_only
+
+    @property
+    def carrier_charges_carry_only(self) -> bool:
+        """The traveler is paid the carry fee (+ reimbursable customs) only — true
+        for cargo orders and for Flow-1 proxy orders (sourcing is the proxy's)."""
+        return self.is_cargo or self.is_proxy_buyer_first
+
+    @property
     def actor_label(self) -> str:
         """The buyer's type label for this order."""
         return "Cargo Buyer" if self.is_cargo else "Products Buyer"
@@ -363,7 +399,36 @@ class BuyRequest(ListingTimingMixin, models.Model):
         if self.plan_id:
             return self.plan.traveler
         legs = self.confirmed_legs
-        return legs[0].traveler if len(legs) == 1 else None
+        if len(legs) == 1:
+            return legs[0].traveler
+        # Flow-1 proxy order: no leg is created, but there's a single live offer.
+        live = [o for o in self.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+        return live[0].traveler if len(live) == 1 else None
+
+    @property
+    def chat_participants(self) -> list:
+        """Users in this order's message thread: the buyer, the traveler (plan's
+        or the Flow-1 live-offer's), and the assigned proxy buyer. Deduped, no
+        None. Admin oversight is handled separately."""
+        users = [self.buyer]
+        if self.plan_id:
+            users.append(self.plan.traveler)
+        else:
+            users.append(self.traveler_user)
+            if self.proxy_buyer_id:
+                users.append(self.proxy_buyer.user)
+        seen = []
+        for u in users:
+            if u and u not in seen:
+                seen.append(u)
+        return seen
+
+    def is_chat_participant(self, user) -> bool:
+        """True if `user` may read/post in this order's message thread."""
+        if not user or not user.is_authenticated:
+            return False
+        return any(user.id == p.id for p in self.chat_participants)
 
     @property
     def effective_cost_per_kg(self) -> Decimal:
@@ -547,6 +612,13 @@ class BuyRequest(ListingTimingMixin, models.Model):
     def buyer_status_display(self) -> str:
         """Status label shown to the buyer — differs from the traveler's label
         for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
+        # Proxy (Flow-1) order: the buyer is waiting on the proxy's estimate, not
+        # a traveler offer.
+        if not self.is_cargo and self.plan_id is None:
+            if self.status == Status.OPEN:
+                return "Awaiting for Estimate"
+            if self.status == Status.ACCEPTED:
+                return "W/f Deposit Verification" if self.deposit_pending else "Deposit Due"
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
         return self._cargo_status_label() or self._BUYER_STATUS_LABELS.get(
@@ -561,9 +633,18 @@ class BuyRequest(ListingTimingMixin, models.Model):
         return self._cargo_status_label() or self.get_status_display()
 
     def _items_purchased_date_label(self) -> str:
-        """'Package Ready' before travel date, 'Package Carried' on/after."""
+        """'Package Ready' before travel date, 'Package Carried' on/after. For
+        buyer-first orders the travel date lives on the live traveler offer (no
+        plan); fall back to 'Package Ready' if none is set yet."""
         today = timezone.now().date()
-        return "Package Carried" if today >= self.plan.travel_date else "Package Ready"
+        if self.plan_id:
+            travel_date = self.plan.travel_date
+        else:
+            offer = self.traveler_offers.filter(
+                offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+            ).first()
+            travel_date = offer.travel_date if offer else None
+        return "Package Carried" if travel_date and today >= travel_date else "Package Ready"
 
     # --- Money ---
     @property
@@ -588,6 +669,16 @@ class BuyRequest(ListingTimingMixin, models.Model):
                 if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
         return live[0].traveler if len(live) == 1 else None
 
+    @property
+    def carry_offer(self):
+        """The single live (pending/selected) carry offer for a buyer-first
+        proxy order — the source of the travel date/route on the invoice."""
+        if self.plan_id:
+            return None
+        live = [o for o in self.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
+        return live[0] if len(live) == 1 else None
+
     def _idr_equivalent(self, amount: Decimal) -> "Decimal | None":
         """Convert a foreign-currency amount to IDR using the BCA TT Counter
         sell rate. Returns None when currency is already IDR or no active
@@ -609,6 +700,93 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def unpaid_amount_idr(self) -> "Decimal | None":
         return self._idr_equivalent(self.unpaid_amount)
+
+    def _amount_in(self, amount: Decimal, target: str) -> "Decimal | None":
+        """Convert an amount from this order's (origin) currency to `target`,
+        cross-rated through IDR via the BCA sell rate (sell_rate = IDR per 1
+        foreign unit). Returns None when `target` equals the order currency or a
+        needed rate is missing, so a template can simply hide the second line."""
+        src = self.currency
+        if amount is None or not target or target == src:
+            return None
+        amt = Decimal(amount)
+        # 1) origin currency -> IDR
+        if src == Currency.IDR:
+            idr = amt
+        else:
+            rate = ExchangeRate.objects.filter(code=src, is_active=True).first()
+            if not rate or not rate.sell_rate:
+                return None
+            idr = amt * rate.sell_rate
+        # 2) IDR -> target currency
+        if target == Currency.IDR:
+            return idr.quantize(TWO_PLACES)
+        rate = ExchangeRate.objects.filter(code=target, is_active=True).first()
+        if not rate or not rate.sell_rate:
+            return None
+        return (idr / rate.sell_rate).quantize(TWO_PLACES)
+
+    def _settlement(self, amount: Decimal) -> dict:
+        """The buyer always settles in IDR (the platform holds one IDR account).
+        Returns what to charge plus a foreign-currency figure shown for the
+        buyer's reference only — they convert at their bank and still pay in IDR:
+          idr        — amount to actually transfer (Decimal, IDR)
+          ref_ccy    — foreign currency code for the reference line ("" if none)
+          ref_amount — that foreign equivalent (Decimal) or None
+        The reference is the order's own currency when it's foreign; otherwise the
+        destination-country currency, so an IDR-origin order still hints the
+        buyer's local cost (e.g. EUR for a German buyer)."""
+        if self.currency == Currency.IDR:
+            ref = self._amount_in(amount, self.destination_currency)
+            return {"idr": amount,
+                    "ref_ccy": self.destination_currency if ref is not None else "",
+                    "ref_amount": ref}
+        idr = self._idr_equivalent(amount)
+        return {"idr": idr if idr is not None else amount,
+                "ref_ccy": self.currency, "ref_amount": amount}
+
+    @property
+    def deposit_settlement(self) -> dict:
+        return self._settlement(self.deposit_due)
+
+    @property
+    def balance_settlement(self) -> dict:
+        return self._settlement(self.balance_extra_due)
+
+    @property
+    def traveler_payout_ready(self) -> bool:
+        """Flow-1 (buyer-first proxy): the carrier's payout figures are final once
+        the order has arrived — the offer never enters the leg lifecycle, so the
+        offer-level `payout_ready` (leg_status-based) stays False here."""
+        return self.is_proxy_buyer_first and self.status in {
+            Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.RESHIP_REQUESTED,
+            Status.RESHIP_COST_SENT, Status.RESHIPPING, Status.CLEAR, Status.CLOSED,
+        }
+
+    # --- Flow-1 disbursement eligibility (admin releases the actual money) ----
+    # The proxy's 1st 50% becomes payable once the traveler takes custody
+    # (handover); the 2nd 50% and the carrier payout only once the buyer clears.
+    _POST_HANDOVER_STATUSES = {
+        Status.PACKAGE_RECEIVED, Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
+        Status.RESHIP_REQUESTED, Status.RESHIP_COST_SENT, Status.RESHIPPING,
+        Status.CLEAR, Status.CLOSED,
+    }
+    _CLEARED_STATUSES = {Status.CLEAR, Status.CLOSED}
+
+    @property
+    def proxy_first_disbursable(self) -> bool:
+        """1st 50% is eligible to release (handover done), not necessarily paid."""
+        return self.is_proxy_buyer_first and self.status in self._POST_HANDOVER_STATUSES
+
+    @property
+    def proxy_second_disbursable(self) -> bool:
+        """2nd 50% is eligible to release (buyer cleared), not necessarily paid."""
+        return self.is_proxy_buyer_first and self.status in self._CLEARED_STATUSES
+
+    @property
+    def traveler_payout_disbursable(self) -> bool:
+        """Carrier payout is eligible to release (buyer cleared), not yet paid."""
+        return self.is_proxy_buyer_first and self.status in self._CLEARED_STATUSES
 
     def _q(self, value: Decimal) -> Decimal:
         return Decimal(value).quantize(TWO_PLACES)
@@ -673,19 +851,24 @@ class BuyRequest(ListingTimingMixin, models.Model):
         return sum(i.actual_quantity for i in self.items.all())
 
     # --- Margin (Est on estimated items, Act on actual items) ---
-    # Buyer-first orders have no margin: the buyer already owns the items, so
-    # there's no item markup — jastip's fee is entirely in the per-kg rate.
+    # Plan-first proxy buying applies the plan's margin %. Buyer-first Products
+    # (Flow-1) applies the proxy buyer's per-order margin %. Cargo orders have no
+    # margin (proxy_margin_percent stays 0).
+    @property
+    def margin_percent(self) -> Decimal:
+        """The margin rate applied to this order's products: the plan's rate for
+        plan-first proxy buying, else the proxy buyer's per-order rate (Flow-1).
+        Cargo orders have no margin (0)."""
+        return self.plan.margin_percent if self.plan_id else self.proxy_margin_percent
+
     @property
     def estimated_margin(self) -> Decimal:
-        if not self.plan_id:
-            return Decimal("0.00")
-        return self._q(self.items_estimated_total * self.plan.margin_percent / Decimal("100"))
+        pct = self.margin_percent
+        return self._q(self.items_estimated_total * pct / Decimal("100"))
 
     @property
     def actual_margin(self) -> Decimal:
-        if not self.plan_id:
-            return Decimal("0.00")
-        return self._q(self.items_actual_total * self.plan.margin_percent / Decimal("100"))
+        return self._q(self.items_actual_total * self.margin_percent / Decimal("100"))
 
     # Backwards-compatible alias (actual margin drives the live invoice/payout).
     @property
@@ -761,9 +944,11 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def deposit_due(self) -> Decimal:
-        """Deposit fixed at acceptance. Cargo (Carrier) = the full carry fee
-        (weight × rate) — the traveler buys nothing. Proxy buying = ((estimated
-        items + margin) × 50%) + estimated shipment."""
+        """Deposit fixed at acceptance (1st of 2 payments). Cargo (Carrier) = the
+        full carry fee (weight × rate) — the traveler buys nothing. Proxy buying
+        (Flow-1) = 50% of estimated products + margin, PLUS 100% of the estimated
+        shipment cost. The remaining 50% of products + margin and the customs duty
+        are settled in the single arrival balance."""
         if self.is_cargo:
             return self.estimated_shipment_cost
         return self._q(
@@ -811,6 +996,66 @@ class BuyRequest(ListingTimingMixin, models.Model):
         """Overpaid amount to refund the buyer at arrival (0 if none)."""
         b = self.balance_due_now
         return -b if b < 0 else Decimal("0.00")
+
+    # --- Proxy buyer disbursement (Flow-1) -------------------------------------
+    # The proxy fronted 100% of the product cost and earns the margin. The
+    # platform disburses (products + margin − fee) to them, but holds it back as
+    # buyer protection: 50% at handover, 50% at buyer clear.
+    @property
+    def proxy_gross(self) -> Decimal:
+        """What the proxy is owed before the platform fee: actual products + margin."""
+        return self._q(self.items_actual_total + self.actual_margin)
+
+    @property
+    def proxy_commission(self) -> Decimal:
+        """Platform fee withheld from the proxy's disbursement (same 2.5% rate as
+        the traveler's carry fee)."""
+        pct = Decimal(str(settings.PLATFORM_COMMISSION_PERCENT))
+        return self._q(self.proxy_gross * pct / Decimal("100"))
+
+    @property
+    def proxy_disbursement_total(self) -> Decimal:
+        """Net amount the platform pays the proxy across both halves."""
+        return self._q(self.proxy_gross - self.proxy_commission)
+
+    @property
+    def proxy_disbursement_first_half(self) -> Decimal:
+        """Released to the proxy when the traveler takes custody (handover)."""
+        return self._q(self.proxy_disbursement_total * Decimal("0.5"))
+
+    @property
+    def proxy_disbursement_second_half(self) -> Decimal:
+        """Held until the buyer clears the package; remainder after the first half."""
+        return self._q(self.proxy_disbursement_total - self.proxy_disbursement_first_half)
+
+    @property
+    def proxy_disbursed_amount(self) -> Decimal:
+        """How much of the disbursement has actually been released so far."""
+        total = Decimal("0.00")
+        if self.proxy_first_disbursed_at:
+            total += self.proxy_disbursement_first_half
+        if self.proxy_second_disbursed_at:
+            total += self.proxy_disbursement_second_half
+        return self._q(total)
+
+    @property
+    def proxy_actuals_editable(self) -> bool:
+        """The proxy may enter actual costs at Deposit Paid and keep revising them
+        at Package Ready, until they hand the goods to the traveler (Package
+        Received). After handover the cost is fixed — it drives the buyer's arrival
+        balance."""
+        return self.is_proxy_buyer_first and self.status in {
+            Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED,
+        }
+
+    @property
+    def customs_phase(self) -> bool:
+        """Flow-1: the goods are purchased and being carried, so the customs
+        invoice is now meaningful for the traveler (to declare at the border)."""
+        return self.is_proxy_buyer_first and self.status in {
+            Status.ITEMS_PURCHASED, Status.PACKAGE_RECEIVED,
+            Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.CLEAR,
+        }
 
     @property
     def invoice_unpaid_overpaid(self) -> Decimal:
@@ -1050,10 +1295,14 @@ class TravelerOffer(models.Model):
 
     @property
     def can_edit(self) -> bool:
-        """Traveler may edit/withdraw their offer only while it's still pending
-        (the buyer hasn't selected it) and the order isn't within 24h of its
-        offer deadline."""
-        return self.offer_status == OfferStatus.PENDING and not self.order.listing_locked
+        """Traveler may edit/withdraw their offer only while it's still pending AND
+        the order is still accepting offers, and not within 24h of the deadline.
+        Flow-1 proxy offers stay PENDING through the whole carry flow (no leg is
+        selected), so the order-status check is what stops Edit/Cancel showing
+        once the buyer has accepted."""
+        return (self.offer_status == OfferStatus.PENDING
+                and self.order.status in OPEN_ORDER_STATUSES
+                and not self.order.listing_locked)
 
     @property
     def deposit_due(self) -> Decimal:
@@ -1470,8 +1719,10 @@ class Transaction(models.Model):
     def commission_amount(self) -> Decimal:
         """Platform fee: 2.5%, deducted once at closing. Cargo (Carrier) charges
         it on the carry fee only — the reimbursed customs duty is a pass-through.
-        Proxy buying charges it on the full invoice."""
-        base = self.request.effective_shipment_cost if self.request.is_cargo else self.request.invoice_total
+        For Flow-1 proxy orders the traveler only carries, so their fee is on the
+        carry fee too (the proxy's product+margin fee is withheld separately)."""
+        base = (self.request.effective_shipment_cost
+                if self.request.carrier_charges_carry_only else self.request.invoice_total)
         return (base * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
 
     @property
@@ -1480,9 +1731,12 @@ class Transaction(models.Model):
         cleared), minus the 2.5% platform fee. Cargo (Carrier): carry fee +
         reimbursed customs, fee on the carry fee only. Proxy buying: the full
         invoice (items + margin + shipment + custom fare). The deposit is only
-        held by admin meanwhile — there is no payout before closing.
+        held by admin meanwhile — there is no payout before closing. Flow-1 proxy
+        orders pay the traveler the carry fee + reimbursed customs only; the
+        product+margin is disbursed to the proxy buyer separately.
         """
-        gross = self.request.cargo_charge_total if self.request.is_cargo else self.request.invoice_total
+        gross = (self.request.cargo_charge_total
+                 if self.request.carrier_charges_carry_only else self.request.invoice_total)
         return (gross - self.commission_amount).quantize(TWO_PLACES)
 
     @property
@@ -1597,6 +1851,46 @@ class ExchangeRate(models.Model):
         return mapping
 
 
+class ProxyBuyer(models.Model):
+    """An admin-curated proxy buyer who sources & purchases products in an origin
+    country (they do NOT travel — carriage is a separate traveler). A fixed list,
+    approved by admin, no self-signup/verification. One per country for launch,
+    but the schema allows several per country later (no DB uniqueness on country).
+    The Product Buyer picks one of these to start a Flow-1 (proxy buying) order."""
+
+    name = models.CharField(max_length=120)
+    country = models.CharField(max_length=80, choices=COUNTRY_CHOICES)
+    margin_range = models.CharField(
+        max_length=20, blank=True,
+        help_text="Indicative margin shown publicly, e.g. \"15-25%\". Free text — "
+                  "the actual margin is set per order on the proxy's estimate.",
+    )
+    email = models.EmailField()
+    whatsapp = models.CharField(max_length=32, blank=True)
+    # Optional link to a real Buyer account (logins as a Buyer); curated entries
+    # may exist before/without an account.
+    user = models.ForeignKey(
+        USER, on_delete=models.SET_NULL, null=True, blank=True, related_name="proxy_buyer_profiles"
+    )
+    is_active = models.BooleanField(default=True)
+    sequence = models.PositiveSmallIntegerField(default=0, help_text="Lower = shown first.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sequence", "country", "name"]
+        verbose_name = "Proxy Buyer"
+        verbose_name_plural = "Proxy Buyers"
+
+    def __str__(self):
+        return f"{self.name} — {self.country}"
+
+    @property
+    def whatsapp_link(self):
+        """wa.me link from the stored number (digits only)."""
+        digits = "".join(ch for ch in self.whatsapp if ch.isdigit())
+        return f"https://wa.me/{digits}" if digits else ""
+
+
 class Message(models.Model):
     """A chat message between the buyer and traveler on a request (admin can
     read all threads for oversight)."""
@@ -1617,6 +1911,9 @@ class Message(models.Model):
     def role_for(self, request_obj) -> str:
         if self.sender_id == request_obj.buyer_id:
             return "Buyer"
-        if self.sender_id == request_obj.plan.traveler_id:
+        if request_obj.proxy_buyer_id and self.sender_id == request_obj.proxy_buyer.user_id:
+            return "Proxy Buyer"
+        traveler = request_obj.traveler_user
+        if traveler and self.sender_id == traveler.id:
             return "Traveler"
         return "Admin"
