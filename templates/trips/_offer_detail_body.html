@@ -48,7 +48,6 @@
     <tr><td>Route</td><td class="num-right">{{ leg_offer.route }}</td></tr>
     <tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
-    <tr><td>Your Total Offer</td><td class="num-right">{{ leg_offer.avail_kg|floatformat:"-1" }} kg</td></tr>
   </table>
 </div></div>
 
@@ -74,7 +73,7 @@
 
 {% if leg_offer.order.traveler_payout_ready and leg_offer.order.transaction %}
 <details class="card fold mt-2" open>
-  <summary><h3>Your Payout</h3></summary>
+  <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="max-width:440px">
     <tr><td>Carry fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|floatformat:0|intcomma }}</td></tr>

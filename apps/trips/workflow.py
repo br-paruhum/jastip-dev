@@ -286,15 +286,6 @@ def on_request_rejected(request_obj, reason=""):
 def on_deposit_verified(request_obj):
     """Step 4: admin verified the deposit -> funds forwarded to traveler."""
     _set_status(request_obj, Status.DEPOSIT_PAID, sync_plan=bool(request_obj.plan_id))
-    # Flow-1: the deposit is verified, so the proxy cargo is locked — deduct its
-    # weight from the traveler's spare-baggage plan (already advertised at offer
-    # time), dropping its available figure.
-    if not request_obj.is_cargo and request_obj.proxy_buyer_id and request_obj.plan_id is None:
-        offer = request_obj.traveler_offers.filter(
-            offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
-        ).first()
-        if offer:
-            lock_proxy_cargo_on_plan(request_obj, offer)
     traveler = _order_traveler(request_obj)
     if traveler:
         send_email(

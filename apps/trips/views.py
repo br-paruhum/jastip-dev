@@ -440,24 +440,12 @@ def offer_create(request, order_id):
     form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
     if form.is_valid():
         offer = form.save(commit=False)
-        # Flow-1: the offered figure is the traveler's TOTAL baggage capacity; it
-        # must at least cover this order's estimated weight (the rest is spare
-        # baggage advertised on the home board straight away).
-        if not order.is_cargo and order.estimated_weight_kg and offer.avail_kg < order.estimated_weight_kg:
-            messages.error(request, f"Your total baggage capacity must be at least the order's "
-                                    f"estimated weight ({order.estimated_weight_kg:g} kg).")
-            return redirect(dashboard_url + f"?offer={order_id}#offer-form")
         with db_transaction.atomic():
             offer.order = order
             offer.traveler = request.user
             offer.pickup_address = request.user.traveler_address
             offer.save()
             order.recompute_status()
-            # Flow-1: the carry offer is the traveler's trip declaration —
-            # advertise their full capacity as spare baggage immediately (the
-            # proxy cargo is deducted only once the deposit is verified).
-            if not order.is_cargo:
-                workflow.spawn_spare_baggage_plan(order, offer)
         workflow.on_offer_submitted(order, offer)
         messages.success(request, "Offer submitted. The buyer will review it.")
         return redirect(dashboard_url + "#travel-plans")
@@ -591,12 +579,6 @@ def proxy_purchase(request, order_id):
                 upd.append("purchased_at")
             if upd:
                 item.save(update_fields=upd)
-        # Sync the spare-baggage reservation to the actual weight (board Avail).
-        live_offer = order.traveler_offers.filter(
-            offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
-        ).first()
-        if live_offer:
-            workflow.lock_proxy_cargo_on_plan(order, live_offer)
         workflow.on_items_purchased(order)
         messages.success(request, "Package marked ready. The buyer will pay the remaining balance.")
         return redirect(detail)
@@ -1402,14 +1384,6 @@ def request_receive(request, pk):
             messages.error(request, "Enter the measured package weight (kg) before confirming receipt.")
             return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
         form.save()
-        # Proxy flow: the traveler's confirmed weight is final — re-sync the
-        # spare-baggage board reservation to it.
-        if req.is_proxy_buyer_first:
-            live_offer = req.traveler_offers.filter(
-                offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
-            ).first()
-            if live_offer:
-                workflow.lock_proxy_cargo_on_plan(req, live_offer)
         on_received(req)
         messages.success(request, "Package received — custody confirmed. The buyer has been notified.")
         return _traveler_invoice_redirect(req)

@@ -420,7 +420,11 @@ def profile(request):
                     offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
                 ).exists():
                     offer_form_order = _offer_order
-                    offer_form_obj = TravelerCargoOfferForm(initial=route_initial)
+                    # Offer weight defaults to the order's weight — the traveler
+                    # carries exactly the buyer's cargo (no spare-baggage upsell).
+                    offer_form_obj = TravelerCargoOfferForm(
+                        initial={**route_initial, "avail_kg": _offer_order.estimated_weight_kg}
+                    )
 
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None

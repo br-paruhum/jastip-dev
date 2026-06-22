@@ -17,8 +17,6 @@
       <div class="hero-cta">
         <a href="#proxy-buyers" class="btn btn-primary">Find a Proxy</a>
         <a href="#looking-for-traveler" class="btn btn-outline btn-buy">Find a Carrier</a>
-        <span class="hero-or" style="align-self:center;color:var(--muted);font-weight:600;padding:0 2px">or</span>
-        <a href="#looking-for-cargo" class="btn btn-outline btn-buy">Find Spare Baggage Buyer</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -51,19 +49,6 @@
       <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
     </div>
     {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No cargo looking for a traveler right now." %}
-  </div>
-</section>
-
-<!-- Board 2: Looking for Cargo — posted trips with spare capacity to fill -->
-<section class="section-cream" id="looking-for-cargo">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Traveler Starts Here</span>
-      <h2>Looking for Spare Baggage Buyer</h2>
-      <p>Find buyer for your spare baggage.</p>
-      <a href="{% url 'trips:plan_create' %}" class="btn btn-primary btn-sm">Post a Travel Plan</a>
-    </div>
-    {% include "pages/_home_looking_for_cargo_table.html" with looking_for_cargo=looking_for_cargo empty_msg="No trips looking for cargo right now." %}
   </div>
 </section>
 

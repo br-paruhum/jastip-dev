@@ -455,7 +455,7 @@
               <div class="form-row">
                 <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
                 <div class="form-field"><label>Offer Weight (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}
-                  <p class="help">Your total baggage capacity (≥ this order's est. {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg). It's advertised as spare baggage as soon as you offer; this order's weight is held for the buyer (so the board shows the rest as available) and is released if they don't book within 24h.</p></div>
+                  <p class="help">Pre-filled with the buyer's estimated cargo weight ({{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg) — the weight you'll carry for this order. Adjust if needed.</p></div>
               </div>
               <div class="form-row">
                 <div class="form-field">

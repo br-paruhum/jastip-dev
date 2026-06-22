@@ -126,9 +126,11 @@
         <td class="num">{{ req.estimated_invoice_total|floatformat:0|intcomma }}</td>
         <td class="num">{{ req.invoice_total|floatformat:0|intcomma }}</td>
       </tr>
+      <tr><td colspan="7">Deposit Due</td><td class="num">{{ req.deposit_due|floatformat:0|intcomma }}</td></tr>
       <tr><td colspan="7">Deposit Paid</td><td class="num">({{ req.deposit_paid_amount|floatformat:0|intcomma }})</td></tr>
-      <tr><td colspan="7">Balance Paid</td><td class="num">({{ req.balance_paid_amount|floatformat:0|intcomma }})</td></tr>
-      <tr class="total"><td colspan="7">Total Due / (Overpaid)</td><td class="num">{{ req.total_due|accounting:0 }}</td></tr>
+      <tr class="total"><td colspan="7">Unpaid / (Overpaid)</td><td class="num">{{ req.invoice_unpaid_overpaid|accounting:0 }}</td></tr>
+      <tr><td colspan="7">Final (Payment)/Refund Made</td><td class="num">{{ req.final_settlement|accounting:0 }}</td></tr>
+      <tr class="total"><td colspan="7">Total Due</td><td class="num">{{ req.total_due|accounting:0 }}</td></tr>
     </tbody>
   </table>
 
