@@ -1,18 +1,17 @@
 {% load humanize money %}
-<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-  <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
-  {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {% include "trips/_status_badge.html" with label=is_order_proxy|yesno:"Estimate Sent,Estimate Received" tone="info" %}
-  {% elif not bf_order.is_cargo and bf_order.status == "open" %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
-  {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
-    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"W/f Deposit Verification,Deposit Due" tone="info" %}
-  {% else %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
-  {% endif %}
-</div>
-
-<div class="card mt-2"><div class="card-body">
+<div class="card"><div class="card-body">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
+    {% if not bf_order.is_cargo and bf_order.status == "responded" %}
+      {% include "trips/_status_badge.html" with label=is_order_proxy|yesno:"Estimate Sent,Estimate Received" tone="info" %}
+    {% elif not bf_order.is_cargo and bf_order.status == "open" %}
+      {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
+    {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
+      {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"W/f Deposit Verification,Deposit Due" tone="info" %}
+    {% else %}
+      {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
+    {% endif %}
+  </div>
   <table class="invoice">
     <tr class="title-band"><td colspan="2">Order Details</td></tr>
     {% if bf_order.is_cargo %}<tr><td>Type</td><td class="num-right">{{ bf_order.actor_label }}</td></tr>{% endif %}
@@ -27,14 +26,6 @@
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
   </table>
 </div></div>
-
-<!-- Payment Terms (foldable, closed by default) — editable in admin: Site Settings -->
-<details class="card fold mt-2">
-  <summary><h3>Payment Terms</h3></summary>
-  <div class="fold-body">
-    {% if bf_order.is_cargo %}{{ PAYMENT_TERM_CARRIER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}
-  </div>
-</details>
 
 {% if bf_order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
@@ -138,9 +129,16 @@
     </tbody>
   </table>
   </div>
-  <span class="help">&nbsp;&nbsp;&nbsp;* Deposit Due is 50% of the estimated products + margin, plus 100% of the estimated shipment cost. The balance — the remaining 50% of products + margin, any shipment adjustment, and customs — is settled on arrival.</span>
 </div></div>
 {% endif %}
+
+<!-- Payment Terms (foldable, closed by default) — editable in admin: Site Settings -->
+<details class="card fold mt-2">
+  <summary><h3>Payment Terms</h3></summary>
+  <div class="fold-body">
+    {% if bf_order.is_cargo %}{{ PAYMENT_TERM_CARRIER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}
+  </div>
+</details>
 
 <details class="card fold mt-2" open>
   <summary><h3>Notes</h3></summary>
