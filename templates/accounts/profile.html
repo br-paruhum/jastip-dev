@@ -526,7 +526,7 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
-          {% if role == "buyer" %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
+          {% if role == "buyer" and not proxy_orders %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
           {% if role == "buyer" and proxy_orders %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
@@ -559,7 +559,9 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     var beside = getComputedStyle(layout).flexDirection === 'row';
     var vis = null;
     panels.forEach(function (p) { if (p.style.display !== 'none') vis = p; });
-    var card = beside && vis ? vis.querySelector('.card') : null;
+    // Align to the first content block — a card, or a bare table (the proxy
+    // orders panel leads with a heading + table, no card wrapper).
+    var card = beside && vis ? vis.querySelector('.card, .table-wrap') : null;
     if (card) {
       var off = card.getBoundingClientRect().top - vis.getBoundingClientRect().top;
       side.style.marginTop = off > 1 ? Math.round(off) + 'px' : '';

@@ -9,7 +9,7 @@ Context: `role`; optional `proxy_orders` (gates "My Proxy Buying"); optional
   <ul class="side-nav">
     <li><a href="{% url 'accounts:profile' %}#profile"{% if active_nav == "profile" %} class="active"{% endif %}>My Profile</a></li>
     {% if role == "traveler" %}<li><a href="{% url 'accounts:profile' %}#travel-plans"{% if active_nav == "travel-plans" %} class="active"{% endif %}>My Travel Plans</a></li>{% endif %}
-    {% if role == "buyer" %}<li><a href="{% url 'accounts:profile' %}#my-orders"{% if active_nav == "my-orders" %} class="active"{% endif %}>My Orders</a></li>{% endif %}
+    {% if role == "buyer" and not proxy_orders %}<li><a href="{% url 'accounts:profile' %}#my-orders"{% if active_nav == "my-orders" %} class="active"{% endif %}>My Orders</a></li>{% endif %}
     {% if role == "buyer" and proxy_orders %}<li><a href="{% url 'accounts:profile' %}#proxy-orders"{% if active_nav == "proxy-orders" %} class="active"{% endif %}>My Proxy Buying</a></li>{% endif %}
     <li><a href="{% url 'accounts:profile' %}#reset-password"{% if active_nav == "reset-password" %} class="active"{% endif %}>Reset Password</a></li>
   </ul>
