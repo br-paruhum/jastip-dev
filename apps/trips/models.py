@@ -74,6 +74,14 @@ class TravelPlan(ListingTimingMixin, models.Model):
     to_country = models.CharField(max_length=80)
 
     available_weight_kg = models.DecimalField(max_digits=6, decimal_places=2)
+    # Weight already committed when this plan was auto-spawned from an accepted
+    # Flow-1 carry offer (the proxy cargo the traveler agreed to carry). That
+    # cargo runs through its own offer lifecycle, NOT as a buy_request on this
+    # plan, so we record its weight here and subtract it from the spare capacity.
+    prebooked_weight_kg = models.DecimalField(
+        max_digits=6, decimal_places=2, default=Decimal("0"),
+        help_text="Capacity already taken by the proxy cargo this plan was spawned from.",
+    )
     shipment_currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.IDR)
     shipment_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
     margin_percent = models.DecimalField(
@@ -85,6 +93,13 @@ class TravelPlan(ListingTimingMixin, models.Model):
         help_text="Traveler only carries luggage space — not willing to act as a proxy buyer.",
     )
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.NEW)
+    # The accepted Flow-1 carry offer that auto-created this plan (if any), so a
+    # traveler's surplus capacity is advertised as spare baggage. One offer
+    # spawns at most one plan.
+    origin_offer = models.OneToOneField(
+        "TravelerOffer", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="spawned_plan",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -148,7 +163,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
             [r for r in self.buy_requests.all() if r.status not in excluded],
             key=lambda r: r.created_at,
         )
-        running = self.available_weight_kg
+        running = self.available_weight_kg - self.prebooked_weight_kg
         result = []
         for req in ordered:
             avail = running.quantize(TWO_PLACES)
@@ -215,8 +230,10 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
     @property
     def remaining_weight_kg(self) -> Decimal:
-        """Spare weight still available to fill (never negative for display)."""
-        remaining = self.available_weight_kg - self.utilized_weight_kg
+        """Spare weight still available to fill (never negative for display).
+        Surplus = total capacity − pre-booked proxy cargo − weight taken by
+        buyers who have joined this plan."""
+        remaining = self.available_weight_kg - self.prebooked_weight_kg - self.utilized_weight_kg
         return remaining if remaining > 0 else Decimal("0").quantize(TWO_PLACES)
 
 

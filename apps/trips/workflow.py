@@ -107,6 +107,33 @@ def _notify_proxy(order, *, subject, template, ctx, event):
                       text="ProxyBuying: Please see your email.", event=event)
 
 
+def spawn_spare_baggage_plan(order, offer):
+    """Flow-1: when the buyer accepts a traveler's carry offer, the traveler is
+    committed to this trip — so auto-create a carrier-only TravelPlan advertising
+    their surplus capacity (offer.avail_kg total, less this order's estimated
+    weight) on the home "Looking for Spare Baggage Buyer" board, where OTHER
+    buyers can book the remainder via the normal plan-first flow ("one traveler,
+    many buyers"). Idempotent: one offer spawns at most one plan."""
+    from decimal import Decimal
+    from .models import TravelPlan
+    if getattr(offer, "spawned_plan", None) is not None:
+        return offer.spawned_plan
+    return TravelPlan.objects.create(
+        traveler=offer.traveler,
+        travel_date=offer.travel_date,
+        travel_time=offer.travel_time,
+        from_city=offer.from_city, from_country=offer.from_country,
+        to_city=offer.to_city, to_country=offer.to_country,
+        available_weight_kg=offer.avail_kg,
+        prebooked_weight_kg=order.estimated_weight_kg or Decimal("0"),
+        shipment_cost_per_kg=offer.ask_cost_per_kg,
+        shipment_currency=order.currency,
+        carrier_only=True,
+        status=Status.NEW,
+        origin_offer=offer,
+    )
+
+
 def on_proxy_offer_accepted(order, offer):
     """Flow-1 step 8: buyer accepted the traveler's shipment cost -> notify the
     traveler (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""
