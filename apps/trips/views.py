@@ -575,11 +575,22 @@ def proxy_purchase(request, order_id):
     formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order)
     if form.is_valid() and formset.is_valid():
         form.save()  # actual_weight_kg
-        items = formset.save(commit=False)
-        for item in items:
+        formset.save()  # persist any actual costs/qty the proxy entered
+        # Default any blank actuals to the estimate — the proxy bought as ordered,
+        # so the invoice's Actual column is always populated.
+        for item in order.items.all():
+            upd = []
+            if not item.actual_unit_cost:
+                item.actual_unit_cost = item.estimated_unit_cost
+                upd.append("actual_unit_cost")
+            if not item.actual_quantity:
+                item.actual_quantity = item.quantity
+                upd.append("actual_quantity")
             if item.actual_unit_cost and not item.purchased_at:
                 item.purchased_at = timezone.now()
-            item.save()
+                upd.append("purchased_at")
+            if upd:
+                item.save(update_fields=upd)
         # Sync the spare-baggage reservation to the actual weight (board Avail).
         live_offer = order.traveler_offers.filter(
             offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
