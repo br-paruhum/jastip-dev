@@ -296,6 +296,7 @@ def order_create(request):
                     order.proxy_buyer = proxy
                     order.cargo_only = False
                     order.from_country = proxy.country
+                    order.from_city = proxy.city
                 order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
@@ -325,7 +326,10 @@ def order_create(request):
     else:
         form = OrderForm(proxy=proxy)
         formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
-    return render(request, "trips/order_form.html", {"form": form, "formset": formset, "proxy": proxy})
+    from apps.accounts.views import _resolve_role
+    return render(request, "trips/order_form.html",
+                  {"form": form, "formset": formset, "proxy": proxy,
+                   "role": _resolve_role(request)})
 
 
 # --- Buyer: edit / cancel a buyer-first order before any offer -------------
@@ -351,6 +355,7 @@ def order_edit(request, pk):
                 if proxy is not None:
                     order.cargo_only = False
                     order.from_country = proxy.country
+                    order.from_city = proxy.city
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
                 formset.save()
@@ -380,8 +385,10 @@ def order_edit(request, pk):
     else:
         form = OrderForm(instance=order, proxy=proxy)
         formset = OrderItemFormSet(instance=order, prefix="bf_items")
+    from apps.accounts.views import _resolve_role
     return render(request, "trips/order_form.html",
-                  {"form": form, "formset": formset, "is_edit": True, "order": order, "proxy": proxy})
+                  {"form": form, "formset": formset, "is_edit": True, "order": order,
+                   "proxy": proxy, "role": _resolve_role(request)})
 
 
 @profile_required

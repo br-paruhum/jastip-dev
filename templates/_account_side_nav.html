@@ -1,0 +1,15 @@
+{% comment %}
+Reusable right-hand account sidebar — the same nav the buyer/traveler sees on
+the dashboard, but with links that navigate back to the dashboard (with the
+matching anchor) so it can sit on pages other than the dashboard itself.
+Expects `role` in context.
+{% endcomment %}
+<aside class="profile-side">
+  <ul class="side-nav">
+    <li><a href="{% url 'accounts:profile' %}#profile">My Profile</a></li>
+    {% if role == "traveler" %}<li><a href="{% url 'accounts:profile' %}#travel-plans">My Travel Plans</a></li>{% endif %}
+    {% if role == "buyer" %}<li><a href="{% url 'accounts:profile' %}#my-orders">My Orders</a></li>{% endif %}
+    {% if role == "buyer" %}<li><a href="{% url 'accounts:profile' %}#proxy-orders">My Proxy Buying</a></li>{% endif %}
+    <li><a href="{% url 'accounts:profile' %}#reset-password">Reset Password</a></li>
+  </ul>
+</aside>

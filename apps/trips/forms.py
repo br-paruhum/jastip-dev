@@ -161,7 +161,7 @@ class OrderForm(forms.ModelForm):
         # the buyer fills in: route cities, products, and the order deadline.
         if proxy is not None:
             for name in (
-                "cargo_only", "from_country", "to_address", "to_postal_code",
+                "cargo_only", "from_country", "from_city", "to_address", "to_postal_code",
                 "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
             ):
                 self.fields.pop(name, None)
