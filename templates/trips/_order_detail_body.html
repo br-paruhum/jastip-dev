@@ -4,7 +4,7 @@
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
     {% if is_order_proxy %}{% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
     {% elif bf_order.pending_offers %}{% include "trips/_status_badge.html" with label="Offer Received" tone="info" %}
-    {% else %}{% include "trips/_status_badge.html" with label="Estimate Received" tone="info" %}{% endif %}
+    {% else %}{% include "trips/_status_badge.html" with label="Looking for Carrier" tone="info" %}{% endif %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
     {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}

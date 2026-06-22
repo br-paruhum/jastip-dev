@@ -679,6 +679,9 @@ class BuyRequest(ListingTimingMixin, models.Model):
         if not self.is_cargo and self.plan_id is None:
             if self.status == Status.OPEN:
                 return "Request Send"
+            if self.status == Status.RESPONDED:
+                # Estimate sent: a traveler has offered, or still looking for one.
+                return "Offer Received" if self.pending_offers else "Looking for Carrier"
             if self.status == Status.ACCEPTED:
                 # Tentative booking until the deposit is verified (then it locks
                 # and the traveler's spare baggage is advertised).
