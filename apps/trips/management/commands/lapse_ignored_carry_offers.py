@@ -18,12 +18,12 @@ Usage:
 """
 
 from datetime import timedelta
-from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
+from apps.trips import workflow
 from apps.trips.constants import OfferStatus, Status
 from apps.trips.models import TravelerOffer
 
@@ -66,10 +66,7 @@ class Command(BaseCommand):
             with transaction.atomic():
                 offer.offer_status = OfferStatus.WITHDRAWN
                 offer.save(update_fields=["offer_status", "updated_at"])
-                plan = getattr(offer, "spawned_plan", None)
-                if plan:
-                    plan.prebooked_weight_kg = Decimal("0")
-                    plan.save(update_fields=["prebooked_weight_kg", "updated_at"])
+                workflow.release_offer_reservation(offer)
                 # Order stays RESPONDED (estimate still valid) → back on the
                 # carrier board for another traveler. Deliberately NOT calling
                 # recompute_status(), which would flip it to OPEN.

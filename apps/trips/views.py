@@ -627,8 +627,13 @@ def order_reject(request, order_id):
     if not offer:
         messages.error(request, "No traveler offer to reject.")
         return redirect(detail)
-    offer.offer_status = OfferStatus.REJECTED
-    offer.save(update_fields=["offer_status", "updated_at"])
+    with db_transaction.atomic():
+        offer.offer_status = OfferStatus.REJECTED
+        offer.save(update_fields=["offer_status", "updated_at"])
+        # Free the reserved spare baggage so other buyers can book the traveler's
+        # full capacity again; the order stays RESPONDED (estimate intact) for
+        # other travelers.
+        workflow.release_offer_reservation(offer)
     workflow.on_proxy_offer_rejected(order, offer)
     messages.success(request, "Offer declined. Your order is open for other travelers again.")
     return redirect(detail)

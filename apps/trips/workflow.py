@@ -147,6 +147,19 @@ def lock_proxy_cargo_on_plan(order, offer):
     return plan
 
 
+def release_offer_reservation(offer):
+    """Free the proxy-cargo reservation on this offer's spawned spare-baggage plan
+    so the traveler's full capacity becomes bookable again (Avail returns to the
+    total). Used when the offer is rejected / withdrawn / lapsed. The plan itself
+    stays — it's the traveler's trip declaration."""
+    from decimal import Decimal
+    plan = getattr(offer, "spawned_plan", None)
+    if plan and plan.prebooked_weight_kg:
+        plan.prebooked_weight_kg = Decimal("0")
+        plan.save(update_fields=["prebooked_weight_kg", "updated_at"])
+    return plan
+
+
 def on_proxy_offer_accepted(order, offer):
     """Flow-1 step 8: buyer accepted the traveler's shipment cost -> notify the
     traveler (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""
