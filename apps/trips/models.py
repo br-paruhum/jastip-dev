@@ -668,7 +668,9 @@ class BuyRequest(ListingTimingMixin, models.Model):
             if self.status == Status.OPEN:
                 return "Request Send"
             if self.status == Status.ACCEPTED:
-                return "W/f Deposit Verification" if self.deposit_pending else "Deposit Due"
+                # Tentative booking until the deposit is verified (then it locks
+                # and the traveler's spare baggage is advertised).
+                return "Temp Book — Verifying" if self.deposit_pending else "Temp Book — Deposit Due"
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
         return self._cargo_status_label() or self._BUYER_STATUS_LABELS.get(

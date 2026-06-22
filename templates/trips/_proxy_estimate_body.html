@@ -1,14 +1,13 @@
 {% load humanize %}
 <h2 style="margin:6px 0 0">Send Estimate</h2>
-<p><strong>Fill in the Unit Cost of each product, the estimated total weight, and your margin, then Send Estimate.</strong></p>
+<p>Fill in Unit Cost of each product, Estimated Total Weight, and your Margin, then Send Estimate.</p>
 <form method="post" action="{% url 'trips:proxy_estimate' estimate_order.id %}" class="card" style="margin-top:14px">
   {% csrf_token %}
   {{ estimate_formset.management_form }}
   <div class="card-body">
     <div class="card-band-row">Order Details</div>
     <p class="muted" style="margin-top:14px">
-      <strong>{{ estimate_order.reference }}</strong> · {{ estimate_order.route }} ·
-      Deadline {{ estimate_order.max_acceptable_date|date:"d-M-Y" }}
+      <strong>{{ estimate_order.reference }}</strong><br>{{ estimate_order.route }}<br>Deadline: {{ estimate_order.max_acceptable_date|date:"d-M-Y" }}
     </p>
     <table class="invoice" style="table-layout:fixed;width:560px;max-width:100%">
       <colgroup>

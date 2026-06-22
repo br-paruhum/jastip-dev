@@ -108,12 +108,12 @@ def _notify_proxy(order, *, subject, template, ctx, event):
 
 
 def spawn_spare_baggage_plan(order, offer):
-    """Flow-1: when the buyer accepts a traveler's carry offer, the traveler is
-    committed to this trip — so auto-create a carrier-only TravelPlan advertising
-    their surplus capacity (offer.avail_kg total, less this order's estimated
-    weight) on the home "Looking for Spare Baggage Buyer" board, where OTHER
-    buyers can book the remainder via the normal plan-first flow ("one traveler,
-    many buyers"). Idempotent: one offer spawns at most one plan."""
+    """Flow-1: once the buyer's deposit is verified the booking is locked, so
+    auto-create a carrier-only TravelPlan advertising the traveler's surplus
+    capacity (offer.avail_kg total, less this order's estimated weight) on the
+    home "Looking for Spare Baggage Buyer" board, where OTHER buyers can book the
+    remainder via the normal plan-first flow ("one traveler, many buyers").
+    Idempotent: one offer spawns at most one plan."""
     from decimal import Decimal
     from .models import TravelPlan
     if getattr(offer, "spawned_plan", None) is not None:
@@ -260,6 +260,16 @@ def on_request_rejected(request_obj, reason=""):
 def on_deposit_verified(request_obj):
     """Step 4: admin verified the deposit -> funds forwarded to traveler."""
     _set_status(request_obj, Status.DEPOSIT_PAID, sync_plan=bool(request_obj.plan_id))
+    # Flow-1: the deposit is verified, so the booking is locked (the buyer can no
+    # longer cancel) — only NOW advertise the traveler's surplus capacity as spare
+    # baggage on the home board. (Before this, the order sits in the tentative
+    # "Temp Book" state and no plan exists.)
+    if not request_obj.is_cargo and request_obj.proxy_buyer_id and request_obj.plan_id is None:
+        offer = request_obj.traveler_offers.filter(
+            offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+        ).first()
+        if offer:
+            spawn_spare_baggage_plan(request_obj, offer)
     traveler = _order_traveler(request_obj)
     if traveler:
         send_email(

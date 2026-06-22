@@ -6,7 +6,7 @@
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
     {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
-    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"W/f Deposit Verification,Deposit Due" tone="info" %}
+    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"Temp Book — Verifying,Temp Book — Deposit Due" tone="info" %}
   {% else %}
     {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
   {% endif %}

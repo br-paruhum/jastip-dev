@@ -596,12 +596,11 @@ def order_accept(request, order_id):
     if not offer:
         messages.error(request, "No traveler offer to accept.")
         return redirect(detail)
-    with db_transaction.atomic():
-        order.status = Status.ACCEPTED
-        order.save(update_fields=["status", "updated_at"])
-        # The traveler is now committed to this trip — advertise their surplus
-        # capacity as spare baggage so other buyers can book it.
-        workflow.spawn_spare_baggage_plan(order, offer)
+    # Tentative ("Temp Book") until the buyer's deposit is verified — only then
+    # is the booking locked and the traveler's surplus advertised as spare
+    # baggage (see workflow.on_deposit_verified). The buyer may still cancel here.
+    order.status = Status.ACCEPTED
+    order.save(update_fields=["status", "updated_at"])
     workflow.on_proxy_offer_accepted(order, offer)
     messages.success(request, "Shipment cost accepted. Please pay the deposit to confirm.")
     return redirect(detail)
