@@ -598,6 +598,10 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     activate((location.hash || '#profile').slice(1));
   });
   window.addEventListener('resize', alignSide);
+  // Recompute once fonts/images settle — the panel header height (e.g. the
+  // estimate form's <h2>) can shift after web fonts load, throwing off the
+  // first measurement taken during activate().
+  window.addEventListener('load', alignSide);
 
   // Toggle the inline "Post a Travel Plan" form.
   var toggle = document.getElementById('toggle-plan-form');
