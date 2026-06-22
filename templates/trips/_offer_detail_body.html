@@ -7,7 +7,7 @@
     <span class="badge badge-info">Awaiting drop-off</span>
   {% elif not leg_offer.order.is_cargo %}
     {% if leg_offer.order.status == "responded" %}
-      {% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
+      {% include "trips/_status_badge.html" with label="Offer Sent" tone="info" %}
     {% else %}
       {% include "trips/_status_badge.html" with status=leg_offer.order.status label=leg_offer.order.get_status_display tone=leg_offer.order.status_tone %}
     {% endif %}
