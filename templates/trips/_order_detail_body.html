@@ -2,7 +2,9 @@
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {% include "trips/_status_badge.html" with label=is_order_proxy|yesno:"Estimate Sent,Estimate Received" tone="info" %}
+    {% if is_order_proxy %}{% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
+    {% elif bf_order.pending_offers %}{% include "trips/_status_badge.html" with label="Offer Received" tone="info" %}
+    {% else %}{% include "trips/_status_badge.html" with label="Estimate Received" tone="info" %}{% endif %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
     {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
