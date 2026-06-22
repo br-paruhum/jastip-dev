@@ -554,16 +554,20 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   // Lower the sidebar so its top lines up with the first card of the visible
   // panel. Detail panels (order/plan) lead with an eyebrow+badge header above
   // their first card; list/form panels lead with the card itself (offset 0).
+  var main = layout ? layout.querySelector('.profile-main') : null;
   function alignSide() {
-    if (!side || !layout) return;
+    if (!side || !layout || !main) return;
     var beside = getComputedStyle(layout).flexDirection === 'row';
     var vis = null;
     panels.forEach(function (p) { if (p.style.display !== 'none') vis = p; });
     // Align to the first content block — a card, or a bare table (the proxy
-    // orders panel leads with a heading + table, no card wrapper).
+    // orders panel leads with a heading + table, no card wrapper). Measure
+    // against .profile-main (the sidebar's flex sibling), NOT the panel: a
+    // panel header's top margin (e.g. the estimate form's <h2>) collapses out
+    // of the panel box, so the panel's own top sits below profile-main's.
     var card = beside && vis ? vis.querySelector('.card, .table-wrap') : null;
     if (card) {
-      var off = card.getBoundingClientRect().top - vis.getBoundingClientRect().top;
+      var off = card.getBoundingClientRect().top - main.getBoundingClientRect().top;
       side.style.marginTop = off > 1 ? Math.round(off) + 'px' : '';
     } else {
       side.style.marginTop = '';
