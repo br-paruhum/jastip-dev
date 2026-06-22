@@ -169,8 +169,9 @@ details.fold > summary h3 { margin: 0; }
 details.fold > summary::after { content: "\25BE"; color: var(--muted); font-size: .9rem; transition: transform .2s ease; }
 details.fold:not([open]) > summary::after { transform: rotate(-90deg); }
 details.fold > .fold-body { padding: 0 20px 20px; }
-/* Payment Terms: bullets line up with the tab header text (no list indent). */
-.fold-body.payment-terms ul { margin: 0; padding-left: 0; list-style-position: inside; }
+/* Payment Terms: tight bullet list — markers sit by the tab-header left edge,
+   wrapped lines hang-indent under the text (proper ul/li, not a paragraph). */
+.fold-body.payment-terms ul { margin: 0; padding-left: 1.2em; list-style-position: outside; }
 .fold-body.payment-terms li { margin-bottom: 6px; }
 
 /* --- Offer table --- */
