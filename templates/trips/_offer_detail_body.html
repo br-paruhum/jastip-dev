@@ -104,8 +104,7 @@
     {% elif leg_offer.order.status == "accepted" %}
     <p class="muted">Buyer submitted the deposit — awaiting admin verification.</p>
     {% elif leg_offer.order.status == "deposit_paid" %}
-    <p>Deposit received. Enter the actual purchase prices to update the invoice.</p>
-    <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?purchase={{ leg_offer.order_id }}#purchase-order">Enter Actual Prices</a></div>
+    <p>Deposit verified. Please communicate with the Buyer for the location and best time to hand over the package.</p>
     {% elif leg_offer.order.status == "items_purchased" %}
       {% if leg_offer.order.is_proxy_buyer_first %}
         <p>The proxy buyer has the goods ready. Use the Messages thread below to agree a time and place to collect
