@@ -2,15 +2,15 @@
 Reusable right-hand account sidebar — the same nav the buyer/traveler sees on
 the dashboard, but with links that navigate back to the dashboard (with the
 matching anchor) so it can sit on pages other than the dashboard itself.
-Context: `role`; optional `proxy_orders` (gates "My Proxy Buying"); optional
+Context: `role`; `user.is_proxy_buyer` gates "My Proxy Buying"; optional
 `active_nav` (slug of the item to highlight, e.g. "my-orders").
 {% endcomment %}
 <aside class="profile-side">
   <ul class="side-nav">
     <li><a href="{% url 'accounts:profile' %}#profile"{% if active_nav == "profile" %} class="active"{% endif %}>My Profile</a></li>
     {% if role == "traveler" %}<li><a href="{% url 'accounts:profile' %}#travel-plans"{% if active_nav == "travel-plans" %} class="active"{% endif %}>My Travel Plans</a></li>{% endif %}
-    {% if role == "buyer" and not proxy_orders %}<li><a href="{% url 'accounts:profile' %}#my-orders"{% if active_nav == "my-orders" %} class="active"{% endif %}>My Orders</a></li>{% endif %}
-    {% if role == "buyer" and proxy_orders %}<li><a href="{% url 'accounts:profile' %}#proxy-orders"{% if active_nav == "proxy-orders" %} class="active"{% endif %}>My Proxy Buying</a></li>{% endif %}
+    {% if role == "buyer" and not user.is_proxy_buyer %}<li><a href="{% url 'accounts:profile' %}#my-orders"{% if active_nav == "my-orders" %} class="active"{% endif %}>My Orders</a></li>{% endif %}
+    {% if role == "buyer" and user.is_proxy_buyer %}<li><a href="{% url 'accounts:profile' %}#proxy-orders"{% if active_nav == "proxy-orders" %} class="active"{% endif %}>My Proxy Buying</a></li>{% endif %}
     <li><a href="{% url 'accounts:profile' %}#reset-password"{% if active_nav == "reset-password" %} class="active"{% endif %}>Reset Password</a></li>
   </ul>
 </aside>

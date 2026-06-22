@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .managers import UserManager
@@ -72,6 +73,13 @@ class User(AbstractUser):
     def display_name(self) -> str:
         """Public-safe label that never leaks the real name."""
         return f"Member #{self.pk}"
+
+    @cached_property
+    def is_proxy_buyer(self) -> bool:
+        """True if this account is a curated, active Proxy Buyer (has a linked
+        active ProxyBuyer profile). Drives the buyer-vs-proxy dashboard framing
+        (e.g. the "My Proxy Buying" tab in place of "My Orders")."""
+        return self.proxy_buyer_profiles.filter(is_active=True).exists()
 
     def generate_phone_otp(self) -> str:
         self.phone_otp = f"{secrets.randbelow(1000000):06d}"

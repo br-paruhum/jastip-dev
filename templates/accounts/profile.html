@@ -277,7 +277,7 @@
         </div>
         {% endif %}
 
-        {% if proxy_orders %}
+        {% if user.is_proxy_buyer %}
         <!-- Panel: Orders to fulfill as Proxy Buyer (Flow-1) -->
         <div data-panel="proxy-orders">
           <h2 style="margin-top:0">My Proxy Buying</h2>
@@ -300,6 +300,8 @@
                     {% endif %}
                   </td>
                 </tr>
+                {% empty %}
+                <tr><td colspan="5" class="muted" style="text-align:center;padding:18px">No orders assigned to you yet. Buyers who pick you to source products will appear here.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -527,8 +529,8 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
-          {% if role == "buyer" and not proxy_orders %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
-          {% if role == "buyer" and proxy_orders %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
+          {% if role == "buyer" and not user.is_proxy_buyer %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
+          {% if role == "buyer" and user.is_proxy_buyer %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>
