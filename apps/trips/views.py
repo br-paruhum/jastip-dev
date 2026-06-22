@@ -580,6 +580,12 @@ def proxy_purchase(request, order_id):
             if item.actual_unit_cost and not item.purchased_at:
                 item.purchased_at = timezone.now()
             item.save()
+        # Sync the spare-baggage reservation to the actual weight (board Avail).
+        live_offer = order.traveler_offers.filter(
+            offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+        ).first()
+        if live_offer:
+            workflow.lock_proxy_cargo_on_plan(order, live_offer)
         workflow.on_items_purchased(order)
         messages.success(request, "Package marked ready. The buyer will pay the remaining balance.")
         return redirect(detail)
