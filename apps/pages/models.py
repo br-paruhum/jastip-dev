@@ -34,6 +34,14 @@ class SiteSettings(models.Model):
             "and block new orders. Default 0.99 kg."
         ),
     )
+    platform_fee_min_idr = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("50000.00"),
+        verbose_name="Minimum platform fee (IDR)",
+        help_text=(
+            "The 2.5% platform fee is floored to this amount (in IDR). Applied to each "
+            "traveler payout and to the proxy buyer's final disbursement. Default 50,000."
+        ),
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

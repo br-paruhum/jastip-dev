@@ -26,6 +26,17 @@ from .constants import (
 TWO_PLACES = Decimal("0.01")
 USER = settings.AUTH_USER_MODEL
 
+
+def platform_fee_floor(currency: str) -> Decimal:
+    """Admin-set minimum platform fee, in IDR. The 2.5% commission is floored to
+    this amount. Only IDR-denominated commissions are floored — proxy orders
+    always settle in IDR, and an IDR floor is meaningless against a foreign
+    amount. Lazy import keeps apps.pages out of this module's import graph."""
+    if currency != "IDR":
+        return Decimal("0.00")
+    from apps.pages.models import SiteSettings
+    return SiteSettings.load().platform_fee_min_idr or Decimal("0.00")
+
 # Home-page marketplace listing window. A posting locks (shown "Closed",
 # action "Locked", no longer joinable) once we are within LISTING_LOCK_HOURS of
 # its anchor moment, and drops off the home page entirely once LISTING_LOCK_HOURS
@@ -1033,9 +1044,11 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def proxy_commission(self) -> Decimal:
         """Platform fee withheld from the proxy's disbursement (same 2.5% rate as
-        the traveler's carry fee)."""
+        the traveler's carry fee), floored to the admin-set IDR minimum. Withheld
+        entirely from the proxy's final (second) disbursement half."""
         pct = Decimal(str(settings.PLATFORM_COMMISSION_PERCENT))
-        return self._q(self.proxy_gross * pct / Decimal("100"))
+        return self._q(max(self.proxy_gross * pct / Decimal("100"),
+                           platform_fee_floor(self.currency)))
 
     @property
     def proxy_disbursement_total(self) -> Decimal:
@@ -1044,12 +1057,15 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def proxy_disbursement_first_half(self) -> Decimal:
-        """Released to the proxy when the traveler takes custody (handover)."""
-        return self._q(self.proxy_disbursement_total * Decimal("0.5"))
+        """Released to the proxy when the traveler takes custody (handover). Pays
+        out half the gross with NO platform fee deducted — the full fee is
+        withheld from the final (second) half instead."""
+        return self._q(self.proxy_gross * Decimal("0.5"))
 
     @property
     def proxy_disbursement_second_half(self) -> Decimal:
-        """Held until the buyer clears the package; remainder after the first half."""
+        """Held until the buyer clears the package; the remainder after the first
+        half, net of the full platform fee."""
         return self._q(self.proxy_disbursement_total - self.proxy_disbursement_first_half)
 
     @property
@@ -1612,7 +1628,8 @@ class LegTransaction(models.Model):
 
     @property
     def commission_amount(self) -> Decimal:
-        return (self.gross_amount * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
+        amount = self.gross_amount * self.commission_percent / Decimal("100")
+        return max(amount, platform_fee_floor(self.currency)).quantize(TWO_PLACES)
 
     @property
     def payout_to_traveler(self) -> Decimal:
@@ -1812,7 +1829,8 @@ class Transaction(models.Model):
         carry fee too (the proxy's product+margin fee is withheld separately)."""
         base = (self.request.effective_shipment_cost
                 if self.request.carrier_charges_carry_only else self.request.invoice_total)
-        return (base * self.commission_percent / Decimal("100")).quantize(TWO_PLACES)
+        amount = base * self.commission_percent / Decimal("100")
+        return max(amount, platform_fee_floor(self.currency)).quantize(TWO_PLACES)
 
     @property
     def payout_to_traveler(self) -> Decimal:
