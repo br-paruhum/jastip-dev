@@ -653,7 +653,8 @@
 </div></div>
 {% endif %}
 
-{% if can_chat %}{% include "trips/_chat_thread.html" with chat_obj=bf_order %}{% endif %}
+{# Chat is the Traveler<->Proxy Buyer handover thread — not shown to the buyer. #}
+{% if can_chat and not is_order_buyer %}{% include "trips/_chat_thread.html" with chat_obj=bf_order %}{% endif %}
 
 {% if bf_order.can_edit %}
 <div class="mt-2" style="text-align:center">
