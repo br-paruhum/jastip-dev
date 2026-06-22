@@ -62,7 +62,7 @@
     </div>
     <div>
       <div class="inv-meta-label">Travel Date</div>
-      <div class="inv-meta-val">{% if leg %}{{ leg.travel_date|date:"d-M-Y" }}{% elif req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
+      <div class="inv-meta-val">{% if leg %}{{ leg.travel_date|date:"d-M-Y" }}{% elif req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.carry_offer %}{{ req.carry_offer.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
       <div class="inv-meta-label" style="margin-top:10px">Reference</div>
       <div class="inv-meta-val">{{ req.reference }}</div>
     </div>
