@@ -549,6 +549,24 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   var sideLinks = document.querySelectorAll('.profile-side [data-tab]');
   var panels = document.querySelectorAll('.profile-main [data-panel]');
   var names = Array.prototype.map.call(panels, function (p) { return p.dataset.panel; });
+  var side = document.querySelector('.profile-side');
+  var layout = document.querySelector('.profile-layout');
+  // Lower the sidebar so its top lines up with the first card of the visible
+  // panel. Detail panels (order/plan) lead with an eyebrow+badge header above
+  // their first card; list/form panels lead with the card itself (offset 0).
+  function alignSide() {
+    if (!side || !layout) return;
+    var beside = getComputedStyle(layout).flexDirection === 'row';
+    var vis = null;
+    panels.forEach(function (p) { if (p.style.display !== 'none') vis = p; });
+    var card = beside && vis ? vis.querySelector('.card') : null;
+    if (card) {
+      var off = card.getBoundingClientRect().top - vis.getBoundingClientRect().top;
+      side.style.marginTop = off > 1 ? Math.round(off) + 'px' : '';
+    } else {
+      side.style.marginTop = '';
+    }
+  }
   function activate(name) {
     if (names.indexOf(name) === -1) name = 'profile';
     // Collapse inline toggle forms whenever the user switches (or re-clicks) a tab.
@@ -560,6 +578,7 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     var activePanel = document.querySelector('[data-panel="' + name + '"]');
     var sideName = (activePanel && activePanel.dataset.origin) || name;
     sideLinks.forEach(function (l) { l.classList.toggle('active', l.dataset.tab === sideName); });
+    alignSide();
   }
   links.forEach(function (l) {
     l.addEventListener('click', function (e) {
@@ -576,6 +595,7 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   window.addEventListener('hashchange', function () {
     activate((location.hash || '#profile').slice(1));
   });
+  window.addEventListener('resize', alignSide);
 
   // Toggle the inline "Post a Travel Plan" form.
   var toggle = document.getElementById('toggle-plan-form');
