@@ -10,12 +10,13 @@
     <div>
       <span class="eyebrow">Proxy Buying Service Made Easy</span>
       <h1 class="hero-title">
-        <span class="hero-label">Traveler:</span> <span class="hero-sub">Find Unused Baggage Buyer</span><br>
-        <span class="hero-label">Buyer:</span> <span class="hero-sub">Find Proxy Buyer or Carrier</span>
+        <span class="hero-label">Buyers can find Proxy in foreign country to source and buy goods for you. Travelers will carry the package to your location</span><br>
+		<span class="hero-sub">Payments is secured by ProxyBuying.com and will be disbursed after transactions is completed.</span><br>
+		
       </h1>
       <div class="hero-cta">
-        <a href="#proxy-buyers" class="btn btn-primary">Find Proxy Buyer</a>
-        <a href="#looking-for-traveler" class="btn btn-primary">Find a Carrier</a>
+        <a href="#proxy-buyers" class="btn btn-primary">Find a Proxy</a>
+        <a href="#looking-for-traveler" class="btn btn-outline btn-buy">Find a Carrier</a>
         <span class="hero-or" style="align-self:center;color:var(--muted);font-weight:600;padding:0 2px">or</span>
         <a href="#looking-for-cargo" class="btn btn-outline btn-buy">Find Spare Baggage Buyer</a>
       </div>
@@ -34,7 +35,7 @@
     <div class="section-head">
       <span class="eyebrow">Product Buyer Starts Here</span>
       <h2>Proxy Buyers List</h2>
-      <p>Select a proxy buyer in the country where your products are sold. They source &amp; buy for you; a traveler carries the package to your destination.</p>
+      <p>Select a proxy buyer at the city closer to the sellers of your wanted goods.</p>
     </div>
     {% include "pages/_home_proxy_table.html" with proxy_buyers=proxy_buyers empty_msg="No proxy buyers available yet." %}
   </div>
@@ -58,7 +59,7 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Traveler Starts Here</span>
-      <h2>Looking for Cargo Buyer</h2>
+      <h2>Looking for Spare Baggage Buyer</h2>
       <p>Find buyer for your spare baggage.</p>
       <a href="{% url 'trips:plan_create' %}" class="btn btn-primary btn-sm">Post a Travel Plan</a>
     </div>

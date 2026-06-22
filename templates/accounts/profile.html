@@ -448,8 +448,8 @@
             <div class="card-body">
               <div class="card-band-row">Place an Offer</div>
               <p class="muted" style="margin-top:14px">
-                <strong>{{ offer_form_order.reference }}</strong> · {{ offer_form_order.route }} ·
-                Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg ·
+                <strong>{{ offer_form_order.reference }}</strong> - {{ offer_form_order.route }}<br>
+                Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg -
                 Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
               </p>
               <div class="form-row">
@@ -487,7 +487,7 @@
               <div style="text-align:center;margin-top:12px">
                 <button class="btn btn-primary" type="submit">Submit Offer</button>
               </div>
-              <p class="help mt-2">Submitting locks this cargo to you (first-come-first-served). Withdraw your offer to release it.</p>
+              <p class="help mt-2">Submitting this will locks this baggage to you. Withdraw your offer to release it.</p>
             </div>
           </form>
           {% endif %}
