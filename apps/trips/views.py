@@ -571,8 +571,10 @@ def proxy_purchase(request, order_id):
     if not order.proxy_actuals_editable:
         messages.info(request, "Actual costs can't be changed at this stage.")
         return redirect(detail)
+    form = PurchaseWeightForm(request.POST, instance=order)  # actual total weight
     formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order)
-    if formset.is_valid():
+    if form.is_valid() and formset.is_valid():
+        form.save()  # actual_weight_kg
         items = formset.save(commit=False)
         for item in items:
             if item.actual_unit_cost and not item.purchased_at:
@@ -583,6 +585,9 @@ def proxy_purchase(request, order_id):
         return redirect(detail)
     for err in formset.non_form_errors():
         messages.error(request, err)
+    for field, errs in form.errors.items():
+        for err in errs:
+            messages.error(request, f"{field}: {err}")
     return redirect(dash + f"?package_ready={order.id}#package-ready")
 
 

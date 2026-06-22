@@ -26,6 +26,13 @@
       {% if f.purchase_note %}<tr><td colspan="4">{{ f.purchase_note }} <span class="help">(note, e.g. out of stock / substituted)</span></td></tr>{% endif %}
       {% endfor %}
     </table>
+    <div class="form-row mt-2">
+      <div class="form-field">
+        <label>Actual Total Weight (kg)</label>
+        {{ package_ready_form.actual_weight_kg }}{{ package_ready_form.actual_weight_kg.errors }}
+        <p class="help">The package's measured weight — sets the actual shipment cost on the buyer's invoice.</p>
+      </div>
+    </div>
     <div style="text-align:center;margin-top:12px">
       <button class="btn btn-primary" type="submit">Mark Package Ready</button>
     </div>
