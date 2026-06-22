@@ -192,7 +192,7 @@
   {# Products (proxy buying): the buyer pays the deposit against the estimate. #}
   {% if is_order_proxy and bf_order.proxy_actuals_editable %}
   <div style="text-align:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
-    <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?package_ready={{ bf_order.id }}#package-ready">{% if bf_order.status == "deposit_paid" %}Enter Actual Cost{% else %}Update Actual Cost{% endif %}</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?package_ready={{ bf_order.id }}#package-ready">{% if bf_order.status == "deposit_paid" %}Enter Actual Cost{% else %}Edit Actual Cost{% endif %}</a>
   </div>
   {% endif %}
   {% if bf_order.deposit_pending %}
@@ -391,7 +391,8 @@
 </details>
 {% endif %}
 
-{% if bf_order.is_proxy_buyer_first and bf_order.items_actual_total and is_order_proxy or bf_order.is_proxy_buyer_first and bf_order.items_actual_total and user.is_staff %}
+{# Proxy sees their disbursement only after the buyer has received (cleared); staff see it earlier to release funds. #}
+{% if bf_order.is_proxy_buyer_first and bf_order.items_actual_total and user.is_staff or bf_order.is_proxy_buyer_first and is_order_proxy and bf_order.buyer_cleared %}
 <details class="card fold mt-2" open>
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">

@@ -498,7 +498,8 @@ class PurchaseItemForm(forms.ModelForm):
             "actual_quantity": forms.NumberInput(attrs={"class": "num-right", "min": "0"}),
             "actual_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
             "purchase_note": forms.TextInput(
-                attrs={"placeholder": "e.g. out of stock, bought 2 of 3, substituted"}
+                attrs={"placeholder": "Note: e.g.: short availability, out-of-stock or substituted as agreed",
+                       "style": "width:560px;max-width:100%"}
             ),
         }
 

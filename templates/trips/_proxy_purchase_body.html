@@ -23,7 +23,7 @@
         <td class="num-right">{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</td>
         <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
       </tr>
-      {% if f.purchase_note %}<tr><td colspan="4">{{ f.purchase_note }} <span class="help">(note, e.g. out of stock / substituted)</span></td></tr>{% endif %}
+      {% if f.purchase_note %}<tr><td colspan="4">{{ f.purchase_note }}</td></tr>{% endif %}
       {% endfor %}
     </table>
     <div class="form-row mt-2">
