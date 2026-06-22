@@ -524,6 +524,17 @@ def on_cleared(request_obj):
 
 # --- Flow-1 disbursement notifications (fired from the admin "mark paid" actions
 #     once the money has actually been released, not at the status transition) ---
+def notify_proxy_disbursed(order):
+    """Single proxy disbursement (full net) released -> notify the proxy."""
+    _notify_proxy(
+        order,
+        subject=f"Payment released — {order.reference}",
+        template="proxy_final_disbursed",
+        ctx=_ctx(order, amount=order.proxy_disbursement_total),
+        event="proxy_disbursed",
+    )
+
+
 def notify_proxy_first_disbursed(order):
     _notify_proxy(
         order,

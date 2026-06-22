@@ -1524,18 +1524,12 @@ def release_disbursement(request, pk):
         messages.error(request, "Please attach the transfer proof image.")
         return redirect(back)
 
-    if kind == "proxy_first" and req.proxy_first_disbursable and not req.proxy_first_disbursed_at:
-        req.proxy_first_disbursement_proof = proof
-        req.proxy_first_disbursed_at = timezone.now()
-        req.save(update_fields=["proxy_first_disbursement_proof", "proxy_first_disbursed_at", "updated_at"])
-        workflow.notify_proxy_first_disbursed(req)
-        messages.success(request, "Proxy 1st-half disbursement released — proxy notified by email + WhatsApp.")
-    elif kind == "proxy_second" and req.proxy_second_disbursable and not req.proxy_second_disbursed_at:
-        req.proxy_second_disbursement_proof = proof
-        req.proxy_second_disbursed_at = timezone.now()
-        req.save(update_fields=["proxy_second_disbursement_proof", "proxy_second_disbursed_at", "updated_at"])
-        workflow.notify_proxy_second_disbursed(req)
-        messages.success(request, "Proxy final disbursement released — proxy notified by email + WhatsApp.")
+    if kind == "proxy" and req.proxy_disbursable and not req.proxy_disbursed_at:
+        req.proxy_disbursement_proof = proof
+        req.proxy_disbursed_at = timezone.now()
+        req.save(update_fields=["proxy_disbursement_proof", "proxy_disbursed_at", "updated_at"])
+        workflow.notify_proxy_disbursed(req)
+        messages.success(request, "Proxy disbursement released — proxy notified by email + WhatsApp.")
     elif kind == "traveler" and req.traveler_payout_disbursable and not req.traveler_paid_at:
         req.traveler_payout_proof = proof
         req.traveler_paid_at = timezone.now()

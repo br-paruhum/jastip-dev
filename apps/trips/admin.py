@@ -67,7 +67,7 @@ class BuyRequestAdmin(ModelAdmin):
     inlines = [RequestItemInline, MessageInline]
     autocomplete_fields = ("plan", "buyer")
     readonly_fields = ("reference", "proxy_disbursement_display", "traveler_payout_display")
-    actions = ["mark_proxy_first_disbursed", "mark_proxy_second_disbursed", "mark_traveler_paid"]
+    actions = ["mark_proxy_disbursed", "mark_traveler_paid"]
 
     @admin.display(description="Invoice")
     def invoice_display(self, obj):
@@ -82,15 +82,11 @@ class BuyRequestAdmin(ModelAdmin):
     def proxy_disbursement_display(self, obj):
         if not obj.is_proxy_buyer_first or not obj.items_actual_total:
             return "—"
+        state = "released" if obj.proxy_disbursed_at else ("ready" if obj.proxy_disbursable else "pending buyer receipt")
         return format_html(
-            "Net: <b>{} {}</b><br>1st half: {} {} ({}){}<br>2nd half: {} {} ({}){}",
-            obj.currency, f"{obj.proxy_disbursement_total:,.0f}",
-            obj.currency, f"{obj.proxy_disbursement_first_half:,.0f}",
-            "released" if obj.proxy_first_disbursed_at else ("ready" if obj.proxy_first_disbursable else "held"),
-            self._proof_link(obj.proxy_first_disbursement_proof),
-            obj.currency, f"{obj.proxy_disbursement_second_half:,.0f}",
-            "released" if obj.proxy_second_disbursed_at else ("ready" if obj.proxy_second_disbursable else "held"),
-            self._proof_link(obj.proxy_second_disbursement_proof),
+            "Net: <b>{} {}</b> ({}){}",
+            obj.currency, f"{obj.proxy_disbursement_total:,.0f}", state,
+            self._proof_link(obj.proxy_disbursement_proof),
         )
 
     @admin.display(description="Carrier payout — to pay out")
@@ -119,34 +115,33 @@ class BuyRequestAdmin(ModelAdmin):
         state = "paid" if obj.traveler_paid_at else ("ready" if obj.traveler_payout_disbursable else "pending")
         return f"{obj.transaction.payout_to_traveler:,.0f} {obj.currency} ({state})"
 
-    @admin.display(description="Disbursement (P1/P2/Trv)")
+    @admin.display(description="Disbursement (Proxy/Trv)")
     def disbursement_state(self, obj):
         if not obj.is_proxy_buyer_first:
             return "—"
         def mark(paid, eligible):
             return "✅" if paid else ("⏳" if eligible else "·")
-        return "{} {} {}".format(
-            mark(obj.proxy_first_disbursed_at, obj.proxy_first_disbursable),
-            mark(obj.proxy_second_disbursed_at, obj.proxy_second_disbursable),
+        return "{} {}".format(
+            mark(obj.proxy_disbursed_at, obj.proxy_disbursable),
             mark(obj.traveler_paid_at, obj.traveler_payout_disbursable),
         )
 
-    @admin.action(description="Proxy: mark 1st half disbursed (released)")
-    def mark_proxy_first_disbursed(self, request, queryset):
+    @admin.action(description="Proxy: mark disbursement released")
+    def mark_proxy_disbursed(self, request, queryset):
         done = skipped = 0
         for req in queryset:
-            if req.proxy_first_disbursable and not req.proxy_first_disbursed_at:
-                req.proxy_first_disbursed_at = timezone.now()
-                req.save(update_fields=["proxy_first_disbursed_at", "updated_at"])
-                workflow.notify_proxy_first_disbursed(req)
+            if req.proxy_disbursable and not req.proxy_disbursed_at:
+                req.proxy_disbursed_at = timezone.now()
+                req.save(update_fields=["proxy_disbursed_at", "updated_at"])
+                workflow.notify_proxy_disbursed(req)
                 done += 1
             else:
                 skipped += 1
         self.message_user(
-            request, f"Marked {done} proxy 1st-half disbursement(s) released; skipped {skipped} "
+            request, f"Marked {done} proxy disbursement(s) released; skipped {skipped} "
             "(not eligible yet or already released).", messages.SUCCESS if done else messages.WARNING)
 
-    @admin.action(description="Proxy: mark 2nd half disbursed (released)")
+    @admin.action(description="(deprecated) Proxy: mark 2nd half disbursed")
     def mark_proxy_second_disbursed(self, request, queryset):
         done = skipped = 0
         for req in queryset:

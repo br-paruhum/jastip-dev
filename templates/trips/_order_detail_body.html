@@ -399,25 +399,18 @@
   <table class="invoice" style="max-width:480px">
     <tr><td>Products + margin</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_gross|floatformat:0|intcomma }}</td></tr>
     <tr><td>Platform fee (2.5%)</td><td class="num-right">− {{ bf_order.currency }} {{ bf_order.proxy_commission|floatformat:0|intcomma }}</td></tr>
-    <tr class="total"><td>Net disbursement</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }}</td></tr>
+    <tr class="total"><td>Net disbursement</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }}
+      {% if bf_order.proxy_disbursed_at %}<span class="badge badge-success">Released {{ bf_order.proxy_disbursed_at|date:"d M Y" }}</span>{% if bf_order.proxy_disbursement_proof %} <a href="{{ bf_order.proxy_disbursement_proof.url }}" target="_blank" class="help">(proof)</a>{% endif %}
+      {% elif bf_order.proxy_disbursable %}<span class="badge badge-warning">Ready to release</span>
+      {% else %}<span class="badge badge-muted">Pending buyer receipt</span>{% endif %}</td></tr>
   </table>
-  {% if user.is_staff %}
-    {% if bf_order.proxy_first_disbursable and not bf_order.proxy_first_disbursed_at %}
+  {% if user.is_staff and bf_order.proxy_disbursable and not bf_order.proxy_disbursed_at %}
     <form method="post" action="{% url 'trips:release_disbursement' bf_order.id %}" enctype="multipart/form-data" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
-      {% csrf_token %}<input type="hidden" name="kind" value="proxy_first">
-      <label class="help">Admin — release 1st 50%: attach transfer proof</label>
+      {% csrf_token %}<input type="hidden" name="kind" value="proxy">
+      <label class="help">Admin — release disbursement: attach transfer proof</label>
       <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><input type="file" name="proof" accept="image/png,image/jpeg" required>
         <button class="btn btn-primary btn-sm" type="submit">Upload &amp; release</button></div>
     </form>
-    {% endif %}
-    {% if bf_order.proxy_second_disbursable and not bf_order.proxy_second_disbursed_at %}
-    <form method="post" action="{% url 'trips:release_disbursement' bf_order.id %}" enctype="multipart/form-data" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
-      {% csrf_token %}<input type="hidden" name="kind" value="proxy_second">
-      <label class="help">Admin — release final 50%: attach transfer proof</label>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:4px"><input type="file" name="proof" accept="image/png,image/jpeg" required>
-        <button class="btn btn-primary btn-sm" type="submit">Upload &amp; release</button></div>
-    </form>
-    {% endif %}
   {% endif %}
   </div>
 </details>{% endif %}

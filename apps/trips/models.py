@@ -302,13 +302,13 @@ class BuyRequest(ListingTimingMixin, models.Model):
         max_digits=5, decimal_places=2, default=Decimal("0"),
         help_text="Proxy buyer's margin % on the products (buyer-first Products only).",
     )
-    # Proxy disbursement is split 50/50 as buyer protection: the first half is
-    # released when the traveler takes custody (handover), the second half only
-    # once the buyer CLEARS the package (pickup confirmed). The buyer carries the
-    # full goods-quality exposure, so we hold the proxy's other 50% until then.
+    # Proxy disbursement: a SINGLE payment of the full net (products + margin −
+    # fee), released by admin once the buyer has received/cleared the package.
+    proxy_disbursed_at = models.DateTimeField(null=True, blank=True)
+    proxy_disbursement_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
+    # DEPRECATED (old 50/50 split — kept dormant for historical rows).
     proxy_first_disbursed_at = models.DateTimeField(null=True, blank=True)
     proxy_second_disbursed_at = models.DateTimeField(null=True, blank=True)
-    # Admin-uploaded transfer proof for each disbursement (shown to the recipient).
     proxy_first_disbursement_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
     proxy_second_disbursement_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
     # Flow-1 carrier payout actually released by admin (the carry fee + customs,
@@ -854,6 +854,12 @@ class BuyRequest(ListingTimingMixin, models.Model):
         Status.CLEAR, Status.CLOSED,
     }
     _CLEARED_STATUSES = {Status.CLEAR, Status.CLOSED}
+
+    @property
+    def proxy_disbursable(self) -> bool:
+        """The single proxy disbursement is eligible to release once the buyer has
+        received/cleared the package (full net, not necessarily paid yet)."""
+        return self.is_proxy_buyer_first and self.status in self._CLEARED_STATUSES
 
     @property
     def proxy_first_disbursable(self) -> bool:
