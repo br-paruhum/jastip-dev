@@ -109,7 +109,16 @@
       {% if leg_offer.order.is_proxy_buyer_first %}
         <p>Proxy buyer has the goods ready. Use the Messages thread below to agree a time and place to hand over the
           package, then weigh it for final check and Confirm Received.</p>
-        <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?receive={{ leg_offer.order_id }}#receive-order">Confirm Received</a></div>
+        <form method="post" action="{% url 'trips:request_receive' leg_offer.order_id %}" style="margin-top:8px">
+          {% csrf_token %}
+          <div class="form-field" style="max-width:280px;margin:0 auto">
+            <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
+            <input type="number" name="actual_weight_kg" step="0.1" min="0.1" class="num-right"
+                   value="{{ leg_offer.order.effective_weight_kg|floatformat:'-2' }}" required>
+            <p class="help">Estimated was {{ leg_offer.order.estimated_weight_kg|floatformat:'-2' }} kg. The carry fee is finalised on this weight.</p>
+          </div>
+          <div style="text-align:center;margin-top:12px"><button class="btn btn-primary btn-sm" type="submit">Confirm Received</button></div>
+        </form>
       {% elif leg_offer.travel_date_passed %}
       <p>You've arrived. Process the arrival details and record any customs duty you paid.</p>
       <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Process Arrival Details</a></div>
