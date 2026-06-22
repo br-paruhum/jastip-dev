@@ -164,7 +164,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
     @property
     def status_tone(self) -> str:
-        return STATUS_TONE.get(self.status, "muted")
+        return STATUS_TONE.get(self.status, "info")
 
     @property
     def route(self) -> str:
@@ -346,7 +346,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def status_tone(self) -> str:
-        return STATUS_TONE.get(self.status, "muted")
+        return STATUS_TONE.get(self.status, "info")
 
     @property
     def is_active(self) -> bool:
@@ -649,7 +649,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
         # a traveler offer.
         if not self.is_cargo and self.plan_id is None:
             if self.status == Status.OPEN:
-                return "Awaiting for Estimate"
+                return "Request Send"
             if self.status == Status.ACCEPTED:
                 return "W/f Deposit Verification" if self.deposit_pending else "Deposit Due"
         if self.status == Status.ITEMS_PURCHASED:

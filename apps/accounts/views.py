@@ -96,7 +96,7 @@ def _offer_status_display(offer):
         return "Pending", "muted"
     if offer.offer_status == OfferStatus.SELECTED:
         if offer.leg_status:
-            return offer.get_leg_status_display(), STATUS_TONE.get(offer.leg_status, "muted")
+            return offer.get_leg_status_display(), STATUS_TONE.get(offer.leg_status, "info")
         return "Awaiting drop-off", "warning"
     return offer.get_offer_status_display(), "muted"
 

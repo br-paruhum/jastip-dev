@@ -109,30 +109,20 @@ ACTIVE_TX_STATUSES = {
 }
 
 # Bootstrap-ish colour keyword per status, used for badges in templates/admin.
+# Per user (22-Jun-2026): every order/transaction status badge renders blue
+# ("info") — no per-status colour. All statuses map to "info"; the status_tone
+# fallbacks below also default to "info" so any unmapped status stays blue too.
 STATUS_TONE = {
-    Status.NEW: "info",
-    Status.REQUEST_RECEIVED: "warning",
-    Status.ACCEPTED: "success",
-    Status.REOPEN: "info",
-    Status.REJECTED: "danger",
-    Status.CANCELLED: "danger",
-    Status.DEPOSIT_PAID: "success",
-    Status.ITEMS_PURCHASED: "primary",
-    Status.PACKAGE_ARRIVED: "primary",
-    Status.READY_FOR_PICKUP: "warning",
-    Status.RESHIP_REQUESTED: "warning",
-    Status.RESHIP_COST_SENT: "warning",
-    Status.RESHIPPING: "info",
-    Status.CLEAR: "success",
-    Status.CLOSED: "success",
-    Status.OPEN: "info",
-    Status.RESPONDED: "warning",
-    Status.TAKEN: "success",
-    Status.PACKAGE_DROPPED_OFF: "primary",
-    Status.WEIGHT_VERIFIED: "primary",
-    Status.PACKAGE_RECEIVED: "primary",
-    Status.NO_RESPONSE: "danger",
-    Status.DROPOFF_MISSED: "danger",
+    status: "info"
+    for status in [
+        Status.NEW, Status.REQUEST_RECEIVED, Status.ACCEPTED, Status.REOPEN,
+        Status.REJECTED, Status.CANCELLED, Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED,
+        Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.RESHIP_REQUESTED,
+        Status.RESHIP_COST_SENT, Status.RESHIPPING, Status.CLEAR, Status.CLOSED,
+        Status.OPEN, Status.RESPONDED, Status.TAKEN, Status.PACKAGE_DROPPED_OFF,
+        Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED, Status.NO_RESPONSE,
+        Status.DROPOFF_MISSED,
+    ]
 }
 
 

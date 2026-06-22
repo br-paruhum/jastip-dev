@@ -2,11 +2,11 @@
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {% include "trips/_status_badge.html" with label=is_order_proxy|yesno:"Estimate Sent,Estimate Received" tone="warning" %}
+    {% include "trips/_status_badge.html" with label=is_order_proxy|yesno:"Estimate Sent,Estimate Received" tone="info" %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label="Awaiting for Estimate" tone=bf_order.status_tone %}
+    {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
-    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"W/f Deposit Verification,Deposit Due" tone="warning" %}
+    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"W/f Deposit Verification,Deposit Due" tone="info" %}
   {% else %}
     {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
   {% endif %}
@@ -338,7 +338,7 @@
     <p class="muted">The Proxy Buyer has sent the estimate. Your order is now looking for a traveler.</p>
     {% endif %}
   {% else %}
-    <p class="muted">No estimate yet — waiting for a Proxy Buyer to respond.</p>
+    <p class="muted">Request Send, waiting for Proxy Buyer to respond with estimate cost and weight.</p>
   {% endif %}
   {% endif %}
   </div>

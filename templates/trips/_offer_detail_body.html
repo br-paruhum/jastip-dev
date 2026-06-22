@@ -4,15 +4,15 @@
   {% if leg_offer.leg_status %}
     {% include "trips/_status_badge.html" with label=leg_offer.get_leg_status_display tone="info" %}
   {% elif leg_offer.offer_status == "selected" %}
-    <span class="badge badge-warning">Awaiting drop-off</span>
+    <span class="badge badge-info">Awaiting drop-off</span>
   {% elif not leg_offer.order.is_cargo %}
     {% if leg_offer.order.status == "responded" %}
-      {% include "trips/_status_badge.html" with label="Estimate Sent" tone="warning" %}
+      {% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
     {% else %}
       {% include "trips/_status_badge.html" with status=leg_offer.order.status label=leg_offer.order.get_status_display tone=leg_offer.order.status_tone %}
     {% endif %}
   {% else %}
-    <span class="badge badge-muted">{{ leg_offer.get_offer_status_display }}</span>
+    <span class="badge badge-info">{{ leg_offer.get_offer_status_display }}</span>
   {% endif %}
   {% if leg_offer.leg_status or leg_offer.order.customs_phase %}
     <a class="btn btn-outline btn-sm" style="margin-left:auto" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}{% if leg_offer.order.is_multi_leg_cargo %}?leg={{ leg_offer.id }}{% endif %}" target="_blank">Print Customs Invoice</a>
