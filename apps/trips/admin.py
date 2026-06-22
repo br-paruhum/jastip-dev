@@ -73,17 +73,24 @@ class BuyRequestAdmin(ModelAdmin):
     def invoice_display(self, obj):
         return f"{obj.invoice_total:,.2f} {obj.currency}"
 
+    @staticmethod
+    def _proof_link(field):
+        """A clickable link to an uploaded transfer-proof image, or '' if none."""
+        return format_html(' <a href="{}" target="_blank">[view proof]</a>', field.url) if field else ""
+
     @admin.display(description="Proxy disbursement — to pay out")
     def proxy_disbursement_display(self, obj):
         if not obj.is_proxy_buyer_first or not obj.items_actual_total:
             return "—"
         return format_html(
-            "Net: <b>{} {}</b><br>1st half: {} {} ({})<br>2nd half: {} {} ({})",
+            "Net: <b>{} {}</b><br>1st half: {} {} ({}){}<br>2nd half: {} {} ({}){}",
             obj.currency, f"{obj.proxy_disbursement_total:,.0f}",
             obj.currency, f"{obj.proxy_disbursement_first_half:,.0f}",
             "released" if obj.proxy_first_disbursed_at else ("ready" if obj.proxy_first_disbursable else "held"),
+            self._proof_link(obj.proxy_first_disbursement_proof),
             obj.currency, f"{obj.proxy_disbursement_second_half:,.0f}",
             "released" if obj.proxy_second_disbursed_at else ("ready" if obj.proxy_second_disbursable else "held"),
+            self._proof_link(obj.proxy_second_disbursement_proof),
         )
 
     @admin.display(description="Carrier payout — to pay out")
@@ -91,7 +98,8 @@ class BuyRequestAdmin(ModelAdmin):
         if not (obj.is_proxy_buyer_first or obj.plan_id) or not hasattr(obj, "transaction"):
             return "—"
         state = "paid" if obj.traveler_paid_at else ("ready" if obj.traveler_payout_disbursable else "pending")
-        return format_html("<b>{} {}</b> ({})", obj.currency, f"{obj.transaction.payout_to_traveler:,.0f}", state)
+        return format_html("<b>{} {}</b> ({}){}", obj.currency, f"{obj.transaction.payout_to_traveler:,.0f}",
+                           state, self._proof_link(obj.traveler_payout_proof))
 
     @admin.display(description="Unpaid / (Overpaid)")
     def unpaid_display(self, obj):
