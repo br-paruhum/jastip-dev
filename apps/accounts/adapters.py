@@ -46,6 +46,14 @@ class AccountAdapter(DefaultAccountAdapter):
         # first, stashing the destination allauth would otherwise have used.
         response = super().post_login(request, user, **kwargs)
         if isinstance(response, HttpResponseRedirect):
+            # A Proxy Buyer always operates as a Buyer, so skip the interstitial
+            # for them and land straight on their destination as a buyer.
+            if user.proxy_buyer_profiles.filter(is_active=True).exists():
+                request.session["role"] = "buyer"
+                if user.last_role_choice != "buyer":
+                    user.last_role_choice = "buyer"
+                    user.save(update_fields=["last_role_choice"])
+                return response
             request.session["post_role_next"] = response.url
             return HttpResponseRedirect(reverse("accounts:choose_role"))
         return response
