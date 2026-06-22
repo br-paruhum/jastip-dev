@@ -120,17 +120,17 @@
           <div style="text-align:center;margin-top:12px"><button class="btn btn-primary btn-sm" type="submit">Confirm Received</button></div>
         </form>
       {% elif leg_offer.travel_date_passed %}
-      <p>You've arrived. Process the arrival details and record any customs duty you paid.</p>
-      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Process Arrival Details</a></div>
+      <p>You've arrived. Record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
+      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Package Arrived</a></div>
       {% else %}
-      <p class="muted">Items purchased. You can process arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
+      <p class="muted">Items purchased. You can confirm arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
       {% endif %}
     {% elif leg_offer.order.status == "package_received" %}
       {% if leg_offer.travel_date_passed %}
-      <p>Goods in your custody. When you arrive at the destination, record any customs duty you paid (reimbursable).</p>
-      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Process Arrival Details</a></div>
+      <p>Goods in your custody. When you arrive at the destination, record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
+      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Package Arrived</a></div>
       {% else %}
-      <p class="muted">Goods received. You can process arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
+      <p class="muted">Goods received. You can confirm arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
       {% endif %}
     {% elif leg_offer.order.status == "package_arrived" %}
     <p class="muted">Buyer notified, wait for Unpaid Balance payment.</p>
