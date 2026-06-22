@@ -16,7 +16,6 @@
       </h1>
       <div class="hero-cta">
         <a href="#proxy-buyers" class="btn btn-primary">Find a Proxy</a>
-        <a href="#looking-for-traveler" class="btn btn-outline btn-buy">Find a Carrier</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -46,7 +45,6 @@
       <span class="eyebrow">Cargo Owner Starts Here</span>
       <h2>Looking for Carrier</h2>
       <p>Find traveler to carry your goods.</p>
-      <a href="{% url 'trips:order_create' %}" class="btn btn-primary btn-sm">Post an Order</a>
     </div>
     {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No cargo looking for a traveler right now." %}
   </div>
