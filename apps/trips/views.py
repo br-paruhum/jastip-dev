@@ -441,17 +441,23 @@ def offer_create(request, order_id):
     if form.is_valid():
         offer = form.save(commit=False)
         # Flow-1: the offered figure is the traveler's TOTAL baggage capacity; it
-        # must at least cover this order's estimated weight (the rest becomes
-        # spare baggage advertised once the buyer accepts).
+        # must at least cover this order's estimated weight (the rest is spare
+        # baggage advertised on the home board straight away).
         if not order.is_cargo and order.estimated_weight_kg and offer.avail_kg < order.estimated_weight_kg:
             messages.error(request, f"Your total baggage capacity must be at least the order's "
                                     f"estimated weight ({order.estimated_weight_kg:g} kg).")
             return redirect(dashboard_url + f"?offer={order_id}#offer-form")
-        offer.order = order
-        offer.traveler = request.user
-        offer.pickup_address = request.user.traveler_address
-        offer.save()
-        order.recompute_status()
+        with db_transaction.atomic():
+            offer.order = order
+            offer.traveler = request.user
+            offer.pickup_address = request.user.traveler_address
+            offer.save()
+            order.recompute_status()
+            # Flow-1: the carry offer is the traveler's trip declaration —
+            # advertise their full capacity as spare baggage immediately (the
+            # proxy cargo is deducted only once the deposit is verified).
+            if not order.is_cargo:
+                workflow.spawn_spare_baggage_plan(order, offer)
         workflow.on_offer_submitted(order, offer)
         messages.success(request, "Offer submitted. The buyer will review it.")
         return redirect(dashboard_url + "#travel-plans")

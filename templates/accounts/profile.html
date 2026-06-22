@@ -455,7 +455,7 @@
               <div class="form-row">
                 <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
                 <div class="form-field"><label>Offer Weight (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}
-                  <p class="help">Your total baggage capacity (≥ this order's est. {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg). Once the buyer's deposit is verified, the spare beyond this order is advertised on the "Looking for Spare Baggage Buyer" board.</p></div>
+                  <p class="help">Your total baggage capacity (≥ this order's est. {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg). It's advertised on the "Looking for Spare Baggage Buyer" board as soon as you offer; this order's weight is deducted once the buyer's deposit is verified.</p></div>
               </div>
               <div class="form-row">
                 <div class="form-field">
