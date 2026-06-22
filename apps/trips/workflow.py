@@ -109,11 +109,12 @@ def _notify_proxy(order, *, subject, template, ctx, event):
 
 def spawn_spare_baggage_plan(order, offer):
     """Flow-1: a traveler's carry offer is itself a declaration of their trip, so
-    advertise their full capacity on the home "Looking for Spare Baggage Buyer"
-    board as soon as they offer — where OTHER buyers can book the spare via the
-    normal plan-first flow ("one traveler, many buyers"). The proxy cargo stays
-    tentative (prebooked 0 → full capacity shown as available) until the buyer's
-    deposit is verified, when lock_proxy_cargo_on_plan() deducts its weight.
+    advertise their capacity on the home "Looking for Spare Baggage Buyer" board
+    as soon as they offer — where OTHER buyers can book the spare via the normal
+    plan-first flow ("one traveler, many buyers"). This order's weight is RESERVED
+    from the start (prebooked = order weight) so other buyers can't grab the slot
+    the original buyer is still deciding on; the reservation is released only if
+    the buyer ignores the offer for 24h (see the lapse_ignored_carry_offers cron).
     Idempotent: one offer spawns at most one plan."""
     from decimal import Decimal
     from .models import TravelPlan
@@ -126,7 +127,7 @@ def spawn_spare_baggage_plan(order, offer):
         from_city=offer.from_city, from_country=offer.from_country,
         to_city=offer.to_city, to_country=offer.to_country,
         available_weight_kg=offer.avail_kg,
-        prebooked_weight_kg=Decimal("0"),
+        prebooked_weight_kg=order.estimated_weight_kg or Decimal("0"),
         shipment_cost_per_kg=offer.ask_cost_per_kg,
         shipment_currency=order.currency,
         carrier_only=True,
@@ -136,9 +137,9 @@ def spawn_spare_baggage_plan(order, offer):
 
 
 def lock_proxy_cargo_on_plan(order, offer):
-    """Flow-1: the buyer's deposit is verified, so the proxy cargo is now locked —
-    deduct its weight from the spawned plan's spare capacity (Avail drops by the
-    order's estimated weight). Ensures the plan exists first."""
+    """Flow-1 safety net at deposit-verified: ensure the spare-baggage plan exists
+    and the proxy cargo's weight is reserved against it (it already is from offer
+    time; this just guards against a missing plan)."""
     from decimal import Decimal
     plan = getattr(offer, "spawned_plan", None) or spawn_spare_baggage_plan(order, offer)
     plan.prebooked_weight_kg = order.estimated_weight_kg or Decimal("0")

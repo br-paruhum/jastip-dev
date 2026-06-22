@@ -32,7 +32,7 @@ def home(request):
         .filter(carrier_only=True)
         .select_related("traveler")
         .prefetch_related("buy_requests")[:30]
-        if not p.listing_expired
+        if not p.board_expired
     ]
 
     # "Looking for Carrier" board = both flavours of cargo that needs a traveler:

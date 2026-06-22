@@ -43,6 +43,9 @@ def platform_fee_floor(currency: str) -> Decimal:
 # past it. Display-only — the real lifecycle status is untouched, and the owner's
 # dashboard keeps the row until it actually closes.
 LISTING_LOCK_HOURS = 24
+# Spare-baggage travel plans stay on the home board until this many days after
+# the travel date, then drop off and are auto-closed (see close_overdue_plans).
+PLAN_BOARD_RETENTION_DAYS = 2
 
 
 class ListingTimingMixin:
@@ -172,6 +175,15 @@ class TravelPlan(ListingTimingMixin, models.Model):
             result.append(SimpleNamespace(req=req, available=avail, remaining=remaining))
             running = remaining
         return result
+
+    @property
+    def board_expired(self) -> bool:
+        """Drop from the spare-baggage board PLAN_BOARD_RETENTION_DAYS after the
+        travel date (then close_overdue_plans sets the status to Closed)."""
+        return bool(
+            self.travel_date
+            and timezone.now().date() >= self.travel_date + timedelta(days=PLAN_BOARD_RETENTION_DAYS)
+        )
 
     @property
     def is_closed(self) -> bool:
