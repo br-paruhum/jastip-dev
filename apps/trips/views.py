@@ -326,10 +326,12 @@ def order_create(request):
     else:
         form = OrderForm(proxy=proxy)
         formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
-    from apps.accounts.views import _resolve_role
+    from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "proxy": proxy,
-                   "role": _resolve_role(request)})
+                   "role": _resolve_role(request),
+                   "proxy_orders": _proxy_buying_orders(request.user),
+                   "active_nav": "my-orders"})
 
 
 # --- Buyer: edit / cancel a buyer-first order before any offer -------------
@@ -385,10 +387,12 @@ def order_edit(request, pk):
     else:
         form = OrderForm(instance=order, proxy=proxy)
         formset = OrderItemFormSet(instance=order, prefix="bf_items")
-    from apps.accounts.views import _resolve_role
+    from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "is_edit": True, "order": order,
-                   "proxy": proxy, "role": _resolve_role(request)})
+                   "proxy": proxy, "role": _resolve_role(request),
+                   "proxy_orders": _proxy_buying_orders(request.user),
+                   "active_nav": "my-orders"})
 
 
 @profile_required

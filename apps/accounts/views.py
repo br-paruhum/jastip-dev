@@ -37,6 +37,18 @@ def _resolve_role(request):
     return role
 
 
+def _proxy_buying_orders(user):
+    """Flow-1 orders the user (acting as a Proxy Buyer) has been assigned to
+    source. Empty for a regular buyer who has never been an assigned proxy —
+    drives whether the "My Proxy Buying" sidebar item shows."""
+    return list(
+        BuyRequest.objects.filter(proxy_buyer__user=user, plan__isnull=True)
+        .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
+        .select_related("buyer", "proxy_buyer")
+        .order_by("max_acceptable_date")
+    )
+
+
 def _order_is_proxy(req, user):
     """True if `user` is the traveler/proxy for `req`: the plan's traveler
     (plan-first) or the single live offer's traveler (buyer-first Products)."""
@@ -178,12 +190,7 @@ def profile(request):
 
         # Flow-1: orders the buyer (acting as a Proxy Buyer) has been assigned to
         # source — they respond with the estimate here.
-        proxy_orders = list(
-            BuyRequest.objects.filter(proxy_buyer__user=user, plan__isnull=True)
-            .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
-            .select_related("buyer", "proxy_buyer")
-            .order_by("max_acceptable_date")
-        )
+        proxy_orders = _proxy_buying_orders(user)
 
     form = ProfileForm(instance=user, role=role)
 
