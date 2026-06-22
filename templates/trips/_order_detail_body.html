@@ -227,14 +227,14 @@
     <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Payment Proof</button></div>
     {% elif bf_order.balance_extra_due > 0 %}
     {% with s=bf_order.balance_settlement %}
-    <p>Your package has arrived.<br>Please pay the unpaid balance of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong> to:</p>
+    <p>Your package has arrived.<br>Please pay the unpaid balance of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong>{% if s.ref_amount %} ({{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} @ {{ s.rate|floatformat:2 }}){% endif %} to:</p>
     <table class="invoice" style="max-width:440px;margin-bottom:8px">
       <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
       <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
       <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
       <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
     </table>
-    {% if s.ref_amount %}<p class="help" style="margin-bottom:12px">≈ {{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} — for reference only. Please settle in IDR; convert at your bank's rate.</p>{% endif %}
+    {% if s.ref_amount %}<p class="help" style="margin-bottom:12px">{{ s.ref_ccy }} amount shown for reference (BCA TT rate); please settle in IDR.</p>{% endif %}
     {% endwith %}
     <form method="post" action="{% url 'trips:request_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
       {% csrf_token %}
@@ -324,14 +324,14 @@
     {% if is_order_buyer %}
     <p>Shipment cost accepted. Please pay the deposit to confirm — the Proxy Buyer then starts purchasing.</p>
     {% with s=bf_order.deposit_settlement %}
-    <p>Please make a bank transfer of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong> to:</p>
+    <p>Please make a bank transfer of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong>{% if s.ref_amount %} ({{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} @ {{ s.rate|floatformat:2 }}){% endif %} to:</p>
     <table class="invoice" style="max-width:440px;margin-bottom:8px">
       <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
       <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
       <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
       <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
     </table>
-    {% if s.ref_amount %}<p class="help" style="margin-bottom:12px">≈ {{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} — for reference only. Please settle in IDR; convert at your bank's rate.</p>{% endif %}
+    {% if s.ref_amount %}<p class="help" style="margin-bottom:12px">{{ s.ref_ccy }} amount shown for reference (BCA TT rate); please settle in IDR.</p>{% endif %}
     {% endwith %}
     <form method="post" action="{% url 'trips:order_deposit_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
       {% csrf_token %}

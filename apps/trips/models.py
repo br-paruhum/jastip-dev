@@ -805,12 +805,19 @@ class BuyRequest(ListingTimingMixin, models.Model):
         buyer's local cost (e.g. EUR for a German buyer)."""
         if self.currency == Currency.IDR:
             ref = self._amount_in(amount, self.destination_currency)
+            rate = (amount / ref) if ref else None  # IDR per 1 ref unit
             return {"idr": amount,
                     "ref_ccy": self.destination_currency if ref is not None else "",
-                    "ref_amount": ref}
+                    "ref_amount": ref, "rate": rate}
         idr = self._idr_equivalent(amount)
+        rate = None  # BCA TT sell rate actually used (IDR per 1 unit of order ccy)
+        try:
+            er = ExchangeRate.objects.get(code=self.currency, is_active=True)
+            rate = er.sell_rate or None
+        except ExchangeRate.DoesNotExist:
+            pass
         return {"idr": idr if idr is not None else amount,
-                "ref_ccy": self.currency, "ref_amount": amount}
+                "ref_ccy": self.currency, "ref_amount": amount, "rate": rate}
 
     @property
     def deposit_settlement(self) -> dict:
