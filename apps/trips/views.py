@@ -1507,6 +1507,46 @@ def request_clear(request, pk):
     return redirect(req.get_absolute_url())
 
 
+# --- Staff: upload a disbursement transfer proof -> release + notify ---------
+@login_required
+@require_POST
+def release_disbursement(request, pk):
+    """Staff attaches the transfer proof for a Flow-1 disbursement; this releases
+    it (stamps the timestamp) and notifies the recipient by email + WhatsApp."""
+    if not request.user.is_staff:
+        messages.error(request, "Only staff can release disbursements.")
+        return redirect(reverse("accounts:profile"))
+    req = get_object_or_404(BuyRequest, pk=pk)
+    back = request.META.get("HTTP_REFERER") or (reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    kind = request.POST.get("kind")
+    proof = request.FILES.get("proof")
+    if not proof:
+        messages.error(request, "Please attach the transfer proof image.")
+        return redirect(back)
+
+    if kind == "proxy_first" and req.proxy_first_disbursable and not req.proxy_first_disbursed_at:
+        req.proxy_first_disbursement_proof = proof
+        req.proxy_first_disbursed_at = timezone.now()
+        req.save(update_fields=["proxy_first_disbursement_proof", "proxy_first_disbursed_at", "updated_at"])
+        workflow.notify_proxy_first_disbursed(req)
+        messages.success(request, "Proxy 1st-half disbursement released — proxy notified by email + WhatsApp.")
+    elif kind == "proxy_second" and req.proxy_second_disbursable and not req.proxy_second_disbursed_at:
+        req.proxy_second_disbursement_proof = proof
+        req.proxy_second_disbursed_at = timezone.now()
+        req.save(update_fields=["proxy_second_disbursement_proof", "proxy_second_disbursed_at", "updated_at"])
+        workflow.notify_proxy_second_disbursed(req)
+        messages.success(request, "Proxy final disbursement released — proxy notified by email + WhatsApp.")
+    elif kind == "traveler" and req.traveler_payout_disbursable and not req.traveler_paid_at:
+        req.traveler_payout_proof = proof
+        req.traveler_paid_at = timezone.now()
+        req.save(update_fields=["traveler_payout_proof", "traveler_paid_at", "updated_at"])
+        workflow.notify_traveler_paid(req)
+        messages.success(request, "Traveler payout released — traveler notified by email + WhatsApp.")
+    else:
+        messages.error(request, "That disbursement isn't releasable yet (not eligible or already released).")
+    return redirect(back)
+
+
 # --- Buyer: request reshipment, using the address saved on their profile ----
 @profile_required
 @require_POST

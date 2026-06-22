@@ -308,10 +308,14 @@ class BuyRequest(ListingTimingMixin, models.Model):
     # full goods-quality exposure, so we hold the proxy's other 50% until then.
     proxy_first_disbursed_at = models.DateTimeField(null=True, blank=True)
     proxy_second_disbursed_at = models.DateTimeField(null=True, blank=True)
+    # Admin-uploaded transfer proof for each disbursement (shown to the recipient).
+    proxy_first_disbursement_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
+    proxy_second_disbursement_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
     # Flow-1 carrier payout actually released by admin (the carry fee + customs,
     # less the platform fee). Set from the admin "mark paid" action, not the
     # workflow — so the traveler's "Your Payout" status reflects real money out.
     traveler_paid_at = models.DateTimeField(null=True, blank=True)
+    traveler_payout_proof = models.ImageField(upload_to="disbursement_proofs/", blank=True, null=True, storage=webp_storage)
 
     # Estimated shipping weight of THIS package, set by the traveler at review.
     # Shipment cost is charged on this weight, not the plan's full capacity.
