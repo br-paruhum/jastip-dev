@@ -28,6 +28,14 @@
   </table>
 </div></div>
 
+<!-- Payment Terms (foldable, closed by default) — editable in admin: Site Settings -->
+<details class="card fold mt-2">
+  <summary><h3>Payment Terms</h3></summary>
+  <div class="fold-body">
+    {% if bf_order.is_cargo %}{{ PAYMENT_TERM_CARRIER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}
+  </div>
+</details>
+
 {% if bf_order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
   <h3 style="margin-top:0">Items</h3>
