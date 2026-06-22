@@ -1391,6 +1391,14 @@ def request_receive(request, pk):
             messages.error(request, "Enter the measured package weight (kg) before confirming receipt.")
             return redirect(reverse("accounts:profile") + f"?receive={req.id}#receive-order")
         form.save()
+        # Proxy flow: the traveler's confirmed weight is final — re-sync the
+        # spare-baggage board reservation to it.
+        if req.is_proxy_buyer_first:
+            live_offer = req.traveler_offers.filter(
+                offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+            ).first()
+            if live_offer:
+                workflow.lock_proxy_cargo_on_plan(req, live_offer)
         on_received(req)
         messages.success(request, "Package received — custody confirmed. The buyer has been notified.")
         return _traveler_invoice_redirect(req)

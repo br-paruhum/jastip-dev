@@ -107,8 +107,8 @@
     <p>Deposit verified. Please communicate with the Buyer for the location and best time to hand over the package.</p>
     {% elif leg_offer.order.status == "items_purchased" %}
       {% if leg_offer.order.is_proxy_buyer_first %}
-        <p>The proxy buyer has the goods ready. Use the Messages thread below to agree a time and place to collect
-          the package, then weigh it and confirm receipt — this records the carried weight and releases the proxy's first payment.</p>
+        <p>Proxy buyer has the goods ready. Use the Messages thread below to agree a time and place to hand over the
+          package, then weigh it for final check and Confirm Received.</p>
         <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?receive={{ leg_offer.order_id }}#receive-order">Confirm Received</a></div>
       {% elif leg_offer.travel_date_passed %}
       <p>You've arrived. Process the arrival details and record any customs duty you paid.</p>
