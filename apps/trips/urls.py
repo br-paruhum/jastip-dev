@@ -43,6 +43,7 @@ urlpatterns = [
     path("requests/<int:pk>/receive/", views.request_receive, name="request_receive"),
     path("requests/<int:pk>/arrive/", views.request_arrive, name="request_arrive"),
     path("requests/<int:pk>/pay/", views.request_pay, name="request_pay"),
+    path("requests/<int:pk>/pickup-select/", views.request_pickup_select, name="request_pickup_select"),
     path("requests/<int:pk>/clear/", views.request_clear, name="request_clear"),
     path("requests/<int:pk>/reship-request/", views.request_reship_request, name="request_reship_request"),
     path("requests/<int:pk>/reship-cost/", views.request_reship_cost, name="request_reship_cost"),

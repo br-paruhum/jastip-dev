@@ -337,6 +337,10 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     # Reshipment — step 1: buyer's delivery address.
     reshipment_address = models.TextField(blank=True)
+    # Pickup path: the buyer chose local pickup (vs reshipment) at Ready-for-Pickup.
+    # The package is still with the traveler until the buyer confirms receipt, which
+    # then clears the order. Distinguishes "chose pickup" from "received it".
+    pickup_selected = models.BooleanField(default=False)
     # Reshipment — step 2: traveler's cost + bank details.
     reshipment_cost_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     reshipment_cost_proof = models.ImageField(upload_to="reshipment_costs/", blank=True, null=True, storage=webp_storage)

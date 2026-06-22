@@ -1491,13 +1491,37 @@ def request_pay(request, pk):
 # --- Clearance: buyer marks Clear; cron closes it next day ------------------
 @profile_required
 @require_POST
+def request_pickup_select(request, pk):
+    """Buyer chooses local pickup over reshipment. The package is still with the
+    traveler — this only records the choice; the buyer clears the order later by
+    confirming actual receipt."""
+    req = get_object_or_404(BuyRequest, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can choose pickup.")
+        return redirect(req.get_absolute_url())
+    if req.status != Status.READY_FOR_PICKUP:
+        messages.error(request, "Pickup can only be chosen at the Ready-for-Pickup stage.")
+        return redirect(req.get_absolute_url())
+    if not req.pickup_selected:
+        req.pickup_selected = True
+        req.save(update_fields=["pickup_selected", "updated_at"])
+    messages.success(request, "Pickup selected. Collect the package from the traveler, "
+                              "then confirm receipt to release the payment.")
+    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+
+
+@profile_required
+@require_POST
 def request_clear(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if request.user != req.buyer:
-        messages.error(request, "Only the buyer can confirm pickup and clearance.")
+        messages.error(request, "Only the buyer can confirm receipt and clearance.")
         return redirect(req.get_absolute_url())
-    if req.status not in {Status.READY_FOR_PICKUP, Status.RESHIPPING}:
-        messages.error(request, "Clearance is only available at Paid in Full or In Transit stage.")
+    # Reshipment: clears once delivered (In Transit). Pickup: clears only after the
+    # buyer chose pickup AND confirms they actually received the package.
+    pickup_ok = req.status == Status.READY_FOR_PICKUP and req.pickup_selected
+    if not (pickup_ok or req.status == Status.RESHIPPING):
+        messages.error(request, "Confirm receipt is only available once the package is in transit or ready for pickup.")
         return redirect(req.get_absolute_url())
 
     workflow.on_buyer_cleared(req)
