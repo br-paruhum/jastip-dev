@@ -4,17 +4,16 @@
 {% block content %}
 <section>
   <div class="container">
-    <div class="profile-layout mt-2">
-      <div class="profile-main">
-    <span class="eyebrow">Buyer · Order First</span>
+    <span class="eyebrow">{% if proxy %}PROXY BUYING PROCESS START{% else %}Buyer · Order First{% endif %}</span>
     <h1>Post an Order</h1>
     {% if proxy %}
     <p class="muted">Fill in your destination city, products, quantity, and order deadline.</p>
     {% else %}
     <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
     {% endif %}
-
-    <form method="post" enctype="multipart/form-data" class="card" style="margin-top:18px">
+    <div class="profile-layout mt-2">
+      <div class="profile-main">
+    <form method="post" enctype="multipart/form-data" class="card">
       {% csrf_token %}
       {% if proxy %}<input type="hidden" name="proxy" value="{{ proxy.id }}">{% endif %}
       <div class="card-body">
