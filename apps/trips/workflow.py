@@ -107,59 +107,6 @@ def _notify_proxy(order, *, subject, template, ctx, event):
                       text="ProxyBuying: Please see your email.", event=event)
 
 
-def spawn_spare_baggage_plan(order, offer):
-    """Flow-1: a traveler's carry offer is itself a declaration of their trip, so
-    advertise their capacity on the home "Looking for Spare Baggage Buyer" board
-    as soon as they offer — where OTHER buyers can book the spare via the normal
-    plan-first flow ("one traveler, many buyers"). This order's weight is RESERVED
-    from the start (prebooked = order weight) so other buyers can't grab the slot
-    the original buyer is still deciding on; the reservation is released only if
-    the buyer ignores the offer for 24h (see the lapse_ignored_carry_offers cron).
-    Idempotent: one offer spawns at most one plan."""
-    from decimal import Decimal
-    from .models import TravelPlan
-    if getattr(offer, "spawned_plan", None) is not None:
-        return offer.spawned_plan
-    return TravelPlan.objects.create(
-        traveler=offer.traveler,
-        travel_date=offer.travel_date,
-        travel_time=offer.travel_time,
-        from_city=offer.from_city, from_country=offer.from_country,
-        to_city=offer.to_city, to_country=offer.to_country,
-        available_weight_kg=offer.avail_kg,
-        prebooked_weight_kg=order.estimated_weight_kg or Decimal("0"),
-        shipment_cost_per_kg=offer.ask_cost_per_kg,
-        shipment_currency=order.currency,
-        carrier_only=True,
-        status=Status.NEW,
-        origin_offer=offer,
-    )
-
-
-def lock_proxy_cargo_on_plan(order, offer):
-    """Flow-1: keep the proxy cargo's reservation on the spare-baggage plan in
-    sync with the order's effective weight — the estimate until the proxy records
-    the actual weight at purchase, then the actual. Ensures the plan exists."""
-    from decimal import Decimal
-    plan = getattr(offer, "spawned_plan", None) or spawn_spare_baggage_plan(order, offer)
-    plan.prebooked_weight_kg = order.effective_weight_kg or Decimal("0")
-    plan.save(update_fields=["prebooked_weight_kg", "updated_at"])
-    return plan
-
-
-def release_offer_reservation(offer):
-    """Free the proxy-cargo reservation on this offer's spawned spare-baggage plan
-    so the traveler's full capacity becomes bookable again (Avail returns to the
-    total). Used when the offer is rejected / withdrawn / lapsed. The plan itself
-    stays — it's the traveler's trip declaration."""
-    from decimal import Decimal
-    plan = getattr(offer, "spawned_plan", None)
-    if plan and plan.prebooked_weight_kg:
-        plan.prebooked_weight_kg = Decimal("0")
-        plan.save(update_fields=["prebooked_weight_kg", "updated_at"])
-    return plan
-
-
 def on_proxy_offer_accepted(order, offer):
     """Flow-1 step 8: buyer accepted the traveler's shipment cost -> notify the
     traveler (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""

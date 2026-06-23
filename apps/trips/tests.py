@@ -47,7 +47,7 @@ class LifecycleTests(TestCase):
 
     def test_reference_generated(self):
         self.assertTrue(self.plan.reference)
-        self.assertTrue(self.req.reference.startswith("REQ-"))
+        self.assertTrue(self.req.reference.startswith("PRX-"))
 
     def test_money_math(self):
         items = list(self.req.items.all())
