@@ -3,20 +3,17 @@
 {% if orders %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Ref</th><th>Route</th><th>Bid Weight<br>(kg)</th><th>Pending Weight<br>(kg)</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Route</th><th>Weight<br>(kg)</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
-      <tr class="{% if o.status == 'closed' %}row-closed{% endif %}">
+      <tr class="{% if o.status == 'closed' or o.status == 'cancelled' %}row-closed{% endif %}">
         <td>{{ o.reference }}
           {% if o.bf_kind == "traveler_first" %}
             <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {% if o.is_cargo %}{{ o.cargo_charge_total|intcomma }}{% else %}{{ o.invoice_total|intcomma }}{% endif %}</div>
-          {% else %}
-            <div class="muted" style="font-size:.8em">{{ o.traveler_offers.all|length }} offer{{ o.traveler_offers.all|length|pluralize }}</div>
           {% endif %}
         </td>
         <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
         <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.estimated_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}</td>
-        <td>{% if o.bf_kind == "traveler_first" %}{% if o.is_cargo %}{{ o.pending_weight_kg }}{% else %}—{% endif %}{% else %}{{ o.remaining_bid_weight_kg }}{% endif %}</td>
         <td class="status-cell">
           {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
         </td>

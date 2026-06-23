@@ -12,9 +12,10 @@
         <div class="static-field muted">{{ arrive_req.destination_currency }}</div>
         {{ arrive_form.custom_fare_currency }}
       </div>
-      <div class="form-field"><label>Custom Duty Amount</label>{{ arrive_form.custom_fare_amount }}</div>
+      <div class="form-field"><label>Custom Duty Amount</label>{{ arrive_form.custom_fare_amount }}{{ arrive_form.custom_fare_amount.errors }}</div>
     </div>
-    <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ arrive_form.custom_fare_proof }}</div>
+    <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}</div>
+    {{ arrive_form.non_field_errors }}
     <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.is_buyer_first and not arrive_req.is_cargo %}Package Arrived{% else %}Mark Arrived{% endif %}</button></div>
   </div>
 </form>

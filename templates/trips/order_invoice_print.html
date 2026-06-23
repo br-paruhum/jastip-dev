@@ -49,7 +49,9 @@
       <div class="inv-meta-label">Sourced By (Proxy Buyer)</div>
       <div class="inv-meta-val">{% if req.proxy_buyer %}{{ req.proxy_buyer.name }} — {{ req.proxy_buyer.country }}{% else %}—{% endif %}</div>
       <div class="inv-meta-label" style="margin-top:10px">Carried By</div>
-      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}</div>
+      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}{% if req.traveler_user.traveler_address %}
+{{ req.traveler_user.traveler_address }}{% endif %}{% if req.traveler_user.traveler_destination_city %}
+{{ req.traveler_user.traveler_destination_city }}{% endif %}</div>
     </div>
     <div>
       <div class="inv-meta-label">Route</div>
@@ -70,14 +72,13 @@
   <table>
     <thead>
       <tr>
-        <th rowspan="2">Product Name</th>
-        <th class="num" colspan="2">Qty</th>
-        <th>Unit</th>
-        <th class="num" colspan="2">Unit Price ({{ req.currency }})</th>
-        <th class="num" colspan="2">Total ({{ req.currency }})</th>
+        <th rowspan="2" style="text-align:center">Product Name</th>
+        <th colspan="3" style="text-align:center">Qty</th>
+        <th colspan="2" style="text-align:center">Unit Price ({{ req.currency }})</th>
+        <th colspan="2" style="text-align:center">Total ({{ req.currency }})</th>
       </tr>
       <tr>
-        <th class="num">Est</th><th class="num">Act</th><th></th>
+        <th class="num">Est</th><th class="num">Act</th><th>Unit</th>
         <th class="num">Est</th><th class="num">Act</th>
         <th class="num">Est</th><th class="num">Act</th>
       </tr>
@@ -109,8 +110,12 @@
         <td class="num">{{ req.actual_margin|floatformat:0|intcomma }}</td>
       </tr>
       <tr>
-        <td>Shipment ({{ req.estimated_weight_kg|floatformat:1 }}{% if req.actual_weight_kg %} / {{ req.actual_weight_kg|floatformat:1 }}{% endif %} kg @ {{ req.effective_cost_per_kg|floatformat:0|intcomma }})</td>
-        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td>Shipment</td>
+        <td class="num">{{ req.estimated_weight_kg|floatformat:1 }}</td>
+        <td class="num">{% if req.actual_weight_kg %}{{ req.actual_weight_kg|floatformat:1 }}{% endif %}</td>
+        <td></td>
+        <td class="num"></td>
+        <td class="num">{{ req.effective_cost_per_kg|floatformat:0|intcomma }}</td>
         <td class="num">{{ req.estimated_shipment_cost|floatformat:0|intcomma }}</td>
         <td class="num">{{ req.shipment_cost|floatformat:0|intcomma }}</td>
       </tr>

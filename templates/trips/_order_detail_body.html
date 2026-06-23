@@ -2,7 +2,7 @@
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {% if is_order_proxy %}{% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
+    {% if is_order_proxy %}{% include "trips/_status_badge.html" with label="Offer Received" tone="info" %}
     {% elif bf_order.pending_offers %}{% include "trips/_status_badge.html" with label="Offer Received" tone="info" %}
     {% else %}{% include "trips/_status_badge.html" with label="Looking for Carrier" tone="info" %}{% endif %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
@@ -183,8 +183,8 @@
       {% endfor %}
     </table>
   </div>
-  <p class="help mt-2">Traveler's name and drop-off address stay hidden until a leg's deposit clears.
-    Enter the kg you want to allocate to this traveler before selecting{% if not bf_order.partial_allowed %} — this order does not allow partial fulfillment, so the allocation must cover the full remaining bid{% endif %}.</p>
+  <p class="help mt-2">Carrier's name and drop-off address stay hidden until a leg's deposit clears.
+    Enter the kg you want to allocate to this carrier before selecting{% if not bf_order.partial_allowed %} — this order does not allow partial fulfillment, so the allocation must cover the full remaining bid{% endif %}.</p>
   {% else %}
   <p class="muted">No pending offers right now.</p>
   {% endif %}
@@ -208,15 +208,15 @@
     {% endif %}
   {% elif bf_order.status == "items_purchased" %}
     {% if is_order_buyer %}
-    <p class="muted">Your items have been purchased and are ready to be handed to the traveler. You'll settle the balance (remaining products + margin + shipment adjustment + customs) when the package arrives.</p>
+    <p class="muted">Your items have been purchased and are ready to be handed to the carrier. You'll settle the balance (remaining products + margin + shipment adjustment + customs) when the package arrives.</p>
     {% else %}
-    <p>Package ready. Use the Messages thread below to agree a time and place for the handover with the traveler — they'll then weigh the package and confirm receipt.</p>
+    <p>Package ready. Use the Messages thread below to agree a time and place for the handover with the carrier — they'll then weigh the package and confirm receipt.</p>
     {% endif %}
   {% elif bf_order.status == "package_received" %}
     {% if is_order_buyer %}
-    <p class="muted">The traveler has collected your goods from the proxy buyer and is carrying them to {{ bf_order.to_city }}. You'll be notified to settle the shipment + customs balance when it arrives.</p>
+    <p class="muted">The carrier has collected your goods from the proxy buyer and is carrying them to {{ bf_order.to_city }}. You'll be notified to settle the shipment + customs balance when it arrives.</p>
     {% elif is_order_proxy %}
-    <p class="muted">You've handed the goods to the traveler. Your first payment has been released; the remaining 50% follows once the buyer clears the package.</p>
+    <p class="muted">You've handed the goods to the carrier. Your first payment has been released; the remaining 50% follows once the buyer clears the package.</p>
     {% else %}
     <p class="muted">Goods collected from the proxy — in transit to the destination.</p>
     {% endif %}
@@ -251,7 +251,7 @@
   {% elif bf_order.status == "ready_for_pickup" %}
     {% if is_order_buyer %}
       {% if bf_order.pickup_selected %}
-      <p><strong>Pick up your package</strong> from the traveler below, verify the items, then click <strong>Confirm Received</strong> to release the payment. The package is with the traveler until you collect it.</p>
+      <p><strong>Pick up your package</strong> from the carrier below, verify the items, then click <strong>Confirm Received</strong> to release the payment. The package is with the carrier until you collect it.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:100px">Name</td><td>: {{ bf_order.proxy_traveler.full_name }}</td></tr>
         {% if bf_order.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_address }}</span>{% if bf_order.proxy_traveler.traveler_destination_city %}, {{ bf_order.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
@@ -263,7 +263,7 @@
         <button class="btn btn-primary" type="submit">Confirm Received</button>
       </form>
       {% else %}
-      <p><strong>Option 1 — Pick up locally:</strong> Choose pickup, then collect the package from the traveler and confirm receipt to release the payment.</p>
+      <p><strong>Option 1 — Pick up locally:</strong> Choose pickup, then collect the package from the carrier and confirm receipt to release the payment.</p>
       <form method="post" action="{% url 'trips:request_pickup_select' bf_order.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
         <button class="btn btn-primary" type="submit">Pick Up Locally</button>
       </form>
@@ -310,13 +310,13 @@
     {% if is_order_proxy and not is_order_buyer %}
     <p><span class="badge badge-success">Clear</span> The buyer confirmed pickup{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. Your remaining 50% disbursement is being released.</p>
     {% else %}
-    <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. The proxy buyer and the traveler are being paid shortly.</p>
+    <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. The proxy buyer and the carrier are being paid shortly.</p>
     {% endif %}
   {% elif bf_order.status == "closed" %}
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
   {% elif bf_order.status == "responded" and bf_order.pending_offers %}
     {% if is_order_buyer %}
-    <p>A traveler has offered to carry your order:</p>
+    <p>A carrier has offered to carry your order:</p>
     {% for offer in bf_order.pending_offers %}
     <table class="invoice" style="max-width:440px;margin-bottom:12px">
       <tr><td>Shipment Cost per kg</td><td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
@@ -330,7 +330,7 @@
       <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline" type="submit">Reject</button></form>
     </div>
     {% else %}
-    <p class="muted">A traveler has offered to carry this cargo. Waiting for the buyer to accept the shipment cost.</p>
+    <p class="muted">A carrier has offered to carry this cargo. Waiting for the buyer to accept the shipment cost.</p>
     {% endif %}
   {% elif bf_order.status == "accepted" %}
     {% if is_order_buyer %}
@@ -355,9 +355,9 @@
     {% endif %}
   {% elif bf_order.status == "responded" %}
     {% if is_order_proxy and not is_order_buyer %}
-    <p class="muted">Estimate sent. Your order is now looking for a traveler.</p>
+    <p class="muted">Estimate sent. Your order is now looking for a carrier.</p>
     {% else %}
-    <p class="muted">The Proxy Buyer has sent the estimate. Your order is now looking for a traveler.</p>
+    <p class="muted">The Proxy Buyer has sent the estimate. Your order is now looking for a carrier.</p>
     {% endif %}
   {% else %}
     <p class="muted">Request Send, waiting for Proxy Buyer to respond with estimate cost and weight.</p>
@@ -460,7 +460,7 @@
 
 {% if bf_order.confirmed_legs %}
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Accepted Traveler's Ask</h3>
+  <h3 style="margin-top:0">Accepted Carrier's Ask</h3>
   <div style="display:flex;flex-direction:column;gap:16px">
     {% for leg in bf_order.confirmed_legs %}
     <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden">
@@ -506,7 +506,7 @@
         <div>
           {% if not leg.leg_status %}
             {% if leg.address_revealed %}
-              <span class="muted">Awaiting drop-off &amp; weighing by the traveler</span>
+              <span class="muted">Awaiting drop-off &amp; weighing by the carrier</span>
             {% elif leg.deposit_pending %}
               <span class="muted">Pending fund verification</span>
             {% else %}
@@ -515,9 +515,9 @@
           {% elif leg.leg_status == "package_dropped_off" %}
             <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
           {% elif leg.leg_status == "weight_verified" %}
-            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg }} kg) — awaiting traveler confirmation</span>
+            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg }} kg) — awaiting carrier confirmation</span>
           {% elif leg.leg_status == "package_received" %}
-            <span class="badge badge-success">Received by traveler</span>
+            <span class="badge badge-success">Received by carrier</span>
           {% elif leg.leg_status == "package_arrived" %}
             <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg }} kg (allocated {{ leg.allocated_weight_kg }} kg)</p>
             {% if leg.custom_fare_amount %}
@@ -554,7 +554,7 @@
                 </form>
               {% endif %}
             {% elif not leg.fulfillment_method %}
-              <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the traveler to set
+              <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the carrier to set
                 the best time to visit. On the visit, verify the package and click <strong>Confirm Pickup</strong>
                 to release the payment.</p>
               <table class="invoice" style="max-width:400px;margin:0 0 12px">
@@ -570,7 +570,7 @@
               </form>
               <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
               <p style="margin:0 0 6px"><strong>Option 2 — Request Reshipment:</strong> Ship the package to your
-                Reshipment Address (set on your Profile). The traveler will be notified to send the shipping cost.</p>
+                Reshipment Address (set on your Profile). The carrier will be notified to send the shipping cost.</p>
               <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
                 {% csrf_token %}
                 <input type="hidden" name="fulfillment_method" value="reship">
@@ -586,7 +586,7 @@
               <button class="btn btn-primary btn-sm" type="submit">Confirm Picked Up (Clear)</button>
             </form>
           {% elif leg.leg_status == "reship_requested" %}
-            <span class="badge badge-warning">Reship requested — awaiting cost from traveler</span>
+            <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
           {% elif leg.leg_status == "reship_cost_sent" %}
             <p class="help" style="margin:0 0 4px">
               Cost: {{ bf_order.currency }} {{ leg.reshipment_cost_amount|floatformat:0|intcomma }} —
@@ -664,8 +664,8 @@
 </div></div>
 {% endif %}
 
-{# Chat is the Traveler<->Proxy Buyer handover thread — not shown to the buyer. #}
-{% if can_chat and not is_order_buyer %}{% include "trips/_chat_thread.html" with chat_obj=bf_order %}{% endif %}
+{# Chat is the Carrier<->Proxy Buyer handover thread — not shown to the buyer. #}
+{% if can_chat and not is_order_buyer %}{% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order %}{% endif %}{% endif %}
 
 {% if bf_order.can_edit %}
 <div class="mt-2" style="text-align:center">

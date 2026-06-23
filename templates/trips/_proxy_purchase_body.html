@@ -1,6 +1,6 @@
 {% load humanize %}
-<h2 style="margin:6px 0 0">Package Ready</h2>
-<p><strong>Enter the actual unit cost you paid for each product, then mark the package ready. The buyer is then asked to pay the remaining balance.</strong></p>
+<h2 style="margin:6px 0 0">Actual Cost Update</h2>
+<p>Enter the actual unit cost you paid for each product, then mark the package ready. The buyer is then asked to pay the remaining balance.</p>
 <form method="post" action="{% url 'trips:proxy_purchase' package_ready_order.id %}" enctype="multipart/form-data" class="card" style="margin-top:14px">
   {% csrf_token %}
   {{ package_ready_formset.management_form }}

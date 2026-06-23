@@ -14,9 +14,10 @@
       <div class="card-body">
         <div class="form-row">
           <div class="form-field"><label>Custom Duty Currency</label>{{ form.custom_fare_currency }}</div>
-          <div class="form-field"><label>Custom Duty Amount</label>{{ form.custom_fare_amount }}</div>
+          <div class="form-field"><label>Custom Duty Amount</label>{{ form.custom_fare_amount }}{{ form.custom_fare_amount.errors }}</div>
         </div>
-        <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ form.custom_fare_proof }}</div>
+        <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ form.custom_fare_proof }}{{ form.custom_fare_proof.errors }}</div>
+        {{ form.non_field_errors }}
         <div style="text-align:center"><button class="btn btn-primary" type="submit">Mark Arrived</button></div>
       </div>
     </form>

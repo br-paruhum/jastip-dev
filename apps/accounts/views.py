@@ -49,6 +49,43 @@ def _proxy_buying_orders(user):
     )
 
 
+def _pending_disbursements(user):
+    """Superuser-only roll-up: every cleared order with a proxy or carrier
+    disbursement that is eligible to release but not yet paid. Drives the
+    'Pending Disbursement' dashboard tab so staff release them from one place."""
+    if not getattr(user, "is_superuser", False):
+        return []
+    orders = (
+        BuyRequest.objects
+        .filter(status__in=[Status.CLEAR, Status.CLOSED])
+        .select_related("buyer", "proxy_buyer__user", "plan__traveler")
+        .order_by("-updated_at")
+    )
+    rows = []
+    for o in orders:
+        pending = []
+        if o.proxy_disbursable and not o.proxy_disbursed_at:
+            pending.append({
+                "kind": "proxy", "label": "Proxy Buyer",
+                "recipient": o.proxy_buyer.name if o.proxy_buyer_id else "—",
+                "amount": o.proxy_disbursement_total,
+            })
+        if o.traveler_payout_disbursable and not o.traveler_paid_at:
+            try:
+                tx = o.transaction
+            except Exception:
+                tx = None
+            t = o.traveler_user
+            pending.append({
+                "kind": "traveler", "label": "Carrier",
+                "recipient": t.full_name if t else "—",
+                "amount": tx.payout_to_traveler if tx else None,
+            })
+        if pending:
+            rows.append({"order": o, "pending": pending})
+    return rows
+
+
 def _order_is_proxy(req, user):
     """True if `user` is the traveler/proxy for `req`: the plan's traveler
     (plan-first) or the single live offer's traveler (buyer-first Products)."""
@@ -461,6 +498,7 @@ def profile(request):
             "orders_proxy": orders_proxy,
             "orders_cargo": orders_cargo,
             "proxy_orders": proxy_orders,
+            "pending_disbursements": _pending_disbursements(user),
             "estimate_order": estimate_order,
             "estimate_form": estimate_form,
             "estimate_formset": estimate_formset,

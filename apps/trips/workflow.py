@@ -343,12 +343,22 @@ def on_items_purchased(request_obj):
     traveler = _order_traveler(request_obj)
     if traveler:
         customs_url = _site_url(f"/trips/requests/{request_obj.pk}/customs-invoice/")
+        # The customs invoice goes out as a PDF attachment — the email itself
+        # carries no itemised details (those are in the attached/printable copy).
+        attachments = None
+        try:
+            from .invoices import render_customs_invoice_pdf
+            pdf = render_customs_invoice_pdf(request_obj)
+            attachments = [(f"customs-invoice-{request_obj.reference}.pdf", pdf, "application/pdf")]
+        except Exception:  # pragma: no cover - never block the email on a PDF error
+            logger.exception("Customs invoice PDF generation failed for %s", request_obj.reference)
         send_email(
             to_user=traveler,
             subject=f"Customs Invoice — {request_obj.reference}",
             template="customs_invoice",
             context=_ctx(request_obj, customs_invoice_url=customs_url),
             event="customs_invoice",
+            attachments=attachments,
         )
 
 

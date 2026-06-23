@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static humanize %}
 {% block title %}My Dashboard — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -115,9 +115,6 @@
         {% if role == "traveler" %}
         <!-- Panel: My Travel Plans -->
         <div data-panel="travel-plans">
-          <div style="text-align:right;margin-bottom:12px">
-            <button type="button" class="btn btn-primary btn-sm" id="toggle-plan-form">Post a Travel Plan</button>
-          </div>
 
           <!-- Inline "Post a Travel Plan" form (toggled by the button above) -->
           <div id="plan-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
@@ -167,9 +164,6 @@
         {% if role == "buyer" %}
         <!-- Panel: My Orders (plan-first requests + buyer-first orders) -->
         <div data-panel="my-orders">
-          <div style="text-align:right;margin-bottom:12px">
-            <button type="button" class="btn btn-primary btn-sm" id="toggle-order-form">Post an Order</button>
-          </div>
 
           <!-- Inline "Post an Order" form (toggled by the button above) -->
           <div id="order-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
@@ -250,8 +244,7 @@
           </template>
 
           <div class="dash-tables">
-            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Proxy Buying orders yet." heading="Proxy Buying" %}
-            {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Carrier Only orders yet." heading="Carrier Only" %}
+            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Proxy Buying orders yet." heading="My Proxy Buying" %}
           </div>
           <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
@@ -282,12 +275,13 @@
         <div data-panel="proxy-orders">
           <h2 style="margin-top:0">My Proxy Buying</h2>
           <p class="muted">Buyers chose you to source these products. Send your estimate (unit costs, total weight, margin).</p>
+          <div class="dash-tables">
           <div class="table-wrap">
             <table class="offers offers-centered offers-allcenter">
               <thead><tr><th>Ref</th><th>Route</th><th>Deadline</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 {% for o in proxy_orders %}
-                <tr>
+                <tr class="{% if o.status == 'closed' or o.status == 'cancelled' %}row-closed{% endif %}">
                   <td>{{ o.reference }}<div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }}</div></td>
                   <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
                   <td>{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
@@ -306,6 +300,8 @@
               </tbody>
             </table>
           </div>
+          </div>
+          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
         {% endif %}
 
@@ -456,8 +452,10 @@
               </p>
               <div class="form-row">
                 <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
-                <div class="form-field"><label>Offer Weight (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}
-                  <p class="help">Pre-filled with the buyer's estimated cargo weight ({{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg) — the weight you'll carry for this order. Adjust if needed.</p></div>
+                <div class="form-field"><label>Offer Weight (kg)</label>
+                  <div class="static-field muted">{{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg</div>
+                  <input type="hidden" name="avail_kg" value="{{ offer_form_order.estimated_weight_kg }}">
+                  <p class="help">The buyer's estimated weight — fixed here. The Proxy Buyer's <strong>Actual Weight</strong> replaces it at the <strong>Package Ready</strong> step, and the <strong>final weight</strong> is measured at the <strong>Cargo hand-over</strong> step.</p></div>
               </div>
               <div class="form-row">
                 <div class="form-field">
@@ -490,10 +488,44 @@
               <div style="text-align:center;margin-top:12px">
                 <button class="btn btn-primary" type="submit">Submit Offer</button>
               </div>
-              <p class="help mt-2">Submitting this will locks this baggage to you. Withdraw your offer to release it.</p>
             </div>
           </form>
           {% endif %}
+        </div>
+        {% endif %}
+
+        {% if user.is_superuser %}
+        <!-- Panel: Pending Disbursement (superuser only) -->
+        <div data-panel="pending-disbursements">
+          <h2 style="margin-top:0">Pending Disbursement</h2>
+          <p class="muted">Cleared orders with a proxy or carrier payout still to release. Attach the transfer proof to release each one.</p>
+          {% for row in pending_disbursements %}
+          <div class="card mt-2"><div class="card-body">
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">
+              <div><strong>{{ row.order.reference }}</strong> · {{ row.order.route }}</div>
+              <a class="help" href="?order={{ row.order.id }}#order-detail">Open order</a>
+            </div>
+            <p class="muted" style="font-size:.85em;margin:4px 0 0">Buyer: {{ row.order.buyer.full_name }} · {{ row.order.get_status_display }}</p>
+            {% for d in row.pending %}
+            <form method="post" action="{% url 'trips:release_disbursement' row.order.id %}" enctype="multipart/form-data"
+                  style="border-top:1px solid var(--line);padding-top:12px;margin-top:12px">
+              {% csrf_token %}
+              <input type="hidden" name="kind" value="{{ d.kind }}">
+              <input type="hidden" name="next" value="{% url 'accounts:profile' %}#pending-disbursements">
+              <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+                <div><span class="badge badge-warning">{{ d.label }}</span> {{ d.recipient }} —
+                  <strong>{{ row.order.currency }} {% if d.amount %}{{ d.amount|floatformat:0|intcomma }}{% else %}—{% endif %}</strong></div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="file" name="proof" accept="image/png,image/jpeg" required>
+                  <button class="btn btn-primary btn-sm" type="submit">Upload &amp; release</button>
+                </div>
+              </div>
+            </form>
+            {% endfor %}
+          </div></div>
+          {% empty %}
+          <p class="muted mt-2">No pending disbursements.</p>
+          {% endfor %}
         </div>
         {% endif %}
 
@@ -529,8 +561,9 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
-          {% if role == "buyer" and not user.is_proxy_buyer %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
+          {% if role == "buyer" and not user.is_proxy_buyer and not user.is_superuser %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
           {% if role == "buyer" and user.is_proxy_buyer %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
+          {% if user.is_superuser %}<li><a href="#pending-disbursements" data-tab="pending-disbursements">Pending Disbursement</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
         </ul>
       </aside>
@@ -568,7 +601,15 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     // against .profile-main (the sidebar's flex sibling), NOT the panel: a
     // panel header's top margin (e.g. the estimate form's <h2>) collapses out
     // of the panel box, so the panel's own top sits below profile-main's.
-    var card = beside && vis ? vis.querySelector('.card, .table-wrap') : null;
+    var card = null;
+    if (beside && vis) {
+      var cands = vis.querySelectorAll('.card, .table-wrap');
+      for (var i = 0; i < cands.length; i++) {
+        // Skip hidden candidates (e.g. the collapsed inline form), which measure
+        // as top:0 and would throw the offset negative — pick the first visible one.
+        if (cands[i].offsetParent !== null) { card = cands[i]; break; }
+      }
+    }
     if (card) {
       var off = card.getBoundingClientRect().top - main.getBoundingClientRect().top;
       side.style.marginTop = off > 1 ? Math.round(off) + 'px' : '';

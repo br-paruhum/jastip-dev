@@ -535,6 +535,12 @@ class CustomFareForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Customs duty is always paid in the destination country's currency.
         self.initial["custom_fare_currency"] = self.instance.destination_currency
+        # No duty paid is the common case — let the amount be left blank (treated
+        # as zero) so the traveler can mark arrival without typing a 0.
+        self.fields["custom_fare_amount"].required = False
+
+    def clean_custom_fare_amount(self):
+        return self.cleaned_data.get("custom_fare_amount") or Decimal("0")
 
 
 class LegCustomFareForm(forms.ModelForm):

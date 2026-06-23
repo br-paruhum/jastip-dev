@@ -354,6 +354,10 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 input.num-right { text-align: right; }
 /* Numeric inputs are right-aligned by default, site-wide. */
 input[type="number"], input.money-input { text-align: right; }
+/* Drop the up/down spinner on all numeric inputs, site-wide. */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* Two-column (Estimate / Actual) invoice */
 table.invoice.inv2 { font-size: .9rem; }

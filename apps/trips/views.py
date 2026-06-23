@@ -580,7 +580,7 @@ def proxy_purchase(request, order_id):
             if upd:
                 item.save(update_fields=upd)
         workflow.on_items_purchased(order)
-        messages.success(request, "Package marked ready. The buyer will pay the remaining balance.")
+        messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
         return redirect(detail)
     for err in formset.non_form_errors():
         messages.error(request, err)
@@ -1517,7 +1517,8 @@ def release_disbursement(request, pk):
         messages.error(request, "Only staff can release disbursements.")
         return redirect(reverse("accounts:profile"))
     req = get_object_or_404(BuyRequest, pk=pk)
-    back = request.META.get("HTTP_REFERER") or (reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    back = request.POST.get("next") or request.META.get("HTTP_REFERER") or (
+        reverse("accounts:profile") + f"?order={req.id}#order-detail")
     kind = request.POST.get("kind")
     proof = request.FILES.get("proof")
     if not proof:

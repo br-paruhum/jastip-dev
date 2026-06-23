@@ -46,6 +46,18 @@ class AccountAdapter(DefaultAccountAdapter):
         # first, stashing the destination allauth would otherwise have used.
         response = super().post_login(request, user, **kwargs)
         if isinstance(response, HttpResponseRedirect):
+            # A superuser manages disbursements, not orders — skip the interstitial
+            # and land them on the "Pending Disbursement" tab (as a buyer, so the
+            # dashboard role resolves cleanly). Honour any explicit ?next deep-link.
+            if user.is_superuser:
+                request.session["role"] = "buyer"
+                if user.last_role_choice != "buyer":
+                    user.last_role_choice = "buyer"
+                    user.save(update_fields=["last_role_choice"])
+                profile_url = reverse("accounts:profile")
+                if response.url in (profile_url, "/"):
+                    return HttpResponseRedirect(profile_url + "#pending-disbursements")
+                return response
             # A Proxy Buyer always operates as a Buyer, so skip the interstitial
             # for them and land on their "My Proxy Buying" tab as a buyer.
             if user.is_proxy_buyer:

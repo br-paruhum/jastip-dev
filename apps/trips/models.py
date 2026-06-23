@@ -373,9 +373,21 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     def save(self, *args, **kwargs):
         if not self.reference:
-            import secrets
-            self.reference = f"REQ-{secrets.token_hex(4).upper()}"
+            self.reference = self._generate_reference()
         super().save(*args, **kwargs)
+
+    def _generate_reference(self) -> str:
+        """PRX-YYMMDDXXX — branded prefix + today's date + 3 random alphanumerics.
+        Retries on the rare same-day collision (reference is unique)."""
+        import secrets
+        import string
+        date_part = timezone.now().strftime("%y%m%d")
+        alphabet = string.ascii_uppercase + string.digits
+        while True:
+            suffix = "".join(secrets.choice(alphabet) for _ in range(3))
+            ref = f"PRX-{date_part}{suffix}"
+            if not type(self).objects.filter(reference=ref).exists():
+                return ref
 
     def get_absolute_url(self):
         # Transaction detail is embedded as an in-page panel on the profile page.
