@@ -191,10 +191,19 @@ def _travel_rows(plans, offers):
                 "plan": plan, "sort_key": plan.created_at,
             })
     for offer in offers:
-        label, tone = _offer_status_display(offer)
+        if not offer.order.is_cargo:
+            # Proxy (Flow-1) Products carry: the offer never formally progresses
+            # (offer_status stays pending), so track the ORDER lifecycle instead —
+            # "Pending" until the buyer receives the goods (cleared/closed), then
+            # "Received".
+            label = "Received" if offer.order.status in {Status.CLEAR, Status.CLOSED} else "Pending"
+            tone = "info"
+        else:
+            label, tone = _offer_status_display(offer)
         offer_closed = (
             offer.offer_status in {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
             or offer.leg_status in {LegStatus.CLEAR, LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
+            or (not offer.order.is_cargo and offer.order.status in {Status.CLEAR, Status.CLOSED})
         )
         rows.append({
             "kind": "offer", "bf_kind": "buyer_first",
