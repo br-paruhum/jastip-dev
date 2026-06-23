@@ -355,9 +355,9 @@
     {% endif %}
   {% elif bf_order.status == "responded" %}
     {% if is_order_proxy and not is_order_buyer %}
-    <p class="muted">Estimate sent. Your order is now looking for a carrier.</p>
+    <p class="muted">Estimate sent. Your order is now waiting for Carrier.</p>
     {% else %}
-    <p class="muted">The Proxy Buyer has sent the estimate. Your order is now looking for a carrier.</p>
+    <p class="muted">The Proxy Buyer has sent the estimate. Your order is now waiting for a carrier.</p>
     {% endif %}
   {% else %}
     <p class="muted">Request Send, waiting for Proxy Buyer to respond with estimate cost and weight.</p>

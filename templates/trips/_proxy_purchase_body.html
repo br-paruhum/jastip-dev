@@ -1,20 +1,20 @@
 {% load humanize %}
 <h2 style="margin:6px 0 0">Actual Cost Update</h2>
-<p>Enter the actual unit cost you paid for each product, then mark the package ready. The buyer is then asked to pay the remaining balance.</p>
+<p>Enter the actual unit cost for each product, then Mark Package Ready. Buyer will be notified.</p>
 <form method="post" action="{% url 'trips:proxy_purchase' package_ready_order.id %}" enctype="multipart/form-data" class="card" style="margin-top:14px">
   {% csrf_token %}
   {{ package_ready_formset.management_form }}
   <div class="card-body">
     <div class="card-band-row">Actual Purchase</div>
     <p class="muted" style="margin-top:14px">
-      <strong>{{ package_ready_order.reference }}</strong> · {{ package_ready_order.route }}
+      <strong>{{ package_ready_order.reference }}</strong> - {{ package_ready_order.route }}
     </p>
     <table class="invoice">
       <tr>
         <td style="text-align:center"><strong>Product</strong></td>
         <td class="num-right"><strong>Est Qty</strong></td>
-        <td class="num-right"><strong>Actual Qty</strong></td>
-        <td class="num-right"><strong>Actual Unit Cost ({{ package_ready_order.currency }})</strong></td>
+        <td class="num-right"><strong>Actual<br>Qty</strong></td>
+        <td class="num-right"><strong>Actual<br>Unit Cost ({{ package_ready_order.currency }})</strong></td>
       </tr>
       {% for f in package_ready_formset %}
       <tr>
@@ -30,7 +30,7 @@
       <div class="form-field">
         <label>Actual Total Weight (kg)</label>
         {{ package_ready_form.actual_weight_kg }}{{ package_ready_form.actual_weight_kg.errors }}
-        <p class="help">The package's measured weight — sets the actual shipment cost on the buyer's invoice.</p>
+        <p class="help">Remeasured final weight of the package - shipment cost will be recalculated on the invoice accordingly.</p>
       </div>
     </div>
     <div style="text-align:center;margin-top:12px">
