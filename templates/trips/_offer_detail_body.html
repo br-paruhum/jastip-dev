@@ -80,13 +80,7 @@
     {% if leg_offer.order.actual_custom %}<tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>{% endif %}
     <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|floatformat:0|intcomma }}</td></tr>
     <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if leg_offer.order.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.order.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
-    <tr><td>Status</td><td class="num-right">
-      {% if leg_offer.order.traveler_paid_at %}<span class="badge badge-success">Paid {{ leg_offer.order.traveler_paid_at|date:"d M Y" }}</span>{% if leg_offer.order.traveler_payout_proof %} <a href="{{ leg_offer.order.traveler_payout_proof.url }}" target="_blank" class="help">(proof)</a>{% endif %}
-      {% elif leg_offer.order.traveler_payout_disbursable %}<span class="badge badge-warning">Ready to release</span>
-      {% else %}<span class="badge badge-muted">Awaiting buyer confirmation</span>{% endif %}
-    </td></tr>
   </table>
-  <p class="help mt-2">The platform will transfer this amount to you (manually) once the buyer confirms pickup or receipt.</p>
   {% if user.is_staff and leg_offer.order.traveler_payout_disbursable and not leg_offer.order.traveler_paid_at %}
   <form method="post" action="{% url 'trips:release_disbursement' leg_offer.order_id %}" enctype="multipart/form-data" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
     {% csrf_token %}<input type="hidden" name="kind" value="traveler">
