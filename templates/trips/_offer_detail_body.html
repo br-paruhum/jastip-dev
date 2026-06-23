@@ -152,7 +152,7 @@
     <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.full_name }}
 {{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
 {{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
-    {% if leg_offer.order.reshipment_proof %}<p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship.</p>{% else %}<p class="muted">Waiting for the buyer to upload reshipment payment proof.</p>{% endif %}
+    {% if leg_offer.order.reshipment_proof %}<p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship. <a href="{{ leg_offer.order.reshipment_proof.url }}" target="_blank" class="btn btn-sm" style="background:#fff;border:1px solid var(--clay);color:var(--clay-dark)">View payment proof</a></p>{% else %}<p class="muted">Waiting for the buyer to upload reshipment payment proof.</p>{% endif %}
     <div style="text-align:center;margin-top:12px"><a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?reship={{ leg_offer.order_id }}#reship-order">Submit AWB</a></div>
     {% elif leg_offer.order.status == "reshipping" %}
     <p>Package shipped. AWB / Tracking: <strong>{{ leg_offer.order.awb_number }}</strong>{% if leg_offer.order.awb_document %}&nbsp;<a href="{{ leg_offer.order.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}</p>
