@@ -282,9 +282,10 @@
   {% elif bf_order.status == "reship_requested" %}
     {% if is_order_buyer %}
     <p>Reshipment requested to:</p>
-    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.buyer.buyer_invoice_address }}{% if bf_order.buyer.buyer_destination_city %}
+    <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.buyer.full_name }}
+{{ bf_order.buyer.buyer_invoice_address }}{% if bf_order.buyer.buyer_destination_city %}
 {{ bf_order.buyer.buyer_destination_city }}{% endif %}</blockquote>
-    <p class="muted">Waiting for the Proxy Buyer to confirm the shipment cost.</p>
+    <p class="muted">Waiting for Carrier to confirm the shipment cost.</p>
     {% else %}
     <p class="muted">The buyer requested reshipment. Waiting for the buyer to confirm receipt once it's delivered — your remaining 50% disbursement is released then.</p>
     {% endif %}
