@@ -22,7 +22,7 @@ class Status(models.TextChoices):
     CLOSED = "closed", "Closed"
 
     # --- Buyer-first order-level statuses ---
-    OPEN = "open", "Awaiting Traveler"
+    OPEN = "open", "Awaiting Carrier"
     RESPONDED = "responded", "Responded"
     TAKEN = "taken", "Taken"
     PACKAGE_DROPPED_OFF = "package_dropped_off", "Package Dropped Off"
@@ -159,15 +159,15 @@ COUNTRY_CHOICES = [("", "Select a country")] + [(n, n) for n in _COUNTRY_NAMES]
 DEFAULT_PAYMENT_TERM = (
     "50% deposit of items ordered including margin + 100% of shipment cost. "
     "Custom duty at the destination city is paid by the buyer. "
-    "This payment is reimbursable to the traveler with proof of payment."
+    "This payment is reimbursable to the carrier with proof of payment."
 )
 
 # Separate payment terms shown on Carrier Only travel plans (no proxy buying).
 DEFAULT_PAYMENT_TERM_CARRIER = (
     "<ul>"
     "<li>Full payment of shipment cost should be paid at the time Buyer hand "
-    "over the package to Traveler.</li>"
-    "<li>Custom duty at the destination city is paid Buyer. Traveler will cover "
+    "over the package to Carrier.</li>"
+    "<li>Custom duty at the destination city is paid Buyer. Carrier will cover "
     "the duty payment and should be reimbursed upon showing the proof of payment.</li>"
     "</ul>"
 )

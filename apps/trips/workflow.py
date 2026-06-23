@@ -32,8 +32,8 @@ def _static_url(path: str) -> str:
 
 
 def _order_traveler(request_obj):
-    """The traveler/proxy to notify. Plan-first: the plan's traveler. Buyer-first
-    (Products is FCFS single-proxy): the single live offer's traveler."""
+    """The carrier/proxy to notify. Plan-first: the plan's carrier. Buyer-first
+    (Products is FCFS single-proxy): the single live offer's carrier."""
     if request_obj.plan_id:
         return request_obj.plan.traveler
     live = [
@@ -108,8 +108,8 @@ def _notify_proxy(order, *, subject, template, ctx, event):
 
 
 def on_proxy_offer_accepted(order, offer):
-    """Flow-1 step 8: buyer accepted the traveler's shipment cost -> notify the
-    traveler (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""
+    """Flow-1 step 8: buyer accepted the carrier's shipment cost -> notify the
+    carrier (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""
     ctx = _ctx(order, offer=offer)
     send_email(
         to_user=offer.traveler,
@@ -123,7 +123,7 @@ def on_proxy_offer_accepted(order, offer):
     if proxy_user and proxy_user.id != offer.traveler_id:
         send_email(
             to_user=proxy_user,
-            subject=f"Traveler confirmed for order {order.reference}",
+            subject=f"Carrier confirmed for order {order.reference}",
             template="proxy_offer_accepted",
             context=ctx,
             event="offer_accepted",
@@ -132,8 +132,8 @@ def on_proxy_offer_accepted(order, offer):
 
 
 def on_proxy_offer_rejected(order, offer):
-    """Flow-1: buyer rejected the traveler's shipment cost -> notify the traveler;
-    the order returns to the 'Cargo Looking for Traveler' board."""
+    """Flow-1: buyer rejected the carrier's shipment cost -> notify the carrier;
+    the order returns to the 'Cargo Looking for Carrier' board."""
     send_email(
         to_user=offer.traveler,
         subject=f"Your offer on {order.reference} was declined",
@@ -145,7 +145,7 @@ def on_proxy_offer_rejected(order, offer):
 
 
 def on_request_submitted(request_obj):
-    """Step 2: buyer submitted a request -> notify traveler.
+    """Step 2: buyer submitted a request -> notify carrier.
     Plan status is not touched — multiple buyers can be at different stages."""
     _set_status(request_obj, Status.REQUEST_RECEIVED, sync_plan=False)
     subject = (
@@ -164,8 +164,8 @@ def on_request_submitted(request_obj):
 
 
 def on_request_accepted(request_obj):
-    """Step 3 (accept): traveler priced + accepted -> notify buyer with a PDF
-    invoice attached (also cc'd to the traveler + admin).
+    """Step 3 (accept): carrier priced + accepted -> notify buyer with a PDF
+    invoice attached (also cc'd to the carrier + admin).
     Plan status is not touched — multiple buyers can be at different stages."""
     _set_status(request_obj, Status.ACCEPTED, sync_plan=False)
     attachments = None
@@ -214,7 +214,7 @@ def on_deposit_cancelled(request_obj):
 
 
 def on_request_rejected(request_obj, reason=""):
-    """Step 3 (reject): traveler rejected -> notify buyer.
+    """Step 3 (reject): carrier rejected -> notify buyer.
     Plan status is not changed — remaining_weight_kg automatically recovers
     because rejected requests are excluded from utilized_weight_kg."""
     request_obj.rejection_reason = reason
@@ -231,7 +231,7 @@ def on_request_rejected(request_obj, reason=""):
 
 
 def on_deposit_verified(request_obj):
-    """Step 4: admin verified the deposit -> funds forwarded to traveler."""
+    """Step 4: admin verified the deposit -> funds forwarded to carrier."""
     _set_status(request_obj, Status.DEPOSIT_PAID, sync_plan=bool(request_obj.plan_id))
     traveler = _order_traveler(request_obj)
     if traveler:
@@ -246,13 +246,13 @@ def on_deposit_verified(request_obj):
 
 
 def on_cargo_package_received(request_obj):
-    """Cargo (Carrier) Phase 2b — step 1: the traveler received the package from
+    """Cargo (Carrier) Phase 2b — step 1: the carrier received the package from
     the buyer and recorded the final measured weight. Notify the buyer; the
     carrier plan's status is untouched (multiple buyers, independent stages)."""
     _set_status(request_obj, Status.PACKAGE_RECEIVED, sync_plan=False)
     send_email(
         to_user=request_obj.buyer,
-        subject="Your package was received by the traveler",
+        subject="Your package was received by the carrier",
         template="cargo_package_received",
         context=_ctx(request_obj),
         event="cargo_package_received",
@@ -261,7 +261,7 @@ def on_cargo_package_received(request_obj):
 
 
 def on_proxy_package_received(order):
-    """Flow-1 handover: the traveler took custody of the goods from the proxy and
+    """Flow-1 handover: the carrier took custody of the goods from the proxy and
     recorded the actual carried weight. This makes the proxy's FIRST 50% ELIGIBLE
     for disbursement (admin releases the actual money via the admin action; the
     other 50% is held as buyer protection until the buyer clears). Notify buyer."""
@@ -277,7 +277,7 @@ def on_proxy_package_received(order):
 
 
 def on_items_purchased(request_obj):
-    """Step 5: traveler recorded purchases -> invoice ready, notify buyer + send customs invoice to traveler."""
+    """Step 5: carrier recorded purchases -> invoice ready, notify buyer + send customs invoice to carrier."""
     _set_status(request_obj, Status.ITEMS_PURCHASED, sync_plan=bool(request_obj.plan_id))
     send_email(
         to_user=request_obj.buyer,
@@ -310,7 +310,7 @@ def on_items_purchased(request_obj):
 
 
 def on_package_arrived(request_obj):
-    """Step 6: traveler arrived + paid custom fare -> notify buyer to settle."""
+    """Step 6: carrier arrived + paid custom fare -> notify buyer to settle."""
     _set_status(request_obj, Status.PACKAGE_ARRIVED, sync_plan=bool(request_obj.plan_id))
     send_email(
         to_user=request_obj.buyer,
@@ -323,7 +323,7 @@ def on_package_arrived(request_obj):
 
 
 def on_cargo_arrived(request_obj):
-    """Cargo (Carrier) arrival. The traveler recorded any reimbursable customs
+    """Cargo (Carrier) arrival. The carrier recorded any reimbursable customs
     duty. If the buyer still owes a balance (customs + actual-weight top-up over
     the deposit) -> PACKAGE_ARRIVED so they pay it. Otherwise the deposit already
     covers the full carry fee -> straight to READY_FOR_PICKUP (pick up / reship);
@@ -381,7 +381,7 @@ def on_new_message(message):
 
 
 def on_reship_requested(request_obj):
-    """Buyer submitted delivery address → RESHIP_REQUESTED; traveler notified."""
+    """Buyer submitted delivery address → RESHIP_REQUESTED; carrier notified."""
     _set_status(request_obj, Status.RESHIP_REQUESTED, sync_plan=False)
     traveler = _order_traveler(request_obj)
     send_email(
@@ -395,11 +395,11 @@ def on_reship_requested(request_obj):
 
 
 def on_reship_cost_sent(request_obj):
-    """Traveler submitted cost + bank details → RESHIP_COST_SENT; buyer notified."""
+    """Carrier submitted cost + bank details → RESHIP_COST_SENT; buyer notified."""
     _set_status(request_obj, Status.RESHIP_COST_SENT, sync_plan=False)
     send_email(
         to_user=request_obj.buyer,
-        subject="Reshipment cost details from your traveler",
+        subject="Reshipment cost details from your carrier",
         template="reship_cost_sent",
         context=_ctx(request_obj),
         event="reship_cost_sent",
@@ -408,7 +408,7 @@ def on_reship_cost_sent(request_obj):
 
 
 def on_reship_proof_uploaded(request_obj):
-    """Buyer uploaded reshipment payment proof — no status change; traveler notified."""
+    """Buyer uploaded reshipment payment proof — no status change; carrier notified."""
     traveler = _order_traveler(request_obj)
     send_email(
         to_user=traveler,
@@ -421,7 +421,7 @@ def on_reship_proof_uploaded(request_obj):
 
 
 def on_reshipped(request_obj):
-    """Traveler ships the package → RESHIPPING; buyer notified to confirm receipt."""
+    """Carrier ships the package → RESHIPPING; buyer notified to confirm receipt."""
     _set_status(request_obj, Status.RESHIPPING, sync_plan=False)
     send_email(
         to_user=request_obj.buyer,
@@ -436,7 +436,7 @@ def on_reshipped(request_obj):
 def on_buyer_cleared(request_obj):
     """Step 8 / CLEAR: buyer picked up the package and confirmed it's good.
 
-    This is the settlement point: the traveler is paid the full invoice less the
+    This is the settlement point: the carrier is paid the full invoice less the
     2.5% fee NOW (admin releases funds at Clear). The later move to CLOSED is
     only a display/archival step and carries no payment.
     """
@@ -473,7 +473,7 @@ def on_buyer_cleared(request_obj):
 
 def on_cleared(request_obj):
     """Display/archival only: move a CLEAR transaction to CLOSED so it shows in
-    the Closed section on the home page. No payment, no emails — the traveler
+    the Closed section on the home page. No payment, no emails — the carrier
     was already paid at CLEAR. Triggered by the daily `close_cleared` cron.
     """
     _set_status(request_obj, Status.CLOSED)
@@ -527,7 +527,7 @@ def notify_traveler_paid(order):
 
 
 def on_offer_submitted(order, offer):
-    """Buyer-first flow: traveler submitted an offer → notify the buyer."""
+    """Buyer-first flow: carrier submitted an offer → notify the buyer."""
     ctx = {
         "order": order,
         "offer": offer,
@@ -549,7 +549,7 @@ def on_offer_submitted(order, offer):
     if proxy_user and proxy_user.id != order.buyer_id:
         send_email(
             to_user=proxy_user,
-            subject=f"A traveler offered to carry order {order.reference}",
+            subject=f"A carrier offered to carry order {order.reference}",
             template="offer_received",
             context=ctx,
             event="offer_received",

@@ -8,7 +8,7 @@ templates (browse badges / adaptive buttons). Flows 2 & 3 will extend these chec
 
 # Why a response is blocked — reused in views + templates so the wording is consistent.
 CARRIER_PLAN_NEEDS_CARGO = (
-    "This is a Carrier plan — the traveler only carries cargo you already have, they "
+    "This is a Carrier plan — the carrier only carries cargo you already have, they "
     "don't shop for items. Placing an item order here isn't available yet (the Cargo "
     "order flow is coming soon)."
 )
@@ -26,7 +26,7 @@ def plan_accepts_item_order(plan) -> bool:
 def order_accepts_carry_offer(order) -> bool:
     """A carry offer (offer_create) is valid on a Cargo buyer-first order, or on a
     Flow-1 Products order once the proxy buyer has sent the estimate (status
-    responded) — the package is now sourced and "Looking for a Traveler"."""
+    responded) — the package is now sourced and "Looking for a Carrier"."""
     from .constants import Status
     if order.is_cargo:
         return True

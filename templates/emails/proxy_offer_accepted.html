@@ -4,6 +4,6 @@
   <p>The buyer has accepted the shipment cost for order <strong>{{ request_obj.reference }}</strong>
      ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>
   <p>Next, the buyer pays the deposit. Once it's verified, the proxy buyer purchases the products
-     and hands them over to the traveler.</p>
+     and hands them over to the carrier.</p>
   {% include "_email_button.html" with url=request_url label="View the order" %}
 {% endblock %}

@@ -6,7 +6,7 @@
     <thead><tr><th>Ref</th><th>Route</th><th>Weight<br>(kg)</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
-      <tr class="{% if o.status == 'closed' or o.status == 'cancelled' %}row-closed{% endif %}">
+      <tr class="{% if o.status == 'closed' or o.status == 'cancelled' or o.status == 'clear' %}row-closed{% endif %}">
         <td>{{ o.reference }}
           {% if o.bf_kind == "traveler_first" %}
             <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {% if o.is_cargo %}{{ o.cargo_charge_total|intcomma }}{% else %}{{ o.invoice_total|intcomma }}{% endif %}</div>

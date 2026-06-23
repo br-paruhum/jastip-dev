@@ -94,7 +94,7 @@ class BuyRequestForm(forms.ModelForm):
             "estimated_weight_kg": forms.NumberInput(
                 attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 2.5"}
             ),
-            "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
+            "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the carrier (optional)"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -107,7 +107,7 @@ class BuyRequestForm(forms.ModelForm):
 
 
 class OrderForm(forms.ModelForm):
-    """Buyer-first 'place an order' form — no traveler yet (see
+    """Buyer-first 'place an order' form — no carrier yet (see
     PLAN-buyer-first-orders.md §3-4). Posts a BuyRequest with plan=None."""
 
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
@@ -146,7 +146,7 @@ class OrderForm(forms.ModelForm):
                        "placeholder": "e.g. 2.5", "style": "text-align:right"}
             ),
             "bid_cost_per_kg": ThousandSeparatorNumberInput(attrs={"style": "text-align:right"}),
-            "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the traveler (optional)"}),
+            "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the carrier (optional)"}),
         }
 
     def __init__(self, *args, proxy=None, **kwargs):
@@ -218,7 +218,7 @@ class OrderForm(forms.ModelForm):
 
 
 class TravelerOfferForm(forms.ModelForm):
-    """Traveler's response to a buyer-first order (see PLAN-buyer-first-orders.md
+    """Carrier's response to a buyer-first order (see PLAN-buyer-first-orders.md
     §3, §8). Becomes a 'leg' once the buyer selects it."""
 
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
@@ -283,9 +283,9 @@ class ProxyOfferForm(TravelerOfferForm):
 
 
 class TravelerCargoOfferForm(forms.ModelForm):
-    """Traveler's carry offer on a 'Cargo Looking for Traveler' order (Flow-1/2):
+    """Carrier's carry offer on a 'Cargo Looking for Carrier' order (Flow-1/2):
     offer weight + shipment rate/kg + travel date/time. No drop-off address — the
-    proxy buyer hands the package over to the traveler, so the buyer never drops
+    proxy buyer hands the package over to the carrier, so the buyer never drops
     anything off."""
 
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
@@ -333,10 +333,10 @@ class TravelerCargoOfferForm(forms.ModelForm):
 
 
 class ReviewForm(forms.ModelForm):
-    """Traveler-side review field: estimated weight of this package (kg).
+    """Carrier-side review field: estimated weight of this package (kg).
 
     Optional here (so a draft can be saved without it); the view requires a
-    positive value only when the traveler clicks Accept.
+    positive value only when the carrier clicks Accept.
     """
 
     class Meta:
@@ -417,8 +417,8 @@ RequestItemFormSet = inlineformset_factory(
 
 
 class OrderItemForm(forms.ModelForm):
-    """Buyer-first order item — unlike the traveler-first flow (where the
-    traveler fills in cost after actually buying it), there's no separate
+    """Buyer-first order item — unlike the carrier-first flow (where the
+    carrier fills in cost after actually buying it), there's no separate
     purchase step here, so the buyer declares the price upfront for customs
     invoice purposes."""
 
@@ -469,7 +469,7 @@ ReviewItemFormSet = inlineformset_factory(
 )
 
 class PurchaseWeightForm(forms.ModelForm):
-    """Traveler enters the actual (final-measured) shipment weight while recording
+    """Carrier enters the actual (final-measured) shipment weight while recording
     the purchase, so the invoice's Actual shipment cost is calculated right then
     (rather than waiting for the package-arrived step)."""
 
@@ -518,7 +518,7 @@ PurchaseItemFormSet = inlineformset_factory(
 
 
 class CustomFareForm(forms.ModelForm):
-    """Traveler at arrival: custom fare paid at destination (defaults to IDR)."""
+    """Carrier at arrival: custom fare paid at destination (defaults to IDR)."""
 
     class Meta:
         model = BuyRequest
@@ -544,7 +544,7 @@ class CustomFareForm(forms.ModelForm):
 
 
 class LegCustomFareForm(forms.ModelForm):
-    """Traveler at a leg's arrival: customs duty paid at destination, in that
+    """Carrier at a leg's arrival: customs duty paid at destination, in that
     country's currency (e.g. SGD for Singapore); converted to the order currency
     via the kurs/fx table. Reimbursable by the buyer."""
 
@@ -612,8 +612,8 @@ class RefundBankForm(forms.ModelForm):
 
 
 class ReshipmentCostForm(forms.ModelForm):
-    """Traveler sends reshipment cost to buyer. Bank details for the buyer's
-    transfer come from the traveler's own profile (traveler_bank_details),
+    """Carrier sends reshipment cost to buyer. Bank details for the buyer's
+    transfer come from the carrier's own profile (traveler_bank_details),
     not re-entered here."""
 
     class Meta:
@@ -636,7 +636,7 @@ class ReshipmentCostForm(forms.ModelForm):
 
 
 class AWBForm(forms.ModelForm):
-    """Traveler uploads AWB number + document to mark package as shipped."""
+    """Carrier uploads AWB number + document to mark package as shipped."""
 
     class Meta:
         model = BuyRequest

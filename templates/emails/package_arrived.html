@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your package has arrived</h2>
-  <p>The traveler has arrived at the destination for request <strong>{{ request_obj.reference }}</strong>.</p>
+  <p>The carrier has arrived at the destination for request <strong>{{ request_obj.reference }}</strong>.</p>
   {% if request_obj.unpaid_amount > 0 %}
     <p>Please pay the unpaid balance of
        <strong>{{ request_obj.currency }} {{ request_obj.unpaid_amount|intcomma }}</strong>

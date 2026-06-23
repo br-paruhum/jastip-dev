@@ -1,11 +1,11 @@
 {% extends "email_base.html" %}
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">New offer on your order</h2>
-  <p>A traveler has submitted an offer on your order <strong>{{ order.reference }}</strong>
+  <p>A carrier has submitted an offer on your order <strong>{{ order.reference }}</strong>
      ({{ order.from_city }} → {{ order.to_city }}).</p>
   <table style="border-collapse:collapse;width:100%;margin:12px 0;">
     <tr>
-      <td style="padding:6px 0;color:#666;width:40%">Traveler</td>
+      <td style="padding:6px 0;color:#666;width:40%">Carrier</td>
       <td style="padding:6px 0;"><strong>{{ traveler.full_name }}</strong></td>
     </tr>
     <tr>

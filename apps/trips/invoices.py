@@ -220,7 +220,7 @@ def render_invoice_pdf(req) -> bytes:
          Paragraph(f"{plan.from_city}, {plan.from_country} &rarr; {plan.to_city}, {plan.to_country}", sub),
          Paragraph("<b>Currency</b>", label), Paragraph(cur, sub)],
         [Paragraph("<b>Buyer</b>", label), Paragraph(req.buyer.display_name, sub),
-         Paragraph("<b>Traveler</b>", label), Paragraph(plan.traveler.display_name, sub)],
+         Paragraph("<b>Carrier</b>", label), Paragraph(plan.traveler.display_name, sub)],
     ], colWidths=[24 * mm, 64 * mm, 24 * mm, 62 * mm])
     meta.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -319,10 +319,10 @@ def render_invoice_pdf(req) -> bytes:
 
     # Discrepancy / dispute note
     story.append(Paragraph(
-        "* Actual shipment weight was based on Traveler final measurement. Buyer can verify this when "
-        "picking up the package and should settle the discrepancy directly to traveler or totally waive it. "
+        "* Actual shipment weight was based on Carrier final measurement. Buyer can verify this when "
+        "picking up the package and should settle the discrepancy directly to carrier or totally waive it. "
         "ProxyBuying will not get involved on any dispute regarding this issue. As long as buyer click "
-        "&ldquo;Clear&rdquo; button, ProxyBuying will paid traveler the full amount after deducting the "
+        "&ldquo;Clear&rdquo; button, ProxyBuying will paid carrier the full amount after deducting the "
         "2.5% commission.", small))
     story.append(Spacer(1, 14))
 

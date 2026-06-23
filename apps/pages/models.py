@@ -39,7 +39,7 @@ class SiteSettings(models.Model):
         verbose_name="Minimum platform fee (IDR)",
         help_text=(
             "The 2.5% platform fee is floored to this amount (in IDR). Applied to each "
-            "traveler payout and to the proxy buyer's final disbursement. Default 50,000."
+            "carrier payout and to the proxy buyer's final disbursement. Default 50,000."
         ),
     )
     updated_at = models.DateTimeField(auto_now=True)
@@ -103,7 +103,7 @@ class Promo(models.Model):
     url = models.CharField(max_length=300, blank=True)
     cta_label = models.CharField(max_length=40, blank=True, default="Learn more")
     badge = models.CharField(
-        max_length=24, blank=True, help_text="Small label, e.g. 'Sponsored', 'Tip', 'For travelers'."
+        max_length=24, blank=True, help_text="Small label, e.g. 'Sponsored', 'Tip', 'For carriers'."
     )
     is_active = models.BooleanField(default=True)
     order = models.PositiveSmallIntegerField(default=0)

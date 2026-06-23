@@ -13,8 +13,8 @@
 {% block content %}
 <p>
   Move <strong>{{ leg.order.reference }}</strong>'s deposit
-  ({{ leg.allocated_weight_kg }} kg, currently with traveler <strong>{{ leg.traveler }}</strong>)
-  to a replacement traveler. The old offer will be withdrawn and the verified deposit
+  ({{ leg.allocated_weight_kg }} kg, currently with carrier <strong>{{ leg.traveler }}</strong>)
+  to a replacement carrier. The old offer will be withdrawn and the verified deposit
   payment (if any) re-pointed to the new leg — the buyer won't have to pay again.
 </p>
 
@@ -24,7 +24,7 @@
   <input type="hidden" name="action" value="reassign_deposit">
   <input type="hidden" name="confirm" value="yes">
   <div style="margin:16px 0">
-    <label for="id_replacement_offer">Replacement traveler offer</label><br>
+    <label for="id_replacement_offer">Replacement carrier offer</label><br>
     <select name="replacement_offer" id="id_replacement_offer" required>
       {% for offer in replacements %}
         <option value="{{ offer.pk }}">{{ offer.traveler }} — {{ offer.avail_kg }} kg avail @ {{ offer.ask_cost_per_kg }}/kg</option>

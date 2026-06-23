@@ -199,7 +199,7 @@ def request_create(request, plan_id):
                     item.save()
                 Transaction.objects.create(request=buy)
                 workflow.on_request_submitted(buy)
-            messages.success(request, "Cargo order sent to the carrier." if plan.carrier_only else "Request sent to the traveler.")
+            messages.success(request, "Cargo order sent to the carrier." if plan.carrier_only else "Request sent to the carrier.")
             return redirect(reverse("accounts:profile") + f"?order={buy.id}#order-detail")
     else:
         form = BuyRequestForm()
@@ -321,7 +321,7 @@ def order_create(request):
                 workflow.on_proxy_order_created(order)
                 messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
             else:
-                messages.success(request, "Order posted. Travelers can now respond with offers.")
+                messages.success(request, "Order posted. Carriers can now respond with offers.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(proxy=proxy)
@@ -434,7 +434,7 @@ def offer_create(request, order_id):
     if not order.is_cargo and order.traveler_offers.filter(
         offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
     ).exists():
-        messages.info(request, "Another traveler is already handling this cargo.")
+        messages.info(request, "Another carrier is already handling this cargo.")
         return redirect(dashboard_url + "#travel-plans")
 
     form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
@@ -535,7 +535,7 @@ def proxy_estimate(request, order_id):
             order = form.save(commit=False)  # estimated_weight_kg + proxy_margin_percent
             order.status = Status.RESPONDED
             order.save()
-        messages.success(request, "Estimate sent. Your order is now looking for a traveler.")
+        messages.success(request, "Estimate sent. Your order is now waiting for a carrier.")
         return redirect(dashboard + f"?order={order.id}#order-detail")
     for field, errs in form.errors.items():
         for err in errs:
@@ -604,7 +604,7 @@ def order_accept(request, order_id):
         return redirect(detail)
     offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
     if not offer:
-        messages.error(request, "No traveler offer to accept.")
+        messages.error(request, "No carrier offer to accept.")
         return redirect(detail)
     # Tentative ("Temp Book") until the buyer's deposit is verified — only then
     # is the booking locked and the traveler's surplus advertised as spare
@@ -629,14 +629,14 @@ def order_reject(request, order_id):
         return redirect(detail)
     offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
     if not offer:
-        messages.error(request, "No traveler offer to reject.")
+        messages.error(request, "No carrier offer to reject.")
         return redirect(detail)
     with db_transaction.atomic():
         offer.offer_status = OfferStatus.REJECTED
         offer.save(update_fields=["offer_status", "updated_at"])
         # Order stays RESPONDED (estimate intact) so other travelers can offer.
     workflow.on_proxy_offer_rejected(order, offer)
-    messages.success(request, "Offer declined. Your order is open for other travelers again.")
+    messages.success(request, "Offer declined. Your order is open for other carriers again.")
     return redirect(detail)
 
 
@@ -756,7 +756,7 @@ def offer_select(request, pk):
         offer.save(update_fields=["offer_status", "allocated_weight_kg", "updated_at"])
         LegTransaction.objects.get_or_create(leg=offer)
         order.recompute_status()
-    messages.success(request, "Offer selected. Pay this leg's deposit to reveal the traveler's drop-off address.")
+    messages.success(request, "Offer selected. Pay this leg's deposit to reveal the carrier's drop-off address.")
     return redirect(detail_url)
 
 
@@ -850,7 +850,7 @@ def leg_dropped_off(request, pk):
     offer.dropped_off_at = timezone.now()
     offer.save(update_fields=["leg_status", "dropped_off_at", "updated_at"])
     order.recompute_status()
-    messages.success(request, "Package marked as dropped off. The traveler will verify the final weight.")
+    messages.success(request, "Package marked as dropped off. The carrier will verify the final weight.")
     return redirect(detail_url)
 
 
@@ -1022,7 +1022,7 @@ def leg_choose_fulfillment(request, pk):
         offer.cleared_at = timezone.now()
         offer.save(update_fields=["fulfillment_method", "leg_status", "cleared_at", "updated_at"])
         order.recompute_status()
-        messages.success(request, "Pickup confirmed — this leg will close and the traveler will be paid shortly.")
+        messages.success(request, "Pickup confirmed — this leg will close and the carrier will be paid shortly.")
     elif choice == FulfillmentMethod.RESHIP:
         address = (order.buyer.buyer_invoice_address or "").strip()
         if not address:
@@ -1034,14 +1034,14 @@ def leg_choose_fulfillment(request, pk):
         offer.save(update_fields=["fulfillment_method", "reshipment_address", "leg_status", "updated_at"])
         order.recompute_status()
         _notify_leg_reship_requested(offer)
-        messages.success(request, "Reshipment requested. The traveler has been notified by email and WhatsApp.")
+        messages.success(request, "Reshipment requested. The carrier has been notified by email and WhatsApp.")
     else:
         messages.error(request, "Choose Pickup or Reship.")
     return redirect(detail_url)
 
 
 def _notify_leg_reship_requested(offer):
-    """Email + WhatsApp the leg's traveler that the buyer requested reshipment.
+    """Email + WhatsApp the leg's carrier that the buyer requested reshipment.
     Best-effort: a notification failure must not block the state transition."""
     from types import SimpleNamespace
 
@@ -1123,7 +1123,7 @@ def leg_reship_proof(request, pk):
         return redirect(detail_url)
     offer.reshipment_proof = proof
     offer.save(update_fields=["reshipment_proof", "updated_at"])
-    messages.success(request, "Payment proof uploaded. Traveler has been notified.")
+    messages.success(request, "Payment proof uploaded. Carrier has been notified.")
     return redirect(detail_url)
 
 
@@ -1168,7 +1168,7 @@ def leg_clear(request, pk):
     order.recompute_status()
     messages.success(
         request,
-        "Thank you — marked as Clear. This leg will close automatically and the traveler will be paid shortly.",
+        "Thank you — marked as Clear. This leg will close automatically and the carrier will be paid shortly.",
     )
     return redirect(detail_url)
 
@@ -1257,7 +1257,7 @@ def _require_traveler(request, req):
 
 
 def _traveler_invoice_redirect(req):
-    """Send the traveler back to the page where they see the invoice after an
+    """Send the carrier back to the page where they see the invoice after an
     action: their offer detail for a buyer-first order, the order detail (their
     own request panel) for plan-first."""
     if not req.plan_id:
@@ -1274,7 +1274,7 @@ def _traveler_invoice_redirect(req):
 def request_review(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can review this request.")
+        messages.error(request, "Only the carrier can review this request.")
         return redirect(req.get_absolute_url())
     if req.status not in {Status.REQUEST_RECEIVED, Status.ACCEPTED}:
         messages.info(request, "This request can no longer be edited.")
@@ -1322,7 +1322,7 @@ def request_review(request, pk):
 def request_purchase(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can record purchases.")
+        messages.error(request, "Only the carrier can record purchases.")
         return redirect(req.get_absolute_url())
     if req.status not in {Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED}:
         messages.info(request, "Purchases can be recorded after the deposit is paid.")
@@ -1361,7 +1361,7 @@ def request_purchase(request, pk):
 def request_receive(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can confirm receipt.")
+        messages.error(request, "Only the carrier can confirm receipt.")
         return redirect(req.get_absolute_url())
     if req.is_cargo:
         receivable, on_received = Status.DEPOSIT_PAID, workflow.on_cargo_package_received
@@ -1393,7 +1393,7 @@ def request_receive(request, pk):
 def request_arrive(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can update arrival.")
+        messages.error(request, "Only the carrier can update arrival.")
         return redirect(req.get_absolute_url())
     # Cargo (Carrier) has no purchase step — it arrives straight from Package
     # Received. Flow-1 proxy arrives after the handover (Package Received) too.
@@ -1464,7 +1464,7 @@ def request_pay(request, pk):
 @require_POST
 def request_pickup_select(request, pk):
     """Buyer chooses local pickup over reshipment. The package is still with the
-    traveler — this only records the choice; the buyer clears the order later by
+    carrier — this only records the choice; the buyer clears the order later by
     confirming actual receipt."""
     req = get_object_or_404(BuyRequest, pk=pk)
     if request.user != req.buyer:
@@ -1476,7 +1476,7 @@ def request_pickup_select(request, pk):
     if not req.pickup_selected:
         req.pickup_selected = True
         req.save(update_fields=["pickup_selected", "updated_at"])
-    messages.success(request, "Pickup selected. Collect the package from the traveler, "
+    messages.success(request, "Pickup selected. Collect the package from the carrier, "
                               "then confirm receipt to release the payment.")
     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
 
@@ -1499,7 +1499,7 @@ def request_clear(request, pk):
     messages.success(
         request,
         "Thank you — marked as Clear. The transaction will close automatically and the "
-        "traveler will be paid shortly.",
+        "carrier will be paid shortly.",
     )
     return redirect(req.get_absolute_url())
 
@@ -1533,7 +1533,7 @@ def release_disbursement(request, pk):
         req.traveler_paid_at = timezone.now()
         req.save(update_fields=["traveler_payout_proof", "traveler_paid_at", "updated_at"])
         workflow.notify_traveler_paid(req)
-        messages.success(request, "Traveler payout released — traveler notified by email + WhatsApp.")
+        messages.success(request, "Carrier payout released — carrier notified by email + WhatsApp.")
     else:
         messages.error(request, "That disbursement isn't releasable yet (not eligible or already released).")
     return redirect(back)
@@ -1557,7 +1557,7 @@ def request_reship_request(request, pk):
     req.reshipment_address = address
     req.save(update_fields=["reshipment_address", "updated_at"])
     workflow.on_reship_requested(req)
-    messages.success(request, "Reshipment requested. The traveler has been notified.")
+    messages.success(request, "Reshipment requested. The carrier has been notified.")
     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
 
 
@@ -1566,7 +1566,7 @@ def request_reship_request(request, pk):
 def request_reship_cost(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can submit the reshipment cost.")
+        messages.error(request, "Only the carrier can submit the reshipment cost.")
         return redirect(req.get_absolute_url())
     if req.status != Status.RESHIP_REQUESTED:
         messages.info(request, "No reshipment cost to submit at this stage.")
@@ -1589,7 +1589,7 @@ def request_reship_cost(request, pk):
 def request_reship(request, pk):
     req = get_object_or_404(BuyRequest, pk=pk)
     if not _require_traveler(request, req):
-        messages.error(request, "Only the traveler can mark this as shipped.")
+        messages.error(request, "Only the carrier can mark this as shipped.")
         return redirect(req.get_absolute_url())
     if req.status != Status.RESHIP_COST_SENT:
         messages.info(request, "AWB can only be submitted after reshipment cost is sent.")
@@ -1623,7 +1623,7 @@ def request_reship_proof(request, pk):
         req.reshipment_proof = proof
         req.save(update_fields=["reshipment_proof", "updated_at"])
         workflow.on_reship_proof_uploaded(req)
-        messages.success(request, "Payment proof uploaded. Traveler has been notified.")
+        messages.success(request, "Payment proof uploaded. Carrier has been notified.")
     else:
         messages.error(request, "Please select a file to upload.")
     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")

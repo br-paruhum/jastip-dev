@@ -27,7 +27,7 @@ def _profile_tab(tab):
 
 
 def _resolve_role(request):
-    """Current Traveler/Buyer choice for this session, self-healing into the
+    """Current Carrier/Buyer choice for this session, self-healing into the
     session from the user's last choice if not set yet (e.g. a session that
     predates this feature, or one that was never routed through choose_role)."""
     role = request.session.get("role")
@@ -87,8 +87,8 @@ def _pending_disbursements(user):
 
 
 def _order_is_proxy(req, user):
-    """True if `user` is the traveler/proxy for `req`: the plan's traveler
-    (plan-first) or the single live offer's traveler (buyer-first Products)."""
+    """True if `user` is the carrier/proxy for `req`: the plan's carrier
+    (plan-first) or the single live offer's carrier (buyer-first Products)."""
     if req.plan_id:
         return req.plan.traveler_id == user.id
     live = [o for o in req.traveler_offers.all()
@@ -116,7 +116,7 @@ def choose_role(request):
     if request.method == "POST":
         role = request.POST.get("role")
         if role not in ("traveler", "buyer"):
-            messages.error(request, "Please choose Traveler or Buyer.")
+            messages.error(request, "Please choose Carrier or Buyer.")
             return redirect("accounts:choose_role")
         request.session["role"] = role
         request.user.last_role_choice = role
@@ -138,8 +138,23 @@ def _offer_status_display(offer):
     return offer.get_offer_status_display(), "muted"
 
 
+# Carrier "My Travel Plans" shows a simplified trip status: every in-progress
+# step just reads "Pending" — only once the buyer clears (or the leg closes /
+# is cancelled / rejected) does it switch to the real terminal label.
+_TRIP_TERMINAL_LABELS = {
+    Status.CLEAR: "Clear",
+    Status.CLOSED: "Closed",
+    Status.CANCELLED: "Cancelled",
+    Status.REJECTED: "Rejected",
+}
+
+
+def _trip_status_label(status) -> str:
+    return _TRIP_TERMINAL_LABELS.get(status, "Pending")
+
+
 def _travel_rows(plans, offers):
-    """Combine a traveler's posted plans (one row per request-within-plan,
+    """Combine a carrier's posted plans (one row per request-within-plan,
     mirroring active_requests_with_capacity) with their buyer-first offers
     into one sorted list of row dicts for the merged "My Travel Plans" tab.
     Type is derived from origin (plan vs. offer), not UI navigation state."""
@@ -151,7 +166,8 @@ def _travel_rows(plans, offers):
                 rows.append({
                     "kind": "plan", "bf_kind": "traveler_first",
                     "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
-                    "is_closed": plan.is_closed,
+                    # Hide-closed toggle also folds away cleared orders, not just closed.
+                    "is_closed": plan.is_closed or item.req.status in {Status.CLEAR, Status.CLOSED},
                     # Each cargo order on a carrier plan is its own transaction, so
                     # label the row with the order's own REQ ref (what the buyer
                     # sees) — not the plan ref, which made multiple orders on one
@@ -160,25 +176,25 @@ def _travel_rows(plans, offers):
                     "date": plan.travel_date, "route": plan.route,
                     "available": item.available, "remaining": item.remaining,
                     "counterparty": item.req.buyer.full_name,
-                    "status_label": item.req.detail_status_label, "status_tone": item.req.status_tone,
+                    "status_label": _trip_status_label(item.req.status), "status_tone": item.req.status_tone,
                     "req": item.req, "plan": plan, "sort_key": item.req.created_at,
                 })
         else:
             rows.append({
                 "kind": "plan_only", "bf_kind": "traveler_first",
                 "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
-                "is_closed": plan.is_closed,
+                "is_closed": plan.is_closed or plan.status in {Status.CLEAR, Status.CLOSED},
                 "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
                 "available": plan.available_weight_kg, "remaining": plan.remaining_weight_kg,
                 "counterparty": None,
-                "status_label": plan.get_status_display(), "status_tone": plan.status_tone,
+                "status_label": _trip_status_label(plan.status), "status_tone": plan.status_tone,
                 "plan": plan, "sort_key": plan.created_at,
             })
     for offer in offers:
         label, tone = _offer_status_display(offer)
         offer_closed = (
             offer.offer_status in {OfferStatus.REJECTED, OfferStatus.WITHDRAWN}
-            or offer.leg_status in {LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
+            or offer.leg_status in {LegStatus.CLEAR, LegStatus.CLOSED, LegStatus.DROPOFF_MISSED}
         )
         rows.append({
             "kind": "offer", "bf_kind": "buyer_first",
@@ -370,8 +386,8 @@ def profile(request):
                 purchase_formset = PurchaseItemFormSet(instance=_r)
 
     def _is_order_traveler(_r):
-        """The acting user carries this order: plan-first → the plan's traveler;
-        buyer-first (cargo or Flow-1 proxy) → the single live offer's traveler."""
+        """The acting user carries this order: plan-first → the plan's carrier;
+        buyer-first (cargo or Flow-1 proxy) → the single live offer's carrier."""
         if _r.plan_id:
             return _r.plan.traveler_id == user.id
         live = [o for o in _r.traveler_offers.all()

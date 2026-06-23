@@ -38,11 +38,11 @@ class User(AbstractUser):
     )
     buyer_invoice_address = models.TextField(
         blank=True,
-        help_text="Reshipment address, if you want the traveler to send your package at your cost — also used as the address data on the customs invoice.",
+        help_text="Reshipment address, if you want the carrier to send your package at your cost — also used as the address data on the customs invoice.",
     )
     buyer_bank_details = models.TextField(blank=True, help_text="For overpayment refund, if any.")
 
-    ROLE_CHOICES = [("traveler", "Traveler"), ("buyer", "Buyer")]
+    ROLE_CHOICES = [("traveler", "Carrier"), ("buyer", "Buyer")]
     last_role_choice = models.CharField(max_length=10, choices=ROLE_CHOICES, blank=True, default="")
 
     # WhatsApp OTP verification state.

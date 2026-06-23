@@ -58,7 +58,7 @@ class BuyRequestAdmin(ModelAdmin):
 
     The only money actions here are the Flow-1 OUTBOUND disbursements (proxy 1st
     & 2nd 50%, carrier payout): once you've actually transferred the funds, run
-    the matching action to stamp it Released — that's what the proxy/traveler
+    the matching action to stamp it Released — that's what the proxy/carrier
     "Your Disbursement"/"Your Payout" tabs reflect, and it sends the notice."""
 
     list_display = ("reference", "buyer", "status", "invoice_display", "proxy_net_col", "carrier_payout_col", "disbursement_state", "created_at")
@@ -156,7 +156,7 @@ class BuyRequestAdmin(ModelAdmin):
             request, f"Marked {done} proxy 2nd-half disbursement(s) released; skipped {skipped} "
             "(buyer not cleared yet or already released).", messages.SUCCESS if done else messages.WARNING)
 
-    @admin.action(description="Traveler: mark carrier payout paid")
+    @admin.action(description="Carrier: mark carrier payout paid")
     def mark_traveler_paid(self, request, queryset):
         done = skipped = 0
         for req in queryset:
@@ -239,7 +239,7 @@ class RefundAdmin(ModelAdmin):
 @admin.register(TravelerOffer)
 class TravelerOfferAdmin(ModelAdmin):
     """Browser for buyer-first offers. Doubles as the place to manually
-    reassign a leg's deposit to a replacement traveler during the
+    reassign a leg's deposit to a replacement carrier during the
     drop-off grace period (see PLAN-buyer-first-orders.md §6)."""
 
     list_display = (
@@ -285,7 +285,7 @@ class TravelerOfferAdmin(ModelAdmin):
             return "grace period has already expired — expire_missed_dropoffs will auto-cancel and refund it"
         return ""
 
-    @admin.action(description="Reassign deposit to a replacement traveler")
+    @admin.action(description="Reassign deposit to a replacement carrier")
     def reassign_deposit(self, request, queryset):
         if queryset.count() != 1:
             self.message_user(request, "Select exactly one leg to reassign.", level=messages.ERROR)
@@ -305,7 +305,7 @@ class TravelerOfferAdmin(ModelAdmin):
             replacement_id = request.POST.get("replacement_offer")
             replacement = replacements.filter(pk=replacement_id).first()
             if replacement is None:
-                self.message_user(request, "Invalid replacement traveler selected.", level=messages.ERROR)
+                self.message_user(request, "Invalid replacement carrier selected.", level=messages.ERROR)
                 return None
             if replacement.avail_kg < (leg.allocated_weight_kg or 0):
                 self.message_user(
@@ -368,7 +368,7 @@ class TransactionAdmin(ModelAdmin):
     def commission_display(self, obj):
         return f"{obj.commission_amount:,.2f} {obj.currency}"
 
-    @admin.display(description="Payout to traveler")
+    @admin.display(description="Payout to carrier")
     def payout_display(self, obj):
         return f"{obj.payout_to_traveler:,.2f} {obj.currency}"
 
@@ -444,7 +444,7 @@ class LegTransactionAdmin(ModelAdmin):
     def refund_due_display(self, obj):
         return f"{obj.leg.refund_due:,.2f} {obj.currency}"
 
-    @admin.display(description="Payout to traveler")
+    @admin.display(description="Payout to carrier")
     def payout_display(self, obj):
         return f"{obj.payout_to_traveler:,.2f} {obj.currency}"
 

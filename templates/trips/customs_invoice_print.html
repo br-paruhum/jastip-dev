@@ -124,15 +124,15 @@
 
   <div class="footer-note">
     {% if leg %}
-    All values are buyer-declared values in {{ req.currency }} for the portion of goods carried by this traveler.
+    All values are buyer-declared values in {{ req.currency }} for the portion of goods carried by this carrier.
     The order is split across several carriers travelling separately; this invoice covers only this carrier's share.
     Prepared for customs declaration purposes only, on behalf of the buyer named above.
     {% elif req.is_cargo %}
     All values are buyer-declared values in {{ req.currency }} for the goods carried. This invoice is prepared
-    for customs declaration purposes only. Goods are carried personally by the traveler on behalf of the buyer named above.
+    for customs declaration purposes only. Goods are carried personally by the carrier on behalf of the buyer named above.
     {% else %}
     All prices are actual purchase prices in {{ req.currency }}. This invoice is prepared for customs
-    declaration purposes only. Goods are carried personally by the traveler on behalf of the buyer named above.
+    declaration purposes only. Goods are carried personally by the carrier on behalf of the buyer named above.
     {% endif %}
   </div>
 

@@ -64,7 +64,7 @@ class ListingTimingMixin:
 
 
 class TravelPlan(ListingTimingMixin, models.Model):
-    """A traveler's offer: a trip with spare luggage capacity."""
+    """A carrier's offer: a trip with spare luggage capacity."""
 
     traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="travel_plans")
     reference = models.CharField(max_length=12, unique=True, editable=False, blank=True)
@@ -85,7 +85,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
     )
     carrier_only = models.BooleanField(
         default=False,
-        help_text="Traveler only carries luggage space — not willing to act as a proxy buyer.",
+        help_text="Carrier only carries luggage space — not willing to act as a proxy buyer.",
     )
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.NEW)
 
@@ -184,7 +184,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
     @property
     def handover_deadline(self):
-        """Cargo: latest date the buyer should hand the package to the traveler.
+        """Cargo: latest date the buyer should hand the package to the carrier.
         The day before travel when departing after noon, otherwise two days
         before (a missing time is treated as 12:00, i.e. the two-day case)."""
         from datetime import timedelta
@@ -196,7 +196,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
     @property
     def type_label(self) -> str:
-        """Traveler's transaction type for this plan (see PLAN-flow-taxonomy.md)."""
+        """Carrier's transaction type for this plan (see PLAN-flow-taxonomy.md)."""
         return "Carrier Only" if self.carrier_only else "Proxy Buyer"
 
     @property
@@ -209,10 +209,10 @@ class TravelPlan(ListingTimingMixin, models.Model):
         """Spare weight already taken up by current orders.
 
         Counts every non-rejected buy request, using its actual weight once the
-        buyer has confirmed it (set at pickup), otherwise the traveler's
+        buyer has confirmed it (set at pickup), otherwise the carrier's
         estimate. So the figure starts showing as soon as an estimate is entered
         and is automatically corrected to the actual weight later — giving the
-        traveler no benefit from over-estimating.
+        carrier no benefit from over-estimating.
 
         Iterates the prefetched ``buy_requests`` cache (filters in Python) to
         avoid an extra query per plan in list views.
@@ -235,11 +235,11 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
 class BuyRequest(ListingTimingMixin, models.Model):
     """A buyer 'orders' a travel plan and lists items to purchase — OR, when
-    ``plan`` is null, a buyer-first order posted with no traveler yet (see
-    PLAN-buyer-first-orders.md). Matching travelers respond via TravelerOffer;
+    ``plan`` is null, a buyer-first order posted with no carrier yet (see
+    PLAN-buyer-first-orders.md). Matching carriers respond via TravelerOffer;
     once selected, each offer becomes an independent "leg" with its own
     deposit and lifecycle (partial fulfillment can split one order across
-    several travelers).
+    several carriers).
 
     This carries the transaction lifecycle from 'Ordered' onward.
     """
@@ -273,7 +273,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     bid_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
     bid_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
     partial_allowed = models.BooleanField(
-        default=False, help_text="Allow this order to be split across multiple travelers."
+        default=False, help_text="Allow this order to be split across multiple carriers."
     )
     cargo_only = models.BooleanField(
         default=False,
@@ -407,14 +407,14 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def is_proxy_buyer_first(self) -> bool:
         """True for a Flow-1 order: a buyer-first Products order sourced by a
-        separate Proxy Buyer (NOT the traveler). The traveler only CARRIES the
-        goods, so for the traveler's economics this behaves exactly like cargo;
+        separate Proxy Buyer (NOT the carrier). The carrier only CARRIES the
+        goods, so for the carrier's economics this behaves exactly like cargo;
         the product+margin is disbursed to the proxy instead."""
         return self.plan_id is None and self.proxy_buyer_id is not None and not self.cargo_only
 
     @property
     def carrier_charges_carry_only(self) -> bool:
-        """The traveler is paid the carry fee (+ reimbursable customs) only — true
+        """The carrier is paid the carry fee (+ reimbursable customs) only — true
         for cargo orders and for Flow-1 proxy orders (sourcing is the proxy's)."""
         return self.is_cargo or self.is_proxy_buyer_first
 
@@ -425,7 +425,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def counterparty_label(self) -> str:
-        """The traveler's type label for this order."""
+        """The carrier's type label for this order."""
         return "Carrier Only" if self.is_cargo else "Proxy Buyer"
 
     @property
@@ -436,9 +436,9 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def traveler_user(self):
-        """The traveler driving this order. Plan-first: the plan's traveler.
+        """The carrier driving this order. Plan-first: the plan's carrier.
         Buyer-first: only meaningful once exactly one leg is confirmed — a
-        partially-fulfilled order has several travelers, so this returns None
+        partially-fulfilled order has several carriers, so this returns None
         and callers should iterate ``confirmed_legs`` instead."""
         if self.plan_id:
             return self.plan.traveler
@@ -452,7 +452,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def chat_participants(self) -> list:
-        """Users in this order's message thread: the buyer, the traveler (plan's
+        """Users in this order's message thread: the buyer, the carrier (plan's
         or the Flow-1 live-offer's), and the assigned proxy buyer. Deduped, no
         None. Admin oversight is handled separately."""
         users = [self.buyer]
@@ -515,7 +515,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def pending_weight_kg(self) -> Decimal:
         """Cargo plan-first request: the requested weight still awaiting the
-        traveler's acceptance (Bid − Accepted, from the buyer's point of view).
+        carrier's acceptance (Bid − Accepted, from the buyer's point of view).
         Drops to 0 the moment the carrier accepts."""
         if self.status == Status.REQUEST_RECEIVED:
             return self._q(self.estimated_weight_kg)
@@ -558,7 +558,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def in_transit(self) -> bool:
-        """True once any confirmed leg has been received by its traveler
+        """True once any confirmed leg has been received by its carrier
         (PACKAGE_RECEIVED or later) and that leg's travel date+time has
         passed — see PLAN-buyer-first-orders.md §7. Until a leg is received,
         travel hasn't actually started yet, so the order stays "Open"
@@ -599,10 +599,10 @@ class BuyRequest(ListingTimingMixin, models.Model):
     def can_edit(self) -> bool:
         """Buyer may edit/cancel their order only before the counterparty engages
         and outside the 24h listing lock.
-        - Plan-first (incl. cargo on a carrier plan): only while the traveler
+        - Plan-first (incl. cargo on a carrier plan): only while the carrier
           hasn't acted (status REQUEST_RECEIVED) and the plan isn't within 24h
           of departure.
-        - Buyer-first: only while OPEN, with no live (pending/selected) traveler
+        - Buyer-first: only while OPEN, with no live (pending/selected) carrier
           offer, and not past the 24h deadline lock."""
         if self.plan_id:
             return self.status == Status.REQUEST_RECEIVED and not self.plan.listing_locked
@@ -676,7 +676,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def buyer_status_display(self) -> str:
-        """Status label shown to the buyer — differs from the traveler's label
+        """Status label shown to the buyer — differs from the carrier's label
         for certain statuses (e.g. 'Estimate Sent' → 'Estimate Received')."""
         # Proxy (Flow-1) order: the buyer is waiting on the proxy's estimate, not
         # a traveler offer.
@@ -684,8 +684,10 @@ class BuyRequest(ListingTimingMixin, models.Model):
             if self.status == Status.OPEN:
                 return "Request Send"
             if self.status == Status.RESPONDED:
-                # Estimate sent: a traveler has offered, or still looking for one.
-                return "Offer Received" if self.pending_offers else "Looking for Carrier"
+                # The proxy has just sent its estimate — the buyer's next move is to
+                # review and pay. A carrier offer (if any) comes a step later, so
+                # don't surface "Offer Received" / "Looking for Carrier" here yet.
+                return "Estimate Sent"
             if self.status == Status.ACCEPTED:
                 # Tentative booking until the deposit is verified (then it locks
                 # and the traveler's spare baggage is advertised).
@@ -698,14 +700,14 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def detail_status_label(self) -> str:
-        """Status label shown in detail views and the traveler dashboard."""
+        """Status label shown in detail views and the carrier dashboard."""
         if self.status == Status.ITEMS_PURCHASED:
             return self._items_purchased_date_label()
         return self._cargo_status_label() or self.get_status_display()
 
     def _items_purchased_date_label(self) -> str:
         """'Package Ready' before travel date, 'Package Carried' on/after. For
-        buyer-first orders the travel date lives on the live traveler offer (no
+        buyer-first orders the travel date lives on the live carrier offer (no
         plan); fall back to 'Package Ready' if none is set yet."""
         today = timezone.now().date()
         if self.plan_id:
@@ -732,8 +734,8 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def proxy_traveler(self):
-        """The traveler/proxy for UI display: the plan's traveler (plan-first) or
-        the single live offer's traveler (buyer-first Products, FCFS)."""
+        """The carrier/proxy for UI display: the plan's carrier (plan-first) or
+        the single live offer's carrier (buyer-first Products, FCFS)."""
         if self.plan_id:
             return self.plan.traveler
         live = [o for o in self.traveler_offers.all()
@@ -870,7 +872,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def traveler_payout_disbursable(self) -> bool:
         """Order-level carrier payout is eligible to release (buyer cleared), not
-        yet paid. Applies to the single-traveler flows — Flow-1 proxy and any
+        yet paid. Applies to the single-carrier flows — Flow-1 proxy and any
         plan-first order — but NOT buyer-first cargo (that pays per leg)."""
         return (self.is_proxy_buyer_first or self.plan_id is not None) and self.status in self._CLEARED_STATUSES
 
@@ -887,13 +889,13 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def estimated_shipment_cost(self) -> Decimal:
-        """Shipment on the traveler's estimated weight (drives the deposit)."""
+        """Shipment on the carrier's estimated weight (drives the deposit)."""
         rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
         return self._q(self.estimated_weight_kg * rate)
 
     @property
     def shipment_cost(self) -> Decimal:
-        """Actual shipment = traveler's final measured weight × rate."""
+        """Actual shipment = carrier's final measured weight × rate."""
         rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
         return self._q(self.actual_weight_kg * rate)
 
@@ -916,7 +918,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def customs_invoice_available(self) -> bool:
-        """True once the traveler has recorded actual purchases. Buyer-first
+        """True once the carrier has recorded actual purchases. Buyer-first
         orders have no separate purchase step — the buyer declares price for
         each item at posting time, so the invoice is available immediately."""
         if self.plan_id is None:
@@ -1031,7 +1033,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def deposit_due(self) -> Decimal:
         """Deposit fixed at acceptance (1st of 2 payments). Cargo (Carrier) = the
-        full carry fee (weight × rate) — the traveler buys nothing. Proxy buying
+        full carry fee (weight × rate) — the carrier buys nothing. Proxy buying
         (Flow-1) = 50% of estimated products + margin, PLUS 100% of the estimated
         shipment cost. The remaining 50% of products + margin and the customs duty
         are settled in the single arrival balance."""
@@ -1095,7 +1097,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def proxy_commission(self) -> Decimal:
         """Platform fee withheld from the proxy's disbursement (same 2.5% rate as
-        the traveler's carry fee), floored to the admin-set IDR minimum. Withheld
+        the carrier's carry fee), floored to the admin-set IDR minimum. Withheld
         entirely from the proxy's final (second) disbursement half."""
         pct = Decimal(str(settings.PLATFORM_COMMISSION_PERCENT))
         return self._q(max(self.proxy_gross * pct / Decimal("100"),
@@ -1108,7 +1110,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def proxy_disbursement_first_half(self) -> Decimal:
-        """Released to the proxy when the traveler takes custody (handover). Pays
+        """Released to the proxy when the carrier takes custody (handover). Pays
         out half the gross with NO platform fee deducted — the full fee is
         withheld from the final (second) half instead."""
         return self._q(self.proxy_gross * Decimal("0.5"))
@@ -1132,7 +1134,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def proxy_actuals_editable(self) -> bool:
         """The proxy may enter actual costs at Deposit Paid and keep revising them
-        at Package Ready, until they hand the goods to the traveler (Package
+        at Package Ready, until they hand the goods to the carrier (Package
         Received). After handover the cost is fixed — it drives the buyer's arrival
         balance."""
         return self.is_proxy_buyer_first and self.status in {
@@ -1142,7 +1144,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
     @property
     def customs_phase(self) -> bool:
         """Flow-1: the goods are purchased and being carried, so the customs
-        invoice is now meaningful for the traveler (to declare at the border)."""
+        invoice is now meaningful for the carrier (to declare at the border)."""
         return self.is_proxy_buyer_first and self.status in {
             Status.ITEMS_PURCHASED, Status.PACKAGE_RECEIVED,
             Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.CLEAR,
@@ -1153,7 +1155,7 @@ class BuyRequest(ListingTimingMixin, models.Model):
         """Invoice statement line: actual Total Invoice − Deposit Paid.
         Positive = buyer still owes, negative = overpaid.
 
-        Before the traveler records the actual purchase the Actual column is
+        Before the carrier records the actual purchase the Actual column is
         empty (Total Invoice = 0). There is nothing to reconcile against the
         deposit yet, so this reads 0 instead of showing the whole deposit as
         'overpaid' (which confused buyers right after the deposit was verified)."""
@@ -1292,9 +1294,9 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
 
 class TravelerOffer(models.Model):
-    """A traveler's response to a buyer-first BuyRequest (order). Once selected
+    """A carrier's response to a buyer-first BuyRequest (order). Once selected
     by the buyer it becomes an independent "leg" — its own deposit, drop-off,
-    and lifecycle — so a single order can be split across several travelers
+    and lifecycle — so a single order can be split across several carriers
     (partial fulfillment) without the legs blocking each other.
     """
 
@@ -1303,7 +1305,7 @@ class TravelerOffer(models.Model):
 
     ask_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
     avail_kg = models.DecimalField(
-        max_digits=6, decimal_places=2, help_text="Traveler's declared spare capacity — shown publicly."
+        max_digits=6, decimal_places=2, help_text="Carrier's declared spare capacity — shown publicly."
     )
 
     # Hidden from the buyer until this leg's deposit clears.
@@ -1326,7 +1328,7 @@ class TravelerOffer(models.Model):
     leg_status = models.CharField(max_length=24, choices=LegStatus.choices, null=True, blank=True)
     agreed_weight_kg = models.DecimalField(
         max_digits=6, decimal_places=2, null=True, blank=True,
-        help_text="Traveler's final measured weight at WEIGHT_VERIFIED — always authoritative.",
+        help_text="Carrier's final measured weight at WEIGHT_VERIFIED — always authoritative.",
     )
     fulfillment_method = models.CharField(max_length=10, choices=FulfillmentMethod.choices, blank=True)
 
@@ -1367,6 +1369,10 @@ class TravelerOffer(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["order", "offer_status"])]
+        # DB table / model name stay TravelerOffer; only the admin-facing label
+        # follows the Traveler→Carrier rename.
+        verbose_name = "Carrier offer"
+        verbose_name_plural = "Carrier offers"
 
     def __str__(self):
         return f"Offer by {self.traveler} on {self.order.reference} ({self.get_offer_status_display()})"
@@ -1389,7 +1395,7 @@ class TravelerOffer(models.Model):
 
     @property
     def can_edit(self) -> bool:
-        """Traveler may edit/withdraw their offer only while it's still pending AND
+        """Carrier may edit/withdraw their offer only while it's still pending AND
         the order is still accepting offers, and not within 24h of the deadline.
         Flow-1 proxy offers stay PENDING through the whole carry flow (no leg is
         selected), so the order-status check is what stops Edit/Cancel showing
@@ -1469,12 +1475,12 @@ class TravelerOffer(models.Model):
 
     @property
     def address_revealed(self) -> bool:
-        """Traveler's name and drop-off address stay hidden until the deposit clears."""
+        """Carrier's name and drop-off address stay hidden until the deposit clears."""
         return self.deposit_verified
 
     @property
     def pickup_address_revealed(self) -> bool:
-        """Traveler's destination address stays hidden until Pickup is chosen."""
+        """Carrier's destination address stays hidden until Pickup is chosen."""
         return self.fulfillment_method == FulfillmentMethod.PICKUP
 
     @property
@@ -1525,7 +1531,7 @@ class TravelerOffer(models.Model):
 
     @property
     def settlement_net(self) -> Decimal:
-        """What the buyer still owes the traveler at arrival: the weight-delta
+        """What the buyer still owes the carrier at arrival: the weight-delta
         plus the reimbursable customs duty. Negative = refund to the buyer."""
         return (self.weight_delta + self.custom_fare_in_order_currency).quantize(TWO_PLACES)
 
@@ -1565,7 +1571,7 @@ class TravelerOffer(models.Model):
 
     @property
     def payout_ready(self) -> bool:
-        """The leg has arrived, so the traveler payout figures are final."""
+        """The leg has arrived, so the carrier payout figures are final."""
         return self.leg_status in {
             LegStatus.PACKAGE_ARRIVED, LegStatus.READY_FOR_PICKUP,
             LegStatus.RESHIP_REQUESTED, LegStatus.RESHIP_COST_SENT,
@@ -1652,7 +1658,7 @@ class TravelerOffer(models.Model):
 class LegTransaction(models.Model):
     """Settlement record for a single confirmed leg (selected TravelerOffer)
     of a buyer-first order. Kept independent of `Transaction` — a partially
-    fulfilled order has one deposit/payout per traveler, not one for the
+    fulfilled order has one deposit/payout per carrier, not one for the
     whole order, so it can't share the BuyRequest-level transaction."""
 
     leg = models.OneToOneField(TravelerOffer, on_delete=models.CASCADE, related_name="transaction")
@@ -1672,7 +1678,7 @@ class LegTransaction(models.Model):
 
     @property
     def gross_amount(self) -> Decimal:
-        """Total amount earned by the traveler for this leg, based on final weight."""
+        """Total amount earned by the carrier for this leg, based on final weight."""
         leg = self.leg
         weight = leg.agreed_weight_kg if leg.agreed_weight_kg is not None else leg.allocated_weight_kg
         return ((weight or Decimal("0")) * leg.ask_cost_per_kg).quantize(TWO_PLACES)
@@ -1712,9 +1718,9 @@ class LegPayment(models.Model):
         OUTBOUND = "outbound", "Outbound (from admin)"
 
     class Kind(models.TextChoices):
-        DEPOSIT = "deposit", "Traveler deposit"
+        DEPOSIT = "deposit", "Carrier deposit"
         BALANCE = "balance", "Weight-delta balance"
-        PAYOUT = "payout", "Payout to traveler"
+        PAYOUT = "payout", "Payout to carrier"
         REFUND = "refund", "Refund"
 
     class Method(models.TextChoices):
@@ -1770,7 +1776,7 @@ class Refund(BuyRequest):
 
 
 class RequestItem(models.Model):
-    """One requested item; the traveler fills in cost + actual-purchase fields."""
+    """One requested item; the carrier fills in cost + actual-purchase fields."""
 
     request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="items")
     position = models.PositiveSmallIntegerField(default=1)
@@ -1876,7 +1882,7 @@ class Transaction(models.Model):
     def commission_amount(self) -> Decimal:
         """Platform fee: 2.5%, deducted once at closing. Cargo (Carrier) charges
         it on the carry fee only — the reimbursed customs duty is a pass-through.
-        For Flow-1 proxy orders the traveler only carries, so their fee is on the
+        For Flow-1 proxy orders the carrier only carries, so their fee is on the
         carry fee too (the proxy's product+margin fee is withheld separately)."""
         base = (self.request.effective_shipment_cost
                 if self.request.carrier_charges_carry_only else self.request.invoice_total)
@@ -1885,12 +1891,12 @@ class Transaction(models.Model):
 
     @property
     def payout_to_traveler(self) -> Decimal:
-        """Paid to the traveler when the transaction CLOSES (both parties
+        """Paid to the carrier when the transaction CLOSES (both parties
         cleared), minus the 2.5% platform fee. Cargo (Carrier): carry fee +
         reimbursed customs, fee on the carry fee only. Proxy buying: the full
         invoice (items + margin + shipment + custom fare). The deposit is only
         held by admin meanwhile — there is no payout before closing. Flow-1 proxy
-        orders pay the traveler the carry fee + reimbursed customs only; the
+        orders pay the carrier the carry fee + reimbursed customs only; the
         product+margin is disbursed to the proxy buyer separately.
         """
         gross = (self.request.cargo_charge_total
@@ -1912,7 +1918,7 @@ class Payment(models.Model):
     class Kind(models.TextChoices):
         DEPOSIT = "deposit", "Buyer deposit"
         BALANCE = "balance", "Buyer balance (unpaid amount)"
-        PAYOUT = "payout", "Payout to traveler"
+        PAYOUT = "payout", "Payout to carrier"
         REFUND = "refund", "Refund"
 
     class Method(models.TextChoices):
@@ -2011,7 +2017,7 @@ class ExchangeRate(models.Model):
 
 class ProxyBuyer(models.Model):
     """An admin-curated proxy buyer who sources & purchases products in an origin
-    country (they do NOT travel — carriage is a separate traveler). A fixed list,
+    country (they do NOT travel — carriage is a separate carrier). A fixed list,
     approved by admin, no self-signup/verification. One per country for launch,
     but the schema allows several per country later (no DB uniqueness on country).
     The Product Buyer picks one of these to start a Flow-1 (proxy buying) order."""
@@ -2051,7 +2057,7 @@ class ProxyBuyer(models.Model):
 
 
 class Message(models.Model):
-    """A chat message between the buyer and traveler on a request (admin can
+    """A chat message between the buyer and carrier on a request (admin can
     read all threads for oversight)."""
 
     request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="messages")
@@ -2074,5 +2080,5 @@ class Message(models.Model):
             return "Proxy Buyer"
         traveler = request_obj.traveler_user
         if traveler and self.sender_id == traveler.id:
-            return "Traveler"
+            return "Carrier"
         return "Admin"

@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your items have been purchased</h2>
-  <p>The traveler has purchased the items for request <strong>{{ request_obj.reference }}</strong>.</p>
+  <p>The carrier has purchased the items for request <strong>{{ request_obj.reference }}</strong>.</p>
   <p>Your invoice has been updated. Current invoice total:
      <strong>{{ request_obj.currency }} {{ request_obj.invoice_total|intcomma }}</strong>.</p>
   {% include "_email_button.html" with url=request_url label="View your invoice" %}

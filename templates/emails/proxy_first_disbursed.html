@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block body %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">First payment released</h2>
-  <p>The traveler has taken custody of the goods for order <strong>{{ request_obj.reference }}</strong>
+  <p>The carrier has taken custody of the goods for order <strong>{{ request_obj.reference }}</strong>
      ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>
   <p>We've released the <strong>first 50%</strong> of your disbursement:
      <strong>{{ request_obj.currency }} {{ amount|floatformat:0|intcomma }}</strong>.

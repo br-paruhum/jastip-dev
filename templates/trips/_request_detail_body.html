@@ -111,10 +111,10 @@
 <details class="card fold mt-2">
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
-    <p class="help" style="line-height:1.55">* Actual shipment weight was based on Traveler final measurement.
-      Buyer can verify this when picking up the package and should settle the discrepancy directly to traveler
+    <p class="help" style="line-height:1.55">* Actual shipment weight was based on Carrier final measurement.
+      Buyer can verify this when picking up the package and should settle the discrepancy directly to carrier
       or totally waive it. ProxyBuying will not get involved on any dispute regarding this issue. As long as buyer
-      click &ldquo;Clear&rdquo; button, ProxyBuying will paid traveler the full amount after deducting the 2.5% commission.</p>
+      click &ldquo;Clear&rdquo; button, ProxyBuying will paid carrier the full amount after deducting the 2.5% commission.</p>
     {% if req.buyer_notes %}<p class="help mt-2">Buyer notes: {{ req.buyer_notes }}</p>{% endif %}
     {% if req.rejection_reason %}<p class="help" style="color:var(--danger)">Rejected: {{ req.rejection_reason }}</p>{% endif %}
   </div>
@@ -135,7 +135,7 @@
     <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?review={{ req.id }}#review-order">Review {% if req.is_cargo %}cargo{% else %}request{% endif %}</a></div>
 
   {% elif is_buyer and req.is_cargo and req.status == "request_received" %}
-    <p class="muted">Wait for Traveler acceptance.</p>
+    <p class="muted">Wait for Carrier acceptance.</p>
 
   {% elif req.is_cargo and req.status == "accepted" %}
     {% if is_buyer %}
@@ -162,7 +162,7 @@
     {% endif %}
 
   {% elif req.is_cargo and req.status == "deposit_paid" %}
-    <p>Use the &ldquo;Messages&rdquo; tab below to communicate with the {% if is_buyer %}Traveler{% else %}Buyer{% endif %} to set the place and time to hand over the package.</p>
+    <p>Use the &ldquo;Messages&rdquo; tab below to communicate with the {% if is_buyer %}Carrier{% else %}Buyer{% endif %} to set the place and time to hand over the package.</p>
     {% if req.plan.handover_deadline %}<p>Please note that the deadline for handing over the package is
       <strong>{{ req.plan.handover_deadline|date:"d-M-Y" }}</strong>.</p>{% endif %}
     {% if is_traveler %}
@@ -171,7 +171,7 @@
     {% endif %}
 
   {% elif req.is_cargo and req.status == "package_received" %}
-    <p class="muted">Package received by the traveler{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.</p>
+    <p class="muted">Package received by the carrier{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.</p>
     {% if is_traveler %}
     <p>Print the customs invoice to carry with the package, then once you arrive enter any customs duty paid and confirm arrival.</p>
     <div style="text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
@@ -248,9 +248,9 @@
   {% elif req.status == "ready_for_pickup" %}
     {% if is_buyer %}
       {% if req.plan.traveler.traveler_address %}
-      <p><strong>Option 1 — Pick up locally:</strong><br>Contact Traveler to ask for best time to visit.
+      <p><strong>Option 1 — Pick up locally:</strong><br>Contact Carrier to ask for best time to visit.
          After visiting, verify the items. When satisfied, click "Confirm Pickup" to release the payment
-         to Traveler.</p>
+         to Carrier.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:100px">Name</td><td>: {{ req.plan.traveler.full_name }}</td></tr>
         <tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ req.plan.traveler.traveler_address }}</span>{% if req.plan.traveler.traveler_destination_city %}, {{ req.plan.traveler.traveler_destination_city }}{% endif %}</td></tr>
@@ -260,7 +260,7 @@
         {% endif %}
       </table>
       {% else %}
-      <p><strong>Option 1 — Pick up locally:</strong> Contact the traveler to arrange their address and
+      <p><strong>Option 1 — Pick up locally:</strong> Contact the carrier to arrange their address and
          best time to visit. When you are there, verify the items and weight. When satisfied, click
          Confirm Pickup to release payment.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
@@ -298,7 +298,7 @@
       <p>Reshipment requested to:</p>
       <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.buyer.buyer_invoice_address }}{% if req.buyer.buyer_destination_city %}
 {{ req.buyer.buyer_destination_city }}{% endif %}</blockquote>
-      <p class="muted">Waiting for the traveler to confirm shipment cost.</p>
+      <p class="muted">Waiting for the carrier to confirm shipment cost.</p>
     {% else %}
       <p>The buyer has requested reshipment to:</p>
       <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ req.buyer.buyer_invoice_address }}{% if req.buyer.buyer_destination_city %}
@@ -316,7 +316,7 @@
       <p>Please transfer to:</p>
       <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ req.plan.traveler.traveler_bank_details }}</blockquote>
       {% if req.reshipment_proof %}
-        <p class="muted">Payment proof uploaded &#10003; — waiting for traveler to ship.</p>
+        <p class="muted">Payment proof uploaded &#10003; — waiting for carrier to ship.</p>
       {% else %}
         <p>Upload your payment proof once you have transferred:</p>
         {% include "trips/_reship_proof_form.html" %}
@@ -340,7 +340,7 @@
       <p>Your package is in transit. AWB / Tracking: <strong>{{ req.awb_number }}</strong>
         {% if req.awb_document %}&nbsp;<a href="{{ req.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}
       </p>
-      <p class="muted">Once you receive your package, click below to confirm and release the traveler's payment.</p>
+      <p class="muted">Once you receive your package, click below to confirm and release the carrier's payment.</p>
       <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center">{% csrf_token %}
         <button class="btn btn-primary" type="submit">Confirm Received</button>
       </form>
@@ -354,7 +354,7 @@
   {% elif req.status == "clear" %}
     <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
        on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}.<br>
-       The traveler will be paid the full amount after deducted by 2.5% platform fee shortly.
+       The carrier will be paid the full amount after deducted by 2.5% platform fee shortly.
        {% if is_traveler %}<br>Your payout is: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</nobr>{% if req.transaction.payout_to_traveler_idr %}</strong> - or equivalent to <strong>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>{% endif %}</strong>.
        &nbsp;{% if req.traveler_paid_at %}<span class="badge badge-success">Paid {{ req.traveler_paid_at|date:"d M Y" }}</span>{% elif req.traveler_payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>{% endif %}{% endif %}</p>
 
@@ -394,13 +394,13 @@
 <details class="card fold mt-2" id="chat">
   <summary><h3>Messages</h3></summary>
   <div class="fold-body">
-  <p class="help">Private conversation between buyer and traveler about sourcing the items.
+  <p class="help">Private conversation between buyer and carrier about sourcing the items.
     Admin can see this thread.</p>
   <div class="chat-thread">
     {% for m in chat_messages %}
       <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
         <div class="chat-meta">
-          {% if m.sender_id == req.buyer_id %}Buyer{% elif m.sender_id == req.plan.traveler_id %}Traveler{% else %}Admin{% endif %}{% if m.sender_id == user.id %} (you){% endif %}
+          {% if m.sender_id == req.buyer_id %}Buyer{% elif m.sender_id == req.plan.traveler_id %}Carrier{% else %}Admin{% endif %}{% if m.sender_id == user.id %} (you){% endif %}
           · {{ m.created_at|date:"d M Y, H:i" }}
         </div>
         <div class="chat-body">{{ m.body|linebreaksbr }}</div>
@@ -426,7 +426,7 @@
 <div class="mt-2" style="text-align:center">
   <a class="btn btn-primary" href="{% url 'trips:request_edit' req.id %}">Edit</a>
   <form method="post" action="{% url 'trips:request_cancel' req.id %}" style="display:inline-block;margin-left:32px"
-        onsubmit="return confirm('Cancel this order? It will be withdrawn from the traveler.');">
+        onsubmit="return confirm('Cancel this order? It will be withdrawn from the carrier.');">
     {% csrf_token %}
     <button class="btn btn-outline" type="submit">Cancel</button>
   </form>

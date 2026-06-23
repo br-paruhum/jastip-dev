@@ -18,7 +18,7 @@
             <!-- Row 1: verified badge + message -->
             <p style="text-align: center;">
               {% if user.profile_complete %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-muted">Unverified</span>{% endif %}
-              {% if role == "traveler" %}- You are a Traveler{% else %}You are a Buyer{% endif %}
+              {% if role == "traveler" %}- You are a Carrier{% else %}You are a Buyer{% endif %}
             </p>
 
             <form method="post" action="{% url 'accounts:profile_update' %}">
@@ -76,7 +76,7 @@
                 </div>
                 <!-- Row 5: Reshipment address -->
                 <div class="form-field">
-                  <label for="id_buyer_invoice_address">Reshipment Address<br> <span class="help">(if you want Traveler to send your package at your cost, and also to be used for address data in Custom Invoice)</span></label>
+                  <label for="id_buyer_invoice_address">Reshipment Address<br> <span class="help">(if you want Carrier to send your package at your cost, and also to be used for address data in Custom Invoice)</span></label>
                   {{ profile_form.buyer_invoice_address }}
                   {{ profile_form.buyer_invoice_address.errors }}
                 </div>
@@ -168,7 +168,7 @@
           <!-- Inline "Post an Order" form (toggled by the button above) -->
           <div id="order-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
             <div class="card-band-row">Post an Order</div>
-            <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
+            <p class="muted">No carrier yet — post your route, items and price, and carriers will respond with offers.</p>
             <form method="post" action="{% url 'trips:order_create' %}" enctype="multipart/form-data">
               {% csrf_token %}
               <div class="form-field">
@@ -213,13 +213,13 @@
               </div>
               <div class="form-field" style="margin-top:30px">
                 <label>Offer Deadline</label>{{ new_order_form.max_acceptable_date }}{{ new_order_form.max_acceptable_date.errors }}
-                <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
+                <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
               </div>
               <div class="form-field cargo-only-field">
-                <label>Allow this order to be split across multiple travelers</label>
+                <label>Allow this order to be split across multiple carriers</label>
                 {{ new_order_form.partial_allowed }}{{ new_order_form.partial_allowed.errors }}
               </div>
-              <div class="form-field"><label>Notes to Travelers</label>{{ new_order_form.buyer_notes }}</div>
+              <div class="form-field"><label>Notes to Carriers</label>{{ new_order_form.buyer_notes }}</div>
 
               <div style="text-align:center;margin-top:12px">
                 <button class="btn btn-primary" type="submit">Post Order</button>
@@ -281,7 +281,7 @@
               <thead><tr><th>Ref</th><th>Route</th><th>Deadline</th><th>Status</th><th>Action</th></tr></thead>
               <tbody>
                 {% for o in proxy_orders %}
-                <tr class="{% if o.status == 'closed' or o.status == 'cancelled' %}row-closed{% endif %}">
+                <tr class="{% if o.status == 'closed' or o.status == 'cancelled' or o.status == 'clear' %}row-closed{% endif %}">
                   <td>{{ o.reference }}<div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }}</div></td>
                   <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
                   <td>{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
@@ -327,49 +327,49 @@
         {% endif %}
 
         {% if leg_offer %}
-        <!-- Panel: Traveler's buyer-first leg detail (read-only) -->
+        <!-- Panel: Carrier's buyer-first leg detail (read-only) -->
         <div data-panel="offer-detail" data-origin="travel-plans">
           {% include "trips/_offer_detail_body.html" %}
         </div>
         {% endif %}
 
         {% if review_req %}
-        <!-- Panel: Review order (traveler sends estimate) -->
+        <!-- Panel: Review order (carrier sends estimate) -->
         <div data-panel="review-order" data-origin="travel-plans">
           {% include "trips/_request_review_body.html" %}
         </div>
         {% endif %}
 
         {% if purchase_req %}
-        <!-- Panel: Record purchases (traveler) -->
+        <!-- Panel: Record purchases (carrier) -->
         <div data-panel="purchase-order" data-origin="travel-plans">
           {% include "trips/_request_purchase_body.html" %}
         </div>
         {% endif %}
 
         {% if receive_req %}
-        <!-- Panel: Confirm cargo receipt (traveler) -->
+        <!-- Panel: Confirm cargo receipt (carrier) -->
         <div data-panel="receive-order" data-origin="travel-plans">
           {% include "trips/_request_receive_body.html" %}
         </div>
         {% endif %}
 
         {% if arrive_req %}
-        <!-- Panel: Mark arrived (traveler) -->
+        <!-- Panel: Mark arrived (carrier) -->
         <div data-panel="arrive-order" data-origin="travel-plans">
           {% include "trips/_request_arrive_body.html" %}
         </div>
         {% endif %}
 
         {% if reship_cost_req %}
-        <!-- Panel: Send reshipment cost (traveler) -->
+        <!-- Panel: Send reshipment cost (carrier) -->
         <div data-panel="reship-cost-order" data-origin="travel-plans">
           {% include "trips/_request_reship_cost_body.html" %}
         </div>
         {% endif %}
 
         {% if reship_req %}
-        <!-- Panel: Submit AWB (traveler) -->
+        <!-- Panel: Submit AWB (carrier) -->
         <div data-panel="reship-order" data-origin="travel-plans">
           {% include "trips/_request_reship_body.html" %}
         </div>
@@ -383,7 +383,7 @@
         {% endif %}
 
         {% if offer_form_order %}
-        <!-- Panel: respond to a buyer-first order (traveler) -->
+        <!-- Panel: respond to a buyer-first order (carrier) -->
         <div data-panel="offer-form" data-origin="travel-plans">
           <span class="eyebrow">Respond to {{ offer_form_order.actor_label }}</span>
           {% if offer_form_order.is_cargo %}
@@ -440,7 +440,7 @@
             </div>
           </form>
           {% else %}
-          <!-- Products (Flow-1): traveler carry offer — rate + offer weight + travel date -->
+          <!-- Products (Flow-1): carrier carry offer — rate + offer weight + travel date -->
           <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
             {% csrf_token %}
             <div class="card-body">

@@ -9,7 +9,7 @@
     {% if proxy %}
     <p class="muted">Fill in your destination city, products, quantity, and order deadline.</p>
     {% else %}
-    <p class="muted">No traveler yet — post your route, items and price, and travelers will respond with offers.</p>
+    <p class="muted">No carrier yet — post your route, items and price, and carriers will respond with offers.</p>
     {% endif %}
     <div class="profile-layout mt-2">
       <div class="profile-main">
@@ -46,7 +46,7 @@
         {% if not proxy %}
         <div class="form-field">
           <label>Destination Address</label>{{ form.to_address }}{{ form.to_address.errors }}
-          <p class="help">Lets travelers see upfront whether a reship will be needed.</p>
+          <p class="help">Lets carriers see upfront whether a reship will be needed.</p>
         </div>
         <div class="form-field">
           <label>Destination Postal Code</label>{{ form.to_postal_code }}{{ form.to_postal_code.errors }}
@@ -87,15 +87,15 @@
           {% if proxy %}
           <p class="help">Last day for proxy buyer to send estimate cost of your products.</p>
           {% else %}
-          <p class="help">Last day to receive traveler offers — also your drop-off grace-period deadline.</p>
+          <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
           {% endif %}
         </div>
         {% if not proxy %}
         <div class="form-field cargo-only-field">
-          <label>Allow this order to be split across multiple travelers</label>
+          <label>Allow this order to be split across multiple carriers</label>
           {{ form.partial_allowed }}{{ form.partial_allowed.errors }}
         </div>
-        <div class="form-field"><label>Notes to Travelers</label>{{ form.buyer_notes }}</div>
+        <div class="form-field"><label>Notes to Carriers</label>{{ form.buyer_notes }}</div>
         {% endif %}
 
         <div style="text-align:center;margin-top:12px">

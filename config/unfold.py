@@ -95,7 +95,7 @@ UNFOLD = {
                         "link": reverse_lazy("admin:trips_proxybuyer_changelist"),
                     },
                     {
-                        "title": _("- Traveler offers (legs)"),
+                        "title": _("- Carrier offers (legs)"),
                         "icon": "local_shipping",
                         "link": reverse_lazy("admin:trips_traveleroffer_changelist"),
                     },

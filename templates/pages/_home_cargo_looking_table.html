@@ -33,7 +33,7 @@
         </td>
         <td class="action-cell">
           {% if o.is_locked_fcfs %}
-            <span class="btn btn-sm btn-blocked" title="A traveler is already handling this cargo">Locked</span>
+            <span class="btn btn-sm btn-blocked" title="A carrier is already handling this cargo">Locked</span>
           {% elif o.can_offer %}
             <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ o.id }}#offer-form">Offer</a>
           {% elif user.is_authenticated and o.buyer_id == user.id %}
