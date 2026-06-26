@@ -440,6 +440,16 @@ def offer_create(request, order_id):
     form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
     if form.is_valid():
         offer = form.save(commit=False)
+        # Take-all-or-nothing (Task 1): a carrier's offered weight must equal the
+        # buyer's requested weight exactly — no over- or under-offering, so the
+        # accepted carrier always carries the whole order with no leftover.
+        if order.is_cargo and offer.avail_kg != order.bid_weight_kg:
+            messages.error(
+                request,
+                f"Your offered weight must equal the buyer's requested "
+                f"{order.bid_weight_kg} kg — this order is take-all-or-nothing.",
+            )
+            return redirect(dashboard_url + f"?offer={order_id}#offer-form")
         with db_transaction.atomic():
             offer.order = order
             offer.traveler = request.user
@@ -731,29 +741,23 @@ def offer_select(request, pk):
         messages.error(request, "This order is no longer accepting selections.")
         return redirect(detail_url)
 
-    remaining = order.bid_weight_kg - order.total_allocated_weight_kg
-    try:
-        allocated = Decimal(request.POST.get("allocated_weight_kg", "0"))
-    except InvalidOperation:
-        allocated = Decimal("0")
-
-    if order.partial_allowed:
-        max_allowed = min(offer.avail_kg, remaining)
-    else:
-        max_allowed = remaining  # must take the whole remaining bid in one go
-
-    if allocated <= 0 or allocated > max_allowed:
-        messages.error(
-            request,
-            f"Allocated weight must be between 0 and {max_allowed} kg"
-            + ("" if order.partial_allowed else " (partial fulfillment is not allowed for this order)."),
-        )
+    # Winner-take-all (Task 1): the selected carrier carries the whole order —
+    # no partial fulfillment, no leftover weight. Accepting this offer assigns
+    # the full requested bid weight and rejects every other pending offer.
+    allocated = order.bid_weight_kg
+    if allocated <= 0:
+        messages.error(request, "This order has no requested weight to allocate.")
         return redirect(detail_url)
 
     with db_transaction.atomic():
         offer.offer_status = OfferStatus.SELECTED
         offer.allocated_weight_kg = allocated
         offer.save(update_fields=["offer_status", "allocated_weight_kg", "updated_at"])
+        # Reject all competing offers in a single statement so no orphan
+        # pending rows linger in the buyer's active view.
+        order.traveler_offers.filter(
+            offer_status=OfferStatus.PENDING,
+        ).exclude(pk=offer.pk).update(offer_status=OfferStatus.REJECTED)
         LegTransaction.objects.get_or_create(leg=offer)
         order.recompute_status()
     messages.success(request, "Offer selected. Pay this leg's deposit to reveal the carrier's drop-off address.")

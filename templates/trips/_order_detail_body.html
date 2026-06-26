@@ -160,30 +160,18 @@
         <td>{{ offer.get_offer_status_display }}</td>
         <td>
           {% if bf_order.is_accepting_offers %}
-            {% if offer.avail_kg >= bf_order.remaining_bid_weight_kg %}
             <form method="post" action="{% url 'trips:offer_select' offer.id %}">
               {% csrf_token %}
-              <input type="hidden" name="allocated_weight_kg" value="{{ bf_order.remaining_bid_weight_kg }}">
               <button class="btn btn-primary btn-sm" type="submit">Accept</button>
             </form>
-            {% elif bf_order.partial_allowed %}
-            <form method="post" action="{% url 'trips:offer_select' offer.id %}" style="display:flex;gap:6px;align-items:center">
-              {% csrf_token %}
-              <input type="number" step="0.01" min="0.01" name="allocated_weight_kg" style="width:80px"
-                value="{{ offer.avail_kg }}" required>
-              <button class="btn btn-primary btn-sm" type="submit">Select</button>
-            </form>
-            {% else %}
-            <span class="muted" style="font-size:.85em">Insufficient kg</span>
-            {% endif %}
           {% endif %}
         </td>
       </tr>
       {% endfor %}
     </table>
   </div>
-  <p class="help mt-2">Carrier's name and drop-off address stay hidden until a leg's deposit clears.
-    Enter the kg you want to allocate to this carrier before selecting{% if not bf_order.partial_allowed %} — this order does not allow partial fulfillment, so the allocation must cover the full remaining bid{% endif %}.</p>
+  <p class="help mt-2">Carrier's name and drop-off address stay hidden until the deposit clears.
+    Accepting an offer assigns the whole order to that carrier — every other offer is automatically rejected.</p>
   {% else %}
   <p class="muted">No pending offers right now.</p>
   {% endif %}
