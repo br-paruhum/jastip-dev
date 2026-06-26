@@ -18,7 +18,7 @@
             <!-- Row 1: verified badge + message -->
             <p style="text-align: center;">
               {% if user.profile_complete %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-muted">Unverified</span>{% endif %}
-              {% if role == "traveler" %}- You are a Carrier{% else %}You are a Buyer{% endif %}
+              {% if role == "traveler" %}- You are a Carrier{% else %}You are a Proxy Buyer{% endif %}
             </p>
 
             <form method="post" action="{% url 'accounts:profile_update' %}">
@@ -68,21 +68,9 @@
                   {{ profile_form.traveler_bank_details.errors }}
                 </div>
                 {% else %}
-                <!-- Row 4: City at destination -->
-                <div class="form-field">
-                  <label for="id_buyer_destination_city">City at Destination<br> <span class="help">(your actual city may differ from the destination airport city)</span></label>
-                  {{ profile_form.buyer_destination_city }}
-                  {{ profile_form.buyer_destination_city.errors }}
-                </div>
-                <!-- Row 5: Reshipment address -->
-                <div class="form-field">
-                  <label for="id_buyer_invoice_address">Reshipment Address<br> <span class="help">(if you want Carrier to send your package at your cost, and also to be used for address data in Custom Invoice)</span></label>
-                  {{ profile_form.buyer_invoice_address }}
-                  {{ profile_form.buyer_invoice_address.errors }}
-                </div>
                 <!-- Row 6: Bank details -->
                 <div class="form-field">
-                  <label for="id_buyer_bank_details">Bank Details<br> <span class="help">(for overpayment refund, if any)</span></label>
+                  <label for="id_buyer_bank_details">Bank Details<br> <span class="help">For products purchase payout disbursement</span></label>
                   {{ profile_form.buyer_bank_details }}
                   {{ profile_form.buyer_bank_details.errors }}
                 </div>
