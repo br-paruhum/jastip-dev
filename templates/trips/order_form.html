@@ -90,6 +90,10 @@
           <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
           {% endif %}
         </div>
+        <div class="form-field" style="margin-top:30px">
+          <label>{{ form.delivery_preference.label }}</label>{{ form.delivery_preference }}{{ form.delivery_preference.errors }}
+          <p class="help">Notes: If you select 'Reship package' you have to pay reshipment cost to the Buyer later.</p>
+        </div>
         {% if not proxy %}
         <div class="form-field cargo-only-field">
           <label>Allow this order to be split across multiple carriers</label>

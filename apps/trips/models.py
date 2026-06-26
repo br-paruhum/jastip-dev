@@ -265,6 +265,12 @@ class BuyRequest(ListingTimingMixin, models.Model):
     to_country = models.CharField(max_length=80, blank=True)
     to_address = models.TextField(blank=True)
     to_postal_code = models.CharField(max_length=20, blank=True)
+    # Buyer's delivery preference, captured at order creation (Task 3): pick the
+    # package up at the carrier's location, or have it reshipped to the buyer
+    # (reship cost is settled later). Default = pickup.
+    delivery_preference = models.CharField(
+        max_length=10, choices=FulfillmentMethod.choices, default=FulfillmentMethod.PICKUP
+    )
     settlement_currency = models.CharField(max_length=3, choices=Currency.choices, blank=True, default="")
     max_acceptable_date = models.DateField(
         null=True, blank=True,

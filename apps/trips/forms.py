@@ -1,10 +1,11 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils import timezone
 
-from .constants import COUNTRY_CHOICES, Currency
+from .constants import COUNTRY_CHOICES, Currency, FulfillmentMethod
 from .models import BuyRequest, Message, RequestItem, TravelerOffer, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
@@ -129,12 +130,22 @@ class OrderForm(forms.ModelForm):
         widget=forms.Select(),
         initial="0",
     )
+    # Task 3: buyer's delivery preference, chosen at order creation.
+    delivery_preference = forms.ChoiceField(
+        choices=[
+            (FulfillmentMethod.PICKUP, "Pick up at Carrier's location"),
+            (FulfillmentMethod.RESHIP, "Reship package to Buyer's location"),
+        ],
+        widget=forms.Select(),
+        initial=FulfillmentMethod.PICKUP,
+        label="Delivery Preference",
+    )
 
     class Meta:
         model = BuyRequest
         fields = [
             "from_city", "from_country", "to_city", "to_country",
-            "to_address", "to_postal_code",
+            "to_address", "to_postal_code", "delivery_preference",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
             "cargo_only", "partial_allowed", "buyer_notes",
         ]
@@ -212,8 +223,12 @@ class OrderForm(forms.ModelForm):
         val = self.cleaned_data.get("max_acceptable_date")
         if not val:
             raise forms.ValidationError("Set a deadline for receiving offers.")
-        if val <= timezone.now().date():
-            raise forms.ValidationError("Deadline must be in the future.")
+        earliest = timezone.now().date() + timedelta(days=7)
+        if val < earliest:
+            raise forms.ValidationError(
+                f"Deadline must be at least 7 days from today "
+                f"(on or after {earliest:%d-%b-%Y})."
+            )
         return val
 
 
