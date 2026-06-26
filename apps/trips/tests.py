@@ -61,8 +61,8 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.estimated_shipment_cost, Decimal("50.00"))
         # margin 10% of 200 = 20
         self.assertEqual(self.req.estimated_margin, Decimal("20.00"))
-        # deposit = ((items 200 + margin 20) * 50%) + shipment 50 = 110 + 50 = 160
-        self.assertEqual(self.req.deposit_due, Decimal("160.00"))
+        # deposit = items 200 + margin 20 + shipment 50 = 270 (Task 2: 100% upfront)
+        self.assertEqual(self.req.deposit_due, Decimal("270.00"))
         # commission + payout are 2.5% of the full invoice, settled at close —
         # asserted with concrete amounts in the lifecycle test.
 
@@ -102,10 +102,10 @@ class LifecycleTests(TestCase):
 
         # actual items 300 (100 + 200) + margin 10% of 300 = 30 + shipment 50 + custom 20 = 400
         self.assertEqual(self.req.invoice_total, Decimal("400.00"))
-        # deposit = ((est items 300 + margin 30) * 50%) + shipment 50 = 165 + 50 = 215
-        self.assertEqual(self.req.amount_paid, Decimal("215.00"))
-        # unpaid = invoice 400 - deposit 215 = 185
-        self.assertEqual(self.req.unpaid_amount, Decimal("185.00"))
+        # deposit = est items 300 + margin 30 + shipment 50 = 380 (Task 2: 100% upfront)
+        self.assertEqual(self.req.amount_paid, Decimal("380.00"))
+        # unpaid = invoice 400 - deposit 380 = 20
+        self.assertEqual(self.req.unpaid_amount, Decimal("20.00"))
 
         # Payout: traveler is paid the FULL invoice less the 2.5% fee, at CLOSE.
         # commission = 2.5% of invoice 400 = 10.00; payout = 400 - 10 = 390.00
@@ -164,8 +164,8 @@ class LifecycleTests(TestCase):
         self.assertEqual(self.req.items_estimated_total, Decimal("300.00"))
         self.assertEqual(self.req.estimated_margin, Decimal("30.00"))
         self.assertEqual(self.req.estimated_shipment_cost, Decimal("50.00"))
-        # deposit = ((300 + 30) * 50%) + 50 = 215
-        self.assertEqual(self.req.deposit_due, Decimal("215.00"))
+        # deposit = items 300 + margin 30 + shipment 50 = 380 (Task 2: 100% upfront)
+        self.assertEqual(self.req.deposit_due, Decimal("380.00"))
         deposit_before = self.req.deposit_due
 
         # Actual weight HIGHER -> invoice grows, deposit unchanged.
@@ -182,19 +182,19 @@ class LifecycleTests(TestCase):
             kind=Payment.Kind.DEPOSIT, currency=Currency.USD,
             amount=self.req.deposit_due, status=Payment.PaymentStatus.VERIFIED,
         )
-        # unpaid = invoice 410 - deposit 215 = 195
-        self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("195.00"))
-        # Balance not paid yet: no final settlement made, full 195 still due.
+        # unpaid = invoice 410 - deposit 380 = 30
+        self.assertEqual(self.req.invoice_unpaid_overpaid, Decimal("30.00"))
+        # Balance not paid yet: no final settlement made, full 30 still due.
         self.assertEqual(self.req.final_settlement, Decimal("0.00"))
-        self.assertEqual(self.req.total_due, Decimal("195.00"))
+        self.assertEqual(self.req.total_due, Decimal("30.00"))
 
         # Buyer pays the balance -> final settlement reflects it, due clears.
         Payment.objects.create(
             transaction=self.tx, direction=Payment.Direction.INBOUND,
             kind=Payment.Kind.BALANCE, currency=Currency.USD,
-            amount=Decimal("195.00"), status=Payment.PaymentStatus.VERIFIED,
+            amount=Decimal("30.00"), status=Payment.PaymentStatus.VERIFIED,
         )
-        self.assertEqual(self.req.final_settlement, Decimal("-195.00"))
+        self.assertEqual(self.req.final_settlement, Decimal("-30.00"))
         self.assertEqual(self.req.total_due, Decimal("0.00"))
 
     def test_settlement_zero_after_deposit_before_actuals(self):

@@ -1032,15 +1032,15 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     @property
     def deposit_due(self) -> Decimal:
-        """Deposit fixed at acceptance (1st of 2 payments). Cargo (Carrier) = the
-        full carry fee (weight × rate) — the carrier buys nothing. Proxy buying
-        (Flow-1) = 50% of estimated products + margin, PLUS 100% of the estimated
-        shipment cost. The remaining 50% of products + margin and the customs duty
-        are settled in the single arrival balance."""
+        """Payment fixed at acceptance. Cargo (Carrier) = the full carry fee
+        (weight × rate) — the carrier buys nothing. Proxy buying (Flow-1) = 100%
+        of estimated products + margin PLUS 100% of the estimated shipment cost
+        (Task 2 — full payment upfront). Only the customs duty and any actual-vs-
+        estimate difference remain for the arrival balance."""
         if self.is_cargo:
             return self.estimated_shipment_cost
         return self._q(
-            (self.items_estimated_total + self.estimated_margin) * Decimal("0.5")
+            self.items_estimated_total + self.estimated_margin
             + self.estimated_shipment_cost
         )
 

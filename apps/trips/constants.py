@@ -157,7 +157,7 @@ COUNTRY_CHOICES = [("", "Select a country")] + [(n, n) for n in _COUNTRY_NAMES]
 
 
 DEFAULT_PAYMENT_TERM = (
-    "50% deposit of items ordered including margin + 100% of shipment cost. "
+    "100% of items ordered including margin + 100% of shipment cost, paid upfront. "
     "Custom duty at the destination city is paid by the buyer. "
     "This payment is reimbursable to the carrier with proof of payment."
 )

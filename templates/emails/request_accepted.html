@@ -11,8 +11,8 @@
   {% else %}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your request was accepted</h2>
   <p>Good news — request <strong>{{ request_obj.reference }}</strong> was accepted by the carrier.</p>
-  <p>Please transfer the deposit of <strong>{{ request_obj.currency }} {{ request_obj.deposit_due|intcomma }}</strong>
-     (50% of items incl. margin + 100% shipment), then upload your proof on the request page.</p>
+  <p>Please transfer the full payment of <strong>{{ request_obj.currency }} {{ request_obj.deposit_due|intcomma }}</strong>
+     (100% of items incl. margin + 100% shipment), then upload your proof on the request page.</p>
   <p>A <strong>PDF invoice</strong> with the full breakdown and our bank account details is attached to this email.
      To avoid cancellation, please pay within {{ PAYMENT_DEADLINE_HOURS|default:24 }} hours.</p>
   {% include "_email_button.html" with url=request_url label="Pay the deposit" %}
