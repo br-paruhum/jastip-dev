@@ -15,6 +15,7 @@
         <td class="num-right"><strong>Est Qty</strong></td>
         <td class="num-right"><strong>Actual<br>Qty</strong></td>
         <td class="num-right"><strong>Actual<br>Unit Cost ({{ package_ready_order.currency }})</strong></td>
+        <td style="text-align:center"><strong>Photo</strong></td>
       </tr>
       {% for f in package_ready_formset %}
       <tr>
@@ -22,8 +23,9 @@
         <td class="num-right">{{ f.instance.quantity }} {{ f.instance.unit }}</td>
         <td class="num-right">{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</td>
         <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
+        <td>{{ f.purchase_photo }}{{ f.purchase_photo.errors }}</td>
       </tr>
-      {% if f.purchase_note %}<tr><td colspan="4" style="border-bottom:0;padding:0 0 8px">{{ f.purchase_note }}</td></tr>{% endif %}
+      {% if f.purchase_note %}<tr><td colspan="5" style="border-bottom:0;padding:0 0 8px">{{ f.purchase_note }}</td></tr>{% endif %}
       {% endfor %}
     </table>
     <div class="form-row mt-2">
@@ -32,9 +34,16 @@
         {{ package_ready_form.actual_weight_kg }}{{ package_ready_form.actual_weight_kg.errors }}
         <p class="help">Remeasured final weight of the package - shipment cost will be recalculated on the invoice accordingly.</p>
       </div>
+      <div class="form-field">
+        <label>Box Photos <span class="help">(of the box before &amp; after closing — up to 2)</span></label>
+        <input type="file" name="box_photos" accept="image/png,image/jpeg" multiple>
+        {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank">Current photo 1</a>{% endif %}
+        {% if package_ready_order.box_photo_2 %} · <a href="{{ package_ready_order.box_photo_2.url }}" target="_blank">Current photo 2</a>{% endif %}
+      </div>
     </div>
     <div style="text-align:center;margin-top:12px">
       <button class="btn btn-primary" type="submit">Mark Package Ready</button>
     </div>
   </div>
 </form>
+{% include "trips/_chat_thread.html" with chat_obj=package_ready_order chat_messages=package_ready_chat_messages message_form=package_ready_message_form chat_open=True hide_chat_intro=True chat_empty_msg="Please upload all product photos under its respective line. Also photo of the box before and after it closed. All invoices or receipts from the store should be inserted in an envelope and put the envelope inside the box. No manual or self signed receipts allowed!." %}

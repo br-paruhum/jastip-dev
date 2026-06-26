@@ -1,7 +1,7 @@
 {% load humanize %}
 {% comment %}Recorded conversation between the buyer, proxy buyer, and carrier on an order.
 Pass: chat_obj (BuyRequest), chat_messages, message_form. Admin can read all.{% endcomment %}
-<details class="card fold mt-2" id="chat">
+<details class="card fold mt-2" id="chat"{% if chat_open %} open{% endif %}>
   <summary><h3>Messages</h3></summary>
   <div class="fold-body">
   {% if not hide_chat_intro %}{% if not chat_handover_prefill or chat_messages %}

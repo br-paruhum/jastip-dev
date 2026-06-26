@@ -318,7 +318,7 @@ def profile(request):
 
     # Proxy "Package Ready" panel (?package_ready=<id>#package-ready) — the proxy
     # records the actual unit costs after purchasing (Flow-1 step 3).
-    package_ready_order = package_ready_formset = package_ready_form = None
+    package_ready_order = package_ready_formset = package_ready_form = package_ready_chat_messages = None
     package_ready_id = request.GET.get("package_ready")
     if package_ready_id:
         _p = BuyRequest.objects.select_related("proxy_buyer").filter(
@@ -329,6 +329,7 @@ def profile(request):
             package_ready_order = _p
             package_ready_formset = PurchaseItemFormSet(instance=_p)
             package_ready_form = PurchaseWeightForm(instance=_p)
+            package_ready_chat_messages = _p.messages.select_related("sender").all()
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
@@ -530,6 +531,8 @@ def profile(request):
             "package_ready_order": package_ready_order,
             "package_ready_formset": package_ready_formset,
             "package_ready_form": package_ready_form,
+            "package_ready_chat_messages": package_ready_chat_messages,
+            "package_ready_message_form": MessageForm(),
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

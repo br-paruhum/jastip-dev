@@ -313,6 +313,10 @@ class BuyRequest(ListingTimingMixin, models.Model):
     # Actual weight, set by the buyer when checking the package at pickup. Once
     # set it supersedes the estimate for the final invoice + balance.
     actual_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
+    # Task 9: proxy's photos of the package box, taken before and after closing
+    # (one upload control, max 2). Auto-converted to WebP by the storage.
+    box_photo_1 = models.ImageField(upload_to="package_box/", blank=True, null=True, storage=webp_storage)
+    box_photo_2 = models.ImageField(upload_to="package_box/", blank=True, null=True, storage=webp_storage)
 
     # Custom fare paid by traveler at destination (reimbursable), filled on arrival.
     custom_fare_currency = models.CharField(
