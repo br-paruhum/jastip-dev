@@ -68,7 +68,6 @@
                 <div class="form-field cargo-only-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
               </div>
               <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
-              <div class="form-field"><label>Photo (optional)</label>{{ item_form.photo }}{{ item_form.photo.errors }}</div>
               <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
             </div>
           </div>
@@ -124,7 +123,6 @@
       <div class="form-field cargo-only-field"><label>Unit Price</label>{{ formset.empty_form.estimated_unit_cost }}</div>
     </div>
     <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
-    <div class="form-field"><label>Photo (optional)</label>{{ formset.empty_form.photo }}</div>
     <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
   </div></div>
 </template>
