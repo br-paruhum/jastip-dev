@@ -144,7 +144,7 @@
   </div>
 </details>
 
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if bf_order.is_cargo %}
@@ -180,6 +180,13 @@
   {% if is_order_proxy and bf_order.proxy_actuals_editable %}
   <div style="text-align:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
     <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?package_ready={{ bf_order.id }}#package-ready">{% if bf_order.status == "deposit_paid" %}Enter Actual Cost{% else %}Edit Actual Cost{% endif %}</a>
+  </div>
+  {% endif %}
+  {% if bf_order.box_photo_1 or bf_order.box_photo_2 %}
+  <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+    <p class="help" style="margin:0 0 6px">Package box photos</p>
+    {% if bf_order.box_photo_1 %}<a href="{{ bf_order.box_photo_1.url }}" target="_blank"><img src="{{ bf_order.box_photo_1.url }}" alt="Box photo before closing" style="max-width:150px;border-radius:8px;margin-right:8px"></a>{% endif %}
+    {% if bf_order.box_photo_2 %}<a href="{{ bf_order.box_photo_2.url }}" target="_blank"><img src="{{ bf_order.box_photo_2.url }}" alt="Box photo after closing" style="max-width:150px;border-radius:8px"></a>{% endif %}
   </div>
   {% endif %}
   {% if bf_order.deposit_pending %}
