@@ -4,10 +4,10 @@ Pass: chat_obj (BuyRequest), chat_messages, message_form. Admin can read all.{% 
 <details class="card fold mt-2" id="chat">
   <summary><h3>Messages</h3></summary>
   <div class="fold-body">
-  {% if not chat_handover_prefill or chat_messages %}
+  {% if not hide_chat_intro %}{% if not chat_handover_prefill or chat_messages %}
   <p class="help">Private conversation between the buyer, proxy buyer, and carrier — use it to arrange
     the handover and keep everything on record. Admin can see this thread.</p>
-  {% endif %}
+  {% endif %}{% endif %}
   <div class="chat-thread">
     {% for m in chat_messages %}
       <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
@@ -25,7 +25,7 @@ Pass: chat_obj (BuyRequest), chat_messages, message_form. Admin can read all.{% 
       {% if chat_handover_prefill %}
       <p class="muted">Please edit the text below to your liking.</p>
       {% else %}
-      <p class="muted">No messages yet — start the conversation.</p>
+      <p class="muted">{{ chat_empty_msg|default:"No messages yet — start the conversation." }}</p>
       {% endif %}
     {% endfor %}
   </div>
