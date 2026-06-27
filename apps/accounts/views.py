@@ -298,7 +298,7 @@ def profile(request):
                         _assignment_rows(order)
                         if order.is_multi_leg_cargo and user == order.buyer else None
                     ),
-                    "chat_messages": order.messages.select_related("sender").all(),
+                    "chat_messages": order.visible_messages(user),
                     "message_form": MessageForm(),
                     "can_chat": order.message_tab_visible_to(user),
                 }
@@ -344,7 +344,7 @@ def profile(request):
             package_ready_order = _p
             package_ready_formset = PurchaseItemFormSet(instance=_p)
             package_ready_form = PurchaseWeightForm(instance=_p)
-            package_ready_chat_messages = _p.messages.select_related("sender").all()
+            package_ready_chat_messages = _p.visible_messages(user)
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
@@ -374,7 +374,7 @@ def profile(request):
             _ord = _o.order
             if _ord.is_chat_participant(user) or user.is_staff:
                 order_ctx = {
-                    "chat_messages": _ord.messages.select_related("sender").all(),
+                    "chat_messages": _ord.visible_messages(user),
                     "message_form": MessageForm(),
                     "can_chat": _ord.message_tab_visible_to(user),
                 }

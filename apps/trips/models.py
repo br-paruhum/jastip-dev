@@ -525,6 +525,39 @@ class BuyRequest(ListingTimingMixin, models.Model):
             return False  # note (1): locked for everyone before deposit
         return self.status in MSG_TAB_TWO_PARTY and (is_buyer or is_carrier)
 
+    def message_audience_for_status(self) -> str:
+        """Which participant-pair a NEW message belongs to, based on the proxy
+        rotation phase at the current status. Non-proxy orders tag everything
+        ALL (both parties always share one thread)."""
+        if not self.proxy_buyer_id:
+            return Message.Audience.ALL
+        if self.status in MSG_TAB_BUYER_PROXY:
+            return Message.Audience.BUYER_PROXY
+        if self.status in MSG_TAB_PROXY_CARRIER:
+            return Message.Audience.PROXY_CARRIER
+        if self.status in MSG_TAB_CARRIER_BUYER:
+            return Message.Audience.CARRIER_BUYER
+        return Message.Audience.ALL
+
+    def visible_messages(self, user):
+        """The thread `user` may see: each party only sees the phases they took
+        part in (so the buyer never sees Proxy↔Carrier messages, etc.). Admin and
+        non-proxy orders see the full thread."""
+        qs = self.messages.select_related("sender").all()
+        if (not user or not getattr(user, "is_authenticated", False)
+                or user.is_staff or not self.proxy_buyer_id):
+            return qs
+        is_buyer = self.buyer_id == user.id
+        is_proxy = self.proxy_buyer.user_id == user.id
+        allowed = {Message.Audience.ALL}
+        if is_buyer:
+            allowed |= {Message.Audience.BUYER_PROXY, Message.Audience.CARRIER_BUYER}
+        elif is_proxy:
+            allowed |= {Message.Audience.BUYER_PROXY, Message.Audience.PROXY_CARRIER}
+        else:  # carrier
+            allowed |= {Message.Audience.PROXY_CARRIER, Message.Audience.CARRIER_BUYER}
+        return qs.filter(audience__in=allowed)
+
     @property
     def effective_cost_per_kg(self) -> Decimal:
         """Shipment rate driving cost calculations: the plan's rate, the
@@ -2180,8 +2213,18 @@ class Message(models.Model):
     """A chat message between the buyer and carrier on a request (admin can
     read all threads for oversight)."""
 
+    class Audience(models.TextChoices):
+        # Which participant-pair a message belongs to, stamped at send time from
+        # the proxy rotation phase. Drives per-viewer thread filtering so e.g. the
+        # buyer never sees the Proxy↔Carrier conversation. Non-proxy orders use ALL.
+        ALL = "all", "All participants"
+        BUYER_PROXY = "buyer_proxy", "Buyer & Proxy"
+        PROXY_CARRIER = "proxy_carrier", "Proxy & Carrier"
+        CARRIER_BUYER = "carrier_buyer", "Carrier & Buyer"
+
     request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(USER, on_delete=models.SET_NULL, null=True, related_name="sent_messages")
+    audience = models.CharField(max_length=20, choices=Audience.choices, default=Audience.ALL)
     body = models.TextField()
     photo = models.ImageField(upload_to="chat/", blank=True, null=True, storage=webp_storage)
     created_at = models.DateTimeField(auto_now_add=True)

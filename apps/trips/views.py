@@ -1204,7 +1204,7 @@ def request_detail(request, pk):
         return redirect("pages:home")
     is_traveler = request.user == req.plan.traveler
     is_buyer = request.user == req.buyer
-    chat_messages = req.messages.select_related("sender").all()
+    chat_messages = req.visible_messages(request.user)
     return render(
         request,
         "trips/request_detail.html",
@@ -1264,6 +1264,7 @@ def request_message(request, pk):
         msg = form.save(commit=False)
         msg.request = req
         msg.sender = request.user
+        msg.audience = req.message_audience_for_status()
         msg.save()
         workflow.on_new_message(msg)
     else:
