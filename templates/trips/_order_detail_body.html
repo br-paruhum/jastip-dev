@@ -88,7 +88,7 @@
     <tbody>
       {% for item in bf_order.items.all %}
       <tr>
-        <td class="lcell">{{ item.name }}{% if item.purchase_note %}<br><span class="help" style="color:var(--warning)">⚠ {{ item.purchase_note }}</span>{% endif %}</td>
+        <td class="lcell">{{ item.name }}</td>
         <td>{{ item.quantity }}</td>
         <td>{{ item.actual_quantity }}</td>
         <td class="unit-cell">{{ item.unit }}</td>
@@ -185,8 +185,10 @@
   {% if bf_order.box_photo_1 or bf_order.box_photo_2 %}
   <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
     <p class="help" style="margin:0 0 6px">Package box photos</p>
-    {% if bf_order.box_photo_1 %}<a href="{{ bf_order.box_photo_1.url }}" target="_blank"><img src="{{ bf_order.box_photo_1.url }}" alt="Box photo before closing" style="max-width:150px;border-radius:8px;margin-right:8px"></a>{% endif %}
-    {% if bf_order.box_photo_2 %}<a href="{{ bf_order.box_photo_2.url }}" target="_blank"><img src="{{ bf_order.box_photo_2.url }}" alt="Box photo after closing" style="max-width:150px;border-radius:8px"></a>{% endif %}
+    <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:nowrap">
+      {% if bf_order.box_photo_1 %}<a href="{{ bf_order.box_photo_1.url }}" target="_blank" style="flex:0 1 150px;min-width:0"><img src="{{ bf_order.box_photo_1.url }}" alt="Box photo before closing" style="width:100%;border-radius:8px"></a>{% endif %}
+      {% if bf_order.box_photo_2 %}<a href="{{ bf_order.box_photo_2.url }}" target="_blank" style="flex:0 1 150px;min-width:0"><img src="{{ bf_order.box_photo_2.url }}" alt="Box photo after closing" style="width:100%;border-radius:8px"></a>{% endif %}
+    </div>
   </div>
   {% endif %}
   {% if bf_order.deposit_pending %}

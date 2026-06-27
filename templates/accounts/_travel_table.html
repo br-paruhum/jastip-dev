@@ -40,6 +40,8 @@
             {% endif %}
           {% elif row.kind == "plan_only" %}
             <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?plan={{ row.plan.id }}#plan-detail">View</a>
+          {% elif row.offer_not_selected %}
+            <span class="btn btn-outline btn-sm" style="opacity:.5;cursor:default;pointer-events:none">Closed</span>
           {% else %}
             <a class="btn btn-outline btn-sm" style="margin-bottom:6px;display:inline-block" href="{% url 'accounts:profile' %}?offer={{ row.offer.id }}#offer-detail">View</a>
             {# Print Customs Invoice lives inside the offer detail panel (via View). #}

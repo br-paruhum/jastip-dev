@@ -216,6 +216,7 @@ def _travel_rows(plans, offers):
             "kind": "offer", "bf_kind": "buyer_first",
             "type_label": offer.order.counterparty_label, "type_is_cargo": offer.order.is_cargo,
             "is_closed": offer_closed,
+            "offer_not_selected": offer.offer_status in {OfferStatus.REJECTED, OfferStatus.WITHDRAWN},
             "ref": offer.order.reference, "date": offer.travel_date, "route": offer.route,
             "ask_cost_per_kg": offer.ask_cost_per_kg, "kg": offer.allocated_weight_kg or offer.avail_kg,
             "currency": offer.order.currency,
