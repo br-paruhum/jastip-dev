@@ -100,6 +100,6 @@
 
 - [x] **Task 17.** - Credential for Proxy Buyer should not includes City at Destination; Reshipment Address. Bank Details notes should not be (for overpayment refund, if any), but (For Product purchase payout disbursement. - I think you mistakenly treat Buyer as Proxy Buyer and vice versa.
 
-- [ ] **Task 18.** - Bank Detail notes for Carrier should be "(for shipment cost payout disbursement).
+- [x] **Task 18.** - Bank Detail notes for Carrier should be "(for shipment cost payout disbursement).
 
 	
