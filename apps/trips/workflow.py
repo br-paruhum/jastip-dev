@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from apps.notifications.services import notify_see_email, send_email, send_whatsapp
 
-from .constants import OfferStatus, Status
+from .constants import FulfillmentMethod, OfferStatus, Status
 
 logger = logging.getLogger(__name__)
 
@@ -332,6 +332,7 @@ def on_cargo_arrived(request_obj):
         on_package_arrived(request_obj)
         return
     _set_status(request_obj, Status.READY_FOR_PICKUP)
+    _honor_pickup_preference(request_obj)
     for party in (request_obj.buyer, request_obj.plan.traveler):
         send_email(
             to_user=party,
@@ -343,12 +344,25 @@ def on_cargo_arrived(request_obj):
         notify_see_email(party, event="ready_for_pickup")
 
 
+def _honor_pickup_preference(request_obj):
+    """The buyer already chose pickup vs reshipment when placing the order. If
+    they chose pickup, mark it selected on reaching Ready-for-Pickup so neither
+    side is asked to choose again — the buyer can confirm receipt directly and
+    the carrier sees the pickup is on."""
+    if (request_obj.status == Status.READY_FOR_PICKUP
+            and request_obj.delivery_preference == FulfillmentMethod.PICKUP
+            and not request_obj.pickup_selected):
+        request_obj.pickup_selected = True
+        request_obj.save(update_fields=["pickup_selected"])
+
+
 def on_package_arrived_settled(request_obj):
     """Proxy buyer-first arrival when the upfront deposit already covers the final
     invoice (incl. the duty estimate) — there is no balance to collect. The buyer
     is considered paid; advance straight to READY_FOR_PICKUP. Any overpayment is
     refunded by admin."""
     _set_status(request_obj, Status.READY_FOR_PICKUP, sync_plan=bool(request_obj.plan_id))
+    _honor_pickup_preference(request_obj)
     for party in (request_obj.buyer, _order_traveler(request_obj)):
         if not party:
             continue
@@ -365,6 +379,7 @@ def on_package_arrived_settled(request_obj):
 def on_balance_verified(request_obj):
     """Step 7: admin verified the balance -> ready for pickup."""
     _set_status(request_obj, Status.READY_FOR_PICKUP, sync_plan=bool(request_obj.plan_id))
+    _honor_pickup_preference(request_obj)
     for party in (request_obj.buyer, _order_traveler(request_obj)):
         if not party:
             continue

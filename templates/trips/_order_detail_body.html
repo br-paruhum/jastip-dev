@@ -237,28 +237,22 @@
     {% endif %}
   {% elif bf_order.status == "ready_for_pickup" %}
     {% if is_order_buyer %}
-      {% if bf_order.pickup_selected %}
-      <p><strong>Pick up your package</strong> from the carrier below, verify the items, then click <strong>Confirm Received</strong> to release the payment. The package is with the carrier until you collect it.</p>
+      {% if bf_order.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
+      {% if bf_order.delivery_preference == "reship" %}
+      <p>You chose <strong>reshipment</strong> when you placed the order. To have the package shipped to you, make sure your "Reshipment Address" is set in your Profile, then request reshipment.</p>
+      <form method="post" action="{% url 'trips:request_reship_request' bf_order.id %}">{% csrf_token %}
+        <div style="text-align:center"><button class="btn btn-primary" type="submit">Request Reshipment</button></div>
+      </form>
+      {% else %}
+      <p>You chose <strong>local pickup</strong> when you placed the order. Collect your package from the carrier below, verify the items, then click <strong>Confirm Received</strong> to release the payment.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:100px">Name</td><td>: {{ bf_order.proxy_traveler.full_name }}</td></tr>
         {% if bf_order.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_address }}</span>{% if bf_order.proxy_traveler.traveler_destination_city %}, {{ bf_order.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
         <tr><td>Email</td><td>: {{ bf_order.proxy_traveler.email }}</td></tr>
         {% if bf_order.proxy_traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ bf_order.proxy_traveler.phone_e164|slice:'1:' }}" target="_blank">{{ bf_order.proxy_traveler.phone_e164 }}</a></td></tr>{% endif %}
       </table>
-      {% if bf_order.balance_refund_due > 0 %}<p class="muted">You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong> — admin will transfer it back within 48 hours.</p>{% endif %}
       <form method="post" action="{% url 'trips:request_clear' bf_order.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
         <button class="btn btn-primary" type="submit">Confirm Received</button>
-      </form>
-      {% else %}
-      {% if bf_order.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
-      <p><strong>Option 1 — Pick up locally:</strong> Choose pickup, then collect the package from the carrier and confirm receipt to release the payment.</p>
-      <form method="post" action="{% url 'trips:request_pickup_select' bf_order.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
-        <button class="btn btn-primary" type="submit">Pick Up Locally</button>
-      </form>
-      <hr style="margin:16px 0">
-      <p><strong>Option 2 — Request reshipment:</strong> To have the package shipped to you, set your "Reshipment Address" in your Profile, then click Request Reshipment.</p>
-      <form method="post" action="{% url 'trips:request_reship_request' bf_order.id %}">{% csrf_token %}
-        <div style="text-align:center"><button class="btn btn-primary" type="submit">Request Reshipment</button></div>
       </form>
       {% endif %}
     {% else %}
