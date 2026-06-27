@@ -19,6 +19,12 @@
 .howto-ig .hi-span{grid-column:2 / 4}
 .howto-ig .hi-span .hi-note,.howto-ig .hi-span .hi-msg{width:100%}
 .howto-ig .hi-empty{min-height:0}
+/* Stretch rows: each column fills the row height (set by the tallest cell), so
+   a step flagged as a tail can pin to the bottom — e.g. #8 under #7, its bottom
+   level with #6's bottom — while the lead badges stay top-aligned. */
+.howto-ig .hi-step.hi-stretch{align-items:stretch}
+.howto-ig .hi-stretch .hi-colwrap{display:flex;flex-direction:column;gap:14px}
+.howto-ig .hi-stretch .hi-tail{margin-top:auto}
 /* Top-aligned rows: cells share three stacked tracks (image / number / body)
    via subgrid, so every number badge lines up on one row even when a cell has
    an image above it — the image just reserves the top track. */
@@ -98,16 +104,15 @@
       {num:'4', a:'carrier',
        t:'Select from the <b>Queuing Cargo</b> table for the same route, then fill in your <b>offer rate per kg</b> and <b>travel date/time</b>.'} ],
 
-    {align:'top', c:[
+    {align:'stretch', c:[
       {num:'5', a:'buyer',
        t:'<b>Accept</b> the carrier’s offer and pay ProxyBuying for the <b>total estimated product cost</b> (including margin) and the <b>total estimated shipment cost</b>.'},
       {num:'6', a:'proxy',
-       t:'Start sourcing the products. Discuss any sourcing problem with the buyer via <b>internal chat</b> (shortage, out-of-stock, price increase, substitution), then input the <b>actual cost</b> and <b>total weight</b> and upload <b>product photos</b>. The buyer’s final decision for each product is stated in the chat.'},
+       t:'Start sourcing the products. Discuss any sourcing problem with the buyer via <b>internal chat</b> (shortage, out-of-stock, price increase, substitution), then input the <b>actual cost</b> and <b>total weight</b> and upload <b>product photos</b>. The buyer’s final decision for each product is stated in the<br>chat.'},
       {num:'7', a:'carrier',
-       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.'} ]},
-
-    [ {num:'8', a:'carrier',
-       t:'Received the package from the proxy buyer.'} ],
+       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.',
+       tail:{num:'8', a:'carrier',
+        t:'Received the package from the proxy buyer.'}} ]},
 
     {divider:'Travel Date'},
 
@@ -167,6 +172,14 @@
     // {c:[steps], align:'top'} for per-row control. A step with span:true takes
     // both the Proxy Buyer and Carrier columns.
     var steps=Array.isArray(row)?row:row.c;
+    if(!Array.isArray(row)&&row.align==='stretch'){
+      var sc=['','',''];
+      steps.forEach(function(s){
+        var tail=s.tail?cell(s.tail).replace('class="hi-cell ','class="hi-cell hi-tail '):'';
+        sc[COL[s.a]]='<div class="hi-colwrap">'+cell(s)+tail+'</div>';
+      });
+      return '<div class="hi-step hi-stretch">'+sc.map(function(c){return c||'<div class="hi-colwrap"></div>';}).join('')+'</div>';
+    }
     var align=(!Array.isArray(row)&&row.align==='top')?' hi-top':'';
     var cells=['','',''], span=null;
     steps.forEach(function(s){ if(s.span){span=s;} else {cells[COL[s.a]]=cell(s);} });
