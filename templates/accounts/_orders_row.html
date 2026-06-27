@@ -11,5 +11,5 @@
   <td class="status-cell">
     {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
   </td>
-  <td class="action-cell"><a class="btn btn-outline btn-sm" href="{{ o.get_absolute_url }}">Open</a></td>
+  <td class="action-cell"><a class="btn btn-outline btn-sm" href="{% if offer %}{% url 'accounts:profile' %}?order={{ o.id }}&offer_focus={{ offer.id }}#order-detail{% else %}{{ o.get_absolute_url }}{% endif %}">Open</a></td>
 </tr>

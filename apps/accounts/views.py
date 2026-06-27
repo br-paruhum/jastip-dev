@@ -281,10 +281,18 @@ def profile(request):
             # the two detail panels in profile.html don't both try to render.
             is_order_proxy = bool(order.proxy_buyer_id) and order.proxy_buyer.user_id == user.id
             if user == order.buyer or is_order_proxy or user.is_staff:
+                # Opened from a specific offer row — focus the accept section on
+                # just that carrier's offer instead of listing every pending one.
+                focus_id = request.GET.get("offer_focus")
+                focus_offer = (
+                    order.traveler_offers.filter(pk=focus_id, offer_status=OfferStatus.PENDING).first()
+                    if focus_id else None
+                )
                 order_ctx = {
                     "bf_order": order,
                     "is_order_proxy": is_order_proxy,
                     "is_order_buyer": user == order.buyer,
+                    "focus_offer": focus_offer,
                     "assignment_rows": (
                         _assignment_rows(order)
                         if order.is_multi_leg_cargo and user == order.buyer else None

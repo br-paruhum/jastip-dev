@@ -311,8 +311,9 @@
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
   {% elif bf_order.status == "responded" and bf_order.pending_offers %}
     {% if is_order_buyer %}
-    <p>{{ bf_order.pending_offers|length }} carrier{{ bf_order.pending_offers|length|pluralize }} offered to carry your order. Accept the one you prefer — the others are then declined automatically:</p>
-    {% for offer in bf_order.pending_offers %}
+    {% if focus_offer %}<p>This carrier offered to carry your order — accept to assign them (any other offers are declined automatically):</p>
+    {% else %}<p>{{ bf_order.pending_offers|length }} carrier{{ bf_order.pending_offers|length|pluralize }} offered to carry your order. Accept the one you prefer — the others are then declined automatically:</p>{% endif %}
+    {% for offer in bf_order.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
     <table class="invoice" style="max-width:440px;margin-bottom:8px">
       <tr><td>Shipment Cost per kg</td><td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
       <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
@@ -322,7 +323,7 @@
       <form method="post" action="{% url 'trips:order_accept' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
       <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
     </div>
-    {% endfor %}
+    {% endif %}{% endfor %}
     {% else %}
     <p class="muted">A carrier has offered to carry this cargo. Waiting for the buyer to accept the shipment cost.</p>
     {% endif %}
