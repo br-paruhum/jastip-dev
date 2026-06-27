@@ -1422,12 +1422,10 @@ def request_arrive(request, pk):
     # Plan-first proxy buying (traveler IS the proxy) arrives from Items Purchased.
     waits_for_handover = req.is_cargo or req.is_proxy_buyer_first
     arrivable = Status.PACKAGE_RECEIVED if waits_for_handover else Status.ITEMS_PURCHASED
-    # Proxy buyer-first: after the duty estimate is sent (PACKAGE_ARRIVED) and the
-    # buyer pays the balance (READY_FOR_PICKUP), the carrier reopens this form to
-    # upload the actual customs receipt — without re-triggering the workflow.
-    receipt_followup = req.is_proxy_buyer_first and req.status in {
-        Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
-    }
+    # Proxy buyer-first: once the buyer has paid (READY_FOR_PICKUP) the carrier
+    # reopens this form to record the actual duty payment / receipt. It's a
+    # record only — it does not re-trigger the workflow or gate pickup.
+    receipt_followup = req.is_proxy_buyer_first and req.status == Status.READY_FOR_PICKUP
     if req.status != arrivable and not receipt_followup:
         messages.info(
             request,
@@ -1441,7 +1439,7 @@ def request_arrive(request, pk):
         if form.is_valid():
             form.save()
             if receipt_followup:
-                msg = "Actual customs receipt saved."
+                msg = "Actual duty payment recorded."
             elif req.is_cargo:
                 workflow.on_cargo_arrived(req)
                 if req.status == Status.READY_FOR_PICKUP:

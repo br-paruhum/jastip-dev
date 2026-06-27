@@ -23,7 +23,7 @@
       {% if arrive_req.custom_fare_proof %}<a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank" class="help">Current actual receipt</a>{% endif %}
     </div>
     {{ arrive_form.non_field_errors }}
-    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_arrived" %}Save Receipt{% else %}Send Duty Estimate{% endif %}</button></div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Estimate{% else %}Actual Duty Paid{% endif %}</button></div>
   </div>
 </form>
 
