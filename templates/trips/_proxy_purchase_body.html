@@ -10,6 +10,12 @@
       <strong>{{ package_ready_order.reference }}</strong> - {{ package_ready_order.route }}
     </p>
     <table class="invoice">
+      <colgroup>
+        <col style="width:40%">
+        <col style="width:15%">
+        <col style="width:15%">
+        <col style="width:30%">
+      </colgroup>
       <tr>
         <td style="text-align:center"><strong>Product</strong></td>
         <td class="num-right"><strong>Est Qty</strong></td>
@@ -34,7 +40,7 @@
         <p class="help">Remeasured final weight of the package - shipment cost will be recalculated on the invoice accordingly.</p>
       </div>
       <div class="form-field">
-        <label>Box Photos <span class="help">(of the box before &amp; after closing — up to 2)</span></label>
+        <label>Box Photos</label>
         <input type="file" name="box_photos" accept="image/png,image/jpeg" multiple>
         {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank">Current photo 1</a>{% endif %}
         {% if package_ready_order.box_photo_2 %} · <a href="{{ package_ready_order.box_photo_2.url }}" target="_blank">Current photo 2</a>{% endif %}
@@ -42,6 +48,7 @@
     </div>
     <div style="text-align:center;margin-top:12px">
       <button class="btn btn-primary" type="submit">Mark Package Ready</button>
+      <p class="help" style="margin-top:8px">Box Photos: of the box before &amp; after closing — up to 2.</p>
     </div>
   </div>
 </form>
