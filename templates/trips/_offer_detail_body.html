@@ -158,7 +158,7 @@
     {% endif %}
     {% elif leg_offer.order.status == "ready_for_pickup" %}
     {% if leg_offer.order.pickup_selected %}
-    <p class="muted">Buyer chose local pickup — coordinate the handover via the Messages thread. Your remaining 50% disbursement is released once they confirm receipt.</p>
+    <p class="muted">Balance settled. Waiting for the buyer to received the package.</p>
     {% else %}
     <p class="muted">Balance settled. Waiting for the buyer to choose pickup or request reshipment.</p>
     {% endif %}
