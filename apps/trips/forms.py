@@ -346,8 +346,8 @@ class TravelerCargoOfferForm(forms.ModelForm):
         # accepts this offer, so the travel date must be more than 3 days out.
         if val <= timezone.now().date() + timedelta(days=3):
             raise forms.ValidationError(
-                "Travel date must be more than 3 days from today, so the proxy "
-                "buyer has time to purchase the ordered goods."
+                "Travel date must be more than 3 days from today, to provide "
+                "proxy buyer enough time buying the goods."
             )
         return val
 

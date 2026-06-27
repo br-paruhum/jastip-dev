@@ -452,6 +452,9 @@ def profile(request):
     # Offer-form panel (?offer=<order_id>#offer-form) — traveler responds to a buyer-first order.
     offer_form_order = offer_form_obj = None
     proxy_review_form = proxy_review_formset = None
+    # An invalid offer submission stashes its POST here so we can re-render the
+    # form bound (values kept + inline field errors) instead of wiping it.
+    offer_post = request.session.pop("offer_form_post", None)
     offer_order_id = request.GET.get("offer")
     if offer_order_id:
         _offer_order = (
@@ -468,13 +471,17 @@ def profile(request):
                 "from_city": _offer_order.from_city, "from_country": _offer_order.from_country,
                 "to_city": _offer_order.to_city, "to_country": _offer_order.to_country,
             }
+            # Re-bind to the rejected submission only when it was for this order.
+            bound = offer_post.get("data") if offer_post and str(offer_post.get("order_id")) == str(_offer_order.id) else None
             if _offer_order.is_cargo:
                 # Cargo: carry offer; multiple travelers may offer (block dup self).
                 if not _offer_order.traveler_offers.filter(
                     traveler=user, offer_status=OfferStatus.PENDING
                 ).exists():
                     offer_form_order = _offer_order
-                    offer_form_obj = TravelerOfferForm(initial=route_initial)
+                    offer_form_obj = TravelerOfferForm(bound, initial=route_initial) if bound else TravelerOfferForm(initial=route_initial)
+                    if bound:
+                        offer_form_obj.is_valid()
             elif _offer_order.status == Status.RESPONDED:
                 # Flow-1 Products: carriers may keep offering while the order is
                 # RESPONDED (the buyer picks one) — only block this carrier's own
@@ -485,9 +492,10 @@ def profile(request):
                     offer_form_order = _offer_order
                     # Offer weight defaults to the order's weight — the traveler
                     # carries exactly the buyer's cargo (no spare-baggage upsell).
-                    offer_form_obj = TravelerCargoOfferForm(
-                        initial={**route_initial, "avail_kg": _offer_order.estimated_weight_kg}
-                    )
+                    initial = {**route_initial, "avail_kg": _offer_order.estimated_weight_kg}
+                    offer_form_obj = TravelerCargoOfferForm(bound, initial=initial) if bound else TravelerCargoOfferForm(initial=initial)
+                    if bound:
+                        offer_form_obj.is_valid()
 
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
