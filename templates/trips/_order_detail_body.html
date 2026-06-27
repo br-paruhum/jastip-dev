@@ -2,8 +2,8 @@
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {# Estimate just sent by the proxy; a carrier offer (if any) comes a step later. #}
-    {% include "trips/_status_badge.html" with label="Estimate Sent" tone="info" %}
+    {# Estimate sent by the proxy; once a carrier quotes a rate it's "Offer Received". #}
+    {% include "trips/_status_badge.html" with label=bf_order.pending_offers|yesno:"Offer Received,Estimate Sent" tone="info" %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
     {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}

@@ -7,9 +7,7 @@
     <tbody>
       {% for o in orders %}
         {% if not o.is_cargo and o.bf_kind == "buyer_first" and o.status == "responded" and o.pending_offers %}
-          {# Multiple carriers may be competing — one row per offer so the buyer
-             compares each carrier's rate (the offers, previously only inside the
-             accept form). #}
+          {# One row per competing offer so the buyer compares each carrier's rate. #}
           {% for offer in o.pending_offers %}{% include "accounts/_orders_row.html" with o=o offer=offer only %}{% endfor %}
         {% else %}
           {% include "accounts/_orders_row.html" with o=o only %}
