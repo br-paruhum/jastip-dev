@@ -133,6 +133,7 @@ class BuyRequestAdmin(ModelAdmin):
             if req.proxy_disbursable and not req.proxy_disbursed_at:
                 req.proxy_disbursed_at = timezone.now()
                 req.save(update_fields=["proxy_disbursed_at", "updated_at"])
+                req.record_disbursement_payment("proxy", request.user)
                 workflow.notify_proxy_disbursed(req)
                 done += 1
             else:
@@ -163,6 +164,7 @@ class BuyRequestAdmin(ModelAdmin):
             if req.traveler_payout_disbursable and not req.traveler_paid_at:
                 req.traveler_paid_at = timezone.now()
                 req.save(update_fields=["traveler_paid_at", "updated_at"])
+                req.record_disbursement_payment("traveler", request.user)
                 workflow.notify_traveler_paid(req)
                 done += 1
             else:

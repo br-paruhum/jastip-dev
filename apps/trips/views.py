@@ -1562,12 +1562,14 @@ def release_disbursement(request, pk):
         req.proxy_disbursement_proof = proof
         req.proxy_disbursed_at = timezone.now()
         req.save(update_fields=["proxy_disbursement_proof", "proxy_disbursed_at", "updated_at"])
+        req.record_disbursement_payment("proxy", request.user)
         workflow.notify_proxy_disbursed(req)
         messages.success(request, "Proxy disbursement released — proxy notified by email + WhatsApp.")
     elif kind == "traveler" and req.traveler_payout_disbursable and not req.traveler_paid_at:
         req.traveler_payout_proof = proof
         req.traveler_paid_at = timezone.now()
         req.save(update_fields=["traveler_payout_proof", "traveler_paid_at", "updated_at"])
+        req.record_disbursement_payment("traveler", request.user)
         workflow.notify_traveler_paid(req)
         messages.success(request, "Carrier payout released — carrier notified by email + WhatsApp.")
     elif kind == "refund" and req.status in REFUND_ELIGIBLE_STATUSES and not req.refund_processed and req.refund_due > 0:

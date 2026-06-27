@@ -1437,6 +1437,33 @@ class BuyRequest(ListingTimingMixin, models.Model):
         u = self.unpaid_amount
         return -u if u < 0 else Decimal("0.00")
 
+    def record_disbursement_payment(self, role, by_user):
+        """Append an OUTBOUND PAYOUT row to the ledger for a released proxy/
+        carrier disbursement, so every money movement has a Payment record (the
+        timestamp fields stay the 'released' flag; the transfer proof stays on
+        the order). kind=PAYOUT, so this never affects buyer-balance properties,
+        which sum INBOUND or OUTBOUND+REFUND only. `role` is "proxy" or
+        "traveler". Returns the Payment, or None if there is nothing to record."""
+        tx, _ = Transaction.objects.get_or_create(request=self)
+        if role == "proxy":
+            amount, note = self.proxy_disbursement_total, "Proxy buyer payout"
+        else:
+            amount, note = tx.payout_to_traveler, "Carrier payout"
+        if not amount or amount <= 0:
+            return None
+        return Payment.objects.create(
+            transaction=tx,
+            direction=Payment.Direction.OUTBOUND,
+            kind=Payment.Kind.PAYOUT,
+            method=Payment.Method.MANUAL,
+            currency=self.currency,
+            amount=amount,
+            status=Payment.PaymentStatus.VERIFIED,
+            verified_by=by_user,
+            verified_at=timezone.now(),
+            note=note,
+        )
+
 
 class TravelerOffer(models.Model):
     """A carrier's response to a buyer-first BuyRequest (order). Once selected
