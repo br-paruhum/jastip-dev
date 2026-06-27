@@ -63,10 +63,11 @@ def home(request):
         o.board_weight = o.estimated_weight_kg
         if o.status in CARRY_INFLIGHT:
             o.board_state, o.is_locked_fcfs, o.can_offer = "covered", True, False
-        else:  # RESPONDED
+        else:  # RESPONDED — stay open so more carriers can offer until the
+               # buyer accepts one (then status leaves RESPONDED and it locks).
             o.board_state = "pending" if live else "open"
-            o.is_locked_fcfs = bool(live)
-            o.can_offer = not o.is_locked_fcfs and (
+            o.is_locked_fcfs = False
+            o.can_offer = (
                 not request.user.is_authenticated or o.buyer_id != request.user.id
             )
         cargo_looking.append(o)

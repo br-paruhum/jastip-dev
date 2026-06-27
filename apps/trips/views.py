@@ -428,13 +428,9 @@ def offer_create(request, order_id):
     if not flow_types.order_accepts_carry_offer(order):
         messages.error(request, flow_types.PRODUCTS_ORDER_NEEDS_PROXY)
         return redirect(dashboard_url + "#travel-plans")
-    # Flow-1 Products: one traveler per order (FCFS) — block if anyone already
-    # holds a live offer. (Cargo orders may collect several travelers' offers.)
-    if not order.is_cargo and order.traveler_offers.filter(
-        offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
-    ).exists():
-        messages.info(request, "Another carrier is already handling this cargo.")
-        return redirect(dashboard_url + "#travel-plans")
+    # Proxy (Products) orders stay open for multiple carriers' offers until the
+    # buyer accepts one (which moves the order off RESPONDED). The own-pending and
+    # status-open guards above are enough — no first-come-first-served lock.
 
     form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
     if form.is_valid():
@@ -619,16 +615,29 @@ def order_accept(request, order_id):
     if order.is_cargo or order.status != Status.RESPONDED:
         messages.error(request, "There is no shipment cost to accept at this stage.")
         return redirect(detail)
-    offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
+    # The buyer picks a specific carrier's offer (several may be pending). Fall
+    # back to the sole pending offer when no id is posted (single-offer case).
+    offer_id = request.POST.get("offer_id")
+    pending = order.traveler_offers.filter(offer_status=OfferStatus.PENDING)
+    offer = pending.filter(pk=offer_id).first() if offer_id else pending.first()
     if not offer:
         messages.error(request, "No carrier offer to accept.")
         return redirect(detail)
     # Tentative ("Temp Book") until the buyer's deposit is verified — only then
     # is the booking locked and the traveler's surplus advertised as spare
     # baggage (see workflow.on_deposit_verified). The buyer may still cancel here.
-    order.status = Status.ACCEPTED
-    order.save(update_fields=["status", "updated_at"])
+    with db_transaction.atomic():
+        order.status = Status.ACCEPTED
+        order.save(update_fields=["status", "updated_at"])
+        # The buyer chose this carrier — decline every other pending offer so the
+        # order has a single live carrier from here on.
+        others = list(pending.exclude(pk=offer.pk))
+        order.traveler_offers.filter(offer_status=OfferStatus.PENDING).exclude(
+            pk=offer.pk
+        ).update(offer_status=OfferStatus.REJECTED)
     workflow.on_proxy_offer_accepted(order, offer)
+    for other in others:
+        workflow.on_proxy_offer_rejected(order, other)
     messages.success(request, "Shipment cost accepted. Please pay the deposit to confirm.")
     return redirect(detail)
 
@@ -644,7 +653,9 @@ def order_reject(request, order_id):
     if order.is_cargo or order.status != Status.RESPONDED:
         messages.error(request, "There is no offer to reject at this stage.")
         return redirect(detail)
-    offer = order.traveler_offers.filter(offer_status=OfferStatus.PENDING).first()
+    offer_id = request.POST.get("offer_id")
+    pending = order.traveler_offers.filter(offer_status=OfferStatus.PENDING)
+    offer = pending.filter(pk=offer_id).first() if offer_id else pending.first()
     if not offer:
         messages.error(request, "No carrier offer to reject.")
         return redirect(detail)

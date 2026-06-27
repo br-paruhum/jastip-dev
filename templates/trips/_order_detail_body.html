@@ -311,19 +311,18 @@
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
   {% elif bf_order.status == "responded" and bf_order.pending_offers %}
     {% if is_order_buyer %}
-    <p>A carrier has offered to carry your order:</p>
+    <p>{{ bf_order.pending_offers|length }} carrier{{ bf_order.pending_offers|length|pluralize }} offered to carry your order. Accept the one you prefer — the others are then declined automatically:</p>
     {% for offer in bf_order.pending_offers %}
-    <table class="invoice" style="max-width:440px;margin-bottom:12px">
+    <table class="invoice" style="max-width:440px;margin-bottom:8px">
       <tr><td>Shipment Cost per kg</td><td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
       <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
       <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
     </table>
-    {% endfor %}
-    <p>If you agree with the Shipment Cost, click Accept; otherwise click Reject.</p>
-    <div style="display:flex;gap:10px;justify-content:center">
-      <form method="post" action="{% url 'trips:order_accept' bf_order.id %}">{% csrf_token %}<button class="btn btn-primary" type="submit">Accept</button></form>
-      <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline" type="submit">Reject</button></form>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+      <form method="post" action="{% url 'trips:order_accept' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+      <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
     </div>
+    {% endfor %}
     {% else %}
     <p class="muted">A carrier has offered to carry this cargo. Waiting for the buyer to accept the shipment cost.</p>
     {% endif %}
