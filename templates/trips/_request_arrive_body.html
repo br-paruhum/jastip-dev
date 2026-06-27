@@ -16,11 +16,23 @@
       </div>
       <div class="form-field"><label>Custom Duty Estimate Amount</label>{{ arrive_form.custom_fare_amount }}{{ arrive_form.custom_fare_amount.errors }}</div>
     </div>
-    <div class="form-field"><label>Please upload Duty Estimate here.</label>{{ arrive_form.custom_fare_estimate_proof }}{{ arrive_form.custom_fare_estimate_proof.errors }}
-      {% if arrive_req.custom_fare_estimate_proof %}<a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank" class="help">Current estimate proof</a>{% endif %}
+    <div class="form-field"><label>Please upload Duty Estimate here.</label>
+      {% if arrive_req.custom_fare_estimate_proof %}
+      <div style="margin-bottom:6px">
+        <a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank"><img src="{{ arrive_req.custom_fare_estimate_proof.url }}" alt="Estimate proof" style="max-width:120px;border-radius:8px;display:block"></a>
+        <span class="help">&#10003; Estimate proof uploaded — choose a file only if you need to replace it.</span>
+      </div>
+      {% endif %}
+      {{ arrive_form.custom_fare_estimate_proof }}{{ arrive_form.custom_fare_estimate_proof.errors }}
     </div>
-    <div class="form-field"><label>Please upload the actual receipt here.</label>{{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}
-      {% if arrive_req.custom_fare_proof %}<a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank" class="help">Current actual receipt</a>{% endif %}
+    <div class="form-field"><label>Please upload the actual receipt here.</label>
+      {% if arrive_req.custom_fare_proof %}
+      <div style="margin-bottom:6px">
+        <a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank"><img src="{{ arrive_req.custom_fare_proof.url }}" alt="Actual receipt" style="max-width:120px;border-radius:8px;display:block"></a>
+        <span class="help">&#10003; Actual receipt uploaded — choose a file only if you need to replace it.</span>
+      </div>
+      {% endif %}
+      {{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}
     </div>
     {{ arrive_form.non_field_errors }}
     <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Estimate{% else %}Actual Duty Paid{% endif %}</button></div>
