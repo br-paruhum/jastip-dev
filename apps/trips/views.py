@@ -1569,6 +1569,25 @@ def release_disbursement(request, pk):
         req.save(update_fields=["traveler_payout_proof", "traveler_paid_at", "updated_at"])
         workflow.notify_traveler_paid(req)
         messages.success(request, "Carrier payout released — carrier notified by email + WhatsApp.")
+    elif kind == "refund" and req.status == Status.PACKAGE_ARRIVED and not req.refund_processed and req.refund_due > 0:
+        tx, _ = Transaction.objects.get_or_create(request=req)
+        Payment.objects.create(
+            transaction=tx,
+            direction=Payment.Direction.OUTBOUND,
+            kind=Payment.Kind.REFUND,
+            method=Payment.Method.MANUAL,
+            currency=req.currency,
+            amount=req.refund_due,  # current overpaid, net of prior refunds
+            status=Payment.PaymentStatus.VERIFIED,
+            verified_by=request.user,
+            verified_at=timezone.now(),
+            proof=proof,
+            note="Overpaid refund to buyer",
+        )
+        req.refund_processed = True
+        req.save(update_fields=["refund_processed", "updated_at"])
+        workflow.on_balance_verified(req)  # -> Ready for Pickup, notifies buyer
+        messages.success(request, "Buyer refund released — buyer notified, order advanced to Ready for Pickup.")
     else:
         messages.error(request, "That disbursement isn't releasable yet (not eligible or already released).")
     return redirect(back)

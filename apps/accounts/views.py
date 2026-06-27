@@ -83,6 +83,27 @@ def _pending_disbursements(user):
             })
         if pending:
             rows.append({"order": o, "pending": pending})
+
+    # Buyer overpaid refunds: due at Package Arrived, before the order clears,
+    # so they fall outside the CLEAR/CLOSED scan above. Surface them here too so
+    # staff release the refund (with transfer proof) from the same place.
+    refunds = (
+        BuyRequest.objects
+        .filter(status=Status.PACKAGE_ARRIVED, refund_processed=False)
+        .select_related("buyer", "proxy_buyer__user", "plan__traveler")
+        .order_by("-updated_at")
+    )
+    for o in refunds:
+        if o.refund_due <= 0:
+            continue
+        rows.append({"order": o, "pending": [{
+            "kind": "refund", "label": "Buyer Refund",
+            "recipient": o.buyer.full_name if o.buyer_id else "—",
+            "amount": o.refund_due,
+            "bank_name": o.refund_bank_name,
+            "account_no": o.refund_account_no,
+            "account_name": o.refund_account_name,
+        }]})
     return rows
 
 

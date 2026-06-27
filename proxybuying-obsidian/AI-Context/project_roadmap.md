@@ -103,3 +103,23 @@
 - [x] **Task 18.** - Bank Detail notes for Carrier should be "(for shipment cost payout disbursement).
 
 - [x] **Task 19.** - Continue correcting test findings. The last one was: Proxy buyers "Actual Purchase" form looks crowded. Can we move the Photo under the Note field input? — DONE: Photo removed from the table's 5th column and placed on its own full-width row directly under the per-product Note field in `templates/trips/_proxy_purchase_body.html`. Deployed to staging for confirmation.
+
+
+### Phase 7: Finalizing Test on Staging and Promotion to Production
+
+- [x] **Task 20** - Admin will make carrier and proxy buyer payouts disbursement and buyer overpaid refund. On this page: https://stg.proxybuying.com/u/dashboard/#pending-disbursements only payouts pending disbursement is available. We need to have also for buyer overpaid refund. — DONE: `#pending-disbursements` now also lists buyer overpaid refunds (orders at PACKAGE_ARRIVED with `refund_due > 0`, not yet `refund_processed`), each with an upload-proof-&-release form like the payout rows. Releasing creates a VERIFIED OUTBOUND REFUND `Payment` carrying the transfer-proof image (no new model field / migration — proof lives on the ledger row), sets `refund_processed=True`, and advances the order to Ready for Pickup via `on_balance_verified` (buyer notified). Mirrors the existing admin `mark_refund_processed` action. Buyer's saved refund bank details shown on the row; flags when not yet provided. Scope: order-level (proxy-buying) refunds only — leg/cargo `TravelerOffer` refunds unchanged. Files: `apps/accounts/views.py` (`_pending_disbursements`), `apps/trips/views.py` (`release_disbursement` `kind=="refund"` branch), `templates/accounts/profile.html`. No migration; template/view only.
+    
+- [ ] **Task 21** - If the test result is good,  we can start syncing the code to production
+      
+- [ ] **Task 22** - Next is to update graphify.
+
+
+### Phase 8: Dead-code & schema cleanup (after prod sync)
+
+Origin: much of the codebase was built to support a one-to-many design (a carrier with many cargo buyers, a buyer with many carriers) that was later abandoned in favour of the current simpler 1:1 model. That leaves dead code and likely-unused DB columns/tables. Do this as its own branch, AFTER Task 21 (prod sync) — not interleaved with Phase 7.
+
+- [ ] **Task 23** - Audit dead code with the codebase-memory MCP (repo indexed: 1431 nodes). Use dead-code / unused-symbol detection + `search_graph`/`trace_path` to produce an evidence-based list of unreferenced views, forms, helpers, template fragments, and unread/unwritten model fields. Separate code-dead (safe to delete behind branch + tests) from data-dead (DB columns/tables needing a migration).
+- [ ] **Task 24** - Remove dead *code* (no schema change) on a dedicated branch; verify tests + Django check, deploy to stg, confirm.
+- [ ] **Task 25** - Remove dead *schema* (unused columns/tables) via Django migration, staged carefully. ⚠️ deploy must be manual (no `seed`) per the deploy caveat; back up the DB first.
+      
+

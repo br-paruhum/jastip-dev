@@ -501,7 +501,7 @@
         <!-- Panel: Pending Disbursement (superuser only) -->
         <div data-panel="pending-disbursements">
           <h2 style="margin-top:0">Pending Disbursement</h2>
-          <p class="muted">Cleared orders with a proxy or carrier payout still to release. Attach the transfer proof to release each one.</p>
+          <p class="muted">Proxy/carrier payouts on cleared orders, plus buyer overpaid refunds awaiting transfer. Attach the transfer proof to release each one.</p>
           {% for row in pending_disbursements %}
           <div class="card mt-2"><div class="card-body">
             <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center">
@@ -517,7 +517,15 @@
               <input type="hidden" name="next" value="{% url 'accounts:profile' %}#pending-disbursements">
               <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
                 <div><span class="badge badge-warning">{{ d.label }}</span> {{ d.recipient }} —
-                  <strong>{{ row.order.currency }} {% if d.amount %}{{ d.amount|floatformat:0|intcomma }}{% else %}—{% endif %}</strong></div>
+                  <strong>{{ row.order.currency }} {% if d.amount %}{{ d.amount|floatformat:0|intcomma }}{% else %}—{% endif %}</strong>
+                  {% if d.kind == "refund" %}
+                    {% if d.account_no %}
+                    <span class="muted" style="display:block;font-size:.85em;margin-top:2px">Refund to: {{ d.account_name }} · {{ d.bank_name }} {{ d.account_no }}</span>
+                    {% else %}
+                    <span class="badge badge-muted" style="display:block;width:fit-content;margin-top:2px">Buyer hasn't provided refund bank details yet</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
                 <div style="display:flex;gap:8px;align-items:center">
                   <input type="file" name="proof" accept="image/png,image/jpeg" required>
                   <button class="btn btn-primary btn-sm" type="submit">Upload &amp; release</button>
