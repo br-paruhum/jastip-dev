@@ -102,4 +102,4 @@
 
 - [x] **Task 18.** - Bank Detail notes for Carrier should be "(for shipment cost payout disbursement).
 
-	
+- [x] **Task 19.** - Continue correcting test findings. The last one was: Proxy buyers "Actual Purchase" form looks crowded. Can we move the Photo under the Note field input? — DONE: Photo removed from the table's 5th column and placed on its own full-width row directly under the per-product Note field in `templates/trips/_proxy_purchase_body.html`. Deployed to staging for confirmation.

@@ -15,7 +15,6 @@
         <td class="num-right"><strong>Est Qty</strong></td>
         <td class="num-right"><strong>Actual<br>Qty</strong></td>
         <td class="num-right"><strong>Actual<br>Unit Cost ({{ package_ready_order.currency }})</strong></td>
-        <td style="text-align:center"><strong>Photo</strong></td>
       </tr>
       {% for f in package_ready_formset %}
       <tr>
@@ -23,9 +22,9 @@
         <td class="num-right">{{ f.instance.quantity }} {{ f.instance.unit }}</td>
         <td class="num-right">{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</td>
         <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
-        <td>{{ f.purchase_photo }}{{ f.purchase_photo.errors }}</td>
       </tr>
-      {% if f.purchase_note %}<tr><td colspan="5" style="border-bottom:0;padding:0 0 8px">{{ f.purchase_note }}</td></tr>{% endif %}
+      {% if f.purchase_note %}<tr><td colspan="4" style="border-bottom:0;padding:0 0 4px">{{ f.purchase_note }}</td></tr>{% endif %}
+      <tr><td colspan="4" style="padding:0 0 10px"><span class="help">Photo</span><br>{{ f.purchase_photo }}{{ f.purchase_photo.errors }}</td></tr>
       {% endfor %}
     </table>
     <div class="form-row mt-2">
