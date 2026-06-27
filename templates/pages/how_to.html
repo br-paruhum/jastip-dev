@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 {% block title %}How It Works — {{ SITE_NAME }}{% endblock %}
-{% block meta_description %}How ProxyBuying works — buyers pick a proxy buyer to source and buy goods abroad or inter-city, carriers bring them home, and payments stay secured until the package is received.{% endblock %}
+{% block meta_description %}How ProxyBuying works — buyers select a proxy buyer to source and buy goods abroad or inter-city, carriers bring them home, and payments stay secured until the package is received.{% endblock %}
 {% block content %}
 <section>
   <div class="container">
     <span class="eyebrow">How-To</span>
-    <h1>How ProxyBuying works</h1>
+    <h1>How It Works</h1>
 
-{# Transaction-flow infographic — three equal lanes, numbered boxes bottom-aligned
-   per row with screenshots above, and full-width section dividers, mirroring
-   How-to_260625.pdf. Scoped under .howto-ig / #hi-lightbox. #}
 <style>
 .howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
 .howto-ig .hi-lead{font-size:clamp(13px,3.6vw,20px);color:var(--slate-400);margin:0 0 22px;max-width:900px}
@@ -19,6 +16,19 @@
   padding:10px;border-radius:10px;color:var(--slate);background:var(--cream);border:1px solid var(--line)}
 .howto-ig .hi-timeline{position:relative}
 .howto-ig .hi-step{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end;padding:14px 0}
+.howto-ig .hi-span{grid-column:2 / 4}
+.howto-ig .hi-span .hi-note,.howto-ig .hi-span .hi-msg{width:100%}
+.howto-ig .hi-empty{min-height:0}
+/* Top-aligned rows: cells share three stacked tracks (image / number / body)
+   via subgrid, so every number badge lines up on one row even when a cell has
+   an image above it — the image just reserves the top track. */
+.howto-ig .hi-step.hi-top{grid-template-rows:auto auto 1fr;align-items:stretch}
+.howto-ig .hi-top .hi-cell{display:grid;grid-template-rows:subgrid;grid-row:1 / span 3;
+  row-gap:8px;justify-items:center;align-content:start}
+.howto-ig .hi-top .hi-cell .hi-thumb{grid-row:1;align-self:end;width:100%}
+.howto-ig .hi-top .hi-cell .hi-num{grid-row:2}
+.howto-ig .hi-top .hi-cell .hi-msg,
+.howto-ig .hi-top .hi-cell .hi-note{grid-row:3;align-self:start}
 .howto-ig .hi-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
 .howto-ig .hi-msg{width:100%;padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:#fff;
   box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:16px;line-height:1.45;color:var(--slate-600);text-align:center}
@@ -46,6 +56,10 @@
 @media(max-width:760px){
   .howto-ig .hi-colhead{display:none}
   .howto-ig .hi-step{grid-template-columns:1fr;gap:10px;padding:12px 0}
+  .howto-ig .hi-step.hi-top{grid-template-rows:none}
+  .howto-ig .hi-top .hi-cell{display:flex;grid-row:auto;justify-items:stretch}
+  .howto-ig .hi-top .hi-cell>*{grid-row:auto;align-self:auto}
+  .howto-ig .hi-empty{display:none}
   .howto-ig .hi-cell{align-items:flex-start}
   .howto-ig .hi-msg{text-align:left}
   .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 2px;
@@ -55,8 +69,7 @@
 </style>
 
 <div class="howto-ig">
-  <p class="hi-lead">The full transaction flow, from picking a proxy buyer to receiving your package and a
-    cleared transaction — assuming all parties are registered and logged in. Click any screenshot to enlarge.</p>
+  <p class="hi-lead">Step-by-step explanation of the transaction flow, from selecting a proxy buyer, up to receiving the package and completing transaction. Click any image to enlarge.</p>
   <div class="hi-colhead">
     <div class="hi-lane">Buyer</div>
     <div class="hi-lane">Proxy Buyer</div>
@@ -74,33 +87,35 @@
 <script>
 (function(){
   var ROWS=[
-    [ {num:'1', a:'buyer', img:'/static/img/howto/buyer-start.webp',
+    {align:'top', c:[
+      {num:'1', a:'buyer', img:'/static/img/howto/buyer-start.webp',
        t:'Select a proxy buyer from the <b>Proxy Buyers List</b>, fill in your product names (up to 10), quantity and deadline, and choose a shipment term — <b>pick up</b> or <b>reship</b>.'},
       {num:'2', a:'proxy',
-       t:'Fill in the <b>estimate cost</b>, <b>estimated total weight (kg)</b> and <b>margin (%)</b>.'} ],
+       t:'Fill in the <b>estimate cost</b>, <b>estimated total weight (kg)</b> and <b>margin (%)</b>.'} ]},
 
     [ {num:'3', a:'system', imgBottom:true, img:'/static/img/howto/carrier-start.webp',
-       note:'“Queuing Cargo” table updated'} ],
-
-    [ {num:'4', a:'carrier',
+       note:'“Queuing Cargo” table updated'},
+      {num:'4', a:'carrier',
        t:'Select from the <b>Queuing Cargo</b> table for the same route, then fill in your <b>offer rate per kg</b> and <b>travel date/time</b>.'} ],
 
-    [ {num:'5', a:'buyer',
+    {align:'top', c:[
+      {num:'5', a:'buyer',
        t:'<b>Accept</b> the carrier’s offer and pay ProxyBuying for the <b>total estimated product cost</b> (including margin) and the <b>total estimated shipment cost</b>.'},
       {num:'6', a:'proxy',
        t:'Start sourcing the products. Discuss any sourcing problem with the buyer via <b>internal chat</b> (shortage, out-of-stock, price increase, substitution), then input the <b>actual cost</b> and <b>total weight</b> and upload <b>product photos</b>. The buyer’s final decision for each product is stated in the chat.'},
       {num:'7', a:'carrier',
-       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.'} ],
+       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.'} ]},
 
     [ {num:'8', a:'carrier',
        t:'Received the package from the proxy buyer.'} ],
 
     {divider:'Travel Date'},
 
-    [ {num:'10', a:'buyer',
+    {align:'top', c:[
+      {num:'10', a:'buyer',
        t:'Pay ProxyBuying for the <b>customs duty</b>, products and shipment cost shortage (actual minus estimate), if any. If you chose <b>reship</b>, disclose your reshipment address via internal chat.'},
       {num:'9', a:'carrier',
-       t:'On arrival, send the <b>customs duty &amp; tax estimate</b> via internal chat. If the buyer chose <b>pick up</b>, disclose your address and the best time to visit.'} ],
+       t:'On arrival, send the <b>customs duty &amp; tax estimate</b> via internal chat. If the buyer chose <b>pick up</b>, disclose your address and the best time to visit.'} ]},
 
     {divider:'Buyer selected: Pick up the package'},
 
@@ -109,25 +124,27 @@
       {num:'11-1', a:'carrier',
        t:'Pay the <b>customs duty</b> and send the receipt via internal chat.'} ],
 
-    [ {num:'13', a:'system',
+    [ {num:'13', a:'system', span:true,
        note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
 
     {divider:'Buyer selected: Reship the package'},
 
-    [ {num:'12-2', a:'buyer',
+    {align:'top', c:[
+      {num:'12-2', a:'buyer',
        t:'Send your <b>bank transfer proof</b> via internal chat.'},
       {num:'11-2', a:'carrier',
-       t:'Pay the <b>customs duty</b> and send the receipt. Based on the buyer’s shipment terms, send the <b>shipment cost estimate</b> and your <b>bank account details</b> via internal chat.'} ],
+       t:'Pay the <b>customs duty</b> and send the receipt. Based on the buyer’s shipment terms, send the <b>shipment cost estimate</b> and your <b>bank account details</b> via internal chat.'} ]},
 
-    [ {num:'14', a:'buyer',
+    {align:'top', c:[
+      {num:'14', a:'buyer',
        t:'Review the package and click <b>Confirm Received</b>.'},
       {num:'13', a:'carrier',
-       t:'Send the package to the buyer.'} ],
+       t:'Send the package to the buyer.'} ]},
 
-    [ {num:'15', a:'system',
+    [ {num:'15', a:'system', span:true,
        note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
 
-    {divider:'Transaction Closed'},
+    {divider:'Transaction Completed'},
   ];
   var LABEL={carrier:'Carrier', proxy:'Proxy Buyer', buyer:'Buyer', system:'ProxyBuying'};
   var COL={buyer:0, proxy:1, carrier:2, system:1};
@@ -146,9 +163,18 @@
   if(!tl) return;
   tl.innerHTML=ROWS.map(function(row){
     if(row.divider){ return '<div class="hi-divider">'+row.divider+'</div>'; }
-    var cells=['','',''];
-    row.forEach(function(s){ cells[COL[s.a]]=cell(s); });
-    return '<div class="hi-step"><div>'+cells[0]+'</div><div>'+cells[1]+'</div><div>'+cells[2]+'</div></div>';
+    // A row is either an array of steps (default bottom-aligned) or an object
+    // {c:[steps], align:'top'} for per-row control. A step with span:true takes
+    // both the Proxy Buyer and Carrier columns.
+    var steps=Array.isArray(row)?row:row.c;
+    var align=(!Array.isArray(row)&&row.align==='top')?' hi-top':'';
+    var cells=['','',''], span=null;
+    steps.forEach(function(s){ if(s.span){span=s;} else {cells[COL[s.a]]=cell(s);} });
+    function slot(h){ return h||'<div class="hi-cell hi-empty"></div>'; }
+    var inner=span
+      ? slot(cells[0])+'<div class="hi-span">'+cell(span)+'</div>'
+      : slot(cells[0])+slot(cells[1])+slot(cells[2]);
+    return '<div class="hi-step'+align+'">'+inner+'</div>';
   }).join('');
   var lb=document.getElementById('hi-lightbox'),
       img=document.getElementById('hi-img'),
