@@ -41,3 +41,12 @@ graphify-out/
 *.swp
 *.bak
 *.bak-*
+
+# --- Obsidian vault (proxybuying-obsidian/) -------------------------------
+# Track ONLY AI-Context/ (roadmap, soul, identity, references, …). Ignore
+# Obsidian config and private user notes. Placed last so it overrides the
+# generic `references/` rule above.
+/proxybuying-obsidian/.obsidian/
+/proxybuying-obsidian/USERS NOTES/
+# AI-Context/references holds source PDFs; override the generic `references/` rule.
+!/proxybuying-obsidian/AI-Context/references/
