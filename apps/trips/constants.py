@@ -94,6 +94,28 @@ CHAT_STATUSES = {
     Status.PACKAGE_ARRIVED,
 }
 
+# --- Task 11: Message-tab visibility per references/how-to/How-to_260625.pdf ---
+# The foldable "Message" tab is locked for everyone (admin excepted) until the
+# buyer's deposit is verified, then rotates through a *pair* of parties as the
+# proxy transaction advances. See BuyRequest.message_tab_visible_to().
+#   note 5  -> Buyer  + Proxy   (deposit paid; proxy starts sourcing)
+#   note 6  -> Proxy  + Carrier (proxy sent actual cost / "Package Ready")
+#   note 8+ -> Carrier + Buyer  (carrier received the package, through close)
+MSG_TAB_BUYER_PROXY = {Status.DEPOSIT_PAID}
+MSG_TAB_PROXY_CARRIER = {Status.ITEMS_PURCHASED}
+MSG_TAB_CARRIER_BUYER = {
+    Status.PACKAGE_RECEIVED, Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
+    Status.RESHIP_REQUESTED, Status.RESHIP_COST_SENT, Status.RESHIPPING,
+    Status.CLEAR, Status.CLOSED,
+}
+# Non-proxy (2-party Buyer+Carrier) orders have no proxy slot to rotate through,
+# so the tab simply opens to both once the order is an active transaction
+# (deposit paid / package handed over) and stays open through close.
+MSG_TAB_TWO_PARTY = (
+    MSG_TAB_BUYER_PROXY | MSG_TAB_PROXY_CARRIER | MSG_TAB_CARRIER_BUYER
+    | {Status.TAKEN, Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED}
+)
+
 # Statuses considered an in-progress (current/open) transaction on the home page.
 ACTIVE_TX_STATUSES = {
     Status.REQUEST_RECEIVED,

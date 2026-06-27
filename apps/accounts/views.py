@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, CHAT_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
+from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
@@ -284,8 +284,7 @@ def profile(request):
                     ),
                     "chat_messages": order.messages.select_related("sender").all(),
                     "message_form": MessageForm(),
-                    "can_chat": (order.is_chat_participant(user) or user.is_staff)
-                                and order.status in CHAT_STATUSES,
+                    "can_chat": order.message_tab_visible_to(user),
                 }
             order = None
         elif order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
@@ -297,7 +296,7 @@ def profile(request):
                 "is_buyer": is_buyer,
                 "chat_messages": order.messages.select_related("sender").all(),
                 "message_form": MessageForm(),
-                "can_chat": (is_traveler or is_buyer or user.is_staff) and order.status in CHAT_STATUSES,
+                "can_chat": order.message_tab_visible_to(user),
             }
         else:
             order = None
@@ -361,7 +360,7 @@ def profile(request):
                 order_ctx = {
                     "chat_messages": _ord.messages.select_related("sender").all(),
                     "message_form": MessageForm(),
-                    "can_chat": _ord.status in CHAT_STATUSES,
+                    "can_chat": _ord.message_tab_visible_to(user),
                 }
 
     # Review panel (?review=<id>#review-order) — traveler sends estimate.

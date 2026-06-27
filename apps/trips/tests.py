@@ -13,7 +13,7 @@ _NO_MANIFEST_STORAGES = {
 }
 
 from apps.trips import workflow
-from apps.trips.constants import Currency, Status
+from apps.trips.constants import Currency, OfferStatus, Status
 from apps.trips.models import BuyRequest, Payment, RequestItem, TravelPlan, Transaction
 
 User = get_user_model()
@@ -341,6 +341,10 @@ class ChatTests(TestCase):
     def test_buyer_message_notifies_traveler(self):
         from django.core import mail
         from apps.trips.models import Message
+        # Message tab only opens once the order is an active transaction
+        # (deposit paid onward) — see BuyRequest.message_tab_visible_to (Task 11).
+        self.req.status = Status.DEPOSIT_PAID
+        self.req.save(update_fields=["status"])
         self.client.force_login(self.buyer)
         resp = self.client.post(
             self.reverse("trips:request_message", args=[self.req.pk]),
@@ -353,10 +357,26 @@ class ChatTests(TestCase):
         self.assertTrue(notified)
 
     def test_detail_page_renders_chat(self):
+        self.req.status = Status.DEPOSIT_PAID
+        self.req.save(update_fields=["status"])
         self.client.force_login(self.buyer)
         resp = self.client.get(self.reverse("trips:request_detail", args=[self.req.pk]))
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Messages")
+
+    def test_chat_locked_before_deposit(self):
+        # At the estimate stage (default REQUEST_RECEIVED) the tab is locked for
+        # everyone and the buyer cannot post (Task 11 / How-to_260625.pdf note 1).
+        from apps.trips.models import Message
+        self.assertFalse(self.req.message_tab_visible_to(self.buyer))
+        self.client.force_login(self.buyer)
+        resp = self.client.get(self.reverse("trips:request_detail", args=[self.req.pk]))
+        self.assertNotContains(resp, "Messages")
+        self.client.post(
+            self.reverse("trips:request_message", args=[self.req.pk]),
+            {"body": "too early"},
+        )
+        self.assertEqual(Message.objects.filter(request=self.req).count(), 0)
 
     def test_outsider_cannot_post(self):
         stranger = make_user("stranger@x.com")
@@ -367,6 +387,85 @@ class ChatTests(TestCase):
         )
         from apps.trips.models import Message
         self.assertEqual(Message.objects.filter(request=self.req).count(), 0)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class MessageTabVisibilityTests(TestCase):
+    """Task 11 (How-to_260625.pdf): the Message tab rotates through a pair of
+    parties as a proxy (3-party) order advances. Buyer↔Proxy → Proxy↔Carrier →
+    Carrier↔Buyer, each handoff revoking the party that drops out. Admin always
+    sees it; outsiders never do."""
+
+    def setUp(self):
+        from apps.trips.models import ProxyBuyer, TravelerOffer
+        self.buyer = make_user("mtb@x.com")
+        self.proxy_user = make_user("mtp@x.com")
+        self.carrier = make_user("mtc@x.com")
+        self.outsider = make_user("mto@x.com")
+        self.admin = make_user("mta@x.com")
+        self.admin.is_staff = True
+        self.admin.save(update_fields=["is_staff"])
+        proxy = ProxyBuyer.objects.create(
+            name="Bangkok Proxy", country="Thailand", email="p@x.com",
+            user=self.proxy_user,
+        )
+        # Buyer-first proxy order (plan=None) with one confirmed carrier leg, so
+        # traveler_user resolves to the carrier and all three parties are present.
+        self.order = BuyRequest.objects.create(buyer=self.buyer, proxy_buyer=proxy)
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+
+    def _visible(self, status):
+        self.order.status = status
+        return {
+            "buyer": self.order.message_tab_visible_to(self.buyer),
+            "proxy": self.order.message_tab_visible_to(self.proxy_user),
+            "carrier": self.order.message_tab_visible_to(self.carrier),
+        }
+
+    def test_locked_before_deposit(self):
+        self.assertEqual(
+            self._visible(Status.ACCEPTED),
+            {"buyer": False, "proxy": False, "carrier": False},
+        )
+
+    def test_deposit_paid_pairs_buyer_and_proxy(self):
+        self.assertEqual(
+            self._visible(Status.DEPOSIT_PAID),
+            {"buyer": True, "proxy": True, "carrier": False},
+        )
+
+    def test_items_purchased_pairs_proxy_and_carrier(self):
+        self.assertEqual(
+            self._visible(Status.ITEMS_PURCHASED),
+            {"buyer": False, "proxy": True, "carrier": True},
+        )
+
+    def test_package_received_pairs_carrier_and_buyer(self):
+        self.assertEqual(
+            self._visible(Status.PACKAGE_RECEIVED),
+            {"buyer": True, "proxy": False, "carrier": True},
+        )
+
+    def test_carrier_buyer_pair_holds_through_close(self):
+        for status in (Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
+                       Status.RESHIPPING, Status.CLEAR, Status.CLOSED):
+            self.assertEqual(
+                self._visible(status),
+                {"buyer": True, "proxy": False, "carrier": True},
+                msg=f"unexpected visibility at {status}",
+            )
+
+    def test_admin_always_sees_outsider_never(self):
+        self.order.status = Status.DEPOSIT_PAID
+        self.assertTrue(self.order.message_tab_visible_to(self.admin))
+        self.assertFalse(self.order.message_tab_visible_to(self.outsider))
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)

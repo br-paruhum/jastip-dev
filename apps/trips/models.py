@@ -13,6 +13,10 @@ from django.utils.text import slugify
 from .constants import (
     ACTIVE_TX_STATUSES,
     COUNTRY_CHOICES,
+    MSG_TAB_BUYER_PROXY,
+    MSG_TAB_CARRIER_BUYER,
+    MSG_TAB_PROXY_CARRIER,
+    MSG_TAB_TWO_PARTY,
     OPEN_ORDER_STATUSES,
     OPEN_PLAN_STATUSES,
     STATUS_TONE,
@@ -479,10 +483,43 @@ class BuyRequest(ListingTimingMixin, models.Model):
         return seen
 
     def is_chat_participant(self, user) -> bool:
-        """True if `user` may read/post in this order's message thread."""
+        """True if `user` is one of this order's parties (buyer/proxy/carrier).
+        Membership only — whether the Message tab is actually exposed at the
+        current transaction stage is decided by `message_tab_visible_to`."""
         if not user or not user.is_authenticated:
             return False
         return any(user.id == p.id for p in self.chat_participants)
+
+    def message_tab_visible_to(self, user) -> bool:
+        """Task 11 (references/how-to/How-to_260625.pdf): whether the foldable
+        Message tab is exposed to `user` for this order at its current status.
+
+        Single source of truth for both the template fold and the server-side
+        post guard. Admin always sees it; a non-participant never does. For a
+        proxy (3-party) order the tab is locked until the deposit is verified,
+        then rotates Buyer↔Proxy → Proxy↔Carrier → Carrier↔Buyer as the deal
+        advances (each handoff also revokes the party who drops out). A
+        non-proxy (2-party) order opens Buyer↔Carrier once it is active."""
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_staff:
+            return True
+        if not self.is_chat_participant(user):
+            return False
+
+        is_buyer = self.buyer_id == user.id
+        is_proxy = bool(self.proxy_buyer_id) and self.proxy_buyer.user_id == user.id
+        is_carrier = not is_buyer and not is_proxy  # the only other participant
+
+        if self.proxy_buyer_id:
+            if self.status in MSG_TAB_BUYER_PROXY:
+                return is_buyer or is_proxy
+            if self.status in MSG_TAB_PROXY_CARRIER:
+                return is_proxy or is_carrier
+            if self.status in MSG_TAB_CARRIER_BUYER:
+                return is_carrier or is_buyer
+            return False  # note (1): locked for everyone before deposit
+        return self.status in MSG_TAB_TWO_PARTY and (is_buyer or is_carrier)
 
     @property
     def effective_cost_per_kg(self) -> Decimal:

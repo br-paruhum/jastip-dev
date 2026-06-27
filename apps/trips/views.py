@@ -14,7 +14,6 @@ from . import workflow
 from . import flow_types
 from apps.notifications.services import send_email, send_whatsapp
 from .constants import (
-    CHAT_STATUSES,
     FulfillmentMethod,
     LegStatus,
     OPEN_ORDER_STATUSES,
@@ -1204,7 +1203,7 @@ def request_detail(request, pk):
             "is_buyer": is_buyer,
             "chat_messages": chat_messages,
             "message_form": MessageForm(),
-            "can_chat": (is_traveler or is_buyer or request.user.is_staff) and req.status in CHAT_STATUSES,
+            "can_chat": req.message_tab_visible_to(request.user),
             "refund_form": RefundBankForm(instance=req),
         },
     )
@@ -1246,7 +1245,7 @@ def request_message(request, pk):
         back = _traveler_invoice_redirect(req)
     else:
         back = redirect(req.get_absolute_url())
-    if req.status not in CHAT_STATUSES and not request.user.is_staff:
+    if not req.message_tab_visible_to(request.user):
         messages.error(request, "Chat is not available at this stage.")
         return back
     form = MessageForm(request.POST, request.FILES)
