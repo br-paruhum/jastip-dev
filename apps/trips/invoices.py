@@ -8,7 +8,7 @@ from xml.sax.saxutils import escape
 
 from django.conf import settings
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -40,14 +40,6 @@ def _acct(value) -> str:
     return f"{v:,.2f}"
 
 
-def _amt(value) -> str:
-    """Match the customs HTML (intcomma): whole numbers show no decimals, else 2dp."""
-    d = Decimal(value or 0)
-    if d == d.to_integral_value():
-        return f"{d:,.0f}"
-    return f"{d:,.2f}"
-
-
 def _party_block(name, *lines) -> str:
     """Name + address lines as a single <br/>-joined, escaped paragraph string."""
     parts = [escape(name or "Not yet assigned")]
@@ -56,132 +48,93 @@ def _party_block(name, *lines) -> str:
 
 
 def render_customs_invoice_pdf(req) -> bytes:
-    """Customs (commercial) invoice PDF for the goods being carried — the single
-    carrier / non-leg case used by the proxy Products flow. Products use actual
-    purchase values; cargo uses the buyer's declared values. Mirrors
-    customs_invoice_print.html so the carrier can present it at customs."""
+    """Customs (commercial) invoice PDF, matching customs_invoice_print.html and
+    NewCustomsInvoiceFormat.pdf. Values are in IDR and INCLUDE the proxy margin;
+    Country of Origin is the order's sourcing country; shipping is the carrier's
+    fee; packages fixed at 1. All figures come from BuyRequest.customs_invoice()
+    so the PDF and the printable HTML stay identical."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,
         leftMargin=18 * mm, rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
-        title=f"Customs Invoice {req.reference}",
+        title=f"Invoice {req.reference}",
     )
     styles = getSampleStyleSheet()
-    h = ParagraphStyle("ch", parent=styles["Title"], textColor=CLAY_DARK, fontSize=20, spaceAfter=2)
-    sub = ParagraphStyle("csub", parent=styles["Normal"], textColor=SLATE, fontSize=9)
-    label = ParagraphStyle("clabel", parent=styles["Normal"], textColor=SLATE, fontSize=9)
-    small = ParagraphStyle("csmall", parent=styles["Normal"], textColor=SLATE, fontSize=8.5, leading=12)
-    item_cell = ParagraphStyle("citem", parent=styles["Normal"], fontSize=9, leading=11, textColor=INK)
+    title = ParagraphStyle("cititle", parent=styles["Title"], textColor=INK, fontSize=20,
+                           alignment=TA_CENTER, spaceAfter=18, leading=24)
+    label = ParagraphStyle("clabel", parent=styles["Normal"], textColor=INK, fontSize=10, leading=15)
+    small = ParagraphStyle("csmall", parent=styles["Normal"], textColor=INK, fontSize=9.5, leading=14)
+    item_cell = ParagraphStyle("citem", parent=styles["Normal"], fontSize=9.5, leading=12, textColor=INK)
 
-    cur = req.currency
-    carrier = req.traveler_user
-    story = []
+    def idr0(value) -> str:
+        return f"{Decimal(value or 0):,.0f}"
 
-    story.append(Paragraph("Commercial Invoice", h))
-    story.append(Paragraph("Customs use only", sub))
-    story.append(Spacer(1, 10))
+    ci = req.customs_invoice()
+    story = [Paragraph("Invoice", title)]
 
-    # Travel date — plan-first, buyer-first carry offer, or a single leg.
-    plan = req.plan
-    if plan:
-        travel_date = plan.travel_date
-    elif getattr(req, "carry_offer", None):
-        travel_date = req.carry_offer.travel_date
-    else:
-        legs = list(req.confirmed_legs)
-        travel_date = legs[0].travel_date if len(legs) == 1 else None
-    td_str = travel_date.strftime("%d-%b-%Y") if travel_date else "—"
-
-    carried_by = _party_block(
-        carrier.full_name if carrier else None,
-        getattr(carrier, "traveler_address", "") if carrier else "",
-        getattr(carrier, "traveler_destination_city", "") if carrier else "",
-    )
-    purchased_for = _party_block(
-        req.buyer.full_name,
-        req.buyer.buyer_invoice_address,
-        req.buyer.buyer_destination_city,
+    # Meta: DATE / PURCHASE ORDER, then SHIPPER / RECEIVER blocks.
+    date_str = ci["date"].strftime("%d-%b-%Y") if ci["date"] else "—"
+    proxy = req.proxy_buyer
+    proxy_loc = ", ".join(
+        p for p in [getattr(proxy, "city", ""), getattr(proxy, "country", "")] if p
+    ) if proxy else ""
+    shipper = _party_block("ProxyBuying.com", proxy_loc)
+    receiver = _party_block(
+        req.buyer.full_name, req.buyer.buyer_invoice_address, req.buyer.buyer_destination_city
     )
     meta = Table([
-        [Paragraph("<b>Carried by</b>", label), Paragraph(carried_by, sub),
-         Paragraph("<b>Purchased for</b>", label), Paragraph(purchased_for, sub)],
-        [Paragraph("<b>Route</b>", label), Paragraph(escape(req.route), sub),
-         Paragraph("<b>Travel date</b>", label), Paragraph(td_str, sub)],
-        [Paragraph("<b>Reference</b>", label), Paragraph(req.reference, sub),
-         Paragraph("<b>Currency</b>", label), Paragraph(cur, sub)],
-    ], colWidths=[24 * mm, 64 * mm, 26 * mm, 60 * mm])
+        [Paragraph(f"<b>DATE:</b> {date_str}", label),
+         Paragraph(f"<b>PURCHASE ORDER:</b> {escape(ci['reference'])}", label)],
+        [Paragraph(f"<b>SHIPPER:</b><br/>{shipper}", small),
+         Paragraph(f"<b>RECEIVER:</b><br/>{receiver}", small)],
+    ], colWidths=[87 * mm, 87 * mm])
     meta.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
     ]))
     story.append(meta)
-    story.append(Spacer(1, 12))
+    story.append(Spacer(1, 16))
 
-    # Items — products use actuals; cargo uses declared (estimated) values.
-    show_idr = (not req.is_cargo) and bool(req.items_actual_total_idr)
-    header = ["Product Name", "Qty", f"Unit Price ({cur})", f"Total ({cur})"]
-    if show_idr:
-        header.append("Total (IDR equiv.)")
-    data = [header]
-    if req.is_cargo:
-        for item in req.items.all():
-            data.append([Paragraph(escape(item.name), item_cell), str(item.quantity),
-                         _amt(item.estimated_unit_cost), _amt(item.estimated_line_total)])
-        total_val = _amt(req.items_estimated_total)
-    else:
-        for item in req.items.all():
-            if not (item.actual_quantity and item.actual_quantity > 0):
-                continue
-            row = [Paragraph(escape(item.name), item_cell), str(item.actual_quantity),
-                   _amt(item.actual_unit_cost), _amt(item.actual_line_total)]
-            if show_idr:
-                row.append(_amt(item.actual_line_total_idr))
-            data.append(row)
-        total_val = _amt(req.items_actual_total)
-    total_row_cells = ["Total", "", "", total_val]
-    if show_idr:
-        total_row_cells.append(_amt(req.items_actual_total_idr))
-    data.append(total_row_cells)
-    total_row = len(data) - 1
+    # Items + totals — Qty / Description / Country of Origin / Unit / Total (IDR).
+    data = [["Qty", "Description of Goods", "Country of Origin", "Unit Value (IDR)", "Total Value (IDR)"]]
+    for r in ci["rows"]:
+        data.append([str(r.quantity), Paragraph(escape(r.name), item_cell), escape(r.origin or ""),
+                     idr0(r.unit_value_idr), idr0(r.total_value_idr)])
+    sub_row = len(data)
+    data.append(["", "Sub-Total", "", "", idr0(ci["subtotal_idr"])])
+    data.append(["", "Shipping Charges", "", "", idr0(ci["shipping_idr"])])
+    total_row = len(data)
+    data.append(["", "Total Value", "", "", idr0(ci["total_idr"])])
+    data.append(["", "", "", "", ""])
+    data.append(["", f"Number of Package: {ci['num_packages']}", "", "", ""])
 
-    if show_idr:
-        col_widths = [58 * mm, 16 * mm, 32 * mm, 34 * mm, 34 * mm]
-    else:
-        col_widths = [74 * mm, 20 * mm, 40 * mm, 40 * mm]
-    items_tbl = Table(data, colWidths=col_widths)
+    peach = colors.HexColor("#F5CBA7")
+    peach_line = colors.HexColor("#D9A47F")
+    items_tbl = Table(data, colWidths=[14 * mm, 66 * mm, 30 * mm, 32 * mm, 32 * mm])
     items_tbl.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), CLAY),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9.5),
+        ("ALIGN", (0, 0), (0, -1), "RIGHT"),    # Qty
+        ("ALIGN", (3, 0), (-1, -1), "RIGHT"),   # value columns
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, total_row - 1), [colors.white, CREAM]),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.4, LINE),
-        ("SPAN", (0, total_row), (2, total_row)),
-        ("FONTNAME", (0, total_row), (-1, total_row), "Helvetica-Bold"),
-        ("LINEABOVE", (0, total_row), (-1, total_row), 0.8, INK),
-        ("BACKGROUND", (0, total_row), (-1, total_row), CREAM),
-        ("TEXTCOLOR", (0, total_row), (-1, total_row), CLAY_DARK),
-        ("ALIGN", (0, total_row), (0, total_row), "LEFT"),
+        ("GRID", (0, 0), (-1, -1), 0.4, LINE),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.6, peach_line),
+        ("FONTNAME", (1, sub_row), (1, sub_row), "Helvetica-Bold"),
+        ("FONTNAME", (4, sub_row), (4, sub_row), "Helvetica-Bold"),
+        ("FONTNAME", (1, total_row), (-1, total_row), "Helvetica-Bold"),
+        ("LINEABOVE", (0, total_row), (-1, total_row), 1.0, INK),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
     ]))
     story.append(items_tbl)
-    story.append(Spacer(1, 12))
-
-    if req.is_cargo:
-        note = (f"All values are buyer-declared values in {cur} for the goods carried. This invoice is "
-                "prepared for customs declaration purposes only. Goods are carried personally by the carrier "
-                "on behalf of the buyer named above.")
-    else:
-        note = (f"All prices are actual purchase prices in {cur}. This invoice is prepared for customs "
-                "declaration purposes only. Goods are carried personally by the carrier on behalf of the "
-                "buyer named above.")
-    story.append(Paragraph(note, small))
+    story.append(Spacer(1, 16))
+    story.append(Paragraph(
+        "This invoice is prepared for customs declaration purposes. Goods are carried "
+        "personally by the traveler on behalf of the buyer named above.", small))
 
     doc.build(story)
     return buf.getvalue()

@@ -3,25 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Customs Invoice — {{ req.reference }}</title>
+  <title>Invoice — {{ req.reference }}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Montserrat',Arial,sans-serif;color:#1a1a18;background:#fff;padding:28px}
-    .page{max-width:700px;margin:0 auto}
+    .page{max-width:720px;margin:0 auto}
     .no-print{margin-bottom:20px;display:flex;gap:12px;align-items:center}
     .btn-print{background:#cc785c;color:#fff;border:0;padding:9px 22px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;letter-spacing:.02em}
-    .btn-back{color:#6b6660;font-size:14px;text-decoration:none}
-    .inv-title{font-size:18px;font-weight:700;text-align:center;letter-spacing:.06em;text-transform:uppercase;
-      border:2px solid #1a1a18;border-radius:8px;padding:12px;margin-bottom:20px}
-    .inv-meta{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:20px;font-size:14px}
-    .inv-meta-label{font-weight:700;color:#6b6660;font-size:12px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-    .inv-meta-val{white-space:pre-wrap;line-height:1.45}
+    .inv-title{font-size:20px;font-weight:700;text-align:center;letter-spacing:.08em;text-transform:uppercase;margin-bottom:22px}
+    .inv-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;margin-bottom:22px;font-size:14px;line-height:1.5}
+    .inv-meta .label{font-weight:700}
+    .inv-meta .party{margin-top:14px}
     table{width:100%;border-collapse:collapse;font-size:14px}
-    th{background:#f5f3ee;text-align:left;padding:9px 12px;border:1px solid #ccc;font-weight:600}
+    th{background:#f5cba7;text-align:left;padding:9px 12px;border:1px solid #d9a47f;font-weight:700}
     th.num,td.num{text-align:right}
     td{padding:8px 12px;border:1px solid #ddd}
-    tr.total td{font-weight:700;background:#f5f3ee}
-    .footer-note{font-size:12px;color:#6b6660;margin-top:16px;border-top:1px solid #ddd;padding-top:12px;line-height:1.6}
+    tr.sub td,tr.total td{font-weight:700}
+    tr.total td{border-top:2px solid #1a1a18}
+    .footer-note{font-size:13px;margin-top:18px;line-height:1.6;max-width:640px}
     @media print{
       .no-print{display:none!important}
       body{padding:12px}
@@ -35,106 +34,71 @@
     <button class="btn-print" onclick="window.print()">Print / Save as PDF</button>
   </div>
 
-  <div class="inv-title">Commercial Invoice — Customs Use Only</div>
+  <h1 class="inv-title">Invoice</h1>
 
+  {% with ci=req.customs_invoice %}
   <div class="inv-meta">
     <div>
-      <div class="inv-meta-label">Carried by</div>
-      {% if leg %}
-      <div class="inv-meta-val">{{ leg.traveler.full_name }} · {{ leg.carried_weight_kg|floatformat:1 }} kg{% if leg.traveler.traveler_address %}
-{{ leg.traveler.traveler_address }}{% endif %}{% if leg.traveler.traveler_destination_city %}
-{{ leg.traveler.traveler_destination_city }}{% endif %}</div>
-      {% else %}
-      <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}{% if req.traveler_user.traveler_address %}
-{{ req.traveler_user.traveler_address }}{% endif %}{% if req.traveler_user.traveler_destination_city %}
-{{ req.traveler_user.traveler_destination_city }}{% endif %}</div>
-      {% endif %}
+      <div><span class="label">DATE:</span> {% if ci.date %}{{ ci.date|date:"d-M-Y" }}{% else %}&mdash;{% endif %}</div>
+      <div class="party">
+        <span class="label">SHIPPER:</span><br>
+        ProxyBuying.com{% if req.proxy_buyer.city or req.proxy_buyer.country %}<br>
+        {{ req.proxy_buyer.city }}{% if req.proxy_buyer.city and req.proxy_buyer.country %}, {% endif %}{{ req.proxy_buyer.country }}{% endif %}
+      </div>
     </div>
     <div>
-      <div class="inv-meta-label">Purchased for</div>
-      <div class="inv-meta-val">{{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}
-{{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}
-{{ req.buyer.buyer_destination_city }}{% endif %}</div>
-    </div>
-    <div>
-      <div class="inv-meta-label">Route</div>
-      <div class="inv-meta-val">{{ req.route }}</div>
-    </div>
-    <div>
-      <div class="inv-meta-label">Travel Date</div>
-      <div class="inv-meta-val">{% if leg %}{{ leg.travel_date|date:"d-M-Y" }}{% elif req.plan %}{{ req.plan.travel_date|date:"d-M-Y" }}{% elif req.carry_offer %}{{ req.carry_offer.travel_date|date:"d-M-Y" }}{% elif req.confirmed_legs|length == 1 %}{{ req.confirmed_legs.0.travel_date|date:"d-M-Y" }}{% else %}—{% endif %}</div>
-      <div class="inv-meta-label" style="margin-top:10px">Reference</div>
-      <div class="inv-meta-val">{{ req.reference }}</div>
+      <div><span class="label">PURCHASE ORDER:</span> {{ ci.reference }}</div>
+      <div class="party">
+        <span class="label">RECEIVER:</span><br>
+        {{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}<br>
+        {{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}<br>
+        {{ req.buyer.buyer_destination_city }}{% endif %}
+      </div>
     </div>
   </div>
 
   <table>
     <thead>
       <tr>
-        <th>Product Name</th>
         <th class="num">Qty</th>
-        <th class="num">Unit Price ({{ req.currency }})</th>
-        <th class="num">Total ({{ req.currency }})</th>
-        {% if not req.is_cargo and req.items_actual_total_idr %}<th class="num">Total (IDR equiv.)</th>{% endif %}
+        <th>Description of Goods</th>
+        <th>Country of Origin</th>
+        <th class="num">Unit Value (IDR)</th>
+        <th class="num">Total Value (IDR)</th>
       </tr>
     </thead>
     <tbody>
-      {% if leg %}
-      {% comment %}Per-leg: only the goods this carrier carries.{% endcomment %}
-      {% for a in leg.customs_allocations %}
+      {% for r in ci.rows %}
       <tr>
-        <td>{{ a.item.name }}</td>
-        <td class="num">{{ a.quantity }}</td>
-        <td class="num">{{ a.unit_cost|intcomma }}</td>
-        <td class="num">{{ a.line_total|intcomma }}</td>
+        <td class="num">{{ r.quantity }}</td>
+        <td>{{ r.name }}</td>
+        <td>{{ r.origin }}</td>
+        <td class="num">{{ r.unit_value_idr|floatformat:0|intcomma }}</td>
+        <td class="num">{{ r.total_value_idr|floatformat:0|intcomma }}</td>
       </tr>
       {% endfor %}
-      <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">{{ leg.customs_total|intcomma }}</td>
+      <tr class="sub">
+        <td></td><td>Sub-Total</td><td></td><td></td>
+        <td class="num">{{ ci.subtotal_idr|floatformat:0|intcomma }}</td>
       </tr>
-      {% else %}
-      {% for item in req.items.all %}
-      {% if req.is_cargo %}
-      {% comment %}Cargo has no purchase step — use the buyer's declared values.{% endcomment %}
       <tr>
-        <td>{{ item.name }}</td>
-        <td class="num">{{ item.quantity }}</td>
-        <td class="num">{{ item.estimated_unit_cost|intcomma }}</td>
-        <td class="num">{{ item.estimated_line_total|intcomma }}</td>
+        <td></td><td>Shipping Charges</td><td></td><td></td>
+        <td class="num">{{ ci.shipping_idr|floatformat:0|intcomma }}</td>
       </tr>
-      {% elif item.actual_quantity > 0 %}
-      <tr>
-        <td>{{ item.name }}</td>
-        <td class="num">{{ item.actual_quantity }}</td>
-        <td class="num">{{ item.actual_unit_cost|intcomma }}</td>
-        <td class="num">{{ item.actual_line_total|intcomma }}</td>
-        {% if req.items_actual_total_idr %}<td class="num">{{ item.actual_line_total_idr|floatformat:0|intcomma }}</td>{% endif %}
-      </tr>
-      {% endif %}
-      {% endfor %}
       <tr class="total">
-        <td colspan="3">Total</td>
-        <td class="num">{% if req.is_cargo %}{{ req.items_estimated_total|intcomma }}{% else %}{{ req.items_actual_total|intcomma }}{% endif %}</td>
-        {% if not req.is_cargo and req.items_actual_total_idr %}<td class="num">{{ req.items_actual_total_idr|floatformat:0|intcomma }}</td>{% endif %}
+        <td></td><td>Total Value</td><td></td><td></td>
+        <td class="num">{{ ci.total_idr|floatformat:0|intcomma }}</td>
       </tr>
-      {% endif %}
+      <tr><td colspan="5">&nbsp;</td></tr>
+      <tr>
+        <td></td><td>Number of Package: {{ ci.num_packages }}</td><td></td><td></td><td></td>
+      </tr>
     </tbody>
   </table>
 
-  <div class="footer-note">
-    {% if leg %}
-    All values are buyer-declared values in {{ req.currency }} for the portion of goods carried by this carrier.
-    The order is split across several carriers travelling separately; this invoice covers only this carrier's share.
-    Prepared for customs declaration purposes only, on behalf of the buyer named above.
-    {% elif req.is_cargo %}
-    All values are buyer-declared values in {{ req.currency }} for the goods carried. This invoice is prepared
-    for customs declaration purposes only. Goods are carried personally by the carrier on behalf of the buyer named above.
-    {% else %}
-    All prices are actual purchase prices in {{ req.currency }}. This invoice is prepared for customs
-    declaration purposes only. Goods are carried personally by the carrier on behalf of the buyer named above.
-    {% endif %}
-  </div>
+  <p class="footer-note">This invoice is prepared for customs declaration purposes. Goods are
+    carried personally by the traveler on behalf of the buyer named above.</p>
+  {% endwith %}
 
 </div>
 </body>

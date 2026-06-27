@@ -469,6 +469,74 @@ class MessageTabVisibilityTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class CustomsInvoiceTests(TestCase):
+    """Task 12: the customs invoice matches NewCustomsInvoiceFormat.pdf — IDR
+    values that include the proxy margin, Country of Origin = the order's origin
+    country, a Shipping Charges line, and a fixed package count of 1."""
+
+    def setUp(self):
+        from django.utils import timezone
+        from apps.trips.models import ProxyBuyer, RequestItem, TravelerOffer
+        self.buyer = make_user("cib@x.com")
+        self.proxy_user = make_user("cip@x.com")
+        self.carrier = make_user("cic@x.com")
+        self.buyer.buyer_invoice_address = "Jl. Sudirman No. 8"
+        self.buyer.buyer_destination_city = "Jakarta"
+        self.buyer.save(update_fields=["buyer_invoice_address", "buyer_destination_city"])
+        proxy = ProxyBuyer.objects.create(
+            name="Tokyo Proxy", country="Japan", city="Tokyo", email="p@x.com",
+            user=self.proxy_user,
+        )
+        # All-IDR order avoids needing an FX rate; margin 10%, weight 3 kg.
+        self.order = BuyRequest.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, settlement_currency="IDR",
+            proxy_margin_percent=Decimal("10"), status=Status.ITEMS_PURCHASED,
+            actual_weight_kg=Decimal("3"),
+        )
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("500"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("3"),
+        )
+        RequestItem.objects.create(
+            request=self.order, name="Sambal Ibu Rudy", quantity=2,
+            actual_quantity=2, actual_unit_cost=Decimal("1000"),
+            purchased_at=timezone.now(),
+        )
+
+    def test_values_include_margin_and_shipping(self):
+        ci = self.order.customs_invoice()
+        self.assertEqual(len(ci["rows"]), 1)
+        row = ci["rows"][0]
+        self.assertEqual(row.origin, "Japan")
+        self.assertEqual(row.unit_value_idr, Decimal("1100.00"))    # 1000 + 10% margin
+        self.assertEqual(row.total_value_idr, Decimal("2200.00"))   # × qty 2
+        self.assertEqual(ci["subtotal_idr"], Decimal("2200.00"))
+        self.assertEqual(ci["shipping_idr"], Decimal("1500.00"))    # 3 kg × 500
+        self.assertEqual(ci["total_idr"], Decimal("3700.00"))
+        self.assertEqual(ci["num_packages"], 1)
+        self.assertIsNotNone(ci["date"])
+
+    def test_pdf_renders(self):
+        from apps.trips.invoices import render_customs_invoice_pdf
+        pdf = render_customs_invoice_pdf(self.order)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertGreater(len(pdf), 1000)
+
+    def test_html_view_has_new_format(self):
+        from django.urls import reverse
+        self.client.force_login(self.carrier)
+        resp = self.client.get(reverse("trips:request_customs_invoice", args=[self.order.pk]))
+        self.assertEqual(resp.status_code, 200)
+        for needle in ("Country of Origin", "Sambal Ibu Rudy", "Number of Package",
+                       "Shipping Charges", "ProxyBuying.com", "Japan"):
+            self.assertContains(resp, needle)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class ReviewDraftTests(TestCase):
     def setUp(self):
         from django.urls import reverse

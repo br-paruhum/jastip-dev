@@ -821,6 +821,62 @@ class BuyRequest(ListingTimingMixin, models.Model):
     def unpaid_amount_idr(self) -> "Decimal | None":
         return self._idr_equivalent(self.unpaid_amount)
 
+    # --- Task 12: Customs (commercial) invoice, per NewCustomsInvoiceFormat.pdf ---
+    def customs_amount_idr(self, amount) -> Decimal:
+        """An amount expressed in IDR for the customs invoice: the figure itself
+        when the order currency is already IDR, otherwise converted at the BCA
+        sell rate (0 when no active rate exists). Unlike `_idr_equivalent`, this
+        never returns None — the customs invoice always shows IDR figures."""
+        amount = Decimal(amount or 0)
+        if self.currency == Currency.IDR:
+            return amount.quantize(TWO_PLACES)
+        return self._idr_equivalent(amount) or Decimal("0")
+
+    @property
+    def customs_origin_country(self) -> str:
+        """Country of Origin column: the order's sourcing country (the proxy
+        buyer's country). All orders are proxy orders."""
+        if self.proxy_buyer_id and self.proxy_buyer.country:
+            return self.proxy_buyer.country
+        return ""
+
+    @property
+    def customs_invoice_date(self):
+        """The proxy's "Package Ready" date — when purchases were recorded
+        (latest item `purchased_at`). None until the proxy finalises actuals."""
+        stamps = [i.purchased_at for i in self.items.all() if i.purchased_at]
+        return max(stamps) if stamps else None
+
+    def customs_invoice(self) -> dict:
+        """Everything the customs invoice renders, computed once so the print
+        template and the PDF stay identical. Unit/Total values are in IDR and
+        INCLUDE the proxy margin (NewCustomsInvoiceFormat note 5). Shipping is
+        the carrier's fee; the number of packages is fixed at 1."""
+        mult = Decimal("1") + (self.margin_percent or Decimal("0")) / Decimal("100")
+        origin = self.customs_origin_country
+        rows, subtotal = [], Decimal("0")
+        for item in self.items.all():
+            if not (item.actual_quantity and item.actual_quantity > 0):
+                continue
+            unit_idr = self.customs_amount_idr(item.actual_unit_cost * mult)
+            total_idr = self.customs_amount_idr(item.actual_line_total * mult)
+            subtotal += total_idr
+            rows.append(SimpleNamespace(
+                quantity=item.actual_quantity, name=item.name, origin=origin,
+                unit_value_idr=unit_idr, total_value_idr=total_idr,
+            ))
+        shipping = self.customs_amount_idr(self.shipment_cost)
+        return {
+            "date": self.customs_invoice_date,
+            "reference": self.reference,
+            "origin_country": origin,
+            "rows": rows,
+            "subtotal_idr": subtotal,
+            "shipping_idr": shipping,
+            "total_idr": subtotal + shipping,
+            "num_packages": 1,
+        }
+
     def _amount_in(self, amount: Decimal, target: str) -> "Decimal | None":
         """Convert an amount from this order's (origin) currency to `target`,
         cross-rated through IDR via the BCA sell rate (sell_rate = IDR per 1
