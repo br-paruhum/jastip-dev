@@ -369,6 +369,12 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        # Display-only relabel: the model is the full Order (items, payments,
+        # payouts, refunds, lifecycle), not just a "buy request". Renaming the
+        # admin label avoids the confusing legacy term without a model/table
+        # rename. Mirrors TravelerOffer -> "Carrier offer".
+        verbose_name = "Order"
+        verbose_name_plural = "Orders"
 
     def __str__(self):
         return f"{self.reference} ({self.get_status_display()})"
