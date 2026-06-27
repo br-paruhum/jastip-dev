@@ -18,7 +18,7 @@
             <!-- Row 1: verified badge + message -->
             <p style="text-align: center;">
               {% if user.profile_complete %}<span class="badge badge-success">Verified</span>{% else %}<span class="badge badge-muted">Unverified</span>{% endif %}
-              {% if role == "traveler" %}- You are a Carrier{% else %}You are a Proxy Buyer{% endif %}
+              {% if role == "traveler" %}- You are a Carrier{% elif user.is_proxy_buyer %}You are a Proxy Buyer{% else %}You are a Buyer{% endif %}
             </p>
 
             <form method="post" action="{% url 'accounts:profile_update' %}">

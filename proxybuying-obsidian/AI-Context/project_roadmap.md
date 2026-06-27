@@ -82,12 +82,24 @@
   * *Target:* Chat/Message tab logic controllers.
   * *Reference Document:* `/AI-Context/references/How-to_260625.pdf`
   * *Requirement:* Read the instructions at the bottom of the referenced PDF file. Programmatically map the criteria defining exactly when the "Message" tab should be exposed (opened) or locked (closed) to the user based on the current transaction flow state.
-- [ ] **Task 12: Customs Invoice Template Restructuring**
+- [x] **Task 12: Customs Invoice Template Restructuring**
   * *Target:* PDF/HTML generation views responsible for Customs Invoices.
   * *Reference Document:* `/AI-Context/references/NewCustomsInvoiceFormat.pdf/`
   * *Requirement:* Revamp the structural output, columns, layout, and styling parameters of the generated Customs Invoice to match the layout blueprint of the referenced file.
-- [ ] **Task 13: Create Static 'How-To' Page Assets**
+- [x] **Task 13: Create Static 'How-To' Page Assets**
   * *Target:* Creation of a new static/informational template and corresponding routing.
   * *Reference Assets:* `/AI-Context/references/` (Contains source copy and 2 images).
   * *Requirement:* Generate a clean new How-To template file. Integrate the text assets and the 2 images while maintaining structural consistency with the website's main layout headers, footers, and established UI frameworks.
 
+### Phase 6: Finding List After Test on Staging
+- [x] **Tasks 14.** - If a user logged in and select as Buyer and they are not in Proxy Buyer List, in their Dashboard/My Profile should shows "You are a Buyer" (Not a Proxy Buyer). - Proxy Buyers were assigned by admin beforehand. Others who are not assigned by admin cannot be a Proxy Buyer. Please see admin panel Trips/Proxy Buyers/
+
+- [ ] **Task 15.** - Credential for Buyer should includes City at Destination; Reshipment Address. Bank Details notes should (for overpayment refund, if any), exactly like the one you update in Proxy Buyer Credentials. I think you mistakenly switch between Proxy Buyer and Buyer. Since that fields exist in Proxy Buyer Credentials which is should not be there.  
+
+- [ ] **Task 16.**  - If Proxy Buyer logged in, their Dashboard/My Profile should shows "You are a Proxy Buyer". 
+
+- [ ] **Task 17.** - Credential for Proxy Buyer should not includes City at Destination; Reshipment Address. Bank Details notes should not be (for overpayment refund, if any), but (For Product purchase payout disbursement. - I think you mistakenly treat Buyer as Proxy Buyer and vice versa.
+
+- [ ] **Task 18.** - Bank Detail notes for Carrier should be "(for shipment cost payout disbursement).
+
+	
