@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 
 from . import workflow
-from .constants import OfferStatus, Status
+from .constants import OfferStatus, REFUND_ELIGIBLE_STATUSES, Status
 from .models import (
     BuyRequest,
     ExchangeRate,
@@ -189,9 +189,12 @@ class RefundAdmin(ModelAdmin):
     actions = ["mark_refund_processed"]
 
     def get_queryset(self, request):
-        """Only show package-arrived orders that are actually overpaid."""
+        """Only show overpaid orders awaiting a refund. Spans the whole
+        arrival-onward range, not just PACKAGE_ARRIVED: since the buyer pays
+        100% upfront, an overpaid order auto-settles straight to Paid in Full
+        and never sits at PACKAGE_ARRIVED (see REFUND_ELIGIBLE_STATUSES)."""
         qs = super().get_queryset(request)
-        pks = [r.pk for r in qs.filter(status=Status.PACKAGE_ARRIVED) if r.refund_due > 0]
+        pks = [r.pk for r in qs.filter(status__in=REFUND_ELIGIBLE_STATUSES) if r.refund_due > 0]
         return qs.filter(pk__in=pks)
 
     def has_add_permission(self, request):
