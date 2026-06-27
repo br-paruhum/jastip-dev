@@ -476,10 +476,11 @@ def profile(request):
                     offer_form_order = _offer_order
                     offer_form_obj = TravelerOfferForm(initial=route_initial)
             elif _offer_order.status == Status.RESPONDED:
-                # Flow-1 Products: a traveler carries the proxy-sourced cargo once
-                # the estimate is sent. FCFS — only while no one holds a live offer.
+                # Flow-1 Products: carriers may keep offering while the order is
+                # RESPONDED (the buyer picks one) — only block this carrier's own
+                # duplicate pending offer, mirroring offer_create.
                 if not _offer_order.traveler_offers.filter(
-                    offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
+                    traveler=user, offer_status=OfferStatus.PENDING
                 ).exists():
                     offer_form_order = _offer_order
                     # Offer weight defaults to the order's weight — the traveler
