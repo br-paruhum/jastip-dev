@@ -130,6 +130,21 @@ ACTIVE_TX_STATUSES = {
     Status.CLEAR,
 }
 
+# Orders that may have a buyer overpayment to refund: any status from arrival
+# onward (invoice is final), excluding cancelled/rejected. Because the buyer pays
+# 100% upfront, an overpaid order auto-settles past PACKAGE_ARRIVED straight to
+# READY_FOR_PICKUP, so the refund is owed across this whole range — not just at
+# PACKAGE_ARRIVED. Drives the Pending Disbursement refund rows + release guard.
+REFUND_ELIGIBLE_STATUSES = {
+    Status.PACKAGE_ARRIVED,
+    Status.READY_FOR_PICKUP,
+    Status.RESHIP_REQUESTED,
+    Status.RESHIP_COST_SENT,
+    Status.RESHIPPING,
+    Status.CLEAR,
+    Status.CLOSED,
+}
+
 # Bootstrap-ish colour keyword per status, used for badges in templates/admin.
 # Per user (22-Jun-2026): every order/transaction status badge renders blue
 # ("info") — no per-status colour. All statuses map to "info"; the status_tone

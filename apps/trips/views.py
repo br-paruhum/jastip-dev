@@ -19,6 +19,7 @@ from .constants import (
     OPEN_ORDER_STATUSES,
     OPEN_PLAN_STATUSES,
     OfferStatus,
+    REFUND_ELIGIBLE_STATUSES,
     Status,
 )
 from .forms import (
@@ -1569,7 +1570,7 @@ def release_disbursement(request, pk):
         req.save(update_fields=["traveler_payout_proof", "traveler_paid_at", "updated_at"])
         workflow.notify_traveler_paid(req)
         messages.success(request, "Carrier payout released — carrier notified by email + WhatsApp.")
-    elif kind == "refund" and req.status == Status.PACKAGE_ARRIVED and not req.refund_processed and req.refund_due > 0:
+    elif kind == "refund" and req.status in REFUND_ELIGIBLE_STATUSES and not req.refund_processed and req.refund_due > 0:
         tx, _ = Transaction.objects.get_or_create(request=req)
         Payment.objects.create(
             transaction=tx,
@@ -1586,8 +1587,14 @@ def release_disbursement(request, pk):
         )
         req.refund_processed = True
         req.save(update_fields=["refund_processed", "updated_at"])
-        workflow.on_balance_verified(req)  # -> Ready for Pickup, notifies buyer
-        messages.success(request, "Buyer refund released — buyer notified, order advanced to Ready for Pickup.")
+        # Only the partial-balance case still sits at Package Arrived and needs
+        # advancing; overpaid orders have already auto-settled to Paid in Full,
+        # so just record the refund without touching their status.
+        if req.status == Status.PACKAGE_ARRIVED:
+            workflow.on_balance_verified(req)  # -> Ready for Pickup, notifies buyer
+            messages.success(request, "Buyer refund released — buyer notified, order advanced to Ready for Pickup.")
+        else:
+            messages.success(request, "Buyer refund released and recorded.")
     else:
         messages.error(request, "That disbursement isn't releasable yet (not eligible or already released).")
     return redirect(back)

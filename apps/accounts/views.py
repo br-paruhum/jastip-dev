@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
+from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, REFUND_ELIGIBLE_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
@@ -84,12 +84,13 @@ def _pending_disbursements(user):
         if pending:
             rows.append({"order": o, "pending": pending})
 
-    # Buyer overpaid refunds: due at Package Arrived, before the order clears,
-    # so they fall outside the CLEAR/CLOSED scan above. Surface them here too so
-    # staff release the refund (with transfer proof) from the same place.
+    # Buyer overpaid refunds. Because the buyer pays 100% upfront, an overpaid
+    # order auto-settles past Package Arrived straight to Paid in Full, so the
+    # refund is owed across the whole arrival-onward range — scan all of it (the
+    # CLEAR/CLOSED scan above only emits payout rows, never refunds).
     refunds = (
         BuyRequest.objects
-        .filter(status=Status.PACKAGE_ARRIVED, refund_processed=False)
+        .filter(status__in=REFUND_ELIGIBLE_STATUSES, refund_processed=False)
         .select_related("buyer", "proxy_buyer__user", "plan__traveler")
         .order_by("-updated_at")
     )
