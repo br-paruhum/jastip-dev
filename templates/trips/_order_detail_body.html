@@ -659,8 +659,6 @@
 </div></div>
 {% endif %}
 
-{# Message tab visibility is decided per-party/per-stage by can_chat
-   (BuyRequest.message_tab_visible_to — Task 11, How-to_260625.pdf). #}
 {% if can_chat %}{% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True hide_chat_intro=True %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True chat_empty_msg="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% endif %}{% endif %}
 
 {% if bf_order.can_edit %}
