@@ -443,7 +443,10 @@ def profile(request):
         _arrivable = (Status.PACKAGE_RECEIVED
                       if (_r and (_r.is_cargo or _r.is_proxy_buyer_first))
                       else Status.ITEMS_PURCHASED)
-        if _r and _r.status == _arrivable and _is_order_traveler(_r):
+        # Proxy buyer-first: the carrier reopens this panel after the buyer pays
+        # (READY_FOR_PICKUP) to record the actual duty receipt ("Actual Duty Paid").
+        _receipt_followup = bool(_r and _r.is_proxy_buyer_first and _r.status == Status.READY_FOR_PICKUP)
+        if _r and (_r.status == _arrivable or _receipt_followup) and _is_order_traveler(_r):
             arrive_req = _r
             arrive_form = CustomFareForm(instance=_r)
 
