@@ -209,7 +209,7 @@
     {% endif %}
   {% elif bf_order.status == "package_arrived" %}
     {% if not is_order_buyer %}
-    <p class="muted">The package has arrived at the destination. Waiting for the buyer to received the package.</p>
+    <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
     {% elif bf_order.balance_pending %}
     <p>Balance proof submitted — awaiting admin verification.</p>
     {% if bf_order.balance_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
@@ -257,7 +257,7 @@
       {% endif %}
     {% else %}
     {% if bf_order.pickup_selected %}
-    <p class="muted">The package has arrived at the destination. Waiting for the buyer to received the package.</p>
+    <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
     {% else %}
     <p class="muted">The package has arrived at the destination. Waiting for the buyer to choose pickup or reshipment.</p>
     {% endif %}
