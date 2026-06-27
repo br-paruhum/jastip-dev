@@ -1446,9 +1446,15 @@ def request_arrive(request, pk):
                     msg = "Marked as arrived. The deposit covers the balance — the buyer can now pick up or reship."
                 else:
                     msg = "Marked as arrived. The buyer has been notified to pay the outstanding balance."
-            else:
+            elif req.balance_extra_due > 0:
                 workflow.on_package_arrived(req)
                 msg = "Duty estimate sent. The buyer has been notified to pay the balance."
+            else:
+                # Deposit already covers the final invoice (incl. the duty
+                # estimate) — buyer is considered paid; skip the balance step.
+                workflow.on_package_arrived_settled(req)
+                msg = ("Duty estimate sent. The deposit already covers the balance — "
+                       "the buyer is considered paid; any overpayment is refunded by admin.")
             messages.success(request, msg)
             return _traveler_invoice_redirect(req)
     else:
