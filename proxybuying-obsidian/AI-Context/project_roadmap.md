@@ -94,7 +94,7 @@
 ### Phase 6: Finding List After Test on Staging
 - [x] **Tasks 14.** - If a user logged in and select as Buyer and they are not in Proxy Buyer List, in their Dashboard/My Profile should shows "You are a Buyer" (Not a Proxy Buyer). - Proxy Buyers were assigned by admin beforehand. Others who are not assigned by admin cannot be a Proxy Buyer. Please see admin panel Trips/Proxy Buyers/
 
-- [ ] **Task 15.** - Credential for Buyer should includes City at Destination; Reshipment Address. Bank Details notes should (for overpayment refund, if any), exactly like the one you update in Proxy Buyer Credentials. I think you mistakenly switch between Proxy Buyer and Buyer. Since that fields exist in Proxy Buyer Credentials which is should not be there.  
+- [x] **Task 15.** - Credential for Buyer should includes City at Destination; Reshipment Address. Bank Details notes should (for overpayment refund, if any), exactly like the one you update in Proxy Buyer Credentials. I think you mistakenly switch between Proxy Buyer and Buyer. Since that fields exist in Proxy Buyer Credentials which is should not be there.  
 
 - [ ] **Task 16.**  - If Proxy Buyer logged in, their Dashboard/My Profile should shows "You are a Proxy Buyer". 
 

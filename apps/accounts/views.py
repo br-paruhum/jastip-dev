@@ -254,7 +254,7 @@ def profile(request):
         # source — they respond with the estimate here.
         proxy_orders = _proxy_buying_orders(user)
 
-    form = ProfileForm(instance=user, role=role)
+    form = ProfileForm(instance=user, role=role, is_proxy_buyer=user.is_proxy_buyer)
 
     # Transaction detail embedded as an in-page panel (?order=<id>#order-detail).
     order = None
@@ -570,7 +570,7 @@ def profile(request):
 @require_POST
 def profile_update(request):
     role = _resolve_role(request)
-    form = ProfileForm(request.POST, instance=request.user, role=role)
+    form = ProfileForm(request.POST, instance=request.user, role=role, is_proxy_buyer=request.user.is_proxy_buyer)
     if form.is_valid():
         user = form.save()
         if user.phone_verified:

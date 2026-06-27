@@ -12,7 +12,7 @@ class ProfileForm(forms.ModelForm):
         fields = [
             "full_name", "phone_country_code", "phone_number",
             "traveler_destination_city", "traveler_address", "traveler_bank_details",
-            "buyer_bank_details",
+            "buyer_destination_city", "buyer_invoice_address", "buyer_bank_details",
         ]
         widgets = {
             "full_name": forms.TextInput(attrs={"placeholder": "Your full name", "autocomplete": "name"}),
@@ -28,20 +28,31 @@ class ProfileForm(forms.ModelForm):
                 "rows": 3,
                 "placeholder": "Bank name, account number, account holder name",
             }),
+            "buyer_destination_city": forms.TextInput(attrs={"placeholder": "e.g. Surabaya"}),
+            "buyer_invoice_address": forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": "e.g. Jl. Sudirman No. 1, Jakarta 10220, Indonesia",
+                "autocomplete": "street-address",
+            }),
             "buyer_bank_details": forms.Textarea(attrs={
                 "rows": 3,
                 "placeholder": "Bank name, account number, account holder name",
             }),
         }
 
-    def __init__(self, *args, role=None, **kwargs):
+    def __init__(self, *args, role=None, is_proxy_buyer=False, **kwargs):
         super().__init__(*args, **kwargs)
         if role == "traveler":
-            for name in ("buyer_bank_details",):
+            for name in ("buyer_destination_city", "buyer_invoice_address", "buyer_bank_details"):
                 del self.fields[name]
         elif role == "buyer":
             for name in ("traveler_destination_city", "traveler_address", "traveler_bank_details"):
                 del self.fields[name]
+            # Proxy buyers source & purchase abroad — they never receive the
+            # package themselves, so no destination city / reshipment address.
+            if is_proxy_buyer:
+                for name in ("buyer_destination_city", "buyer_invoice_address"):
+                    del self.fields[name]
 
     def clean_phone_country_code(self):
         code = (self.cleaned_data["phone_country_code"] or "").strip()
