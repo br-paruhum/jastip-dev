@@ -1422,7 +1422,13 @@ def request_arrive(request, pk):
     # Plan-first proxy buying (traveler IS the proxy) arrives from Items Purchased.
     waits_for_handover = req.is_cargo or req.is_proxy_buyer_first
     arrivable = Status.PACKAGE_RECEIVED if waits_for_handover else Status.ITEMS_PURCHASED
-    if req.status != arrivable:
+    # Proxy buyer-first: after the duty estimate is sent (PACKAGE_ARRIVED) and the
+    # buyer pays the balance (READY_FOR_PICKUP), the carrier reopens this form to
+    # upload the actual customs receipt — without re-triggering the workflow.
+    receipt_followup = req.is_proxy_buyer_first and req.status in {
+        Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
+    }
+    if req.status != arrivable and not receipt_followup:
         messages.info(
             request,
             "You can mark arrival after the package is received."
@@ -1434,7 +1440,9 @@ def request_arrive(request, pk):
         form = CustomFareForm(request.POST, request.FILES, instance=req)
         if form.is_valid():
             form.save()
-            if req.is_cargo:
+            if receipt_followup:
+                msg = "Actual customs receipt saved."
+            elif req.is_cargo:
                 workflow.on_cargo_arrived(req)
                 if req.status == Status.READY_FOR_PICKUP:
                     msg = "Marked as arrived. The deposit covers the balance — the buyer can now pick up or reship."
@@ -1442,7 +1450,7 @@ def request_arrive(request, pk):
                     msg = "Marked as arrived. The buyer has been notified to pay the outstanding balance."
             else:
                 workflow.on_package_arrived(req)
-                msg = "Marked as arrived. The buyer has been notified to pay the balance."
+                msg = "Duty estimate sent. The buyer has been notified to pay the balance."
             messages.success(request, msg)
             return _traveler_invoice_redirect(req)
     else:

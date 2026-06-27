@@ -538,16 +538,21 @@ PurchaseItemFormSet = inlineformset_factory(
 
 
 class CustomFareForm(forms.ModelForm):
-    """Carrier at arrival: custom fare paid at destination (defaults to IDR)."""
+    """Carrier at arrival: customs duty ESTIMATE the buyer pays upfront, plus the
+    estimate proof and (later, after the buyer pays) the actual receipt."""
 
     class Meta:
         model = BuyRequest
-        fields = ["custom_fare_currency", "custom_fare_amount", "custom_fare_proof"]
+        fields = [
+            "custom_fare_currency", "custom_fare_amount",
+            "custom_fare_estimate_proof", "custom_fare_proof",
+        ]
         widgets = {
             "custom_fare_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
             # Currency is fixed to the destination country's currency (shown muted
             # in the template); a plain file input avoids the clear/change widgets.
             "custom_fare_currency": forms.HiddenInput(),
+            "custom_fare_estimate_proof": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
             "custom_fare_proof": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
         }
 
@@ -555,9 +560,12 @@ class CustomFareForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Customs duty is always paid in the destination country's currency.
         self.initial["custom_fare_currency"] = self.instance.destination_currency
-        # No duty paid is the common case — let the amount be left blank (treated
-        # as zero) so the traveler can mark arrival without typing a 0.
+        # No duty is the common case — let the amount be left blank (treated as
+        # zero) so the carrier can send the estimate without typing a 0. Both
+        # proofs are optional (the actual receipt comes after the buyer pays).
         self.fields["custom_fare_amount"].required = False
+        self.fields["custom_fare_estimate_proof"].required = False
+        self.fields["custom_fare_proof"].required = False
 
     def clean_custom_fare_amount(self):
         return self.cleaned_data.get("custom_fare_amount") or Decimal("0")

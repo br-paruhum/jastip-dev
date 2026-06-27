@@ -1,5 +1,41 @@
 <span class="eyebrow">Arrival · {{ arrive_req.reference }}</span>
 <h2>Mark Package as Arrived</h2>
+
+{% if arrive_req.is_proxy_buyer_first %}
+<p class="muted">Enter your customs-duty <strong>estimate</strong>. The buyer pays this amount upfront, and
+  it is final. Upload the estimate proof now; the actual receipt is uploaded after the buyer pays.</p>
+
+<form method="post" action="{% url 'trips:request_arrive' arrive_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="card-band-row">Process Arrival Details</div>
+    <div class="form-row" style="margin-top:20px">
+      <div class="form-field"><label>Custom Duty Currency</label>
+        <div class="static-field muted">{{ arrive_req.destination_currency }}</div>
+        {{ arrive_form.custom_fare_currency }}
+      </div>
+      <div class="form-field"><label>Custom Duty Estimate Amount</label>{{ arrive_form.custom_fare_amount }}{{ arrive_form.custom_fare_amount.errors }}</div>
+    </div>
+    <div class="form-field"><label>Please upload Duty Estimate here.</label>{{ arrive_form.custom_fare_estimate_proof }}{{ arrive_form.custom_fare_estimate_proof.errors }}
+      {% if arrive_req.custom_fare_estimate_proof %}<a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank" class="help">Current estimate proof</a>{% endif %}
+    </div>
+    <div class="form-field"><label>Please upload the actual receipt here.</label>{{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}
+      {% if arrive_req.custom_fare_proof %}<a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank" class="help">Current actual receipt</a>{% endif %}
+    </div>
+    {{ arrive_form.non_field_errors }}
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_arrived" %}Save Receipt{% else %}Send Duty Estimate{% endif %}</button></div>
+  </div>
+</form>
+
+<details class="card fold mt-2" open>
+  <summary><h3>Notes</h3></summary>
+  <div class="fold-body">
+    <p>Please fill in Custom Duty Estimate Amount, and upload the estimate proof. You will be informed
+      when buyer has made a payment. By then, you can make the actual Duty payment.</p>
+  </div>
+</details>
+
+{% else %}
 <p class="muted">Add custom duty you paid at the destination city. This payment is reimbursable by the buyer —
   obtain the proof. Leave the amount zero if none.</p>
 
@@ -19,3 +55,4 @@
     <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.is_buyer_first and not arrive_req.is_cargo %}Package Arrived{% else %}Mark Arrived{% endif %}</button></div>
   </div>
 </form>
+{% endif %}

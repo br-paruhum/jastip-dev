@@ -322,13 +322,17 @@ class BuyRequest(ListingTimingMixin, models.Model):
     box_photo_1 = models.ImageField(upload_to="package_box/", blank=True, null=True, storage=webp_storage)
     box_photo_2 = models.ImageField(upload_to="package_box/", blank=True, null=True, storage=webp_storage)
 
-    # Custom fare paid by traveler at destination (reimbursable), filled on arrival.
+    # Custom duty at destination, filled on arrival. The carrier enters an
+    # ESTIMATE amount (the buyer pays this upfront; the estimate is final) and
+    # uploads the estimate proof; after the buyer pays, the carrier makes the
+    # actual payment and uploads the actual receipt for the record.
     custom_fare_currency = models.CharField(
         max_length=3, choices=Currency.choices, blank=True, default=""
     )
     custom_fare_amount = models.DecimalField(
         max_digits=12, decimal_places=2, default=Decimal("0")
     )
+    custom_fare_estimate_proof = models.ImageField(upload_to="custom_fare/", blank=True, null=True, storage=webp_storage)
     custom_fare_proof = models.ImageField(upload_to="custom_fare/", blank=True, null=True, storage=webp_storage)
 
     # Buyer's bank details for refunding an overpaid amount (if any).

@@ -140,18 +140,31 @@
       {% endif %}
     {% elif leg_offer.order.status == "package_received" %}
       {% if leg_offer.travel_date_passed %}
+      {% if leg_offer.order.is_proxy_buyer_first %}
+      <p>You've arrived. Send the buyer your customs-duty <strong>estimate</strong> — they pay it upfront, then you make the actual duty payment.</p>
+      <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Send Duty Estimate</a></div>
+      {% else %}
       <p>Goods in your custody. When you arrive at the destination, record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
       <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Package Arrived</a></div>
+      {% endif %}
       {% else %}
       <p class="muted">Goods received. You can confirm arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
       {% endif %}
     {% elif leg_offer.order.status == "package_arrived" %}
+    {% if leg_offer.order.is_proxy_buyer_first %}
+    <p class="muted">Duty estimate sent — waiting for the buyer to pay the balance. You'll be able to upload the actual receipt once they've paid.</p>
+    {% else %}
     <p class="muted">Buyer notified, wait for Unpaid Balance payment.</p>
+    {% endif %}
     {% elif leg_offer.order.status == "ready_for_pickup" %}
     {% if leg_offer.order.pickup_selected %}
     <p class="muted">Buyer chose local pickup — coordinate the handover via the Messages thread. Your remaining 50% disbursement is released once they confirm receipt.</p>
     {% else %}
     <p class="muted">Balance settled. Waiting for the buyer to choose pickup or request reshipment.</p>
+    {% endif %}
+    {% if leg_offer.order.is_proxy_buyer_first %}
+    <p class="help" style="margin-top:10px">Buyer has paid — make the actual customs payment and upload the receipt for the record.</p>
+    <div style="text-align:center"><a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Actual Receipt</a></div>
     {% endif %}
     {% elif leg_offer.order.status == "reship_requested" %}
     <p>The buyer requested reshipment to:</p>
