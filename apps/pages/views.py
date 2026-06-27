@@ -115,8 +115,9 @@ def page_detail(request, slug):
 
 
 def how_to(request):
-    page = SitePage.objects.filter(kind=SitePage.Kind.HOW_TO, is_published=True).first()
-    return render(request, "pages/page.html", {"page": page, "faqs": None})
+    # Static How-To page (Task 13) — replaces the former CMS-driven SitePage so
+    # the guide is a single source of truth in the template, not the database.
+    return render(request, "pages/how_to.html")
 
 
 def _verify_turnstile(request):

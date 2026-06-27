@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}How It Works — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}How ProxyBuying works — buyers pick a proxy buyer to source and buy goods abroad or inter-city, carriers bring them home, and payments stay secured until the package is received.{% endblock %}
+{% block content %}
+<section>
+  <div class="container">
+    <span class="eyebrow">How-To</span>
+    <h1>How ProxyBuying works</h1>
+
+{# Transaction-flow infographic — three equal lanes, numbered boxes bottom-aligned
+   per row with screenshots above, and full-width section dividers, mirroring
+   How-to_260625.pdf. Scoped under .howto-ig / #hi-lightbox. #}
+<style>
+.howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
+.howto-ig .hi-lead{font-size:clamp(13px,3.6vw,20px);color:var(--slate-400);margin:0 0 22px;max-width:900px}
+.howto-ig .hi-colhead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;
+  position:sticky;top:69px;z-index:5;background:var(--ivory);padding:12px 0}
+.howto-ig .hi-lane{font-weight:600;font-size:24px;letter-spacing:.04em;text-transform:uppercase;text-align:center;
+  padding:10px;border-radius:10px;color:var(--slate);background:var(--cream);border:1px solid var(--line)}
+.howto-ig .hi-timeline{position:relative}
+.howto-ig .hi-step{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:end;padding:14px 0}
+.howto-ig .hi-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.howto-ig .hi-msg{width:100%;padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:#fff;
+  box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:16px;line-height:1.45;color:var(--slate-600);text-align:center}
+.howto-ig .system .hi-msg{background:var(--cream)}
+.howto-ig .hi-note{font-size:14px;font-weight:700;text-align:center;color:var(--clay-dark);
+  border:1px solid var(--clay);border-radius:6px;padding:5px 12px;background:#fff;letter-spacing:.01em}
+.howto-ig .hi-divider{margin:18px 0 8px;padding:9px 12px;text-align:center;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;font-size:15px;color:var(--clay-dark);
+  background:#f5cba7;border:1px solid #d9a47f;border-radius:8px}
+.howto-ig .hi-mwho{display:none}
+.howto-ig .hi-num{min-width:44px;height:44px;border-radius:50px;padding:0 10px;display:inline-flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;
+  background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
+.howto-ig .hi-thumb{cursor:zoom-in;display:block;width:100%}
+.howto-ig .hi-thumb img{width:100%;border-radius:10px;border:1px solid var(--line);background:#fff;
+  box-shadow:0 6px 18px rgba(26,26,24,.10);display:block;transition:transform .15s}
+.howto-ig .hi-thumb:hover img{transform:scale(1.02)}
+#hi-lightbox{position:fixed;inset:0;z-index:1000;display:none;background:rgba(26,26,24,.9);
+  align-items:center;justify-content:center;padding:28px}
+#hi-lightbox.open{display:flex}
+#hi-lightbox img{max-width:94vw;max-height:88vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.55)}
+#hi-lightbox .hi-close{position:absolute;top:16px;right:22px;width:48px;height:48px;border:0;border-radius:50%;
+  background:rgba(255,255,255,.16);color:#fff;font-size:28px;line-height:1;cursor:pointer}
+#hi-lightbox .hi-cap{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:var(--cream);font-size:18px}
+@media(max-width:760px){
+  .howto-ig .hi-colhead{display:none}
+  .howto-ig .hi-step{grid-template-columns:1fr;gap:10px;padding:12px 0}
+  .howto-ig .hi-cell{align-items:flex-start}
+  .howto-ig .hi-msg{text-align:left}
+  .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 2px;
+    padding:3px 11px;border-radius:3px;border:1px solid var(--clay);background:#fff;
+    color:var(--clay);font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+}
+</style>
+
+<div class="howto-ig">
+  <p class="hi-lead">The full transaction flow, from picking a proxy buyer to receiving your package and a
+    cleared transaction — assuming all parties are registered and logged in. Click any screenshot to enlarge.</p>
+  <div class="hi-colhead">
+    <div class="hi-lane">Buyer</div>
+    <div class="hi-lane">Proxy Buyer</div>
+    <div class="hi-lane">Carrier</div>
+  </div>
+  <div class="hi-timeline" id="hi-timeline"></div>
+</div>
+
+<div id="hi-lightbox" aria-hidden="true">
+  <button class="hi-close" id="hi-close" aria-label="Close">&times;</button>
+  <img id="hi-img" src="" alt="">
+  <div class="hi-cap" id="hi-cap"></div>
+</div>
+
+<script>
+(function(){
+  var ROWS=[
+    [ {num:'1', a:'buyer', img:'/static/img/howto/buyer-start.webp',
+       t:'Select a proxy buyer from the <b>Proxy Buyers List</b>, fill in your product names (up to 10), quantity and deadline, and choose a shipment term — <b>pick up</b> or <b>reship</b>.'},
+      {num:'2', a:'proxy',
+       t:'Fill in the <b>estimate cost</b>, <b>estimated total weight (kg)</b> and <b>margin (%)</b>.'} ],
+
+    [ {num:'3', a:'system', imgBottom:true, img:'/static/img/howto/carrier-start.webp',
+       note:'“Queuing Cargo” table updated'} ],
+
+    [ {num:'4', a:'carrier',
+       t:'Select from the <b>Queuing Cargo</b> table for the same route, then fill in your <b>offer rate per kg</b> and <b>travel date/time</b>.'} ],
+
+    [ {num:'5', a:'buyer',
+       t:'<b>Accept</b> the carrier’s offer and pay ProxyBuying for the <b>total estimated product cost</b> (including margin) and the <b>total estimated shipment cost</b>.'},
+      {num:'6', a:'proxy',
+       t:'Start sourcing the products. Discuss any sourcing problem with the buyer via <b>internal chat</b> (shortage, out-of-stock, price increase, substitution), then input the <b>actual cost</b> and <b>total weight</b> and upload <b>product photos</b>. The buyer’s final decision for each product is stated in the chat.'},
+      {num:'7', a:'carrier',
+       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.'} ],
+
+    [ {num:'8', a:'carrier',
+       t:'Received the package from the proxy buyer.'} ],
+
+    {divider:'Travel Date'},
+
+    [ {num:'10', a:'buyer',
+       t:'Pay ProxyBuying for the <b>customs duty</b>, products and shipment cost shortage (actual minus estimate), if any. If you chose <b>reship</b>, disclose your reshipment address via internal chat.'},
+      {num:'9', a:'carrier',
+       t:'On arrival, send the <b>customs duty &amp; tax estimate</b> via internal chat. If the buyer chose <b>pick up</b>, disclose your address and the best time to visit.'} ],
+
+    {divider:'Buyer selected: Pick up the package'},
+
+    [ {num:'12-1', a:'buyer',
+       t:'Visit the carrier’s location and click <b>Confirm Received</b> for the package.'},
+      {num:'11-1', a:'carrier',
+       t:'Pay the <b>customs duty</b> and send the receipt via internal chat.'} ],
+
+    [ {num:'13', a:'system',
+       note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
+
+    {divider:'Buyer selected: Reship the package'},
+
+    [ {num:'12-2', a:'buyer',
+       t:'Send your <b>bank transfer proof</b> via internal chat.'},
+      {num:'11-2', a:'carrier',
+       t:'Pay the <b>customs duty</b> and send the receipt. Based on the buyer’s shipment terms, send the <b>shipment cost estimate</b> and your <b>bank account details</b> via internal chat.'} ],
+
+    [ {num:'14', a:'buyer',
+       t:'Review the package and click <b>Confirm Received</b>.'},
+      {num:'13', a:'carrier',
+       t:'Send the package to the buyer.'} ],
+
+    [ {num:'15', a:'system',
+       note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
+
+    {divider:'Transaction Closed'},
+  ];
+  var LABEL={carrier:'Carrier', proxy:'Proxy Buyer', buyer:'Buyer', system:'ProxyBuying'};
+  var COL={buyer:0, proxy:1, carrier:2, system:1};
+  function thumb(s){ if(!s.img) return '';
+    return '<div class="hi-thumb"><img src="'+s.img+'" data-full="'+s.img+'" alt="Step '+s.num+'" loading="lazy"></div>';}
+  function cell(s){
+    var who=(s.a!=='system')?'<span class="hi-mwho">'+LABEL[s.a]+'</span>':'';
+    var noteHtml=s.note?(Array.isArray(s.note)?s.note:([s.note])).map(function(n){return'<div class="hi-note">'+n+'</div>';}).join(''):'';
+    var bub=s.t?'<div class="hi-msg">'+s.t+'</div>':'';
+    var num='<div class="hi-num">'+s.num+'</div>';
+    var im=thumb(s);
+    var body=s.imgBottom?(num+noteHtml+bub+im):(im+num+bub+noteHtml);
+    return '<div class="hi-cell '+s.a+'">'+who+body+'</div>';
+  }
+  var tl=document.getElementById('hi-timeline');
+  if(!tl) return;
+  tl.innerHTML=ROWS.map(function(row){
+    if(row.divider){ return '<div class="hi-divider">'+row.divider+'</div>'; }
+    var cells=['','',''];
+    row.forEach(function(s){ cells[COL[s.a]]=cell(s); });
+    return '<div class="hi-step"><div>'+cells[0]+'</div><div>'+cells[1]+'</div><div>'+cells[2]+'</div></div>';
+  }).join('');
+  var lb=document.getElementById('hi-lightbox'),
+      img=document.getElementById('hi-img'),
+      cap=document.getElementById('hi-cap');
+  function openLB(src){img.src=src;cap.textContent='Click outside or press Esc to close';
+    lb.classList.add('open');lb.setAttribute('aria-hidden','false');}
+  function closeLB(){lb.classList.remove('open');lb.setAttribute('aria-hidden','true');img.src='';}
+  tl.addEventListener('click',function(e){var t=e.target.closest('img');
+    if(!t||!t.getAttribute('data-full'))return; openLB(t.getAttribute('data-full'));});
+  document.getElementById('hi-close').addEventListener('click',closeLB);
+  lb.addEventListener('click',function(e){if(e.target===lb)closeLB();});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeLB();});
+})();
+</script>
+
+  </div>
+</section>
+{% endblock %}
