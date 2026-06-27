@@ -1,0 +1,15 @@
+{% load humanize %}
+<tr class="{% if o.status == 'closed' or o.status == 'cancelled' or o.status == 'clear' %}row-closed{% endif %}">
+  <td>{{ o.reference }}
+    {% if o.bf_kind == "traveler_first" %}
+      <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {% if o.is_cargo %}{{ o.cargo_charge_total|intcomma }}{% else %}{{ o.invoice_total|intcomma }}{% endif %}</div>
+    {% endif %}
+  </td>
+  <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
+  <td>{% if o.is_cargo %}{% if o.bf_kind == "traveler_first" %}{{ o.estimated_weight_kg }}{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}{% else %}{% if o.estimated_weight_kg %}{{ o.estimated_weight_kg }}{% else %}—{% endif %}{% endif %}</td>
+  <td>{% if offer %}{{ o.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}{% elif o.effective_cost_per_kg %}{{ o.currency }} {{ o.effective_cost_per_kg|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+  <td class="status-cell">
+    {% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}
+  </td>
+  <td class="action-cell"><a class="btn btn-outline btn-sm" href="{{ o.get_absolute_url }}">Open</a></td>
+</tr>
