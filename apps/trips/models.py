@@ -849,31 +849,34 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     def customs_invoice(self) -> dict:
         """Everything the customs invoice renders, computed once so the print
-        template and the PDF stay identical. Unit/Total values are in IDR and
-        INCLUDE the proxy margin (NewCustomsInvoiceFormat note 5). Shipping is
-        the carrier's fee; the number of packages is fixed at 1."""
+        template and the PDF stay identical. Unit/Total values are in the order's
+        origin currency (the currency the proxy actually purchased in — JPY for a
+        Japan order, etc.) and INCLUDE the proxy margin (NewCustomsInvoiceFormat
+        note 5). Shipping is the carrier's fee; the number of packages is fixed
+        at 1."""
         mult = Decimal("1") + (self.margin_percent or Decimal("0")) / Decimal("100")
         origin = self.customs_origin_country
         rows, subtotal = [], Decimal("0")
         for item in self.items.all():
             if not (item.actual_quantity and item.actual_quantity > 0):
                 continue
-            unit_idr = self.customs_amount_idr(item.actual_unit_cost * mult)
-            total_idr = self.customs_amount_idr(item.actual_line_total * mult)
-            subtotal += total_idr
+            unit_value = (Decimal(item.actual_unit_cost or 0) * mult).quantize(TWO_PLACES)
+            total_value = (Decimal(item.actual_line_total or 0) * mult).quantize(TWO_PLACES)
+            subtotal += total_value
             rows.append(SimpleNamespace(
                 quantity=item.actual_quantity, name=item.name, origin=origin,
-                unit_value_idr=unit_idr, total_value_idr=total_idr,
+                unit_value=unit_value, total_value=total_value,
             ))
-        shipping = self.customs_amount_idr(self.shipment_cost)
+        shipping = Decimal(self.shipment_cost or 0).quantize(TWO_PLACES)
         return {
             "date": self.customs_invoice_date,
             "reference": self.reference,
             "origin_country": origin,
+            "currency": self.currency,
             "rows": rows,
-            "subtotal_idr": subtotal,
-            "shipping_idr": shipping,
-            "total_idr": subtotal + shipping,
+            "subtotal": subtotal,
+            "shipping": shipping,
+            "total": subtotal + shipping,
             "num_packages": 1,
         }
 

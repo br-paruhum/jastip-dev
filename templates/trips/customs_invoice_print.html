@@ -14,13 +14,16 @@
     .inv-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;margin-bottom:22px;font-size:14px;line-height:1.5}
     .inv-meta .label{font-weight:700}
     .inv-meta .party{margin-top:14px}
-    table{width:100%;border-collapse:collapse;font-size:14px}
-    th{background:#f5cba7;text-align:left;padding:9px 12px;border:1px solid #d9a47f;font-weight:700}
+    .inv-meta .recv-col{padding-left:56px}
+    table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+    th{background:#f5cba7;text-align:left;vertical-align:middle;padding:9px 12px;border:1px solid #d9a47f;font-weight:700}
     th.num,td.num{text-align:right}
-    td{padding:8px 12px;border:1px solid #ddd}
+    th.desc{text-align:center}
+    th.coo,td.coo{text-align:center}
+    td{padding:8px 12px;border:1px solid #ddd;word-wrap:break-word;overflow-wrap:anywhere}
     tr.sub td,tr.total td{font-weight:700}
     tr.total td{border-top:2px solid #1a1a18}
-    .footer-note{font-size:13px;margin-top:18px;line-height:1.6;max-width:640px}
+    .footer-note{font-size:13px;margin-top:18px;line-height:1.6}
     @media print{
       .no-print{display:none!important}
       body{padding:12px}
@@ -46,7 +49,7 @@
         {{ req.proxy_buyer.city }}{% if req.proxy_buyer.city and req.proxy_buyer.country %}, {% endif %}{{ req.proxy_buyer.country }}{% endif %}
       </div>
     </div>
-    <div>
+    <div class="recv-col">
       <div><span class="label">PURCHASE ORDER:</span> {{ ci.reference }}</div>
       <div class="party">
         <span class="label">RECEIVER:</span><br>
@@ -58,13 +61,20 @@
   </div>
 
   <table>
+    <colgroup>
+      <col style="width:8%">
+      <col style="width:46%">
+      <col style="width:16%">
+      <col style="width:15%">
+      <col style="width:15%">
+    </colgroup>
     <thead>
       <tr>
         <th class="num">Qty</th>
-        <th>Description of Goods</th>
-        <th>Country of Origin</th>
-        <th class="num">Unit Value (IDR)</th>
-        <th class="num">Total Value (IDR)</th>
+        <th class="desc">Description of Goods</th>
+        <th class="coo">Country of Origin</th>
+        <th class="num">Unit Value ({{ ci.currency }})</th>
+        <th class="num">Total Value ({{ ci.currency }})</th>
       </tr>
     </thead>
     <tbody>
@@ -72,22 +82,22 @@
       <tr>
         <td class="num">{{ r.quantity }}</td>
         <td>{{ r.name }}</td>
-        <td>{{ r.origin }}</td>
-        <td class="num">{{ r.unit_value_idr|floatformat:0|intcomma }}</td>
-        <td class="num">{{ r.total_value_idr|floatformat:0|intcomma }}</td>
+        <td class="coo">{{ r.origin }}</td>
+        <td class="num">{{ r.unit_value|floatformat:0|intcomma }}</td>
+        <td class="num">{{ r.total_value|floatformat:0|intcomma }}</td>
       </tr>
       {% endfor %}
       <tr class="sub">
         <td></td><td>Sub-Total</td><td></td><td></td>
-        <td class="num">{{ ci.subtotal_idr|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.subtotal|floatformat:0|intcomma }}</td>
       </tr>
       <tr>
         <td></td><td>Shipping Charges</td><td></td><td></td>
-        <td class="num">{{ ci.shipping_idr|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.shipping|floatformat:0|intcomma }}</td>
       </tr>
       <tr class="total">
         <td></td><td>Total Value</td><td></td><td></td>
-        <td class="num">{{ ci.total_idr|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.total|floatformat:0|intcomma }}</td>
       </tr>
       <tr><td colspan="5">&nbsp;</td></tr>
       <tr>
@@ -96,8 +106,7 @@
     </tbody>
   </table>
 
-  <p class="footer-note">This invoice is prepared for customs declaration purposes. Goods are
-    carried personally by the traveler on behalf of the buyer named above.</p>
+  <p class="footer-note">*) This invoice is prepared for customs declaration purposes. Goods are carried personally by the traveler on behalf of the buyer named above.</p>
   {% endwith %}
 
 </div>

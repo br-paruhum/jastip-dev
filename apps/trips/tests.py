@@ -512,11 +512,12 @@ class CustomsInvoiceTests(TestCase):
         self.assertEqual(len(ci["rows"]), 1)
         row = ci["rows"][0]
         self.assertEqual(row.origin, "Japan")
-        self.assertEqual(row.unit_value_idr, Decimal("1100.00"))    # 1000 + 10% margin
-        self.assertEqual(row.total_value_idr, Decimal("2200.00"))   # × qty 2
-        self.assertEqual(ci["subtotal_idr"], Decimal("2200.00"))
-        self.assertEqual(ci["shipping_idr"], Decimal("1500.00"))    # 3 kg × 500
-        self.assertEqual(ci["total_idr"], Decimal("3700.00"))
+        self.assertEqual(row.unit_value, Decimal("1100.00"))    # 1000 + 10% margin
+        self.assertEqual(row.total_value, Decimal("2200.00"))   # × qty 2
+        self.assertEqual(ci["subtotal"], Decimal("2200.00"))
+        self.assertEqual(ci["shipping"], Decimal("1500.00"))    # 3 kg × 500
+        self.assertEqual(ci["total"], Decimal("3700.00"))
+        self.assertEqual(ci["currency"], "IDR")
         self.assertEqual(ci["num_packages"], 1)
         self.assertIsNotNone(ci["date"])
 

@@ -70,6 +70,7 @@ def render_customs_invoice_pdf(req) -> bytes:
         return f"{Decimal(value or 0):,.0f}"
 
     ci = req.customs_invoice()
+    ccy = ci.get("currency") or ""
     story = [Paragraph("Invoice", title)]
 
     # Meta: DATE / PURCHASE ORDER, then SHIPPER / RECEIVER blocks.
@@ -96,27 +97,37 @@ def render_customs_invoice_pdf(req) -> bytes:
     story.append(meta)
     story.append(Spacer(1, 16))
 
-    # Items + totals — Qty / Description / Country of Origin / Unit / Total (IDR).
-    data = [["Qty", "Description of Goods", "Country of Origin", "Unit Value (IDR)", "Total Value (IDR)"]]
+    # Items + totals — Qty / Description / Country of Origin / Unit / Total, with
+    # values in the order's origin currency. Long headers wrap; Description is
+    # centred and given the spare width so it stays the table's widest column.
+    hdr = ParagraphStyle("chdr", parent=styles["Normal"], fontName="Helvetica-Bold",
+                         fontSize=9.5, leading=11, textColor=INK)
+    hdr_c = ParagraphStyle("chdrc", parent=hdr, alignment=TA_CENTER)
+    hdr_r = ParagraphStyle("chdrr", parent=hdr, alignment=TA_RIGHT)
+    data = [[Paragraph("Qty", hdr_r), Paragraph("Description of Goods", hdr_c),
+             Paragraph("Country of Origin", hdr_c),
+             Paragraph(f"Unit Value ({escape(ccy)})", hdr_r),
+             Paragraph(f"Total Value ({escape(ccy)})", hdr_r)]]
     for r in ci["rows"]:
         data.append([str(r.quantity), Paragraph(escape(r.name), item_cell), escape(r.origin or ""),
-                     idr0(r.unit_value_idr), idr0(r.total_value_idr)])
+                     idr0(r.unit_value), idr0(r.total_value)])
     sub_row = len(data)
-    data.append(["", "Sub-Total", "", "", idr0(ci["subtotal_idr"])])
-    data.append(["", "Shipping Charges", "", "", idr0(ci["shipping_idr"])])
+    data.append(["", "Sub-Total", "", "", idr0(ci["subtotal"])])
+    data.append(["", "Shipping Charges", "", "", idr0(ci["shipping"])])
     total_row = len(data)
-    data.append(["", "Total Value", "", "", idr0(ci["total_idr"])])
+    data.append(["", "Total Value", "", "", idr0(ci["total"])])
     data.append(["", "", "", "", ""])
     data.append(["", f"Number of Package: {ci['num_packages']}", "", "", ""])
 
     peach = colors.HexColor("#F5CBA7")
     peach_line = colors.HexColor("#D9A47F")
-    items_tbl = Table(data, colWidths=[14 * mm, 66 * mm, 30 * mm, 32 * mm, 32 * mm])
+    items_tbl = Table(data, colWidths=[14 * mm, 80 * mm, 28 * mm, 26 * mm, 26 * mm])
     items_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9.5),
         ("ALIGN", (0, 0), (0, -1), "RIGHT"),    # Qty
+        ("ALIGN", (2, 0), (2, -1), "CENTER"),   # Country of Origin
         ("ALIGN", (3, 0), (-1, -1), "RIGHT"),   # value columns
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("GRID", (0, 0), (-1, -1), 0.4, LINE),
