@@ -342,8 +342,13 @@ class TravelerCargoOfferForm(forms.ModelForm):
         val = self.cleaned_data.get("travel_date")
         if not val:
             raise forms.ValidationError("Travel date is required.")
-        if val <= timezone.now().date():
-            raise forms.ValidationError("Travel date must be in the future.")
+        # The proxy buyer needs lead time to purchase the goods after the buyer
+        # accepts this offer, so the travel date must be more than 3 days out.
+        if val <= timezone.now().date() + timedelta(days=3):
+            raise forms.ValidationError(
+                "Travel date must be more than 3 days from today, so the proxy "
+                "buyer has time to purchase the ordered goods."
+            )
         return val
 
 
