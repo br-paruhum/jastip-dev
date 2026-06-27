@@ -193,11 +193,18 @@ def _travel_rows(plans, offers):
     for offer in offers:
         if not offer.order.is_cargo:
             # Proxy (Flow-1) Products carry: the offer never formally progresses
-            # (offer_status stays pending), so track the ORDER lifecycle instead —
-            # "Pending" until the buyer receives the goods (cleared/closed), then
-            # "Received".
-            label = "Received" if offer.order.status in {Status.CLEAR, Status.CLOSED} else "Pending"
-            tone = "info"
+            # (offer_status stays pending), so track the ORDER lifecycle instead.
+            if offer.offer_status == OfferStatus.REJECTED:
+                label, tone = "Not Selected", "muted"
+            elif offer.offer_status == OfferStatus.WITHDRAWN:
+                label, tone = "Withdrawn", "muted"
+            elif offer.order.status in {Status.CLEAR, Status.CLOSED}:
+                label, tone = "Received", "info"
+            elif offer.order.status == Status.RESPONDED:
+                # Offer sent; the buyer hasn't picked a carrier yet.
+                label, tone = "Waiting for Buyer's Acceptance", "info"
+            else:
+                label, tone = "Pending", "info"
         else:
             label, tone = _offer_status_display(offer)
         offer_closed = (

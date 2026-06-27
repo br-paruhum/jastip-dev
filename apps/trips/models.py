@@ -1513,6 +1513,14 @@ class TravelerOffer(models.Model):
                 and not self.order.listing_locked)
 
     @property
+    def carry_fee_estimate(self) -> Decimal:
+        """This carrier's carry fee for display = their own ask rate × the order's
+        effective (actual-or-estimated) carried weight. Per-offer, so each carrier
+        sees their own quote even while several offers are pending (the order-level
+        effective_cost_per_kg only resolves when a single offer is live)."""
+        return (self.ask_cost_per_kg * self.order.effective_weight_kg).quantize(TWO_PLACES)
+
+    @property
     def deposit_due(self) -> Decimal:
         """Deposit owed once selected: allocated weight × accepted ask rate."""
         return ((self.allocated_weight_kg or Decimal("0")) * self.ask_cost_per_kg).quantize(TWO_PLACES)
