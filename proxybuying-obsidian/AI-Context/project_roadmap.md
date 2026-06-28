@@ -3,7 +3,7 @@
 ## Completed Milestones (~85%)
 * [x] Initial Django project initialization
 * [x] Basic user model configuration
-* [ ] Finalize usability updates and test
+* [x] Finalize usability updates and test
 
 ## System & Tooling Preparation
 - [x] Install MCP Server: `https://github.com/DeusData/codebase-memory-mcp.git`
@@ -109,17 +109,21 @@
 
 - [x] **Task 20** - Admin will make carrier and proxy buyer payouts disbursement and buyer overpaid refund. On this page: https://stg.proxybuying.com/u/dashboard/#pending-disbursements only payouts pending disbursement is available. We need to have also for buyer overpaid refund. — DONE: `#pending-disbursements` now also lists buyer overpaid refunds (orders at PACKAGE_ARRIVED with `refund_due > 0`, not yet `refund_processed`), each with an upload-proof-&-release form like the payout rows. Releasing creates a VERIFIED OUTBOUND REFUND `Payment` carrying the transfer-proof image (no new model field / migration — proof lives on the ledger row), sets `refund_processed=True`, and advances the order to Ready for Pickup via `on_balance_verified` (buyer notified). Mirrors the existing admin `mark_refund_processed` action. Buyer's saved refund bank details shown on the row; flags when not yet provided. Scope: order-level (proxy-buying) refunds only — leg/cargo `TravelerOffer` refunds unchanged. Files: `apps/accounts/views.py` (`_pending_disbursements`), `apps/trips/views.py` (`release_disbursement` `kind=="refund"` branch), `templates/accounts/profile.html`. No migration; template/view only.
     
-- [ ] **Task 21** - If the test result is good,  we can start syncing the code to production
+- [x] **Task 21** - If the test result is good,  we can start syncing the code to production — DONE 28-Jun: full production cutover. Prod (`/var/www/jastip-prd`, Postgres `jastip_prd`) was 193 commits / 24 migrations behind at `511f56c`; fast-forwarded to `8c7a45d`. Fresh backup first (`jastip_prd_20260628_053514.sql.gz` + media). Stashed+dropped 3 prod-local edits (base.html footer — main already had "Proxy Buying"; contact.html Turnstile centering — committed to main as `8c7a45d` to preserve; run.sh delete). Applied all 24 migrations (pages 0009-0010, trips 0034-0055), collectstatic, restart jastip-prd. NO seed / NO seed_proxy_test → FAQ preserved (8 custom rows intact). Smoke test: /, /p/faq/, /how-to/, /accounts/login/, /u/dashboard/, /blog/ all 200; home serves redesigned "Proxy Buying"/"Carrier" content. Live on proxybuying.com.
       
-- [ ] **Task 22** - Next is to update graphify.
+- [x] **Task 22** - Next is to update graphify. — DONE 28-Jun: scoped rebuild (apps/ + templates/ + AI-Context/ only; excluded staticfiles/media/vendor to avoid noise + embedding user payment-proof images). 259 files; cache absorbed 179, 80 re-extracted via 16 parallel subagents (4 text + 12 image). Graph = 1349 nodes, 4097 edges, 119 communities (22 named). Outputs in graphify-out/: graph.html, graph.json, GRAPH_REPORT.md. God nodes: Status, OfferStatus, FulfillmentMethod, Currency, SiteSettings, BuyRequest.
 
 
 ### Phase 8: Dead-code & schema cleanup (after prod sync)
 
 Origin: much of the codebase was built to support a one-to-many design (a carrier with many cargo buyers, a buyer with many carriers) that was later abandoned in favour of the current simpler 1:1 model. That leaves dead code and likely-unused DB columns/tables. Do this as its own branch, AFTER Task 21 (prod sync) — not interleaved with Phase 7.
 
-- [ ] **Task 23** - Audit dead code with the codebase-memory MCP (repo indexed: 1431 nodes). Use dead-code / unused-symbol detection + `search_graph`/`trace_path` to produce an evidence-based list of unreferenced views, forms, helpers, template fragments, and unread/unwritten model fields. Separate code-dead (safe to delete behind branch + tests) from data-dead (DB columns/tables needing a migration).
+**Tooling for this phase:** **codebase-memory MCP** (repo indexed, 1431 nodes) — graph-based "what's never called / unread fields", `search_graph`, `trace_path`, dead-code detection. This is the primary audit tool. (ponytail plugin was considered but CANNOT be installed — this Claude Code surface has no `/plugin` command / third-party plugin support. Not a loss; codebase-memory is more precise. Don't retry ponytail.)
+
+- [x] **Task 23** - DONE 28-Jun (`phase8-dead-code-cleanup` branch). Audit written up in [[phase8_task23_dead_code_audit]]. Key result: the abandoned one-to-many "spare baggage" cluster is **mostly NOT dead** — the `cargo_only`/`leg_*` cargo flow is still user-creatable and live. Confirmed code-dead (Tier A): 4 orphan view+route pairs (`offer_estimate_create`, `leg_dropped_off`, `leg_received`, `request_pickup_select`), 4 never-rendered templates (`_home_order_table`, `_home_plan_table`, `_home_looking_for_cargo_table`, `trips/offer_form`), dead home-view "Board 2" logic (`open_plans_cargo`/`looking_for_cargo` + its context processor), and `BuyRequest.pending_weight_kg`. Tier C (schema/data-dead) deferred — needs a dedicated field-by-field pass under Task 25.
 - [ ] **Task 24** - Remove dead *code* (no schema change) on a dedicated branch; verify tests + Django check, deploy to stg, confirm.
 - [ ] **Task 25** - Remove dead *schema* (unused columns/tables) via Django migration, staged carefully. ⚠️ deploy must be manual (no `seed`) per the deploy caveat; back up the DB first.
+
+- [~] **Task 26** - Terminology cleanup. "Buy Request" is a confusing label — the `BuyRequest` model is really the *Order* (holds items, payments, payouts, refunds, full lifecycle). (a) ✅ DONE 28-Jun — display-only relabel: `Meta.verbose_name`/`verbose_name_plural` = "Order"/"Orders", admin now reads "Orders" (commit `01ed8c4`, migration 0055 = no-op AlterModelOptions, no DB schema change; deployed stg). (b) TODO — full `BuyRequest`→`Order` rename across model/codebase/DB table + migration (big refactor). Also still TODO: review other money-term labels for consistency (payout vs disbursement, etc.).
       
 
