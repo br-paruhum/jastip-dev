@@ -23,7 +23,7 @@ Pass: chat_obj (Order), chat_messages, message_form. Admin can read all.{% endco
       </div>
     {% empty %}
       {% if chat_handover_prefill %}
-      <p class="muted">Please edit the text below to your liking.</p>
+      <p class="muted">Please edit the text below.</p>
       {% else %}
       <p class="muted">{{ chat_empty_msg|default:"No messages yet — start the conversation." }}</p>
       {% endif %}
@@ -32,7 +32,8 @@ Pass: chat_obj (Order), chat_messages, message_form. Admin can read all.{% endco
   <form method="post" action="{% url 'trips:request_message' chat_obj.id %}" enctype="multipart/form-data" class="mt-2">
     {% csrf_token %}
     <div class="form-field" style="margin-bottom:8px">{% if chat_handover_prefill and not chat_messages %}<textarea name="body" rows="6" placeholder="Write a message…">Hello,
-Please kindly provide the location and best time to hand over the package.
+Please provide your location, contact number and best time to hand over the package.
+
 Thank you
 
 Regards,

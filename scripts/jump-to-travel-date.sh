@@ -20,13 +20,13 @@ cd "$APP"
 
 REF="$REF" BAKDIR="$BAKDIR" "$APP/.venv/bin/python" manage.py shell <<'PY'
 import os, datetime
-from apps.trips.models import BuyRequest
+from apps.trips.models import Order
 from apps.trips.constants import OfferStatus
 
 ref = os.environ["REF"]
 bakdir = os.environ["BAKDIR"]
 
-o = BuyRequest.objects.filter(reference=ref).first()
+o = Order.objects.filter(reference=ref).first()
 if not o:
     raise SystemExit(f"ERROR: no order with reference {ref}")
 offer = (o.traveler_offers

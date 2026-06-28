@@ -203,7 +203,7 @@
     {% if is_order_buyer %}
     <p class="muted">The carrier has collected your goods from the proxy buyer and is carrying them to {{ bf_order.to_city }}. You'll be notified to settle the shipment + customs balance when it arrives.</p>
     {% elif is_order_proxy %}
-    <p class="muted">You've handed the goods to the carrier. Your first payment has been released; the remaining 50% follows once the buyer clears the package.</p>
+    <p class="muted">You've handed the goods to the carrier. Your payout will be disbursed after Buyer receive the package.</p>
     {% else %}
     <p class="muted">Goods collected from the proxy — in transit to the destination.</p>
     {% endif %}
