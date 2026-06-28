@@ -18,7 +18,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from apps.trips.models import BuyRequest, TravelPlan
+from apps.trips.models import Order, TravelPlan
 
 OFFSETS = {           # state -> hours from now for the anchor moment
     "open": +48,
@@ -47,9 +47,9 @@ class Command(BaseCommand):
             obj.save(update_fields=["travel_date", "travel_time", "updated_at"])
             anchor = f"{obj.travel_date} {obj.travel_time}"
         else:
-            obj = BuyRequest.objects.filter(pk=opts["id"], plan__isnull=True).first()
+            obj = Order.objects.filter(pk=opts["id"], plan__isnull=True).first()
             if not obj:
-                raise CommandError(f"Buyer-first BuyRequest {opts['id']} not found")
+                raise CommandError(f"Buyer-first Order {opts['id']} not found")
             obj.max_acceptable_date = target.date()
             obj.save(update_fields=["max_acceptable_date", "updated_at"])
             anchor = f"{obj.max_acceptable_date} (deadline, midnight)"

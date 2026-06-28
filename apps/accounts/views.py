@@ -16,7 +16,7 @@ from apps.trips.forms import (
     ProxyEstimateForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
     TravelPlanForm, TravelerCargoOfferForm, TravelerOfferForm,
 )
-from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
+from apps.trips.models import Order, ExchangeRate, TravelerOffer, TravelPlan
 
 from .forms import ChangePasswordForm, OTPForm, ProfileForm
 
@@ -42,7 +42,7 @@ def _proxy_buying_orders(user):
     source. Empty for a regular buyer who has never been an assigned proxy —
     drives whether the "My Proxy Buying" sidebar item shows."""
     return list(
-        BuyRequest.objects.filter(proxy_buyer__user=user, plan__isnull=True)
+        Order.objects.filter(proxy_buyer__user=user, plan__isnull=True)
         .exclude(status__in=BUYER_FIRST_TERMINAL_STATUSES)
         .select_related("buyer", "proxy_buyer")
         .order_by("max_acceptable_date")
@@ -56,7 +56,7 @@ def _pending_disbursements(user):
     if not getattr(user, "is_superuser", False):
         return []
     orders = (
-        BuyRequest.objects
+        Order.objects
         .filter(status__in=[Status.CLEAR, Status.CLOSED])
         .select_related("buyer", "proxy_buyer__user", "plan__traveler")
         .order_by("-updated_at")
@@ -89,7 +89,7 @@ def _pending_disbursements(user):
     # refund is owed across the whole arrival-onward range — scan all of it (the
     # CLEAR/CLOSED scan above only emits payout rows, never refunds).
     refunds = (
-        BuyRequest.objects
+        Order.objects
         .filter(status__in=REFUND_ELIGIBLE_STATUSES, refund_processed=False)
         .select_related("buyer", "proxy_buyer__user", "plan__traveler")
         .order_by("-updated_at")
@@ -268,9 +268,9 @@ def profile(request):
     else:
         # Buyer side: plan-first requests merged with buyer-first orders, split by
         # transaction type into Proxy Buying vs Carrier Only.
-        my_buying = list(BuyRequest.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
+        my_buying = list(Order.objects.filter(buyer=user, plan__isnull=False).select_related("plan"))
         my_bf_orders = list(
-            BuyRequest.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
+            Order.objects.filter(buyer=user, plan__isnull=True).prefetch_related("traveler_offers")
         )
         for r in my_buying:
             r.bf_kind = "traveler_first"
@@ -292,7 +292,7 @@ def profile(request):
     order_id = request.GET.get("order")
     if order_id:
         order = (
-            BuyRequest.objects.select_related("plan", "plan__traveler", "buyer")
+            Order.objects.select_related("plan", "plan__traveler", "buyer")
             .prefetch_related("traveler_offers")
             .filter(pk=order_id)
             .first()
@@ -344,7 +344,7 @@ def profile(request):
     estimate_order = estimate_form = estimate_formset = None
     estimate_id = request.GET.get("estimate")
     if estimate_id:
-        _e = BuyRequest.objects.select_related("proxy_buyer", "buyer").filter(
+        _e = Order.objects.select_related("proxy_buyer", "buyer").filter(
             pk=estimate_id, plan__isnull=True
         ).first()
         if (_e and _e.proxy_buyer_id and _e.proxy_buyer.user_id == user.id
@@ -358,7 +358,7 @@ def profile(request):
     package_ready_order = package_ready_formset = package_ready_form = package_ready_chat_messages = None
     package_ready_id = request.GET.get("package_ready")
     if package_ready_id:
-        _p = BuyRequest.objects.select_related("proxy_buyer").filter(
+        _p = Order.objects.select_related("proxy_buyer").filter(
             pk=package_ready_id, plan__isnull=True
         ).first()
         if (_p and _p.proxy_buyer_id and _p.proxy_buyer.user_id == user.id
@@ -380,7 +380,7 @@ def profile(request):
             plan = None
         else:
             plan_order_form = BuyRequestForm()
-            plan_order_formset = (OrderItemFormSet if plan.carrier_only else RequestItemFormSet)(instance=BuyRequest())
+            plan_order_formset = (OrderItemFormSet if plan.carrier_only else RequestItemFormSet)(instance=Order())
 
     # Buyer-first leg detail as an in-page panel for the *traveler* who owns the
     # offer (?offer=<id>#offer-detail). Read-only — the traveler's actions live
@@ -405,7 +405,7 @@ def profile(request):
     review_req = review_form = review_formset = review_is_edit = None
     review_id = request.GET.get("review")
     if review_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(
             pk=review_id, plan__traveler=user
         ).first()
         if _r and _r.status in {Status.REQUEST_RECEIVED, Status.ACCEPTED}:
@@ -418,7 +418,7 @@ def profile(request):
     purchase_req = purchase_form = purchase_formset = None
     purchase_id = request.GET.get("purchase")
     if purchase_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=purchase_id).first()
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(pk=purchase_id).first()
         if _r and _r.status in {Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED}:
             if _r.plan_id:
                 is_proxy = _r.plan.traveler_id == user.id
@@ -447,7 +447,7 @@ def profile(request):
     receive_req = receive_form = None
     receive_id = request.GET.get("receive")
     if receive_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=receive_id).first()
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(pk=receive_id).first()
         if _r and _is_order_traveler(_r):
             if (_r.is_cargo and _r.status == Status.DEPOSIT_PAID) or (
                 _r.is_proxy_buyer_first and _r.status == Status.ITEMS_PURCHASED
@@ -459,7 +459,7 @@ def profile(request):
     arrive_req = arrive_form = None
     arrive_id = request.GET.get("arrive")
     if arrive_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=arrive_id).first()
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(pk=arrive_id).first()
         # Cargo + Flow-1 proxy arrive from Package Received (after handover);
         # plan-first proxy buying arrives straight from Items Purchased.
         _arrivable = (Status.PACKAGE_RECEIVED
@@ -476,7 +476,7 @@ def profile(request):
     reship_cost_req = reship_cost_form = None
     reship_cost_id = request.GET.get("reship_cost")
     if reship_cost_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=reship_cost_id).first()
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(pk=reship_cost_id).first()
         if _r and _r.status == Status.RESHIP_REQUESTED and _order_is_proxy(_r, user):
             reship_cost_req = _r
             reship_cost_form = ReshipmentCostForm(instance=_r)
@@ -485,7 +485,7 @@ def profile(request):
     reship_req = reship_form = None
     reship_id = request.GET.get("reship")
     if reship_id:
-        _r = BuyRequest.objects.select_related("plan__traveler", "buyer").filter(pk=reship_id).first()
+        _r = Order.objects.select_related("plan__traveler", "buyer").filter(pk=reship_id).first()
         if _r and _r.status == Status.RESHIP_COST_SENT and _order_is_proxy(_r, user):
             reship_req = _r
             reship_form = AWBForm(instance=_r)
@@ -499,7 +499,7 @@ def profile(request):
     offer_order_id = request.GET.get("offer")
     if offer_order_id:
         _offer_order = (
-            BuyRequest.objects.prefetch_related("traveler_offers")
+            Order.objects.prefetch_related("traveler_offers")
             .filter(pk=offer_order_id, plan__isnull=True)
             .first()
         )
@@ -555,7 +555,7 @@ def profile(request):
         ):
             order_form_plan = _plan
             order_form_buy = BuyRequestForm()
-            order_form_formset = (OrderItemFormSet if _plan.carrier_only else RequestItemFormSet)(instance=BuyRequest())
+            order_form_formset = (OrderItemFormSet if _plan.carrier_only else RequestItemFormSet)(instance=Order())
 
     return render(
         request,
@@ -568,7 +568,7 @@ def profile(request):
             "plan_form": TravelPlanForm(),
             "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
             "new_order_form": OrderForm(),
-            "new_order_formset": OrderItemFormSet(instance=BuyRequest(), prefix="bf_items"),
+            "new_order_formset": OrderItemFormSet(instance=Order(), prefix="bf_items"),
             "travel_rows": travel_rows,
             "orders_proxy": orders_proxy,
             "orders_cargo": orders_cargo,

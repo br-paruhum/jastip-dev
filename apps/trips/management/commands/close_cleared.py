@@ -1,6 +1,6 @@
 """Close transactions the buyer marked Clear, the day after they clear it.
 
-Intended to run daily at 01:00 (server tz = Asia/Jakarta). Finds BuyRequests in
+Intended to run daily at 01:00 (server tz = Asia/Jakarta). Finds Orders in
 the CLEAR status that were cleared on an earlier calendar day and closes them,
 which triggers the traveler payout. So a buyer who clears at any time today has
 until the end of today; the next 01:00 run closes it tomorrow morning.
@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from apps.trips import workflow
 from apps.trips.constants import Status
-from apps.trips.models import BuyRequest
+from apps.trips.models import Order
 
 
 class Command(BaseCommand):
@@ -36,7 +36,7 @@ class Command(BaseCommand):
         close_all = options["all"]
         dry = options["dry_run"]
 
-        qs = BuyRequest.objects.filter(
+        qs = Order.objects.filter(
             status=Status.CLEAR, cleared_at__isnull=False
         ).select_related("plan__traveler", "buyer")
 

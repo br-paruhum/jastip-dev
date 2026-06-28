@@ -32,7 +32,7 @@ class Status(models.TextChoices):
     DROPOFF_MISSED = "dropoff_missed", "Dropoff Missed"
 
 
-# Order-level statuses that only exist on buyer-first orders (BuyRequest.plan is null).
+# Order-level statuses that only exist on buyer-first orders (Order.plan is null).
 BUYER_FIRST_STATUSES = {
     Status.OPEN, Status.RESPONDED, Status.TAKEN,
     Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED,
@@ -58,14 +58,14 @@ class OfferStatus(models.TextChoices):
 class LegStatus(models.TextChoices):
     """Per-leg lifecycle once a TravelerOffer is selected (offer_status=SELECTED).
     Mirrors a subset of Status — kept separate since several legs can be in
-    flight at once for the same BuyRequest (partial fulfillment)."""
+    flight at once for the same Order (partial fulfillment)."""
 
     PACKAGE_DROPPED_OFF = "package_dropped_off", "Package Dropped Off"
     WEIGHT_VERIFIED = "weight_verified", "Weight Verified"
     PACKAGE_RECEIVED = "package_received", "Package Received"
     PACKAGE_ARRIVED = "package_arrived", "Package Arrived"
     READY_FOR_PICKUP = "ready_for_pickup", "Ready for Pickup"
-    # Same DB values as Status's reship trio, so BuyRequest.recompute_status()'s
+    # Same DB values as Status's reship trio, so Order.recompute_status()'s
     # `Status(leg.leg_status)` cast keeps working for the order-level rollup.
     RESHIP_REQUESTED = "reship_requested", "Reship Requested"
     RESHIP_COST_SENT = "reship_cost_sent", "Reship Cost Sent"
@@ -97,7 +97,7 @@ CHAT_STATUSES = {
 # --- Task 11: Message-tab visibility per references/how-to/How-to_260625.pdf ---
 # The foldable "Message" tab is locked for everyone (admin excepted) until the
 # buyer's deposit is verified, then rotates through a *pair* of parties as the
-# proxy transaction advances. See BuyRequest.message_tab_visible_to().
+# proxy transaction advances. See Order.message_tab_visible_to().
 #   note 5  -> Buyer  + Proxy   (deposit paid; proxy starts sourcing)
 #   note 6  -> Proxy  + Carrier (proxy sent actual cost / "Package Ready")
 #   note 8+ -> Carrier + Buyer  (carrier received the package, through close)

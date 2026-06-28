@@ -51,7 +51,7 @@ def render_customs_invoice_pdf(req) -> bytes:
     """Customs (commercial) invoice PDF, matching customs_invoice_print.html and
     NewCustomsInvoiceFormat.pdf. Values are in IDR and INCLUDE the proxy margin;
     Country of Origin is the order's sourcing country; shipping is the carrier's
-    fee; packages fixed at 1. All figures come from BuyRequest.customs_invoice()
+    fee; packages fixed at 1. All figures come from Order.customs_invoice()
     so the PDF and the printable HTML stay identical."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
@@ -152,7 +152,7 @@ def render_customs_invoice_pdf(req) -> bytes:
 
 
 def render_invoice_pdf(req) -> bytes:
-    """Return the PDF bytes of the invoice for a BuyRequest."""
+    """Return the PDF bytes of the invoice for a Order."""
     buf = BytesIO()
     doc = SimpleDocTemplate(
         buf, pagesize=A4,

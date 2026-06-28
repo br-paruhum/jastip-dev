@@ -14,7 +14,7 @@ _NO_MANIFEST_STORAGES = {
 
 from apps.trips import workflow
 from apps.trips.constants import Currency, OfferStatus, Status
-from apps.trips.models import BuyRequest, Payment, RequestItem, TravelPlan, Transaction
+from apps.trips.models import Order, Payment, RequestItem, TravelPlan, Transaction
 
 User = get_user_model()
 
@@ -38,7 +38,7 @@ class LifecycleTests(TestCase):
         )
         # Traveler's estimated weight for this package drives the shipment cost
         # (5 kg × 10 = 50).
-        self.req = BuyRequest.objects.create(
+        self.req = Order.objects.create(
             plan=self.plan, buyer=self.buyer, estimated_weight_kg=Decimal("5")
         )
         RequestItem.objects.create(request=self.req, name="Camera", quantity=1, position=1)
@@ -235,7 +235,7 @@ class CloseCronTests(TestCase):
             shipment_currency=Currency.USD, shipment_cost_per_kg=Decimal("8"),
             margin_percent=Decimal("0"),
         )
-        self.req = BuyRequest.objects.create(plan=plan, buyer=buyer, status=Status.READY_FOR_PICKUP)
+        self.req = Order.objects.create(plan=plan, buyer=buyer, status=Status.READY_FOR_PICKUP)
         RequestItem.objects.create(request=self.req, name="Book", quantity=1,
                                    estimated_unit_cost=Decimal("10"), actual_unit_cost=Decimal("10"))
         Transaction.objects.create(request=self.req)
@@ -256,7 +256,7 @@ class CloseCronTests(TestCase):
         # Cleared late yesterday (local) -> the next 01:00 run closes it, even
         # though less than 24h has elapsed.
         local_midnight = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
-        BuyRequest.objects.filter(pk=self.req.pk).update(
+        Order.objects.filter(pk=self.req.pk).update(
             cleared_at=local_midnight - timedelta(minutes=1)
         )
         call_command("close_cleared")
@@ -264,7 +264,7 @@ class CloseCronTests(TestCase):
         self.assertEqual(self.req.status, Status.CLOSED)
 
     def test_aged_clear_is_closed(self):
-        BuyRequest.objects.filter(pk=self.req.pk).update(
+        Order.objects.filter(pk=self.req.pk).update(
             cleared_at=timezone.now() - timedelta(days=2)
         )
         call_command("close_cleared")
@@ -286,7 +286,7 @@ class RefundTests(TestCase):
             shipment_currency=Currency.USD, shipment_cost_per_kg=Decimal("10"),
             margin_percent=Decimal("0"),
         )
-        self.req = BuyRequest.objects.create(plan=plan, buyer=self.buyer, status=Status.PACKAGE_ARRIVED)
+        self.req = Order.objects.create(plan=plan, buyer=self.buyer, status=Status.PACKAGE_ARRIVED)
         RequestItem.objects.create(request=self.req, name="A", quantity=1)
         tx = Transaction.objects.create(request=self.req)
         # Overpay: invoice_total is 0 here; a 100 verified payment => refund_due 100.
@@ -335,14 +335,14 @@ class ChatTests(TestCase):
             shipment_currency=Currency.THB, shipment_cost_per_kg=Decimal("100"),
             margin_percent=Decimal("5"),
         )
-        self.req = BuyRequest.objects.create(plan=plan, buyer=self.buyer)
+        self.req = Order.objects.create(plan=plan, buyer=self.buyer)
         RequestItem.objects.create(request=self.req, name="Snacks", quantity=1)
 
     def test_buyer_message_notifies_traveler(self):
         from django.core import mail
         from apps.trips.models import Message
         # Message tab only opens once the order is an active transaction
-        # (deposit paid onward) — see BuyRequest.message_tab_visible_to (Task 11).
+        # (deposit paid onward) — see Order.message_tab_visible_to (Task 11).
         self.req.status = Status.DEPOSIT_PAID
         self.req.save(update_fields=["status"])
         self.client.force_login(self.buyer)
@@ -411,7 +411,7 @@ class MessageTabVisibilityTests(TestCase):
         )
         # Buyer-first proxy order (plan=None) with one confirmed carrier leg, so
         # traveler_user resolves to the carrier and all three parties are present.
-        self.order = BuyRequest.objects.create(buyer=self.buyer, proxy_buyer=proxy)
+        self.order = Order.objects.create(buyer=self.buyer, proxy_buyer=proxy)
         TravelerOffer.objects.create(
             order=self.order, traveler=self.carrier,
             ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
@@ -488,7 +488,7 @@ class CustomsInvoiceTests(TestCase):
             user=self.proxy_user,
         )
         # All-IDR order avoids needing an FX rate; margin 10%, weight 3 kg.
-        self.order = BuyRequest.objects.create(
+        self.order = Order.objects.create(
             buyer=self.buyer, proxy_buyer=proxy, settlement_currency="IDR",
             proxy_margin_percent=Decimal("10"), status=Status.ITEMS_PURCHASED,
             actual_weight_kg=Decimal("3"),
@@ -551,7 +551,7 @@ class ReviewDraftTests(TestCase):
             shipment_currency=Currency.JPY, shipment_cost_per_kg=Decimal("1000"),
             margin_percent=Decimal("10"),
         )
-        self.req = BuyRequest.objects.create(plan=plan, buyer=buyer, status=Status.REQUEST_RECEIVED)
+        self.req = Order.objects.create(plan=plan, buyer=buyer, status=Status.REQUEST_RECEIVED)
         self.item = RequestItem.objects.create(request=self.req, name="Toy", quantity=1)
         self.traveler = traveler
 

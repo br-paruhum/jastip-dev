@@ -43,7 +43,7 @@ from .forms import (
     TravelPlanForm,
 )
 from .models import (
-    BuyRequest,
+    Order,
     ExchangeRate,
     ItemLegAllocation,
     LegPayment,
@@ -139,7 +139,7 @@ def plan_detail(request, pk):
     plan = get_object_or_404(TravelPlan.objects.select_related("traveler"), pk=pk)
     plan_order_form = BuyRequestForm()
     _ItemFormSet = OrderItemFormSet if plan.carrier_only else RequestItemFormSet
-    plan_order_formset = _ItemFormSet(instance=BuyRequest())
+    plan_order_formset = _ItemFormSet(instance=Order())
     return render(
         request,
         "trips/plan_detail.html",
@@ -174,7 +174,7 @@ def request_create(request, plan_id):
 
     if request.method == "POST":
         form = BuyRequestForm(request.POST)
-        formset = ItemFormSet(request.POST, request.FILES, instance=BuyRequest())
+        formset = ItemFormSet(request.POST, request.FILES, instance=Order())
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 buy = form.save(commit=False)
@@ -202,14 +202,14 @@ def request_create(request, plan_id):
             return redirect(reverse("accounts:profile") + f"?order={buy.id}#order-detail")
     else:
         form = BuyRequestForm()
-        formset = ItemFormSet(instance=BuyRequest())
+        formset = ItemFormSet(instance=Order())
     return render(request, "trips/request_form.html", {"plan": plan, "form": form, "formset": formset})
 
 
 # --- Buyer: edit / cancel a plan-first order before the traveler acts -------
 @profile_required
 def request_edit(request, pk):
-    req = get_object_or_404(BuyRequest.objects.select_related("plan"), pk=pk)
+    req = get_object_or_404(Order.objects.select_related("plan"), pk=pk)
     if req.buyer_id != request.user.id:
         messages.error(request, "You can only edit your own order.")
         return redirect(reverse("accounts:profile") + "#my-orders")
@@ -252,7 +252,7 @@ def request_edit(request, pk):
 @profile_required
 @require_POST
 def request_cancel(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if req.buyer_id != request.user.id:
         messages.error(request, "You can only cancel your own order.")
         return redirect(reverse("accounts:profile") + "#my-orders")
@@ -285,7 +285,7 @@ def order_create(request):
         cargo = proxy is None and request.POST.get("cargo_only") == "1"
         ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
         form = OrderForm(request.POST, proxy=proxy)
-        formset = ItemFormSet(request.POST, request.FILES, instance=BuyRequest(), prefix="bf_items")
+        formset = ItemFormSet(request.POST, request.FILES, instance=Order(), prefix="bf_items")
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
                 order = form.save(commit=False)
@@ -324,7 +324,7 @@ def order_create(request):
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(proxy=proxy)
-        formset = OrderItemFormSet(instance=BuyRequest(), prefix="bf_items")
+        formset = OrderItemFormSet(instance=Order(), prefix="bf_items")
     from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "proxy": proxy,
@@ -336,7 +336,7 @@ def order_create(request):
 # --- Buyer: edit / cancel a buyer-first order before any offer -------------
 @profile_required
 def order_edit(request, pk):
-    order = get_object_or_404(BuyRequest, pk=pk, plan__isnull=True)
+    order = get_object_or_404(Order, pk=pk, plan__isnull=True)
     if order.buyer_id != request.user.id:
         messages.error(request, "You can only edit your own order.")
         return redirect(reverse("accounts:profile") + "#my-orders")
@@ -397,7 +397,7 @@ def order_edit(request, pk):
 @profile_required
 @require_POST
 def order_cancel(request, pk):
-    order = get_object_or_404(BuyRequest, pk=pk, plan__isnull=True)
+    order = get_object_or_404(Order, pk=pk, plan__isnull=True)
     if order.buyer_id != request.user.id:
         messages.error(request, "You can only cancel your own order.")
         return redirect(reverse("accounts:profile") + "#my-orders")
@@ -415,7 +415,7 @@ def order_cancel(request, pk):
 @require_POST
 def offer_create(request, order_id):
     dashboard_url = reverse("accounts:profile")
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     if order.buyer_id == request.user.id:
         messages.error(request, "You cannot place an offer on your own order.")
         return redirect(reverse("pages:home") + "#open-orders")
@@ -465,7 +465,7 @@ def offer_create(request, order_id):
 @require_POST
 def proxy_estimate(request, order_id):
     dashboard = reverse("accounts:profile")
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     panel = dashboard + f"?estimate={order.id}#estimate-form"
     if not (order.proxy_buyer_id and order.proxy_buyer.user_id == request.user.id):
         messages.error(request, "Only the assigned Proxy Buyer can send an estimate.")
@@ -499,7 +499,7 @@ def proxy_estimate(request, order_id):
 @profile_required
 @require_POST
 def proxy_purchase(request, order_id):
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     dash = reverse("accounts:profile")
     detail = dash + f"?order={order.id}#order-detail"
     if not (order.proxy_buyer_id and order.proxy_buyer.user_id == request.user.id
@@ -552,7 +552,7 @@ def proxy_purchase(request, order_id):
 @profile_required
 @require_POST
 def order_accept(request, order_id):
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
     if request.user != order.buyer:
         messages.error(request, "Only the buyer can accept the shipment cost.")
@@ -590,7 +590,7 @@ def order_accept(request, order_id):
 @profile_required
 @require_POST
 def order_reject(request, order_id):
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
     if request.user != order.buyer:
         messages.error(request, "Only the buyer can reject the shipment cost.")
@@ -617,7 +617,7 @@ def order_reject(request, order_id):
 @profile_required
 @require_POST
 def order_deposit_pay(request, order_id):
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
     detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
     if request.user != order.buyer:
         messages.error(request, "Only the buyer can submit the deposit.")
@@ -731,7 +731,7 @@ def offer_select(request, pk):
 @profile_required
 @require_POST
 def order_assign_items(request, order_id):
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True, cargo_only=True)
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True, cargo_only=True)
     detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
     if order.buyer_id != request.user.id:
         messages.error(request, "Only the buyer can assign the goods.")
@@ -1101,7 +1101,7 @@ def leg_clear(request, pk):
 
 def request_detail(request, pk):
     req = get_object_or_404(
-        BuyRequest.objects.select_related("plan", "plan__traveler", "buyer"), pk=pk
+        Order.objects.select_related("plan", "plan__traveler", "buyer"), pk=pk
     )
     if request.user not in (req.buyer, req.plan.traveler) and not request.user.is_staff:
         messages.error(request, "You do not have access to this request.")
@@ -1127,7 +1127,7 @@ def request_detail(request, pk):
 @profile_required
 @require_POST
 def request_refund_bank(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can submit refund details.")
         return redirect(req.get_absolute_url())
@@ -1147,7 +1147,7 @@ def request_refund_bank(request, pk):
 @require_POST
 def request_message(request, pk):
     req = get_object_or_404(
-        BuyRequest.objects.select_related("plan", "plan__traveler", "buyer", "proxy_buyer__user"), pk=pk
+        Order.objects.select_related("plan", "plan__traveler", "buyer", "proxy_buyer__user"), pk=pk
     )
     if not (request.user.is_staff or req.is_chat_participant(request.user)):
         messages.error(request, "You cannot post to this conversation.")
@@ -1199,7 +1199,7 @@ def _traveler_invoice_redirect(req):
 # --- Traveler: review (price + accept/reject) -------------------------------
 @profile_required
 def request_review(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can review this request.")
         return redirect(req.get_absolute_url())
@@ -1247,7 +1247,7 @@ def request_review(request, pk):
 # --- Traveler: record purchases -> Item(s) Purchased ------------------------
 @profile_required
 def request_purchase(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can record purchases.")
         return redirect(req.get_absolute_url())
@@ -1286,7 +1286,7 @@ def request_purchase(request, pk):
 @profile_required
 @require_POST
 def request_receive(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can confirm receipt.")
         return redirect(req.get_absolute_url())
@@ -1318,7 +1318,7 @@ def request_receive(request, pk):
 # --- Traveler: arrival + custom fare -> Package Arrived ---------------------
 @profile_required
 def request_arrive(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can update arrival.")
         return redirect(req.get_absolute_url())
@@ -1371,7 +1371,7 @@ def request_arrive(request, pk):
 @profile_required
 @require_POST
 def request_pay(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can submit a payment.")
         return redirect(req.get_absolute_url())
@@ -1402,7 +1402,7 @@ def request_pay(request, pk):
 @profile_required
 @require_POST
 def request_clear(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can confirm receipt and clearance.")
         return redirect(req.get_absolute_url())
@@ -1431,7 +1431,7 @@ def release_disbursement(request, pk):
     if not request.user.is_staff:
         messages.error(request, "Only staff can release disbursements.")
         return redirect(reverse("accounts:profile"))
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     back = request.POST.get("next") or request.META.get("HTTP_REFERER") or (
         reverse("accounts:profile") + f"?order={req.id}#order-detail")
     kind = request.POST.get("kind")
@@ -1488,7 +1488,7 @@ def release_disbursement(request, pk):
 @profile_required
 @require_POST
 def request_reship_request(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can request reshipment.")
         return redirect(req.get_absolute_url())
@@ -1509,7 +1509,7 @@ def request_reship_request(request, pk):
 # --- Traveler: send reshipment cost + bank details --------------------------
 @profile_required
 def request_reship_cost(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can submit the reshipment cost.")
         return redirect(req.get_absolute_url())
@@ -1532,7 +1532,7 @@ def request_reship_cost(request, pk):
 # --- Traveler: submit AWB → In Transit --------------------------------------
 @profile_required
 def request_reship(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not _require_traveler(request, req):
         messages.error(request, "Only the carrier can mark this as shipped.")
         return redirect(req.get_absolute_url())
@@ -1556,7 +1556,7 @@ def request_reship(request, pk):
 @profile_required
 @require_POST
 def request_reship_proof(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can upload reshipment proof.")
         return redirect(req.get_absolute_url())
@@ -1578,7 +1578,7 @@ def request_reship_proof(request, pk):
 def request_invoice(request, pk):
     """Full buyer invoice (all financials) as a printable page — the buyer's
     counterpart to the customs invoice. Buyer + staff only."""
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     if not (request.user.is_staff or req.buyer_id == request.user.id):
         messages.error(request, "You don't have access to this invoice.")
         return redirect(reverse("accounts:profile"))
@@ -1597,7 +1597,7 @@ def kurs(request):
 
 @login_required
 def request_customs_invoice(request, pk):
-    req = get_object_or_404(BuyRequest, pk=pk)
+    req = get_object_or_404(Order, pk=pk)
     allowed = (
         request.user.is_staff
         or req.buyer_id == request.user.id

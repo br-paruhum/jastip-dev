@@ -6,7 +6,7 @@ from django.forms import inlineformset_factory
 from django.utils import timezone
 
 from .constants import COUNTRY_CHOICES, Currency, FulfillmentMethod
-from .models import BuyRequest, Message, RequestItem, TravelerOffer, TravelPlan
+from .models import Order, Message, RequestItem, TravelerOffer, TravelPlan
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
 # submits dd-Mmm-yyyy (e.g. 19-Jun-2026) on every browser — the native
@@ -89,7 +89,7 @@ class TravelPlanForm(forms.ModelForm):
 
 class BuyRequestForm(forms.ModelForm):
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["estimated_weight_kg", "buyer_notes"]
         widgets = {
             "estimated_weight_kg": forms.NumberInput(
@@ -109,7 +109,7 @@ class BuyRequestForm(forms.ModelForm):
 
 class OrderForm(forms.ModelForm):
     """Buyer-first 'place an order' form — no carrier yet (see
-    PLAN-buyer-first-orders.md §3-4). Posts a BuyRequest with plan=None."""
+    PLAN-buyer-first-orders.md §3-4). Posts a Order with plan=None."""
 
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
@@ -142,7 +142,7 @@ class OrderForm(forms.ModelForm):
     )
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = [
             "from_city", "from_country", "to_city", "to_country",
             "to_address", "to_postal_code", "delivery_preference",
@@ -346,7 +346,7 @@ class ReviewForm(forms.ModelForm):
     """
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["estimated_weight_kg"]
         widgets = {
             "estimated_weight_kg": forms.NumberInput(
@@ -370,7 +370,7 @@ class ProxyEstimateForm(forms.ModelForm):
     and their margin %; the per-item unit costs come from ReviewItemFormSet."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["estimated_weight_kg", "proxy_margin_percent"]
         widgets = {
             "estimated_weight_kg": forms.NumberInput(
@@ -417,7 +417,7 @@ class RequestItemForm(forms.ModelForm):
 
 # Buyer creates up to 10 items.
 RequestItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, form=RequestItemForm,
+    Order, RequestItem, form=RequestItemForm,
     extra=3, max_num=10, validate_max=True, can_delete=True,
 )
 
@@ -455,7 +455,7 @@ class OrderItemForm(forms.ModelForm):
 
 
 OrderItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, form=OrderItemForm,
+    Order, RequestItem, form=OrderItemForm,
     extra=3, max_num=10, validate_max=True, can_delete=True,
 )
 
@@ -470,7 +470,7 @@ class ReviewItemForm(forms.ModelForm):
 
 
 ReviewItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, form=ReviewItemForm,
+    Order, RequestItem, form=ReviewItemForm,
     extra=0, can_delete=False,
 )
 
@@ -480,7 +480,7 @@ class PurchaseWeightForm(forms.ModelForm):
     (rather than waiting for the package-arrived step)."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["actual_weight_kg"]
         widgets = {
             "actual_weight_kg": forms.NumberInput(
@@ -519,7 +519,7 @@ class PurchaseItemForm(forms.ModelForm):
 
 
 PurchaseItemFormSet = inlineformset_factory(
-    BuyRequest, RequestItem, form=PurchaseItemForm, extra=0, can_delete=False,
+    Order, RequestItem, form=PurchaseItemForm, extra=0, can_delete=False,
 )
 
 
@@ -528,7 +528,7 @@ class CustomFareForm(forms.ModelForm):
     estimate proof and (later, after the buyer pays) the actual receipt."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = [
             "custom_fare_currency", "custom_fare_amount",
             "custom_fare_estimate_proof", "custom_fare_proof",
@@ -605,7 +605,7 @@ class RefundBankForm(forms.ModelForm):
     """Buyer's bank details for receiving an overpaid refund."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["refund_bank_name", "refund_account_no", "refund_account_name"]
         labels = {
             "refund_bank_name": "Bank name",
@@ -631,7 +631,7 @@ class ReshipmentCostForm(forms.ModelForm):
     not re-entered here."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["reshipment_cost_amount", "reshipment_cost_proof"]
         labels = {
             "reshipment_cost_amount": "Shipment cost (IDR)",
@@ -653,7 +653,7 @@ class AWBForm(forms.ModelForm):
     """Carrier uploads AWB number + document to mark package as shipped."""
 
     class Meta:
-        model = BuyRequest
+        model = Order
         fields = ["awb_number", "awb_document"]
         labels = {
             "awb_number": "AWB / Tracking number",

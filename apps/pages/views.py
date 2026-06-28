@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET
 from apps.blog.models import Post
 from apps.notifications.services import send_email
 from apps.trips.constants import OfferStatus, Status
-from apps.trips.models import BuyRequest, ProxyBuyer
+from apps.trips.models import Order, ProxyBuyer
 
 from .forms import ContactForm
 from .models import ContactMessage, FAQItem, SitePage
@@ -41,7 +41,7 @@ def home(request):
 
     # Flow-1 (proxy, FCFS one traveler) — unchanged.
     for o in (
-        BuyRequest.objects.filter(
+        Order.objects.filter(
             plan__isnull=True, cargo_only=False, proxy_buyer__isnull=False,
             status__in={Status.RESPONDED} | CARRY_INFLIGHT,
         ).select_related("buyer").prefetch_related("traveler_offers")
@@ -62,7 +62,7 @@ def home(request):
 
     # Flow-2 (buyer-owned cargo, one→many) — partial fulfillment across legs.
     for o in (
-        BuyRequest.objects.filter(plan__isnull=True, cargo_only=True)
+        Order.objects.filter(plan__isnull=True, cargo_only=True)
         .exclude(status__in=CARGO_DONE)
         .select_related("buyer").prefetch_related("traveler_offers")
     ):

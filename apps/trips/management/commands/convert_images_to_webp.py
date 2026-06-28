@@ -5,10 +5,10 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
 from apps.blog.models import Post
-from apps.trips.models import BuyRequest, Message, Payment, RequestItem
+from apps.trips.models import Order, Message, Payment, RequestItem
 
 FIELDS = [
-    (BuyRequest, ["custom_fare_proof", "reshipment_cost_proof", "reshipment_proof"]),
+    (Order, ["custom_fare_proof", "reshipment_cost_proof", "reshipment_proof"]),
     (RequestItem, ["photo", "purchase_photo"]),
     (Payment, ["proof"]),
     (Message, ["photo"]),

@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from apps.trips import workflow
 from apps.trips.constants import Status
-from apps.trips.models import BuyRequest, Payment
+from apps.trips.models import Order, Payment
 
 
 class Command(BaseCommand):
@@ -40,7 +40,7 @@ class Command(BaseCommand):
             kind=Payment.Kind.DEPOSIT,
         )
 
-        overdue = BuyRequest.objects.filter(
+        overdue = Order.objects.filter(
             status=Status.ACCEPTED,
             updated_at__lt=cutoff,
         ).exclude(

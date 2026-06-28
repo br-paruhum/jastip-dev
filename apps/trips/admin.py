@@ -7,7 +7,7 @@ from unfold.admin import ModelAdmin, TabularInline
 from . import workflow
 from .constants import OfferStatus, REFUND_ELIGIBLE_STATUSES, Status
 from .models import (
-    BuyRequest,
+    Order,
     ExchangeRate,
     LegPayment,
     LegTransaction,
@@ -50,8 +50,8 @@ class MessageInline(TabularInline):
         return False
 
 
-@admin.register(BuyRequest)
-class BuyRequestAdmin(ModelAdmin):
+@admin.register(Order)
+class OrderAdmin(ModelAdmin):
     """Read-only order browser. All buyer-payment verification (deposit and
     final/balance) is done on the Payments page — the single source of truth —
     and overpaid refunds live under the dedicated Refunds section.

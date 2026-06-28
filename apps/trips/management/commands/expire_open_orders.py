@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.trips.constants import Status
-from apps.trips.models import BuyRequest
+from apps.trips.models import Order
 
 
 class Command(BaseCommand):
@@ -28,7 +28,7 @@ class Command(BaseCommand):
         dry = options["dry_run"]
         today = timezone.localtime().date()
 
-        qs = BuyRequest.objects.filter(
+        qs = Order.objects.filter(
             plan__isnull=True,
             status=Status.OPEN,
             max_acceptable_date__lt=today,

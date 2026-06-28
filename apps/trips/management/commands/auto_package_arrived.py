@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from apps.trips import workflow
 from apps.trips.constants import Status
-from apps.trips.models import BuyRequest
+from apps.trips.models import Order
 
 
 class Command(BaseCommand):
@@ -43,7 +43,7 @@ class Command(BaseCommand):
         # travel_date + 2 <= today  →  travel_date <= today - 2
         cutoff = today - timedelta(days=2)
 
-        overdue = BuyRequest.objects.filter(
+        overdue = Order.objects.filter(
             status=Status.ITEMS_PURCHASED,
             plan__travel_date__lte=cutoff,
         ).select_related("plan__traveler", "buyer")

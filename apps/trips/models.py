@@ -237,7 +237,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
         return remaining if remaining > 0 else Decimal("0").quantize(TWO_PLACES)
 
 
-class BuyRequest(ListingTimingMixin, models.Model):
+class Order(ListingTimingMixin, models.Model):
     """A buyer 'orders' a travel plan and lists items to purchase — OR, when
     ``plan`` is null, a buyer-first order posted with no carrier yet (see
     PLAN-buyer-first-orders.md). Matching carriers respond via TravelerOffer;
@@ -368,10 +368,11 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
     class Meta:
         ordering = ["-created_at"]
-        # Display-only relabel: the model is the full Order (items, payments,
-        # payouts, refunds, lifecycle), not just a "buy request". Renaming the
-        # admin label avoids the confusing legacy term without a model/table
-        # rename. Mirrors TravelerOffer -> "Carrier offer".
+        # Task 26(b): the class is now `Order` (was `BuyRequest`). We keep the
+        # original DB table name to avoid a physical table rename (and the proxy
+        # `Refund` base churn that comes with it) — pure code/terminology change,
+        # zero schema migration. See migration 0057.
+        db_table = "trips_buyrequest"
         verbose_name = "Order"
         verbose_name_plural = "Orders"
 
@@ -1462,13 +1463,13 @@ class BuyRequest(ListingTimingMixin, models.Model):
 
 
 class TravelerOffer(models.Model):
-    """A carrier's response to a buyer-first BuyRequest (order). Once selected
+    """A carrier's response to a buyer-first Order (order). Once selected
     by the buyer it becomes an independent "leg" — its own deposit, drop-off,
     and lifecycle — so a single order can be split across several carriers
     (partial fulfillment) without the legs blocking each other.
     """
 
-    order = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="traveler_offers")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="traveler_offers")
     traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="traveler_offers")
 
     ask_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
@@ -1500,7 +1501,7 @@ class TravelerOffer(models.Model):
     )
     fulfillment_method = models.CharField(max_length=10, choices=FulfillmentMethod.choices, blank=True)
 
-    # Reshipment — mirrors BuyRequest's reshipment_* fields, but per leg: a
+    # Reshipment — mirrors Order's reshipment_* fields, but per leg: a
     # partially-fulfilled order can have several legs each reshipping (or not)
     # independently.
     reshipment_address = models.TextField(blank=True)
@@ -1670,7 +1671,7 @@ class TravelerOffer(models.Model):
     @property
     def custom_fare_in_order_currency(self) -> Decimal:
         """Customs duty converted to the order's currency (BCA sell_rate = IDR
-        per 1 unit of foreign currency). Mirrors BuyRequest.actual_custom."""
+        per 1 unit of foreign currency). Mirrors Order.actual_custom."""
         if not self.custom_fare_amount:
             return Decimal("0.00")
         inv = self.order.currency
@@ -1835,7 +1836,7 @@ class LegTransaction(models.Model):
     """Settlement record for a single confirmed leg (selected TravelerOffer)
     of a buyer-first order. Kept independent of `Transaction` — a partially
     fulfilled order has one deposit/payout per carrier, not one for the
-    whole order, so it can't share the BuyRequest-level transaction."""
+    whole order, so it can't share the Order-level transaction."""
 
     leg = models.OneToOneField(TravelerOffer, on_delete=models.CASCADE, related_name="transaction")
     commission_percent = models.DecimalField(
@@ -1940,8 +1941,8 @@ class LegPayment(models.Model):
         self.save(update_fields=["status", "verified_by", "verified_at"])
 
 
-class Refund(BuyRequest):
-    """Proxy of BuyRequest powering the admin 'Refunds' section: the same orders,
+class Refund(Order):
+    """Proxy of Order powering the admin 'Refunds' section: the same orders,
     but presented as a dedicated workspace for processing overpaid refunds so the
     refund action no longer lives under the confusing 'Buy Requests' label."""
 
@@ -1954,7 +1955,7 @@ class Refund(BuyRequest):
 class RequestItem(models.Model):
     """One requested item; the carrier fills in cost + actual-purchase fields."""
 
-    request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="items")
+    request = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     position = models.PositiveSmallIntegerField(default=1)
 
     name = models.CharField(max_length=200)
@@ -2039,7 +2040,7 @@ class Transaction(models.Model):
     real gateway (Midtrans/Stripe) can be plugged in without schema changes.
     """
 
-    request = models.OneToOneField(BuyRequest, on_delete=models.CASCADE, related_name="transaction")
+    request = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="transaction")
     commission_percent = models.DecimalField(
         max_digits=5, decimal_places=2,
         default=Decimal(str(settings.PLATFORM_COMMISSION_PERCENT)),
@@ -2245,7 +2246,7 @@ class Message(models.Model):
         PROXY_CARRIER = "proxy_carrier", "Proxy & Carrier"
         CARRIER_BUYER = "carrier_buyer", "Carrier & Buyer"
 
-    request = models.ForeignKey(BuyRequest, on_delete=models.CASCADE, related_name="messages")
+    request = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="messages")
     sender = models.ForeignKey(USER, on_delete=models.SET_NULL, null=True, related_name="sent_messages")
     audience = models.CharField(max_length=20, choices=Audience.choices, default=Audience.ALL)
     body = models.TextField()
