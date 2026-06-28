@@ -360,7 +360,6 @@ class BuyRequest(ListingTimingMixin, models.Model):
     awb_document = models.FileField(upload_to="awb/", blank=True, null=True)
 
     rejection_reason = models.TextField(blank=True)
-    traveler_cleared = models.BooleanField(default=False)
     buyer_cleared = models.BooleanField(default=False)
     cleared_at = models.DateTimeField(null=True, blank=True, help_text="When the buyer marked the package Clear.")
 
