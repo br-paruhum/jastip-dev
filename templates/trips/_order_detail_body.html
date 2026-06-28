@@ -291,7 +291,7 @@
     {% endif %}
   {% elif bf_order.status == "clear" %}
     {% if is_order_proxy and not is_order_buyer %}
-    <p><span class="badge badge-success">Clear</span> The buyer confirmed pickup{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. Your remaining 50% disbursement is being released.</p>
+    <p><span class="badge badge-success">Clear</span> The buyer confirmed pickup{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. Your product purchase payout will be disbursed within the next 24 hours.</p>
     {% else %}
     <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if bf_order.cleared_at %} on {{ bf_order.cleared_at|date:"d M Y, H:i" }}{% endif %}. The proxy buyer and the carrier are being paid shortly.</p>
     {% endif %}
