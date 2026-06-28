@@ -283,20 +283,6 @@ class TravelerOfferForm(forms.ModelForm):
         return val
 
 
-class ProxyOfferForm(TravelerOfferForm):
-    """Products (proxy buying) response — the proxy's offer essentials (rate +
-    travel details), used alongside the per-item estimate formset (ReviewItemFormSet)
-    and ReviewForm (estimated weight). No avail_kg: one proxy fulfils the whole
-    order (first-come-first-served), so capacity isn't split."""
-
-    class Meta(TravelerOfferForm.Meta):
-        fields = [
-            "ask_cost_per_kg", "drop_off_address",
-            "travel_date", "travel_time",
-            "from_city", "from_country", "to_city", "to_country",
-        ]
-
-
 class TravelerCargoOfferForm(forms.ModelForm):
     """Carrier's carry offer on a 'Cargo Looking for Carrier' order (Flow-1/2):
     offer weight + shipment rate/kg + travel date/time. No drop-off address — the

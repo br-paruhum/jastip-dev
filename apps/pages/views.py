@@ -12,28 +12,16 @@ from django.views.decorators.http import require_GET
 from apps.blog.models import Post
 from apps.notifications.services import send_email
 from apps.trips.constants import OfferStatus, Status
-from apps.trips.models import BuyRequest, ProxyBuyer, TravelPlan
+from apps.trips.models import BuyRequest, ProxyBuyer
 
 from .forms import ContactForm
-from .models import ContactMessage, FAQItem, SitePage, SiteSettings
+from .models import ContactMessage, FAQItem, SitePage
 
 logger = logging.getLogger(__name__)
 
 
 def home(request):
     proxy_buyers = list(ProxyBuyer.objects.filter(is_active=True))
-
-    # Board 2 (Looking for Cargo): carrier-only posted trips with spare capacity.
-    # Keep a plan on the home page until 24h past departure; within 24h it still
-    # shows but renders Closed/Locked (p.listing_locked).
-    open_plans_cargo = [
-        p for p in TravelPlan.objects
-        .exclude(status__in=[Status.CLOSED, Status.CANCELLED])
-        .filter(carrier_only=True)
-        .select_related("traveler")
-        .prefetch_related("buy_requests")[:30]
-        if not p.board_expired
-    ]
 
     # "Looking for Carrier" board = both flavours of cargo that needs a traveler:
     #   Flow-1: proxy-sourced orders whose estimate is sent (FCFS — one traveler).
@@ -91,9 +79,6 @@ def home(request):
     cargo_looking.sort(key=lambda o: o.max_acceptable_date or date.max)
 
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
-    # Pass as a plain Decimal so {% if remaining >= MIN_REMAINING_WEIGHT_KG %} works
-    # (SimpleLazyObject doesn't proxy __ge__/__le__, causing silent False comparisons).
-    min_remaining = SiteSettings.load().min_remaining_weight_kg
     return render(
         request,
         "pages/home.html",
@@ -101,10 +86,7 @@ def home(request):
             "proxy_buyers": proxy_buyers,
             # Board 1 (Looking for Traveler) = proxy-sourced cargo orders.
             "cargo_looking": cargo_looking,
-            # Board 2 (Looking for Cargo) = carrier-only posted trips with capacity.
-            "looking_for_cargo": open_plans_cargo,
             "latest_posts": latest_posts,
-            "MIN_REMAINING_WEIGHT_KG": min_remaining,
         },
     )
 

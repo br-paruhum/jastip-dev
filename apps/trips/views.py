@@ -31,7 +31,6 @@ from .forms import (
     OrderForm,
     OrderItemFormSet,
     ProxyEstimateForm,
-    ProxyOfferForm,
     TravelerCargoOfferForm,
     PurchaseItemFormSet,
     PurchaseWeightForm,
@@ -461,61 +460,6 @@ def offer_create(request, order_id):
     return redirect(dashboard_url + f"?offer={order_id}#offer-form")
 
 
-# --- Proxy Buyer: respond to a Products (buyer-first) order with an estimate -
-# The proxy fills per-item unit costs + estimated weight + their rate (the
-# "Estimated Cost" form). First-come-first-served: a Products order takes a
-# single proxy and is locked until they withdraw.
-@profile_required
-@require_POST
-def offer_estimate_create(request, order_id):
-    dashboard_url = reverse("accounts:profile")
-    order = get_object_or_404(BuyRequest, pk=order_id, plan__isnull=True)
-    if order.buyer_id == request.user.id:
-        messages.error(request, "You cannot place an offer on your own order.")
-        return redirect(reverse("pages:home") + "#open-orders")
-    if order.is_cargo:
-        messages.error(request, "This is a Cargo order — use the carry offer form.")
-        return redirect(dashboard_url + "#travel-plans")
-    if order.status not in OPEN_ORDER_STATUSES:
-        messages.info(request, "This order is no longer accepting offers.")
-        return redirect(dashboard_url + "#travel-plans")
-    # FCFS lock: a Products order takes one proxy. Block if anyone already holds
-    # a live (pending or selected) offer on it.
-    if order.traveler_offers.filter(
-        offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED]
-    ).exists():
-        messages.info(request, "Another Proxy Buyer is already handling this order.")
-        return redirect(dashboard_url + "#travel-plans")
-
-    form = ProxyOfferForm(request.POST)
-    review_form = ReviewForm(request.POST, instance=order)
-    review_formset = ReviewItemFormSet(request.POST, instance=order, prefix="est_items")
-    if form.is_valid() and review_form.is_valid() and review_formset.is_valid():
-        if (review_form.cleaned_data.get("estimated_weight_kg") or 0) <= 0:
-            messages.error(request, "Enter the estimated package weight (kg).")
-            return redirect(dashboard_url + f"?offer={order_id}#offer-form")
-        with db_transaction.atomic():
-            review_formset.save()            # estimated_unit_cost on each item
-            review_form.save()               # order.estimated_weight_kg
-            offer = form.save(commit=False)
-            offer.order = order
-            offer.traveler = request.user
-            offer.pickup_address = request.user.traveler_address
-            offer.avail_kg = order.estimated_weight_kg or Decimal("0")
-            offer.save()
-            order.recompute_status()
-        workflow.on_offer_submitted(order, offer)
-        messages.success(request, "Estimate submitted. The buyer will review it.")
-        return redirect(dashboard_url + "#travel-plans")
-    for f in (form, review_form):
-        for field, errs in f.errors.items():
-            for err in errs:
-                messages.error(request, f"{field}: {err}")
-    for err in review_formset.non_form_errors():
-        messages.error(request, err)
-    return redirect(dashboard_url + f"?offer={order_id}#offer-form")
-
-
 # --- Proxy buyer (Flow-1): send the estimate on an assigned order ------------
 @profile_required
 @require_POST
@@ -852,31 +796,6 @@ def leg_deposit_pay(request, pk):
     return redirect(detail_url)
 
 
-# --- Buyer: mark a confirmed leg's package as dropped off --------------------
-@profile_required
-@require_POST
-def leg_dropped_off(request, pk):
-    offer = get_object_or_404(TravelerOffer, pk=pk, offer_status=OfferStatus.SELECTED)
-    order = offer.order
-    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
-    if request.user != order.buyer:
-        messages.error(request, "Only the buyer can mark a package as dropped off.")
-        return redirect(detail_url)
-    if not offer.address_revealed:
-        messages.error(request, "Pay this leg's deposit first.")
-        return redirect(detail_url)
-    if offer.leg_status:
-        messages.info(request, "This leg has already moved past drop-off.")
-        return redirect(detail_url)
-
-    offer.leg_status = LegStatus.PACKAGE_DROPPED_OFF
-    offer.dropped_off_at = timezone.now()
-    offer.save(update_fields=["leg_status", "dropped_off_at", "updated_at"])
-    order.recompute_status()
-    messages.success(request, "Package marked as dropped off. The carrier will verify the final weight.")
-    return redirect(detail_url)
-
-
 # --- Traveler: enter the final weight for a dropped-off leg -------------------
 @profile_required
 @require_POST
@@ -916,22 +835,6 @@ def leg_weight_verify(request, pk):
     ])
     offer.order.recompute_status()
     messages.success(request, f"Drop-off recorded — final weight {weight} kg. This is final and not subject to dispute.")
-    return redirect(detail_url)
-
-
-# --- Traveler: confirm custody of a weight-verified leg ------------------------
-@profile_required
-@require_POST
-def leg_received(request, pk):
-    offer = get_object_or_404(
-        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.WEIGHT_VERIFIED
-    )
-    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
-    offer.leg_status = LegStatus.PACKAGE_RECEIVED
-    offer.received_at = timezone.now()
-    offer.save(update_fields=["leg_status", "received_at", "updated_at"])
-    offer.order.recompute_status()
-    messages.success(request, "Package received — custody confirmed.")
     return redirect(detail_url)
 
 
@@ -1496,27 +1399,6 @@ def request_pay(request, pk):
 
 
 # --- Clearance: buyer marks Clear; cron closes it next day ------------------
-@profile_required
-@require_POST
-def request_pickup_select(request, pk):
-    """Buyer chooses local pickup over reshipment. The package is still with the
-    carrier — this only records the choice; the buyer clears the order later by
-    confirming actual receipt."""
-    req = get_object_or_404(BuyRequest, pk=pk)
-    if request.user != req.buyer:
-        messages.error(request, "Only the buyer can choose pickup.")
-        return redirect(req.get_absolute_url())
-    if req.status != Status.READY_FOR_PICKUP:
-        messages.error(request, "Pickup can only be chosen at the Ready-for-Pickup stage.")
-        return redirect(req.get_absolute_url())
-    if not req.pickup_selected:
-        req.pickup_selected = True
-        req.save(update_fields=["pickup_selected", "updated_at"])
-    messages.success(request, "Pickup selected. Collect the package from the carrier, "
-                              "then confirm receipt to release the payment.")
-    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
-
-
 @profile_required
 @require_POST
 def request_clear(request, pk):

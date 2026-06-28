@@ -13,7 +13,7 @@ from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATU
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
-    ProxyEstimateForm, ProxyOfferForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
+    ProxyEstimateForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
     TravelPlanForm, TravelerCargoOfferForm, TravelerOfferForm,
 )
 from apps.trips.models import BuyRequest, ExchangeRate, TravelerOffer, TravelPlan
