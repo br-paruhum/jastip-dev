@@ -85,9 +85,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:trips_travelplan_changelist"),
                     },
                     {
-                        "title": _("- Buy requests"),
+                        "title": _("- Orders"),
                         "icon": "shopping_bag",
-                        "link": reverse_lazy("admin:trips_buyrequest_changelist"),
+                        "link": reverse_lazy("admin:trips_order_changelist"),
                     },
                     {
                         "title": _("- Proxy buyers"),
