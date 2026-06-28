@@ -274,7 +274,7 @@
     {% endif %}
   {% elif bf_order.status == "reship_cost_sent" %}
     {% if is_order_buyer %}
-    <p>Reshipment cost: <strong>{{ bf_order.currency }} {{ bf_order.reshipment_cost_amount|floatformat:0|intcomma }}</strong>{% if bf_order.reshipment_cost_proof %}&nbsp;<a href="{{ bf_order.reshipment_cost_proof.url }}" target="_blank" class="btn btn-sm" style="background:#fff;border:1px solid var(--clay);color:var(--clay-dark)">View proof</a>{% endif %}</p>
+    <p>Reshipment cost: <strong>{{ bf_order.destination_currency }} {{ bf_order.reshipment_cost_amount|floatformat:0|intcomma }}</strong>{% if bf_order.reshipment_cost_proof %}&nbsp;<a href="{{ bf_order.reshipment_cost_proof.url }}" target="_blank" class="btn btn-sm" style="background:#fff;border:1px solid var(--clay);color:var(--clay-dark)">View proof</a>{% endif %}</p>
     <p>Please transfer to:</p>
     <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_bank_details }}</blockquote>
     {% if bf_order.reshipment_proof %}<p class="muted">Payment proof uploaded &#10003; — waiting for the Carrier to ship.</p>{% else %}<p>Upload your payment proof once transferred:</p>{% include "trips/_reship_proof_form.html" with req=bf_order %}{% endif %}
@@ -572,7 +572,7 @@
             <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
           {% elif leg.leg_status == "reship_cost_sent" %}
             <p class="help" style="margin:0 0 4px">
-              Cost: {{ bf_order.currency }} {{ leg.reshipment_cost_amount|floatformat:0|intcomma }} —
+              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|floatformat:0|intcomma }} —
               {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
             </p>
             {% if leg.reshipment_proof %}

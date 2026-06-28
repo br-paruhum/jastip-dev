@@ -634,13 +634,20 @@ class ReshipmentCostForm(forms.ModelForm):
         model = Order
         fields = ["reshipment_cost_amount", "reshipment_cost_proof"]
         labels = {
-            "reshipment_cost_amount": "Shipment cost (IDR)",
             "reshipment_cost_proof": "Cost proof (optional)",
         }
         widgets = {
             "reshipment_cost_amount": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right", "placeholder": "e.g. 100,000"}),
             "reshipment_cost_proof": forms.FileInput(),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Reshipment is domestic at the destination, so the cost is quoted in the
+        # destination-country currency (mirrors customs duty), not the order's
+        # IDR settlement currency.
+        ccy = self.instance.destination_currency if self.instance else "IDR"
+        self.fields["reshipment_cost_amount"].label = f"Shipment cost ({ccy})"
 
     def clean(self):
         cleaned = super().clean()

@@ -310,7 +310,7 @@
 
   {% elif req.status == "reship_cost_sent" %}
     {% if is_buyer %}
-      <p>Reshipment cost: <strong>IDR {{ req.reshipment_cost_amount|intcomma }}</strong>
+      <p>Reshipment cost: <strong>{{ req.destination_currency }} {{ req.reshipment_cost_amount|intcomma }}</strong>
         {% if req.reshipment_cost_proof %}&nbsp;<a href="{{ req.reshipment_cost_proof.url }}" target="_blank" class="help">(View proof)</a>{% endif %}
       </p>
       <p>Please transfer to:</p>

@@ -4,7 +4,7 @@
   <h2 style="margin:0 0 12px;color:#1a1a18;">Reshipment cost details from your carrier</h2>
   <p>For request <strong>{{ request_obj.reference }}</strong>, the carrier has provided the reshipment cost:</p>
   <table style="border-collapse:collapse;margin:12px 0;font-size:14px">
-    <tr><td style="padding:4px 12px 4px 0;color:#666">Shipment cost</td><td><strong>IDR {{ request_obj.reshipment_cost_amount|intcomma }}</strong></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#666">Shipment cost</td><td><strong>{{ request_obj.destination_currency }} {{ request_obj.reshipment_cost_amount|intcomma }}</strong></td></tr>
   </table>
   <p>Please transfer to:</p>
   <p style="white-space:pre-wrap">{{ request_obj.plan.traveler.traveler_bank_details }}</p>

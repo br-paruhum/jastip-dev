@@ -11,7 +11,7 @@
 {{ reship_cost_req.buyer.buyer_destination_city }}{% endif %}</blockquote>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <div class="form-row">
-      <div class="form-field"><label>Shipment Cost (IDR) *</label>{{ reship_cost_form.reshipment_cost_amount }}{{ reship_cost_form.reshipment_cost_amount.errors }}</div>
+      <div class="form-field"><label>Shipment Cost ({{ reship_cost_req.destination_currency }}) *</label>{{ reship_cost_form.reshipment_cost_amount }}{{ reship_cost_form.reshipment_cost_amount.errors }}</div>
       <div class="form-field"><label>Cost Proof</label>{{ reship_cost_form.reshipment_cost_proof }}</div>
     </div>
     <div style="text-align:center"><button class="btn btn-primary" type="submit">Send to Buyer</button></div>
