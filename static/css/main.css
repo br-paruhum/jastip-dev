@@ -338,7 +338,7 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
   padding: 6px 2px; }
 .chat-msg { max-width: 80%; background: var(--cream); border: 1px solid var(--line);
   border-radius: var(--radius-sm); padding: 8px 12px; align-self: flex-start; }
-.chat-msg.chat-mine { align-self: flex-end; background: var(--clay-soft); border-color: var(--clay-soft); }
+.chat-msg.chat-mine { align-self: flex-end; background: #f3d3c3; border-color: #e0ad95; }
 .chat-meta { font-size: .72rem; color: var(--slate-400); font-weight: 700; margin-bottom: 2px; }
 .chat-body { font-size: .92rem; color: var(--slate); white-space: pre-wrap; word-break: break-word; }
 .chat-photo { margin-top: 6px; max-width: 180px; border-radius: 6px; border: 1px solid var(--line); }

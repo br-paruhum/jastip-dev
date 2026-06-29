@@ -390,7 +390,7 @@
 {% endif %}
 
 <!-- Chat (foldable) -->
-{% include "trips/_chat_thread.html" with chat_obj=req %}
+{% include "trips/_chat_thread.html" with chat_obj=req chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}
 
 {% if is_buyer and req.can_edit %}
 <div class="mt-2" style="text-align:center">

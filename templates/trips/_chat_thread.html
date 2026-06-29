@@ -4,7 +4,8 @@ Pass: chat_obj (Order) and chat_boxes (list from Order.chat_boxes(user)). Each
 counterpart is rendered as its own foldable "Messages" card — a private thread
 the third party never sees; admin reads all. Boxes stay collapsed on load and
 only auto-open when they hold an unseen message (box.open). Optional:
-hide_chat_intro, chat_empty_msg, chat_handover_prefill.{% endcomment %}
+hide_chat_intro, chat_empty_msg, chat_handover_prefill, chat_admin_note
+(a pinned Admin message shown at the top of the Buyer↔Proxy box).{% endcomment %}
 {% if chat_boxes %}
 {% if not hide_chat_intro %}<p class="help mt-2">Private conversations on this order. Each
   box below is a separate thread with one counterpart — the third party never sees it.
@@ -20,14 +21,21 @@ hide_chat_intro, chat_empty_msg, chat_handover_prefill.{% endcomment %}
   </summary>
   <div class="fold-body">
     <div class="chat-thread">
+      {% if chat_admin_note and box.audience == "buyer_proxy" %}
+        <div class="chat-msg">
+          <div class="chat-meta">Admin</div>
+          <div class="chat-body">{{ chat_admin_note }}</div>
+        </div>
+      {% endif %}
       {% for m in box.messages %}
         <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
           <div class="chat-meta">
-            {% if m.sender_id == chat_obj.buyer_id %}Buyer
+            {% if m.sender_id == user.id %}You
+            {% elif m.sender_id == chat_obj.buyer_id %}Buyer
             {% elif chat_obj.proxy_buyer and m.sender_id == chat_obj.proxy_buyer.user_id %}Proxy Buyer
             {% elif chat_obj.traveler_user and m.sender_id == chat_obj.traveler_user.id %}Carrier
-            {% else %}Admin{% endif %}{% if m.sender_id == user.id %} (you){% endif %}
-            · {{ m.created_at|date:"d M Y, H:i" }}
+            {% else %}Admin{% endif %}
+            - {{ m.created_at|date:"d M Y, H:i" }}
           </div>
           <div class="chat-body">{{ m.body|linebreaksbr }}</div>
           {% if m.photo %}<a href="{{ m.photo.url }}" target="_blank"><img class="chat-photo" src="{{ m.photo.url }}" alt="attachment" loading="lazy"></a>{% endif %}
@@ -41,7 +49,7 @@ hide_chat_intro, chat_empty_msg, chat_handover_prefill.{% endcomment %}
       {% csrf_token %}
       <input type="hidden" name="audience" value="{{ box.audience }}">
       <div class="form-field" style="margin-bottom:8px">{% if chat_handover_prefill and box.audience == "proxy_carrier" and not box.messages %}<textarea name="body" rows="6" placeholder="Write a message…">Hello,
-Please provide your location, contact number and best time to hand over the package.
+Please provide your location and best time to hand over the package. I will ping with this chat when I arrived.
 
 Thank you
 

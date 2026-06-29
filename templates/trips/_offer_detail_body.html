@@ -271,7 +271,7 @@
 </details>
 {% endif %}
 
-{% include "trips/_chat_thread.html" with chat_obj=leg_offer.order %}
+{% include "trips/_chat_thread.html" with chat_obj=leg_offer.order hide_chat_intro=True %}
 
 {% if leg_offer.can_edit %}
 <div class="mt-2" style="text-align:center">
