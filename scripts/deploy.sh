@@ -19,7 +19,7 @@
 #
 set -euo pipefail
 
-HOST="claude@43.129.52.60"
+HOST="claude@43.129.58.32"
 
 # ── Parse args (env + optional --content) ────────────────────────────────────
 env="stg"
