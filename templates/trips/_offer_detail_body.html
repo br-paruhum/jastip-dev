@@ -157,15 +157,12 @@
     <p class="muted">Buyer notified, wait for Unpaid Balance payment.</p>
     {% endif %}
     {% elif leg_offer.order.status == "ready_for_pickup" %}
-    {% if leg_offer.order.pickup_selected %}
+    {% if leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}
+    <p class="muted">Buyer's payment for Customs Duty secured, please make the actual payment and upload the receipt.</p>
+    <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a></div>
+    {% elif leg_offer.order.pickup_selected %}
+    {% if leg_offer.order.is_proxy_buyer_first %}<p class="help" style="margin-top:10px">&#10003; Actual duty receipt recorded.</p>{% endif %}
     <p class="muted">Balance settled. Waiting for the buyer to receive the package.</p>
-    {% elif leg_offer.order.is_proxy_buyer_first %}
-      {% if leg_offer.order.custom_fare_proof %}
-      <p class="help" style="margin-top:10px">&#10003; Actual duty receipt recorded.</p>
-      {% else %}
-      <p class="muted">Buyer's payment for Customs Duty secured, please make actual payment and upload the receipt.</p>
-      <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a></div>
-      {% endif %}
     {% else %}
     <p class="muted">Balance settled. Waiting for the buyer to choose pickup or request reshipment.</p>
     {% endif %}
