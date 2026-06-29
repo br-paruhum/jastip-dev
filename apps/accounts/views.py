@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, REFUND_ELIGIBLE_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
-    AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, MessageForm, OrderForm,
+    AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, OrderForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
     ProxyEstimateForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
     TravelPlanForm, TravelerCargoOfferForm, TravelerOfferForm,
@@ -320,9 +320,7 @@ def profile(request):
                         _assignment_rows(order)
                         if order.is_multi_leg_cargo and user == order.buyer else None
                     ),
-                    "chat_messages": order.visible_messages(user),
-                    "message_form": MessageForm(),
-                    "can_chat": order.message_tab_visible_to(user),
+                    "chat_boxes": order.chat_boxes(user),
                 }
             order = None
         elif order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
@@ -332,9 +330,7 @@ def profile(request):
                 "req": order,
                 "is_traveler": is_traveler,
                 "is_buyer": is_buyer,
-                "chat_messages": order.messages.select_related("sender").all(),
-                "message_form": MessageForm(),
-                "can_chat": order.message_tab_visible_to(user),
+                "chat_boxes": order.chat_boxes(user),
             }
         else:
             order = None
@@ -355,7 +351,7 @@ def profile(request):
 
     # Proxy "Package Ready" panel (?package_ready=<id>#package-ready) — the proxy
     # records the actual unit costs after purchasing (Flow-1 step 3).
-    package_ready_order = package_ready_formset = package_ready_form = package_ready_chat_messages = None
+    package_ready_order = package_ready_formset = package_ready_form = package_ready_chat_boxes = None
     package_ready_id = request.GET.get("package_ready")
     if package_ready_id:
         _p = Order.objects.select_related("proxy_buyer").filter(
@@ -366,7 +362,7 @@ def profile(request):
             package_ready_order = _p
             package_ready_formset = PurchaseItemFormSet(instance=_p)
             package_ready_form = PurchaseWeightForm(instance=_p)
-            package_ready_chat_messages = _p.visible_messages(user)
+            package_ready_chat_boxes = _p.chat_boxes(user)
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
@@ -396,9 +392,7 @@ def profile(request):
             _ord = _o.order
             if _ord.is_chat_participant(user) or user.is_staff:
                 order_ctx = {
-                    "chat_messages": _ord.visible_messages(user),
-                    "message_form": MessageForm(),
-                    "can_chat": _ord.message_tab_visible_to(user),
+                    "chat_boxes": _ord.chat_boxes(user),
                 }
 
     # Review panel (?review=<id>#review-order) — traveler sends estimate.
@@ -580,8 +574,7 @@ def profile(request):
             "package_ready_order": package_ready_order,
             "package_ready_formset": package_ready_formset,
             "package_ready_form": package_ready_form,
-            "package_ready_chat_messages": package_ready_chat_messages,
-            "package_ready_message_form": MessageForm(),
+            "package_ready_chat_boxes": package_ready_chat_boxes,
             "block_plan_id": request.GET.get("block"),
             "order": order,
             "plan": plan,

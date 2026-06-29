@@ -47,6 +47,7 @@ from .models import (
     ExchangeRate,
     ItemLegAllocation,
     LegPayment,
+    Message,
     LegTransaction,
     Payment,
     ProxyBuyer,
@@ -1108,7 +1109,6 @@ def request_detail(request, pk):
         return redirect("pages:home")
     is_traveler = request.user == req.plan.traveler
     is_buyer = request.user == req.buyer
-    chat_messages = req.visible_messages(request.user)
     return render(
         request,
         "trips/request_detail.html",
@@ -1116,9 +1116,7 @@ def request_detail(request, pk):
             "req": req,
             "is_traveler": is_traveler,
             "is_buyer": is_buyer,
-            "chat_messages": chat_messages,
-            "message_form": MessageForm(),
-            "can_chat": req.message_tab_visible_to(request.user),
+            "chat_boxes": req.chat_boxes(request.user),
             "refund_form": RefundBankForm(instance=req),
         },
     )
@@ -1160,15 +1158,22 @@ def request_message(request, pk):
         back = _traveler_invoice_redirect(req)
     else:
         back = redirect(req.get_absolute_url())
-    if not req.message_tab_visible_to(request.user):
+    # Validate the target conversation: the posted audience must be one of the
+    # per-counterpart boxes this user is actually allowed to post to (Task-27).
+    allowed = {b["audience"] for b in req.chat_boxes(request.user)}
+    if not allowed:
         messages.error(request, "Chat is not available at this stage.")
+        return back
+    audience = request.POST.get("audience") or Message.Audience.ALL
+    if audience not in allowed:
+        messages.error(request, "You cannot post to that conversation.")
         return back
     form = MessageForm(request.POST, request.FILES)
     if form.is_valid():
         msg = form.save(commit=False)
         msg.request = req
         msg.sender = request.user
-        msg.audience = req.message_audience_for_status()
+        msg.audience = audience
         msg.save()
         workflow.on_new_message(msg)
     else:

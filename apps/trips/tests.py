@@ -469,6 +469,94 @@ class MessageTabVisibilityTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class ChatBoxesTests(TestCase):
+    """Phase 9 (Task-27): the single rotating Message tab is split into one box
+    per counterpart pair. Each party only ever sees/posts to the conversations
+    they take part in — the third party never sees them."""
+
+    def setUp(self):
+        from django.urls import reverse
+        from apps.trips.models import Message, ProxyBuyer, TravelerOffer
+        self.reverse = reverse
+        self.Message = Message
+        self.buyer = make_user("cbb@x.com")
+        self.proxy_user = make_user("cbp@x.com")
+        self.carrier = make_user("cbc@x.com")
+        self.admin = make_user("cba@x.com")
+        self.admin.is_staff = True
+        self.admin.save(update_fields=["is_staff"])
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(buyer=self.buyer, proxy_buyer=proxy)
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+        self.order.status = Status.ITEMS_PURCHASED
+        self.order.save(update_fields=["status"])
+
+    def _audiences(self, user):
+        return [b["audience"] for b in self.order.chat_boxes(user)]
+
+    def test_each_party_sees_only_their_pairs(self):
+        A = self.Message.Audience
+        self.assertEqual(set(self._audiences(self.buyer)), {A.BUYER_PROXY, A.CARRIER_BUYER})
+        self.assertEqual(set(self._audiences(self.proxy_user)), {A.BUYER_PROXY, A.PROXY_CARRIER})
+        self.assertEqual(set(self._audiences(self.carrier)), {A.PROXY_CARRIER, A.CARRIER_BUYER})
+
+    def test_admin_sees_all_three_pairs(self):
+        A = self.Message.Audience
+        self.assertEqual(
+            set(self._audiences(self.admin)),
+            {A.BUYER_PROXY, A.PROXY_CARRIER, A.CARRIER_BUYER},
+        )
+
+    def test_locked_before_deposit(self):
+        self.order.status = Status.ACCEPTED
+        self.assertEqual(self.order.chat_boxes(self.buyer), [])
+
+    def test_proxy_carrier_message_hidden_from_buyer(self):
+        A = self.Message.Audience
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user,
+            audience=A.PROXY_CARRIER, body="carrier-only note",
+        )
+        for box in self.order.chat_boxes(self.buyer):
+            self.assertNotIn("carrier-only note", [m.body for m in box["messages"]])
+        # the carrier does see it, in the Proxy-Buyer box
+        carrier_bodies = [
+            m.body for b in self.order.chat_boxes(self.carrier) for m in b["messages"]
+        ]
+        self.assertIn("carrier-only note", carrier_bodies)
+
+    def test_post_stamps_audience_from_box(self):
+        self.client.force_login(self.proxy_user)
+        resp = self.client.post(
+            self.reverse("trips:request_message", args=[self.order.pk]),
+            {"body": "ready for handover", "audience": "proxy_carrier"},
+        )
+        self.assertEqual(resp.status_code, 302)
+        msg = self.Message.objects.get(request=self.order, body="ready for handover")
+        self.assertEqual(msg.audience, self.Message.Audience.PROXY_CARRIER)
+
+    def test_cannot_post_to_a_pair_youre_not_in(self):
+        # The buyer is not part of the Proxy↔Carrier conversation.
+        self.client.force_login(self.buyer)
+        self.client.post(
+            self.reverse("trips:request_message", args=[self.order.pk]),
+            {"body": "should be rejected", "audience": "proxy_carrier"},
+        )
+        self.assertFalse(
+            self.Message.objects.filter(request=self.order, body="should be rejected").exists()
+        )
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class CustomsInvoiceTests(TestCase):
     """Task 12: the customs invoice matches NewCustomsInvoiceFormat.pdf — IDR
     values that include the proxy margin, Country of Origin = the order's origin

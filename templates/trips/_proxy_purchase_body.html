@@ -52,4 +52,4 @@
     </div>
   </div>
 </form>
-{% include "trips/_chat_thread.html" with chat_obj=package_ready_order chat_messages=package_ready_chat_messages message_form=package_ready_message_form chat_open=True hide_chat_intro=True chat_empty_msg="Please upload all product photos under its respective line. Also photo of the box before and after it closed. All invoices or receipts from the store should be inserted in an envelope and put the envelope inside the box. No manual or self signed receipts allowed!." %}
+{% include "trips/_chat_thread.html" with chat_obj=package_ready_order chat_boxes=package_ready_chat_boxes chat_open=True hide_chat_intro=True chat_empty_msg="Please upload all product photos under its respective line. Also photo of the box before and after it closed. All invoices or receipts from the store should be inserted in an envelope and put the envelope inside the box. No manual or self signed receipts allowed!." %}

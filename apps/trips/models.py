@@ -564,6 +564,73 @@ class Order(ListingTimingMixin, models.Model):
             allowed |= {Message.Audience.PROXY_CARRIER, Message.Audience.CARRIER_BUYER}
         return qs.filter(audience__in=allowed)
 
+    def chat_boxes(self, user):
+        """Per-counterpart message threads `user` may see and post to.
+
+        Phase 9 (Task-27): replaces the single status-rotating Message tab with
+        one box per counterpart pair. Each box carries only its own audience-tagged
+        messages (plus legacy ALL), so a conversation between two parties is never
+        shown to the third. Boxes are presence-gated, not phase-gated: a box opens
+        as soon as its counterpart exists and then stays open (no rotation). Admin
+        sees every pair; a non-proxy order collapses to one Buyer↔Carrier box (ALL).
+
+        Returns a list of dicts: {audience, label, messages, can_post}. `label` is
+        the counterpart's name from the viewer's perspective (rendered as
+        "→ with {label}"); for admin it names both parties.
+        """
+        if not user or not getattr(user, "is_authenticated", False):
+            return []
+        if not user.is_staff and not self.is_chat_participant(user):
+            return []
+
+        A = Message.Audience
+        msgs = list(self.messages.select_related("sender").all())
+
+        def make(audience, label):
+            box_msgs = (msgs if audience == A.ALL
+                        else [m for m in msgs if m.audience in (audience, A.ALL)])
+            return {"audience": audience, "label": label,
+                    "messages": box_msgs, "can_post": True}
+
+        # Non-proxy (2-party) order: a single shared Buyer↔Carrier thread, opened
+        # once the order is an active transaction.
+        if not self.proxy_buyer_id:
+            if self.status not in MSG_TAB_TWO_PARTY:
+                return []
+            if user.is_staff:
+                return [make(A.ALL, "Buyer & Carrier")]
+            label = "Carrier" if self.buyer_id == user.id else "Buyer"
+            return [make(A.ALL, label)]
+
+        # Proxy (3-party) order: locked until the deposit is verified, then every
+        # box the viewer takes part in is available together.
+        if self.status not in (
+            MSG_TAB_BUYER_PROXY | MSG_TAB_PROXY_CARRIER | MSG_TAB_CARRIER_BUYER
+        ):
+            return []
+
+        if user.is_staff:
+            return [make(A.BUYER_PROXY, "Buyer & Proxy Buyer"),
+                    make(A.PROXY_CARRIER, "Proxy Buyer & Carrier"),
+                    make(A.CARRIER_BUYER, "Carrier & Buyer")]
+
+        carrier_known = self.traveler_user is not None
+        is_buyer = self.buyer_id == user.id
+        is_proxy = self.proxy_buyer.user_id == user.id
+        boxes = []
+        if is_buyer:
+            boxes.append(make(A.BUYER_PROXY, "Proxy Buyer"))
+            if carrier_known:
+                boxes.append(make(A.CARRIER_BUYER, "Carrier"))
+        elif is_proxy:
+            boxes.append(make(A.BUYER_PROXY, "Buyer"))
+            if carrier_known:
+                boxes.append(make(A.PROXY_CARRIER, "Carrier"))
+        else:  # carrier
+            boxes.append(make(A.PROXY_CARRIER, "Proxy Buyer"))
+            boxes.append(make(A.CARRIER_BUYER, "Buyer"))
+        return boxes
+
     @property
     def effective_cost_per_kg(self) -> Decimal:
         """Shipment rate driving cost calculations: the plan's rate, the
