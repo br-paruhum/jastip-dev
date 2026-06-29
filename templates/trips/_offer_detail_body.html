@@ -175,6 +175,7 @@
 {{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
 {{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
     <p>Please send the Reshipment Cost, the courier's cost proof, and your bank details to the Buyer using the Message box below.</p>
+    <p>After the Buyer sends the bank transfer proof to reimburse your reshipment cost, you can ship the package and send the AWB number and proof — also using the Message box below.</p>
     {% elif leg_offer.order.status == "reship_cost_sent" %}
     <p>Cost sent to buyer. Delivery address:</p>
     <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.full_name }}
