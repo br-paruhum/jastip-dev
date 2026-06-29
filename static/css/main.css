@@ -342,11 +342,10 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 .chat-meta { font-size: .72rem; color: var(--slate-400); font-weight: 700; margin-bottom: 2px; }
 .chat-body { font-size: .92rem; color: var(--slate); white-space: pre-wrap; word-break: break-word; }
 .chat-photo { margin-top: 6px; max-width: 180px; border-radius: 6px; border: 1px solid var(--line); }
-/* Per-counterpart message boxes (Phase 9): one bordered box per conversation. */
-.chat-box { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 12px; background: var(--ivory); }
-.chat-box + .chat-box { margin-top: 14px; }
-.chat-box-head { font-size: .82rem; font-weight: 800; letter-spacing: .02em; color: var(--clay-dark);
-  text-transform: uppercase; margin-bottom: 6px; }
+/* Per-counterpart message boxes (Phase 9): each counterpart is its own
+   "Messages" fold card, titled "Messages" with a smaller brown "→ with X" line. */
+.chat-title { display: flex; flex-direction: column; gap: 1px; }
+.chat-box-head { font-size: .82rem; font-weight: 700; color: var(--clay-dark); margin: 0; }
 
 .invoice { width: 100%; border-collapse: collapse; }
 .invoice td { padding: .45rem 0; border-bottom: 1px solid var(--line); }
