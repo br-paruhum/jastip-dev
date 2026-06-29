@@ -360,6 +360,12 @@ def _honor_pickup_preference(request_obj):
             request_obj.pickup_selected = True
             request_obj.save(update_fields=["pickup_selected"])
     elif request_obj.delivery_preference == FulfillmentMethod.RESHIP:
+        # Proxy buyer-first: hold at Ready-for-Pickup until the carrier has
+        # uploaded the actual customs-duty receipt (the record-only follow-up),
+        # so the reship cost exchange doesn't start before duty is settled.
+        # request_arrive re-runs this after the receipt is saved to advance.
+        if request_obj.is_proxy_buyer_first and not request_obj.custom_fare_proof:
+            return
         address = (request_obj.buyer.buyer_invoice_address or "").strip()
         if address and not request_obj.reshipment_address:
             request_obj.reshipment_address = address

@@ -27,6 +27,19 @@ hide_chat_intro, chat_empty_msg, chat_handover_prefill, chat_admin_note
           <div class="chat-body">{{ chat_admin_note }}</div>
         </div>
       {% endif %}
+      {% if box.audience == "carrier_buyer" and chat_obj.pickup_selected %}
+        {% if user.id == chat_obj.buyer_id %}
+        <div class="chat-msg">
+          <div class="chat-meta">Admin</div>
+          <div class="chat-body">Please communicate with Carrier on the best time to visit and pick up the package.</div>
+        </div>
+        {% elif chat_obj.traveler_user and user.id == chat_obj.traveler_user.id %}
+        <div class="chat-msg">
+          <div class="chat-meta">Admin</div>
+          <div class="chat-body">Please communicate with Buyer on the best time to visit and pick up the package.</div>
+        </div>
+        {% endif %}
+      {% endif %}
       {% for m in box.messages %}
         <div class="chat-msg {% if m.sender_id == user.id %}chat-mine{% endif %}">
           <div class="chat-meta">

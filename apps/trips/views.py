@@ -1380,6 +1380,9 @@ def request_arrive(request, pk):
             form.save()
             if receipt_followup:
                 msg = "Actual duty payment recorded."
+                # Reship orders wait at Ready-for-Pickup for this receipt; now
+                # that it's in, advance them into the reship cost exchange.
+                workflow._honor_pickup_preference(req)
             elif req.is_cargo:
                 workflow.on_cargo_arrived(req)
                 if req.status == Status.READY_FOR_PICKUP:
