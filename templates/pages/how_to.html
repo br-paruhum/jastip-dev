@@ -66,6 +66,10 @@
   .howto-ig .hi-top .hi-cell{display:flex;grid-row:auto;justify-items:stretch}
   .howto-ig .hi-top .hi-cell>*{grid-row:auto;align-self:auto}
   .howto-ig .hi-empty{display:none}
+  /* Flip carrier above buyer in flagged rows so the single column reads in
+     ascending step order (e.g. 9 before 10, 13 before 14). */
+  .howto-ig .hi-step.hi-mflip .hi-cell.carrier{order:1}
+  .howto-ig .hi-step.hi-mflip .hi-cell.buyer{order:2}
   .howto-ig .hi-cell{align-items:flex-start}
   .howto-ig .hi-msg{text-align:left}
   .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 2px;
@@ -116,7 +120,7 @@
 
     {divider:'Travel Date'},
 
-    {align:'top', c:[
+    {align:'top', mflip:true, c:[
       {num:'10', a:'buyer',
        t:'Pay ProxyBuying for the <b>customs duty</b>, products and shipment cost shortage (actual minus estimate), if any. If you chose <b>reship</b>, disclose your reshipment address via internal chat.'},
       {num:'9', a:'carrier',
@@ -124,23 +128,23 @@
 
     {divider:'Buyer selected: Pick up the package'},
 
-    [ {num:'12-1', a:'buyer',
+    {mflip:true, c:[ {num:'12-1', a:'buyer',
        t:'Visit the carrier’s location and click <b>Confirm Received</b> for the package.'},
       {num:'11-1', a:'carrier',
-       t:'Pay the <b>customs duty</b> and send the receipt via internal chat.'} ],
+       t:'Pay the <b>customs duty</b> and send the receipt via internal chat.'} ]},
 
     [ {num:'13', a:'system', span:true,
        note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
 
     {divider:'Buyer selected: Reship the package'},
 
-    {align:'top', c:[
+    {align:'top', mflip:true, c:[
       {num:'12-2', a:'buyer',
        t:'Send your <b>bank transfer proof</b> via internal chat.'},
       {num:'11-2', a:'carrier',
        t:'Pay the <b>customs duty</b> and send the receipt. Based on the buyer’s shipment terms, send the <b>shipment cost estimate</b> and your <b>bank account details</b> via internal chat.'} ]},
 
-    {align:'top', c:[
+    {align:'top', mflip:true, c:[
       {num:'14', a:'buyer',
        t:'Review the package and click <b>Confirm Received</b>.'},
       {num:'13', a:'carrier',
@@ -181,13 +185,16 @@
       return '<div class="hi-step hi-stretch">'+sc.map(function(c){return c||'<div class="hi-colwrap"></div>';}).join('')+'</div>';
     }
     var align=(!Array.isArray(row)&&row.align==='top')?' hi-top':'';
+    // mflip rows put the carrier (col 3) before the buyer (col 1) on mobile only,
+    // so the single-column stack reads in ascending step-number order (CSS `order`).
+    var mflip=(!Array.isArray(row)&&row.mflip)?' hi-mflip':'';
     var cells=['','',''], span=null;
     steps.forEach(function(s){ if(s.span){span=s;} else {cells[COL[s.a]]=cell(s);} });
     function slot(h){ return h||'<div class="hi-cell hi-empty"></div>'; }
     var inner=span
       ? slot(cells[0])+'<div class="hi-span">'+cell(span)+'</div>'
       : slot(cells[0])+slot(cells[1])+slot(cells[2]);
-    return '<div class="hi-step'+align+'">'+inner+'</div>';
+    return '<div class="hi-step'+align+mflip+'">'+inner+'</div>';
   }).join('');
   var lb=document.getElementById('hi-lightbox'),
       img=document.getElementById('hi-img'),
