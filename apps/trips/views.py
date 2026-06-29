@@ -5,6 +5,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction as db_transaction
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -44,6 +45,7 @@ from .forms import (
 )
 from .models import (
     Order,
+    ChatRead,
     ExchangeRate,
     ItemLegAllocation,
     LegPayment,
@@ -1175,10 +1177,38 @@ def request_message(request, pk):
         msg.sender = request.user
         msg.audience = audience
         msg.save()
+        # Posting means the sender has seen this conversation up to now.
+        _mark_chat_seen(request.user, req, audience)
         workflow.on_new_message(msg)
     else:
         messages.error(request, "Message cannot be empty.")
     return back
+
+
+def _mark_chat_seen(user, order, audience):
+    """Record that `user` has seen the `audience` conversation on `order` up to
+    now, so its Message box no longer auto-opens on the next load."""
+    ChatRead.objects.update_or_create(
+        user=user, order=order, audience=audience,
+        defaults={"last_seen_at": timezone.now()},
+    )
+
+
+@login_required
+@require_POST
+def chat_seen(request, pk):
+    """Mark one counterpart conversation as seen (called by the chat box JS when a
+    box is shown/opened). Keeps the auto-open-on-new-message behaviour honest."""
+    req = get_object_or_404(
+        Order.objects.select_related("plan__traveler", "buyer", "proxy_buyer__user"), pk=pk
+    )
+    if not (request.user.is_staff or req.is_chat_participant(request.user)):
+        return HttpResponse(status=403)
+    audience = request.POST.get("audience")
+    if audience not in {b["audience"] for b in req.chat_boxes(request.user)}:
+        return HttpResponse(status=400)
+    _mark_chat_seen(request.user, req, audience)
+    return HttpResponse(status=204)
 
 
 def _require_traveler(request, req):

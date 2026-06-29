@@ -2,15 +2,16 @@
 {% comment %}Per-counterpart message boxes on an order (Phase 9, Task-27).
 Pass: chat_obj (Order) and chat_boxes (list from Order.chat_boxes(user)). Each
 counterpart is rendered as its own foldable "Messages" card — a private thread
-the third party never sees; admin reads all. Optional: chat_open, hide_chat_intro,
-chat_empty_msg, chat_handover_prefill.{% endcomment %}
+the third party never sees; admin reads all. Boxes stay collapsed on load and
+only auto-open when they hold an unseen message (box.open). Optional:
+hide_chat_intro, chat_empty_msg, chat_handover_prefill.{% endcomment %}
 {% if chat_boxes %}
 {% if not hide_chat_intro %}<p class="help mt-2">Private conversations on this order. Each
   box below is a separate thread with one counterpart — the third party never sees it.
   Admin can see all.</p>{% endif %}
 {% if chat_empty_msg %}<p class="help">{{ chat_empty_msg }}</p>{% endif %}
 {% for box in chat_boxes %}
-<details class="card fold mt-2"{% if chat_open %} open{% endif %}>
+<details class="card fold mt-2 chat-box-fold" data-seen-url="{% url 'trips:chat_seen' chat_obj.id %}" data-audience="{{ box.audience }}"{% if box.open %} open{% endif %}>
   <summary>
     <div class="chat-title">
       <h3>Messages</h3>
@@ -55,4 +56,21 @@ Regards,
   </div>
 </details>
 {% endfor %}
+<script>
+(function(){
+  if(window.__chatSeenInit) return; window.__chatSeenInit=true;
+  var csrf="{{ csrf_token }}";
+  function markSeen(d){
+    var url=d.getAttribute('data-seen-url'), aud=d.getAttribute('data-audience');
+    if(!url||!aud||d.dataset.seen) return;
+    d.dataset.seen="1";
+    var fd=new FormData(); fd.append('audience',aud); fd.append('csrfmiddlewaretoken',csrf);
+    fetch(url,{method:'POST',body:fd,credentials:'same-origin'}).catch(function(){});
+  }
+  document.querySelectorAll('details.chat-box-fold').forEach(function(d){
+    if(d.open) markSeen(d);                       // auto-opened (unread) → mark seen now
+    d.addEventListener('toggle',function(){ if(d.open) markSeen(d); });
+  });
+})();
+</script>
 {% endif %}

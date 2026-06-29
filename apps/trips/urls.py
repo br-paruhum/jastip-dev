@@ -47,6 +47,7 @@ urlpatterns = [
     path("requests/<int:pk>/reship/", views.request_reship, name="request_reship"),
     path("requests/<int:pk>/reship-proof/", views.request_reship_proof, name="request_reship_proof"),
     path("requests/<int:pk>/message/", views.request_message, name="request_message"),
+    path("requests/<int:pk>/chat-seen/", views.chat_seen, name="chat_seen"),
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),
     path("requests/<int:pk>/customs-invoice/", views.request_customs_invoice, name="request_customs_invoice"),
     path("requests/<int:pk>/invoice/", views.request_invoice, name="request_invoice"),

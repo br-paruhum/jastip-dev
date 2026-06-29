@@ -557,6 +557,94 @@ class ChatBoxesTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class ChatUnreadTests(TestCase):
+    """Task-27 follow-up: Message boxes stay collapsed on load and only auto-open
+    (box['open']) while they hold a message the viewer hasn't seen yet."""
+
+    def setUp(self):
+        from django.urls import reverse
+        from apps.trips.models import Message, ProxyBuyer, TravelerOffer
+        self.reverse = reverse
+        self.Message = Message
+        self.buyer = make_user("cub@x.com")
+        self.proxy_user = make_user("cup@x.com")
+        self.carrier = make_user("cuc@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(buyer=self.buyer, proxy_buyer=proxy)
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+        self.order.status = Status.ITEMS_PURCHASED
+        self.order.save(update_fields=["status"])
+
+    def _box(self, user, audience):
+        return next(b for b in self.order.chat_boxes(user) if b["audience"] == audience)
+
+    def test_empty_box_is_collapsed(self):
+        self.assertFalse(self._box(self.buyer, "buyer_proxy")["open"])
+
+    def test_box_opens_on_unread_message_from_other_party(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user,
+            audience=self.Message.Audience.BUYER_PROXY, body="hi buyer",
+        )
+        # buyer hasn't seen it → their Proxy box auto-opens
+        self.assertTrue(self._box(self.buyer, "buyer_proxy")["open"])
+        # the carrier isn't in this pair, so it never reaches them at all
+        self.assertFalse(any(b["audience"] == "buyer_proxy" for b in self.order.chat_boxes(self.carrier)))
+
+    def test_own_message_does_not_open_box(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.buyer,
+            audience=self.Message.Audience.BUYER_PROXY, body="from me",
+        )
+        self.assertFalse(self._box(self.buyer, "buyer_proxy")["open"])
+
+    def test_box_collapses_after_marking_seen(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user,
+            audience=self.Message.Audience.BUYER_PROXY, body="hi buyer",
+        )
+        self.assertTrue(self._box(self.buyer, "buyer_proxy")["open"])
+        self.client.force_login(self.buyer)
+        resp = self.client.post(
+            self.reverse("trips:chat_seen", args=[self.order.pk]),
+            {"audience": "buyer_proxy"},
+        )
+        self.assertEqual(resp.status_code, 204)
+        self.assertFalse(self._box(self.buyer, "buyer_proxy")["open"])
+
+    def test_cannot_mark_seen_a_pair_youre_not_in(self):
+        self.client.force_login(self.buyer)
+        resp = self.client.post(
+            self.reverse("trips:chat_seen", args=[self.order.pk]),
+            {"audience": "proxy_carrier"},
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_posting_marks_conversation_seen(self):
+        # proxy leaves an unread message for the buyer; buyer replies → their box
+        # should no longer be flagged unread on the next load.
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user,
+            audience=self.Message.Audience.BUYER_PROXY, body="any update?",
+        )
+        self.client.force_login(self.buyer)
+        self.client.post(
+            self.reverse("trips:request_message", args=[self.order.pk]),
+            {"body": "all good", "audience": "buyer_proxy"},
+        )
+        self.assertFalse(self._box(self.buyer, "buyer_proxy")["open"])
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class CustomsInvoiceTests(TestCase):
     """Task 12: the customs invoice matches NewCustomsInvoiceFormat.pdf — IDR
     values that include the proxy margin, Country of Origin = the order's origin

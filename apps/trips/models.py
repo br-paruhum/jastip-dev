@@ -574,9 +574,11 @@ class Order(ListingTimingMixin, models.Model):
         as soon as its counterpart exists and then stays open (no rotation). Admin
         sees every pair; a non-proxy order collapses to one Buyer↔Carrier box (ALL).
 
-        Returns a list of dicts: {audience, label, messages, can_post}. `label` is
-        the counterpart's name from the viewer's perspective (rendered as
-        "→ with {label}"); for admin it names both parties.
+        Returns a list of dicts: {audience, label, messages, can_post, open}.
+        `label` is the counterpart's name from the viewer's perspective (rendered
+        as "→ with {label}"); for admin it names both parties. `open` is True when
+        the box holds a message from someone else that the viewer hasn't seen yet
+        (see ChatRead) — the template auto-opens those and leaves the rest collapsed.
         """
         if not user or not getattr(user, "is_authenticated", False):
             return []
@@ -585,12 +587,18 @@ class Order(ListingTimingMixin, models.Model):
 
         A = Message.Audience
         msgs = list(self.messages.select_related("sender").all())
+        seen = {r.audience: r.last_seen_at for r in self.chat_reads.filter(user=user)}
 
         def make(audience, label):
             box_msgs = (msgs if audience == A.ALL
                         else [m for m in msgs if m.audience in (audience, A.ALL)])
-            return {"audience": audience, "label": label,
-                    "messages": box_msgs, "can_post": True}
+            last_seen = seen.get(audience)
+            has_unread = any(
+                m.sender_id != user.id and (last_seen is None or m.created_at > last_seen)
+                for m in box_msgs
+            )
+            return {"audience": audience, "label": label, "messages": box_msgs,
+                    "can_post": True, "open": has_unread}
 
         # Non-proxy (2-party) order: a single shared Buyer↔Carrier thread, opened
         # once the order is an active transaction.
@@ -2336,3 +2344,27 @@ class Message(models.Model):
         if traveler and self.sender_id == traveler.id:
             return "Carrier"
         return "Admin"
+
+
+class ChatRead(models.Model):
+    """Per-user "last seen" marker for one counterpart conversation on an order.
+
+    Drives the auto-open behaviour of the per-counterpart Message boxes (Phase 9
+    Task-27 follow-up): a box opens on load only while it holds a message newer
+    than the viewer's last_seen_at for that audience — otherwise it stays
+    collapsed. Updated when the user views (opens) the box; see trips.chat_seen."""
+
+    user = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="chat_reads")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="chat_reads")
+    audience = models.CharField(max_length=20, choices=Message.Audience.choices)
+    last_seen_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "order", "audience"], name="uniq_chatread_user_order_audience"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user_id} saw {self.audience} on {self.order_id} @ {self.last_seen_at:%Y-%m-%d %H:%M}"
