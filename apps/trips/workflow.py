@@ -345,15 +345,26 @@ def on_cargo_arrived(request_obj):
 
 
 def _honor_pickup_preference(request_obj):
-    """The buyer already chose pickup vs reshipment when placing the order. If
-    they chose pickup, mark it selected on reaching Ready-for-Pickup so neither
-    side is asked to choose again — the buyer can confirm receipt directly and
-    the carrier sees the pickup is on."""
-    if (request_obj.status == Status.READY_FOR_PICKUP
-            and request_obj.delivery_preference == FulfillmentMethod.PICKUP
-            and not request_obj.pickup_selected):
-        request_obj.pickup_selected = True
-        request_obj.save(update_fields=["pickup_selected"])
+    """The buyer already chose pickup vs reshipment when placing the order, so on
+    reaching Ready-for-Pickup neither side is asked to choose again.
+
+    Pickup → mark it selected so the buyer can confirm receipt directly and the
+    carrier sees the pickup is on. Reshipment → advance straight to
+    RESHIP_REQUESTED (stamping the saved reshipment address) so the carrier is
+    prompted to send the reshipment cost; the buyer no longer needs to click a
+    'Request Reshipment' button — the choice was made at order time."""
+    if request_obj.status != Status.READY_FOR_PICKUP:
+        return
+    if request_obj.delivery_preference == FulfillmentMethod.PICKUP:
+        if not request_obj.pickup_selected:
+            request_obj.pickup_selected = True
+            request_obj.save(update_fields=["pickup_selected"])
+    elif request_obj.delivery_preference == FulfillmentMethod.RESHIP:
+        address = (request_obj.buyer.buyer_invoice_address or "").strip()
+        if address and not request_obj.reshipment_address:
+            request_obj.reshipment_address = address
+            request_obj.save(update_fields=["reshipment_address"])
+        on_reship_requested(request_obj)
 
 
 def on_package_arrived_settled(request_obj):

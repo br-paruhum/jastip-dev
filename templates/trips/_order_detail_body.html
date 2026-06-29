@@ -239,10 +239,7 @@
     {% if is_order_buyer %}
       {% if bf_order.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
       {% if bf_order.delivery_preference == "reship" %}
-      <p>You chose <strong>reshipment</strong> when you placed the order. To have the package shipped to you, make sure your "Reshipment Address" is set in your Profile, then request reshipment.</p>
-      <form method="post" action="{% url 'trips:request_reship_request' bf_order.id %}">{% csrf_token %}
-        <div style="text-align:center"><button class="btn btn-primary" type="submit">Request Reshipment</button></div>
-      </form>
+      <p>You chose <strong>reshipment</strong> when you placed the order. Please check the Message tab from the Carrier below for the Reshipment Cost, Cost Calculation Proof from the courier, and the Carrier's bank details. After you make the bank transfer, the Carrier will ship the package to your location.</p>
       {% else %}
       <p>You chose <strong>local pickup</strong> when you placed the order. Collect your package from the carrier below, verify the items, then click <strong>Confirm Received</strong> to release the payment. Please use the chat Messages below to find the best time to visit the carrier's location.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
@@ -264,11 +261,11 @@
     {% endif %}
   {% elif bf_order.status == "reship_requested" %}
     {% if is_order_buyer %}
-    <p>Reshipment requested to:</p>
+    <p>Reshipment address:</p>
     <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ bf_order.buyer.full_name }}
 {{ bf_order.buyer.buyer_invoice_address }}{% if bf_order.buyer.buyer_destination_city %}
 {{ bf_order.buyer.buyer_destination_city }}{% endif %}</blockquote>
-    <p class="muted">Waiting for Carrier to confirm the shipment cost.</p>
+    <p>You chose reshipment when you placed the order. Please check the Message tab from the Carrier below for the Reshipment Cost, Cost Calculation Proof from the courier, and the Carrier's bank details. After you make the bank transfer, the Carrier will ship the package to your location.</p>
     {% else %}
     <p class="muted">The buyer requested reshipment. Waiting for the buyer to confirm receipt once it's delivered — your remaining 50% disbursement is released then.</p>
     {% endif %}
