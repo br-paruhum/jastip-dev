@@ -1441,10 +1441,12 @@ def request_clear(request, pk):
     if request.user != req.buyer:
         messages.error(request, "Only the buyer can confirm receipt and clearance.")
         return redirect(req.get_absolute_url())
-    # Reshipment: clears once delivered (In Transit). Pickup: clears only after the
-    # buyer chose pickup AND confirms they actually received the package.
+    # Reshipment: the cost/payment/AWB exchange now happens over chat, so the order
+    # stays at RESHIP_REQUESTED until the buyer confirms receipt (the carrier sends
+    # the AWB via the Message box first). Pickup: clears only after the buyer chose
+    # pickup AND confirms they actually received the package.
     pickup_ok = req.status == Status.READY_FOR_PICKUP and req.pickup_selected
-    if not (pickup_ok or req.status == Status.RESHIPPING):
+    if not (pickup_ok or req.status in (Status.RESHIPPING, Status.RESHIP_REQUESTED)):
         messages.error(request, "Confirm receipt is only available once the package is in transit or ready for pickup.")
         return redirect(req.get_absolute_url())
 
