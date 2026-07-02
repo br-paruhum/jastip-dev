@@ -188,20 +188,20 @@
     <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
   {% elif bf_order.status == "deposit_paid" %}
     {% if is_order_buyer %}
-    <p class="muted">Deposit verified. The Proxy Buyer is purchasing your items and will mark the package ready.</p>
+    <p class="muted">Deposit verified. Proxy Buyer can start buying your ordered products.</p>
     {% if bf_order.deposit_proof_url %}<div style="text-align:center"><a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View Transfer Proof</a></div>{% endif %}
     {% else %}
-    <p class="muted">Deposit verified. Purchase the products, then record the actual prices via “My Proxy Buying”.</p>
+    <p class="muted">Buyer's deposit verified. You can start buying the products, prepare the package (box or luggage), then select "Enter Actual Cost" button above.</p>
     {% endif %}
   {% elif bf_order.status == "items_purchased" %}
     {% if is_order_buyer %}
-    <p class="muted">Your items have been purchased and are ready to be handed to the carrier. You'll settle the balance (remaining products + margin + shipment adjustment + customs) when the package arrives.</p>
+    <p class="muted">Your items have been purchased and are ready to be handed over to the carrier.</p>
     {% else %}
-    <p>Package ready. Use the Messages thread below to agree a time and place for the handover with the carrier — they'll then weigh the package and confirm receipt.</p>
+    <p>Package ready. Please wait for chat from Carrier regarding time and place to hand over the package. Send confirmation back to Carrier as soon as you see the chat.</p>
     {% endif %}
   {% elif bf_order.status == "package_received" %}
     {% if is_order_buyer %}
-    <p class="muted">The carrier has collected your goods from the proxy buyer and is carrying them to {{ bf_order.to_city }}. You'll be notified to settle the shipment + customs balance when it arrives.</p>
+    <p class="muted">Carrier has received you package from Proxy Buyer and is carrying them to {{ bf_order.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
     {% elif is_order_proxy %}
     <p class="muted">You've handed the goods to the carrier. Your payout will be disbursed after Buyer receive the package.</p>
     {% else %}
@@ -296,13 +296,13 @@
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
   {% elif bf_order.status == "estimate_sent" %}
     {% if is_order_buyer %}
-    <p>The Proxy Buyer sent their estimate — review the item costs, weight and margin above, then Accept to continue or Reject to cancel this order.</p>
+    <p>Proxy Buyer has sent the estimate. Please Accept or Reject it. Use "Message" tab below to negotiate the Margin, if any.</p>
     <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
       <form method="post" action="{% url 'trips:proxy_estimate_accept' bf_order.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
       <form method="post" action="{% url 'trips:proxy_estimate_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
     </div>
     {% elif is_order_proxy %}
-    <p class="muted">Estimate sent. Waiting for the buyer to accept or reject it.</p>
+    <p class="muted">Estimate Sent, waiting for Buyer to Accept it. Use the Message tab below to see if Buyer ask for negotiating the Margin.</p>
     <div style="text-align:center">
       <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?estimate={{ bf_order.id }}#estimate-form">Edit Estimate</a>
     </div>
@@ -344,16 +344,16 @@
       <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
     </form>
     {% else %}
-    <p class="muted">The buyer accepted the shipment cost. Waiting for the buyer's deposit before the proxy purchases.</p>
+    <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
     {% endif %}
   {% elif bf_order.status == "responded" %}
     {% if is_order_proxy and not is_order_buyer %}
-    <p class="muted">Estimate sent. Your order is now waiting for Carrier.</p>
+    <p class="muted">Buyer accepted your estimate. Your order is now waiting for a Carrier.</p>
     {% else %}
-    <p class="muted">The Proxy Buyer has sent the estimate. Your order is now waiting for a carrier.</p>
+    <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer.</p>
     {% endif %}
   {% else %}
-    <p class="muted">Request Send, waiting for Proxy Buyer to respond with estimate cost and weight.</p>
+    <p class="muted">Request Sent, waiting for Proxy Buyer to respond with Estimate Cost, Estimate Total Weight and Margin.</p>
   {% endif %}
   {% endif %}
   </div>
@@ -368,7 +368,7 @@
     <colgroup>
       <col style="width:28%"><col style="width:27%"><col style="width:25%"><col style="width:20%">
     </colgroup>
-    <tr><td><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td style="text-align:center"><strong>Status</strong></td><td><strong>When</strong></td></tr>
+    <tr><td style="text-align: center"><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td style="text-align:center"><strong>Status</strong></td><td style="text-align: center"><strong>When</strong></td></tr>
     {% for p in bf_order.transaction.payments.all %}
     <tr>
       <td>{{ p.get_kind_display }}</td>

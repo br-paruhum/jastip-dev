@@ -61,13 +61,7 @@ hide_chat_intro, chat_empty_msg, chat_handover_prefill, chat_admin_note
     <form method="post" action="{% url 'trips:request_message' chat_obj.id %}" enctype="multipart/form-data" class="mt-2">
       {% csrf_token %}
       <input type="hidden" name="audience" value="{{ box.audience }}">
-      <div class="form-field" style="margin-bottom:8px">{% if chat_handover_prefill and box.audience == "proxy_carrier" and not box.messages %}<textarea name="body" rows="6" placeholder="Write a message…">Hello,
-Please provide your location and best time to hand over the package. I will ping with this chat when I arrived.
-
-Thank you
-
-Regards,
-{{ user.full_name }}</textarea>{% else %}<textarea name="body" rows="2" placeholder="Write a message…"></textarea>{% endif %}</div>
+      <div class="form-field" style="margin-bottom:8px">{% if chat_handover_prefill and box.audience == "proxy_carrier" and not box.messages %}<textarea name="body" rows="6" placeholder="Write a message…"></textarea>{% else %}<textarea name="body" rows="2" placeholder="Write a message…"></textarea>{% endif %}</div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
         <input type="file" name="photo" accept="image/png,image/jpeg">
         <button class="btn btn-primary btn-sm" type="submit">Send</button>

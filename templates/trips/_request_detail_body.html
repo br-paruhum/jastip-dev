@@ -373,7 +373,7 @@
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice">
-    <tr><td><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td><strong>Status</strong></td><td><strong>When</strong></td></tr>
+    <tr><td style="text-align:center"><strong>Type</strong></td><td class="num-right"><strong>Amount</strong></td><td><strong>Status</strong></td><td style="text-align:center"><strong>When</strong></td></tr>
     {% for p in req.transaction.payments.all %}
     <tr>
       <td>{{ p.get_kind_display }}</td>

@@ -113,11 +113,11 @@
     {% if leg_offer.order.is_cargo %}
     <p class="muted">Your offer is pending the buyer's decision.</p>
     {% elif leg_offer.order.status == "responded" %}
-    <p class="muted">Waiting for Buyer's Deposit</p>
+    <p class="muted">Waiting for Buyer's Acceptance</p>
     {% elif leg_offer.order.status == "accepted" %}
-    <p class="muted">Buyer submitted the deposit — awaiting admin verification.</p>
+    <p class="muted">Buyer accepted your offer rate — awaiting for Buyer's deposit.</p>
     {% elif leg_offer.order.status == "deposit_paid" %}
-    <p>Deposit verified. Please communicate with the Buyer for the location and best time to hand over the package.</p>
+    <p>Buyer's deposit verified. Please wait for Proxy Buyer to submit the Actual Cost.</p>
     {% elif leg_offer.order.status == "items_purchased" %}
       {% if leg_offer.order.is_proxy_buyer_first %}
         <p>Proxy buyer has the goods ready. Use the Messages thread below to agree a time and place to hand over the

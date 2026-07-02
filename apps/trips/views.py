@@ -491,7 +491,7 @@ def proxy_estimate(request, order_id):
             order.save()
         if is_first_send:
             workflow.on_estimate_sent(order)
-            messages.success(request, "Estimate sent. Waiting for the buyer to accept or reject.")
+            messages.success(request, "Estimate sent. Your estimate is now waiting for Buyer to Accept it.")
         else:
             messages.success(request, "Estimate updated.")
         return redirect(dashboard + f"?order={order.id}#order-detail")

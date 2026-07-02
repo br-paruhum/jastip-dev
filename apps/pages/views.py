@@ -134,7 +134,7 @@ def contact(request):
         form = ContactForm(request.POST)
         # Honeypot tripped -> pretend success, save nothing (don't tip off bots).
         if request.POST.get("website"):
-            messages.success(request, "Thanks — your message has been sent. We'll get back to you soon.")
+            messages.success(request, "Message sent successfully! Thanks for reaching out. We will look over your request and get back to you within 24-48 hours.")
             return redirect("pages:contact")
         if not _verify_turnstile(request):
             messages.error(request, "Verification failed. Please try again.")
@@ -148,7 +148,7 @@ def contact(request):
                 event="contact",
                 cc_admin=False,
             )
-            messages.success(request, "Thanks — your message has been sent. We'll get back to you soon.")
+            messages.success(request, "Message sent successfully! Thanks for reaching out. We will look over your request and get back to you within 24-48 hours.")
             return redirect("pages:contact")
     else:
         topic = request.GET.get("topic")

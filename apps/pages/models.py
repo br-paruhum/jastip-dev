@@ -120,15 +120,15 @@ class ContactMessage(models.Model):
     """An enquiry submitted through the public /contact/ page."""
 
     class Topic(models.TextChoices):
-        ADVERTISE = "advertise", "Advertising"
-        SUPPORT = "support", "Support"
-        FEEDBACK = "feedback", "Feedback"
-        PROXY = "proxy_apply", "Apply for a Proxy Buyer"
-        OTHER = "other", "Other"
+        PROXY = "become a proxy buyer", "Become a Proxy Buyer"
+        ADVERTISE = "inquire about advertising", "Inquire about Advertising"
+        FEEDBACK = "share feedback", "Share Feedback"
+        SUPPORT = "get support", "Get Support"
+        OTHER = "something other", "Something Other"
 
     name = models.CharField(max_length=120)
     email = models.EmailField()
-    topic = models.CharField(max_length=20, choices=Topic.choices, default=Topic.OTHER)
+    topic = models.CharField(max_length=25, choices=Topic.choices, default=Topic.PROXY)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     handled = models.BooleanField(default=False)
