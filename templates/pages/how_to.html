@@ -162,10 +162,12 @@
     var who=(s.a!=='system')?'<span class="hi-mwho">'+LABEL[s.a]+'</span>':'';
     var noteHtml=s.note?(Array.isArray(s.note)?s.note:([s.note])).map(function(n){return'<div class="hi-note">'+n+'</div>';}).join(''):'';
     var bub=s.t?'<div class="hi-msg">'+s.t+'</div>':'';
-    var num='<div class="hi-num">'+s.num+'</div>';
+    // who (the mobile-only Buyer/Proxy Buyer/Carrier label) sits right after the
+    // number bullet, not above it — desktop hides it either way (display:none).
+    var num='<div class="hi-num">'+s.num+'</div>'+who;
     var im=thumb(s);
     var body=s.imgBottom?(num+noteHtml+bub+im):(im+num+bub+noteHtml);
-    return '<div class="hi-cell '+s.a+'">'+who+body+'</div>';
+    return '<div class="hi-cell '+s.a+'">'+body+'</div>';
   }
   var tl=document.getElementById('hi-timeline');
   if(!tl) return;
