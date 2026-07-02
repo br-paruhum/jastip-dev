@@ -5,7 +5,9 @@
     {# Buyer already accepted the estimate; once a carrier quotes a rate it's "Offer Received". #}
     {% include "trips/_status_badge.html" with label=bf_order.pending_offers|yesno:"Offer Received,Awaiting Carrier" tone="info" %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
+    {% include "trips/_status_badge.html" with status=bf_order.status label="Order Sent" tone=bf_order.status_tone %}
+  {% elif not bf_order.is_cargo and bf_order.status == "estimate_sent" %}
+    {% include "trips/_status_badge.html" with status=bf_order.status label=is_order_buyer|yesno:"Estimate Received,Estimate Sent" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
     {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"Temp Book — Verifying,Temp Book — Deposit Due" tone="info" %}
   {% elif bf_order.status == "ready_for_pickup" and bf_order.pickup_selected %}
@@ -304,7 +306,7 @@
     {% elif is_order_proxy %}
     <p class="muted">Estimate Sent, waiting for Buyer to Accept it. Use the Message tab below to see if Buyer ask for negotiating the Margin.</p>
     <div style="text-align:center">
-      <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?estimate={{ bf_order.id }}#estimate-form">Edit Estimate</a>
+      <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?estimate={{ bf_order.id }}#estimate-form">Edit Estimate</a>
     </div>
     {% endif %}
   {% elif bf_order.status == "responded" and bf_order.pending_offers %}
@@ -657,7 +659,7 @@
 </div></div>
 {% endif %}
 
-{% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% endif %}
+{% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% elif bf_order.status == "deposit_paid" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True %}{% endif %}
 
 {% if bf_order.can_edit %}
 <div class="mt-2" style="text-align:center">

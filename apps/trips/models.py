@@ -838,9 +838,9 @@ class Order(ListingTimingMixin, models.Model):
         # a traveler offer.
         if not self.is_cargo and self.plan_id is None:
             if self.status == Status.OPEN:
-                return "Request Send"
+                return "Order Sent"
             if self.status == Status.ESTIMATE_SENT:
-                return "Estimate Sent"
+                return "Estimate Received"
             if self.status == Status.RESPONDED:
                 # The buyer already accepted the estimate; the order is now
                 # open to Carriers. Once one quotes a shipment rate (a pending
