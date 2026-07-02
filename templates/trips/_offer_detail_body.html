@@ -97,6 +97,11 @@
 {% endif %}
 {% endif %}
 
+<details class="card fold mt-2">
+  <summary><h3>Payment Terms</h3></summary>
+  <div class="fold-body payment-terms">{{ PAYMENT_TERM_CARRIER|safe }}</div>
+</details>
+
 <details class="card fold mt-2" open>
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
