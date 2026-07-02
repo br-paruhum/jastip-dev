@@ -47,7 +47,7 @@
     {% endif %}
     <!-- Payment Terms: cream centered section header + dynamic content (editable in admin) -->
     <tr class="pc-section"><td colspan="4">Payment Terms</td></tr>
-    <tr><td colspan="4" class="pc-terms">{% if plan.carrier_only %}{{ PAYMENT_TERM_CARRIER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}</td></tr>
+    <tr><td colspan="4" class="pc-terms">{{ PAYMENT_TERM|safe }}</td></tr>
   </table>
   {% if plan.is_open and user != plan.traveler %}
   <div class="mt-2" style="text-align: center;">
