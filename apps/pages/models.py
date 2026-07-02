@@ -123,6 +123,7 @@ class ContactMessage(models.Model):
         ADVERTISE = "advertise", "Advertising"
         SUPPORT = "support", "Support"
         FEEDBACK = "feedback", "Feedback"
+        PROXY = "proxy_apply", "Apply for a Proxy Buyer"
         OTHER = "other", "Other"
 
     name = models.CharField(max_length=120)
