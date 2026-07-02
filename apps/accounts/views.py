@@ -344,7 +344,7 @@ def profile(request):
             pk=estimate_id, plan__isnull=True
         ).first()
         if (_e and _e.proxy_buyer_id and _e.proxy_buyer.user_id == user.id
-                and not _e.is_cargo and _e.status == Status.OPEN):
+                and not _e.is_cargo and _e.status in (Status.OPEN, Status.ESTIMATE_SENT)):
             estimate_order = _e
             estimate_form = ProxyEstimateForm(instance=_e)
             estimate_formset = ReviewItemFormSet(instance=_e, prefix="est_items")

@@ -23,6 +23,7 @@ class Status(models.TextChoices):
 
     # --- Buyer-first order-level statuses ---
     OPEN = "open", "Awaiting Carrier"
+    ESTIMATE_SENT = "estimate_sent", "Estimate Sent"
     RESPONDED = "responded", "Responded"
     TAKEN = "taken", "Taken"
     PACKAGE_DROPPED_OFF = "package_dropped_off", "Package Dropped Off"
@@ -34,7 +35,7 @@ class Status(models.TextChoices):
 
 # Order-level statuses that only exist on buyer-first orders (Order.plan is null).
 BUYER_FIRST_STATUSES = {
-    Status.OPEN, Status.RESPONDED, Status.TAKEN,
+    Status.OPEN, Status.ESTIMATE_SENT, Status.RESPONDED, Status.TAKEN,
     Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED,
     Status.NO_RESPONSE, Status.DROPOFF_MISSED,
 }
@@ -101,7 +102,12 @@ CHAT_STATUSES = {
 #   note 5  -> Buyer  + Proxy   (deposit paid; proxy starts sourcing)
 #   note 6  -> Proxy  + Carrier (proxy sent actual cost / "Package Ready")
 #   note 8+ -> Carrier + Buyer  (carrier received the package, through close)
-MSG_TAB_BUYER_PROXY = {Status.DEPOSIT_PAID}
+# Buyer<->Proxy also opens as soon as the proxy sends the estimate (the buyer
+# now has to Accept/Reject it) and stays open through the pre-deposit stages,
+# not just from DEPOSIT_PAID onward.
+MSG_TAB_BUYER_PROXY = {
+    Status.ESTIMATE_SENT, Status.RESPONDED, Status.ACCEPTED, Status.DEPOSIT_PAID,
+}
 MSG_TAB_PROXY_CARRIER = {Status.ITEMS_PURCHASED}
 MSG_TAB_CARRIER_BUYER = {
     Status.PACKAGE_RECEIVED, Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP,
@@ -156,9 +162,9 @@ STATUS_TONE = {
         Status.REJECTED, Status.CANCELLED, Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED,
         Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.RESHIP_REQUESTED,
         Status.RESHIP_COST_SENT, Status.RESHIPPING, Status.CLEAR, Status.CLOSED,
-        Status.OPEN, Status.RESPONDED, Status.TAKEN, Status.PACKAGE_DROPPED_OFF,
-        Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED, Status.NO_RESPONSE,
-        Status.DROPOFF_MISSED,
+        Status.OPEN, Status.ESTIMATE_SENT, Status.RESPONDED, Status.TAKEN,
+        Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED, Status.PACKAGE_RECEIVED,
+        Status.NO_RESPONSE, Status.DROPOFF_MISSED,
     ]
 }
 

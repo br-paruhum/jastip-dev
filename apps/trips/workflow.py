@@ -107,6 +107,50 @@ def _notify_proxy(order, *, subject, template, ctx, event):
                       text="ProxyBuying: Please see your email.", event=event)
 
 
+def on_estimate_sent(order):
+    """Flow-1: the proxy buyer sent their estimate -> notify the buyer to
+    review it and Accept or Reject (only fired on the first send, not on
+    every subsequent edit while still awaiting the buyer's decision)."""
+    send_email(
+        to_user=order.buyer,
+        subject=f"Estimate ready for your order {order.reference}",
+        template="estimate_sent",
+        context=_ctx(order),
+        event="estimate_sent",
+    )
+    notify_see_email(order.buyer, event="estimate_sent")
+
+
+def on_estimate_accepted(order):
+    """Flow-1: buyer accepted the proxy's estimate -> the order now opens to
+    Carriers; let the proxy buyer know."""
+    proxy_user = order.proxy_buyer.user if order.proxy_buyer_id else None
+    if proxy_user:
+        send_email(
+            to_user=proxy_user,
+            subject=f"Estimate accepted for order {order.reference}",
+            template="estimate_accepted",
+            context=_ctx(order),
+            event="estimate_accepted",
+        )
+        notify_see_email(proxy_user, event="estimate_accepted")
+
+
+def on_estimate_rejected(order):
+    """Flow-1: buyer rejected the proxy's estimate -> order is cancelled;
+    notify the proxy buyer."""
+    proxy_user = order.proxy_buyer.user if order.proxy_buyer_id else None
+    if proxy_user:
+        send_email(
+            to_user=proxy_user,
+            subject=f"Estimate declined for order {order.reference}",
+            template="estimate_rejected",
+            context=_ctx(order),
+            event="estimate_rejected",
+        )
+        notify_see_email(proxy_user, event="estimate_rejected")
+
+
 def on_proxy_offer_accepted(order, offer):
     """Flow-1 step 8: buyer accepted the carrier's shipment cost -> notify the
     carrier (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""

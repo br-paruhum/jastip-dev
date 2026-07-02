@@ -1,6 +1,6 @@
 {% load humanize %}
-<h2 style="margin:6px 0 0">Send Estimate</h2>
-<p>Fill in Unit Cost of each product, Estimated Total Weight, and your Margin, then Send Estimate.</p>
+<h2 style="margin:6px 0 0">{% if estimate_order.status == "open" %}Send Estimate{% else %}Edit Estimate{% endif %}</h2>
+<p>Fill in Unit Cost of each product, Estimated Total Weight, and your Margin, then {% if estimate_order.status == "open" %}Send Estimate{% else %}Update Estimate{% endif %}.</p>
 <form method="post" action="{% url 'trips:proxy_estimate' estimate_order.id %}" class="card" style="margin-top:14px">
   {% csrf_token %}
   {{ estimate_formset.management_form }}
@@ -40,8 +40,8 @@
       </div>
     </div>
     <div style="text-align:center;margin-top:12px">
-      <button class="btn btn-primary" type="submit">Send Estimate</button>
+      <button class="btn btn-primary" type="submit">{% if estimate_order.status == "open" %}Send Estimate{% else %}Update Estimate{% endif %}</button>
     </div>
-    <p class="help mt-2">Once sent, your order goes to Home page “Cargo Waiting for Carrier” board.</p>
+    <p class="help mt-2">The buyer reviews your estimate and Accepts or Rejects it before your order goes to the Home page "Queuing Cargo" board.</p>
   </div>
 </form>

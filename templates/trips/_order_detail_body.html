@@ -2,8 +2,8 @@
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
   {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {# Estimate sent by the proxy; once a carrier quotes a rate it's "Offer Received". #}
-    {% include "trips/_status_badge.html" with label=bf_order.pending_offers|yesno:"Offer Received,Estimate Sent" tone="info" %}
+    {# Buyer already accepted the estimate; once a carrier quotes a rate it's "Offer Received". #}
+    {% include "trips/_status_badge.html" with label=bf_order.pending_offers|yesno:"Offer Received,Awaiting Carrier" tone="info" %}
   {% elif not bf_order.is_cargo and bf_order.status == "open" %}
     {% include "trips/_status_badge.html" with status=bf_order.status label="Request Send" tone=bf_order.status_tone %}
   {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
@@ -294,6 +294,19 @@
     {% endif %}
   {% elif bf_order.status == "closed" %}
     <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
+  {% elif bf_order.status == "estimate_sent" %}
+    {% if is_order_buyer %}
+    <p>The Proxy Buyer sent their estimate — review the item costs, weight and margin above, then Accept to continue or Reject to cancel this order.</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+      <form method="post" action="{% url 'trips:proxy_estimate_accept' bf_order.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+      <form method="post" action="{% url 'trips:proxy_estimate_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+    </div>
+    {% elif is_order_proxy %}
+    <p class="muted">Estimate sent. Waiting for the buyer to accept or reject it.</p>
+    <div style="text-align:center">
+      <a class="btn btn-outline btn-sm" href="{% url 'accounts:profile' %}?estimate={{ bf_order.id }}#estimate-form">Edit Estimate</a>
+    </div>
+    {% endif %}
   {% elif bf_order.status == "responded" and bf_order.pending_offers %}
     {% if is_order_buyer %}
     {% if focus_offer %}<p>This carrier offered to carry your order — accept to assign them (any other offers are declined automatically):</p>

@@ -839,13 +839,15 @@ class Order(ListingTimingMixin, models.Model):
         if not self.is_cargo and self.plan_id is None:
             if self.status == Status.OPEN:
                 return "Request Send"
+            if self.status == Status.ESTIMATE_SENT:
+                return "Estimate Sent"
             if self.status == Status.RESPONDED:
-                # The proxy has sent its estimate. Once a carrier quotes a
-                # shipment rate (a pending carry offer), surface that to the
-                # buyer as "Offer Received"; until then it's just "Estimate Sent".
+                # The buyer already accepted the estimate; the order is now
+                # open to Carriers. Once one quotes a shipment rate (a pending
+                # carry offer), surface that as "Offer Received".
                 if self.pending_offers:
                     return "Offer Received"
-                return "Estimate Sent"
+                return "Awaiting Carrier"
             if self.status == Status.ACCEPTED:
                 # Tentative booking until the deposit is verified (then it locks
                 # and the traveler's spare baggage is advertised).

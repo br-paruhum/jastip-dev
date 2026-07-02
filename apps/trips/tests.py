@@ -429,9 +429,11 @@ class MessageTabVisibilityTests(TestCase):
             "carrier": self.order.message_tab_visible_to(self.carrier),
         }
 
-    def test_locked_before_deposit(self):
+    def test_locked_before_estimate(self):
+        # Buyer<->Proxy now opens as soon as the proxy sends the estimate
+        # (Status.ESTIMATE_SENT), so OPEN (before any estimate) is the locked case.
         self.assertEqual(
-            self._visible(Status.ACCEPTED),
+            self._visible(Status.OPEN),
             {"buyer": False, "proxy": False, "carrier": False},
         )
 
@@ -516,8 +518,10 @@ class ChatBoxesTests(TestCase):
             {A.BUYER_PROXY, A.PROXY_CARRIER, A.CARRIER_BUYER},
         )
 
-    def test_locked_before_deposit(self):
-        self.order.status = Status.ACCEPTED
+    def test_locked_before_estimate(self):
+        # Buyer<->Proxy now opens as soon as the proxy sends the estimate
+        # (Status.ESTIMATE_SENT), so OPEN (before any estimate) is the locked case.
+        self.order.status = Status.OPEN
         self.assertEqual(self.order.chat_boxes(self.buyer), [])
 
     def test_proxy_carrier_message_hidden_from_buyer(self):

@@ -476,9 +476,10 @@ def proxy_estimate(request, order_id):
     if order.is_cargo:
         messages.error(request, "This is a Cargo order — no proxy estimate applies.")
         return redirect(dashboard + "#proxy-orders")
-    if order.status != Status.OPEN:
-        messages.info(request, "You have already sent an estimate for this order.")
+    if order.status not in (Status.OPEN, Status.ESTIMATE_SENT):
+        messages.info(request, "This estimate can no longer be edited.")
         return redirect(dashboard + f"?order={order.id}#order-detail")
+    is_first_send = order.status == Status.OPEN
 
     form = ProxyEstimateForm(request.POST, instance=order)
     formset = ReviewItemFormSet(request.POST, instance=order, prefix="est_items")
@@ -486,9 +487,13 @@ def proxy_estimate(request, order_id):
         with db_transaction.atomic():
             formset.save()                 # estimated_unit_cost on each item
             order = form.save(commit=False)  # estimated_weight_kg + proxy_margin_percent
-            order.status = Status.RESPONDED
+            order.status = Status.ESTIMATE_SENT
             order.save()
-        messages.success(request, "Estimate sent. Your order is now waiting for a carrier.")
+        if is_first_send:
+            workflow.on_estimate_sent(order)
+            messages.success(request, "Estimate sent. Waiting for the buyer to accept or reject.")
+        else:
+            messages.success(request, "Estimate updated.")
         return redirect(dashboard + f"?order={order.id}#order-detail")
     for field, errs in form.errors.items():
         for err in errs:
@@ -613,6 +618,44 @@ def order_reject(request, order_id):
         # Order stays RESPONDED (estimate intact) so other travelers can offer.
     workflow.on_proxy_offer_rejected(order, offer)
     messages.success(request, "Offer declined. Your order is open for other carriers again.")
+    return redirect(detail)
+
+
+# --- Buyer: accept / reject the Proxy Buyer's estimate itself (before it ever
+# reaches the Carrier board) -------------------------------------------------
+@profile_required
+@require_POST
+def proxy_estimate_accept(request, order_id):
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can accept the estimate.")
+        return redirect(detail)
+    if order.is_cargo or order.status != Status.ESTIMATE_SENT:
+        messages.error(request, "There is no estimate to accept at this stage.")
+        return redirect(detail)
+    order.status = Status.RESPONDED
+    order.save(update_fields=["status", "updated_at"])
+    workflow.on_estimate_accepted(order)
+    messages.success(request, "Estimate accepted. Your order is now open for carriers.")
+    return redirect(detail)
+
+
+@profile_required
+@require_POST
+def proxy_estimate_reject(request, order_id):
+    order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can reject the estimate.")
+        return redirect(detail)
+    if order.is_cargo or order.status != Status.ESTIMATE_SENT:
+        messages.error(request, "There is no estimate to reject at this stage.")
+        return redirect(detail)
+    order.status = Status.CANCELLED
+    order.save(update_fields=["status", "updated_at"])
+    workflow.on_estimate_rejected(order)
+    messages.success(request, "Estimate rejected. This order has been cancelled.")
     return redirect(detail)
 
 
