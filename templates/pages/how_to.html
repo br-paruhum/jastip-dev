@@ -37,7 +37,8 @@
 .howto-ig .hi-top .hi-cell .hi-note{grid-row:3;align-self:start}
 .howto-ig .hi-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
 .howto-ig .hi-msg{width:100%;padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:#fff;
-  box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:16px;line-height:1.45;color:var(--slate-600);text-align:center}
+  box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:16px;line-height:1.45;color:var(--slate-600);text-align:left}
+.howto-ig .hi-msg ul{margin:0;padding-left:1.2em;list-style-position:outside}
 .howto-ig .system .hi-msg{background:var(--cream)}
 .howto-ig .hi-note{font-size:14px;font-weight:700;text-align:center;color:var(--clay-dark);
   border:1px solid var(--clay);border-radius:6px;padding:5px 12px;background:#fff;letter-spacing:.01em}
@@ -70,6 +71,10 @@
      ascending step order (e.g. 9 before 10, 13 before 14). */
   .howto-ig .hi-step.hi-mflip .hi-cell.carrier{order:1}
   .howto-ig .hi-step.hi-mflip .hi-cell.buyer{order:2}
+  /* Same flip, but for stretch rows where the actual grid item is the
+     .hi-colwrap that holds a cell (+ its tail), not the bare .hi-cell. */
+  .howto-ig .hi-step.hi-mflip .hi-colwrap:has(.hi-cell.carrier){order:1}
+  .howto-ig .hi-step.hi-mflip .hi-colwrap:has(.hi-cell.buyer){order:2}
   .howto-ig .hi-cell{align-items:flex-start}
   .howto-ig .hi-msg{text-align:left}
   .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 2px;
@@ -79,7 +84,7 @@
 </style>
 
 <div class="howto-ig">
-  <p class="hi-lead">Step-by-step explanation of the transaction flow, from selecting a proxy buyer, up to receiving the package and completing transaction. Click any image to enlarge.</p>
+  <p class="hi-lead">Step-by-step explanation of the transaction cycle, from selecting a proxy buyer, to receiving the package and completing transaction. Click any image to enlarge.</p>
   <div class="hi-colhead">
     <div class="hi-lane">Buyer</div>
     <div class="hi-lane">Proxy Buyer</div>
@@ -99,61 +104,55 @@
   var ROWS=[
     {align:'top', c:[
       {num:'1', a:'buyer', img:'/static/img/howto/buyer-start.webp',
-       t:'Select a proxy buyer from the <b>Proxy Buyers List</b>, fill in your product names (up to 10), quantity and deadline, and choose a shipment term — <b>pick up</b> or <b>reship</b>.'},
+       t:'<ul><li>Select from <b>Proxy Buyers List</b> and click <b>Order</b>,</li><li>Fill in <b>Product Name</b> (up to 10), <b>Quantity, Deadline</b> and select <b>Shipment Term</b> (<b>Reship</b> or <b>Pick up</b>).</li></ul>'},
       {num:'2', a:'proxy',
-       t:'Fill in the <b>estimate cost</b>, <b>estimated total weight (kg)</b> and <b>margin (%)</b>.'} ]},
+       t:'Fill in <b>Estimate Cost, Estimated Total Weight</b> (kg) and <b>Margin</b> (%).'} ]},
 
-    [ {num:'3', a:'system', imgBottom:true, img:'/static/img/howto/carrier-start.webp',
-       note:'“Queuing Cargo” table updated'},
+    [ {num:'3', a:'buyer', imgBottom:true, img:'/static/img/howto/carrier-start.webp',
+       t:'<ul><li>Buyer <b>Accept</b> the <b>Estimate</b> and Queuing Cargo table updated,</li></ul>'},
       {num:'4', a:'carrier',
-       t:'Select from the <b>Queuing Cargo</b> table for the same route, then fill in your <b>offer rate per kg</b> and <b>travel date/time</b>.'} ],
+       t:'<ul><li>Select the same route from <b>Queuing Cargo</b> table and click <b>Offer</b>,</li><li>Fill in <b>Offer Rate</b> per kg and <b>Travel Date</b>.</li></ul>'} ],
 
     {align:'stretch', c:[
       {num:'5', a:'buyer',
-       t:'<b>Accept</b> the carrier’s offer and pay ProxyBuying for the <b>total estimated product cost</b> (including margin) and the <b>total estimated shipment cost</b>.'},
+       t:'<ul><li><b>Accept</b> or <b>Reject</b> Offer from Carrier,</li><li>If Accept, pay ProxyBuying <b>Total Estimated Products Cost, Margin</b> and <b>Total Estimated Shipment Cost</b>.</li></ul>'},
       {num:'6', a:'proxy',
-       t:'Start sourcing the products. Discuss any sourcing problem with the buyer via <b>internal chat</b> (shortage, out-of-stock, price increase, substitution), then input the <b>actual cost</b> and <b>total weight</b> and upload <b>product photos</b>. The buyer’s final decision for each product is stated in the<br>chat.'},
+       t:'<ul><li>Start sourcing and buy the products,</li><li>Chat with Buyer via internal <b>Message</b> on any sourcing issues (shortage, out-of-stock, price increase, substitution),</li><li>When done, input <b>Actual Cost, Total Weight</b> and upload <b>Products</b> and <b>Box/Luggage Photo</b>.</li></ul>'},
       {num:'7', a:'carrier',
-       t:'Communicate with the proxy buyer via <b>internal chat</b> to confirm the best time and place to hand over the package.',
-       tail:{num:'8', a:'carrier',
-        t:'Received the package from the proxy buyer.'}} ]},
+       t:'Send chat to Proxy Buyer via internal <b>Message</b> to confirm the time and place to hand over the package.',
+      tail:{num:'8', a:'carrier',
+        t:'Received the package from Proxy Buyer.'}} ]},
 
     {divider:'Travel Date'},
 
-    {align:'top', mflip:true, c:[
+    {align:'stretch', mflip:true, c:[
       {num:'10', a:'buyer',
-       t:'Pay ProxyBuying for the <b>customs duty</b>, products and shipment cost shortage (actual minus estimate), if any. If you chose <b>reship</b>, disclose your reshipment address via internal chat.'},
+       t:'Pay ProxyBuying for <b>Customs Duty</b>, Products and Shipment Cost shortage (Actual minus Estimate), if any.'},
       {num:'9', a:'carrier',
-       t:'On arrival, send the <b>customs duty &amp; tax estimate</b> via internal chat. If the buyer chose <b>pick up</b>, disclose your address and the best time to visit.'} ]},
+       t:'On arrival, send <b>Customs Duty</b> amount and upload <b>Proforma Proof</b>.',
+       tail:{num:'11', a:'carrier',
+         t:'<b>Pay</b> and upload Actual Customs Duty <b>Proof</b>.'}} ]},
 
     {divider:'Buyer selected: Pick up the package'},
 
-    {mflip:true, c:[ {num:'12-1', a:'buyer',
-       t:'Visit the carrier’s location and click <b>Confirm Received</b> for the package.'},
-      {num:'11-1', a:'carrier',
-       t:'Pay the <b>customs duty</b> and send the receipt via internal chat.'} ]},
-
-    [ {num:'13', a:'system', span:true,
-       note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
+    {mflip:true, c:[ {num:'15-2', a:'buyer',
+       t:'Visit Carrier’s location, review the package and click <b>Confirm Received</b> the package.'} ]},
 
     {divider:'Buyer selected: Reship the package'},
 
     {align:'top', mflip:true, c:[
-      {num:'12-2', a:'buyer',
-       t:'Send your <b>bank transfer proof</b> via internal chat.'},
-      {num:'11-2', a:'carrier',
-       t:'Pay the <b>customs duty</b> and send the receipt. Based on the buyer’s shipment terms, send the <b>shipment cost estimate</b> and your <b>bank account details</b> via internal chat.'} ]},
+      {num:'13', a:'buyer',
+       t:'Send Bank Transfer <b>Proof</b> to Carrier via internal <b>Message</b>.'},
+      {num:'12', a:'carrier',
+       t:'Send <b>Shipment Cost</b> amount and <b>Bank Account</b> details to Buyer via internal <b>Message</b>.'} ]},
 
     {align:'top', mflip:true, c:[
-      {num:'14', a:'buyer',
-       t:'Review the package and click <b>Confirm Received</b>.'},
-      {num:'13', a:'carrier',
-       t:'Send the package to the buyer.'} ]},
+      {num:'15-1', a:'buyer',
+       t:'After receiving the package, review it and click <b>Confirm Received</b> the package.'},
+      {num:'14', a:'carrier',
+       t:'Send the <b>Package</b> and send (attached)<b> AWB Proof</b> to Buyer via internal <b>Message</b>.'} ]},
 
-    [ {num:'15', a:'system', span:true,
-       note:'ProxyBuying disburses the Proxy Buyer and Carrier payouts.'} ],
-
-    {divider:'Transaction Completed'},
+    {divider:'PROXYBUYING DISBURSE PROXY BUYER AND CARRIER PAYOUTS - Transaction Completed'},
   ];
   var LABEL={carrier:'Carrier', proxy:'Proxy Buyer', buyer:'Buyer', system:'ProxyBuying'};
   var COL={buyer:0, proxy:1, carrier:2, system:1};
@@ -177,12 +176,13 @@
     // both the Proxy Buyer and Carrier columns.
     var steps=Array.isArray(row)?row:row.c;
     if(!Array.isArray(row)&&row.align==='stretch'){
+      var mflipS=row.mflip?' hi-mflip':'';
       var sc=['','',''];
       steps.forEach(function(s){
         var tail=s.tail?cell(s.tail).replace('class="hi-cell ','class="hi-cell hi-tail '):'';
         sc[COL[s.a]]='<div class="hi-colwrap">'+cell(s)+tail+'</div>';
       });
-      return '<div class="hi-step hi-stretch">'+sc.map(function(c){return c||'<div class="hi-colwrap"></div>';}).join('')+'</div>';
+      return '<div class="hi-step hi-stretch'+mflipS+'">'+sc.map(function(c){return c||'<div class="hi-colwrap"></div>';}).join('')+'</div>';
     }
     var align=(!Array.isArray(row)&&row.align==='top')?' hi-top':'';
     // mflip rows put the carrier (col 3) before the buyer (col 1) on mobile only,
