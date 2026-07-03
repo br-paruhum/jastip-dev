@@ -103,3 +103,40 @@ class OrderDetailStep2FoldTests(TestCase):
         content = resp.content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep3FoldTests(TestCase):
+    """Tabs Status Part-1, Step 3 (Buyer accepts the estimate, status=RESPONDED,
+    set by trips.views.proxy_estimate_accept): Payment Terms stays closed for
+    both roles (each already had their first-look moment); Notes opens for
+    both Buyer and Proxy."""
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        self.buyer = make_user("s3b@x.com")
+        self.proxy_user = make_user("s3p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p3@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.RESPONDED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_notes_open_payment_terms_closed_at_step3(self):
+        resp = self._get(self.buyer)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_notes_open_payment_terms_closed_at_step3(self):
+        resp = self._get(self.proxy_user)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
