@@ -554,3 +554,53 @@ class OrderDetailStep10_1FoldTests(TestCase):
     def test_proxy_never_sees_payments_fold(self):
         content = self._get(self.proxy_user).content.decode()
         self.assertNotIn("<h3>Payments</h3>", content)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OfferDetailStep10_1FoldTests(TestCase):
+    """Tabs Status Part-2, Step 10-1 (Buyer submits balance transfer proof,
+    order.status=PACKAGE_ARRIVED + balance_pending=True): the Carrier's Notes
+    fold should close - previously hardcoded `open` unconditionally, so it
+    could never fold at this or any other step."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from apps.trips.models import Payment, Transaction, TravelerOffer
+        from apps.trips.constants import OfferStatus
+        self.reverse = reverse
+        self.Payment = Payment
+        self.buyer = make_user("s101ob@x.com")
+        self.carrier = make_user("s101oc@x.com")
+        proxy_user = make_user("s101op@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p101o@x.com", user=proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.PACKAGE_ARRIVED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.offer = TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier, ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+        self.tx = Transaction.objects.create(request=self.order)
+
+    def _get(self):
+        self.client.force_login(self.carrier)
+        return self.client.get(self.reverse("accounts:profile") + f"?offer={self.offer.pk}#offer-detail")
+
+    def test_notes_open_before_balance_submitted(self):
+        content = self._get().content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_notes_closed_once_balance_pending(self):
+        from decimal import Decimal
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.BALANCE,
+            currency=self.order.currency, amount=Decimal("10"), status=self.Payment.PaymentStatus.PENDING,
+        )
+        content = self._get().content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')

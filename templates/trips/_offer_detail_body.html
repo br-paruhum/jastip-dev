@@ -104,7 +104,9 @@
   <div class="fold-body payment-terms">{{ PAYMENT_TERM|safe }}</div>
 </details>
 
-<details class="card fold mt-2" open>
+<!-- Open by default; closes only at Step 10-1 (Buyer submits balance
+     transfer proof) - nothing new for the Carrier to look at there. -->
+<details class="card fold mt-2"{% if not leg_offer.order.status == "package_arrived" or not leg_offer.order.balance_pending %} open{% endif %}>
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if leg_offer.order.box_photo_1 %}
