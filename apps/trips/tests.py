@@ -769,3 +769,78 @@ class ProfileGateTests(TestCase):
         self.assertFalse(u.profile_complete)
         u.phone_verified = True
         self.assertTrue(u.profile_complete)
+
+
+class OfferEditTests(TestCase):
+    """Carrier can edit/withdraw a pending offer up until the buyer accepts it
+    (offer_status -> SELECTED) — see TravelerOffer.can_edit."""
+
+    def setUp(self):
+        from django.urls import reverse
+        from apps.trips.models import TravelerOffer
+        self.reverse = reverse
+        self.TravelerOffer = TravelerOffer
+        self.buyer = make_user("oeb@x.com")
+        self.carrier = make_user("oec@x.com")
+        self.order = Order.objects.create(
+            buyer=self.buyer, status=Status.OPEN,
+            bid_weight_kg=Decimal("5"), estimated_weight_kg=Decimal("5"),
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.offer = TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=7),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.PENDING,
+        )
+
+    def _edit_payload(self, **overrides):
+        payload = {
+            "ask_cost_per_kg": "150", "avail_kg": "4",
+            "drop_off_address": "123 Sukhumvit Rd",
+            "travel_date": (date.today() + timedelta(days=8)).strftime("%Y-%m-%d"),
+            "travel_time": "12:00",
+            "from_city": "Bangkok", "from_country": "Thailand",
+            "to_city": "Jakarta", "to_country": "Indonesia",
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_carrier_can_edit_while_pending(self):
+        self.assertTrue(self.offer.can_edit)
+        self.client.force_login(self.carrier)
+        url = self.reverse("trips:offer_edit", args=[self.offer.pk])
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+        resp = self.client.post(url, self._edit_payload())
+        self.offer.refresh_from_db()
+        self.assertEqual(self.offer.ask_cost_per_kg, Decimal("150"))
+        self.assertEqual(self.offer.avail_kg, Decimal("4"))
+
+    def test_carrier_cannot_edit_once_buyer_accepts(self):
+        self.offer.offer_status = OfferStatus.SELECTED
+        self.offer.allocated_weight_kg = Decimal("5")
+        self.offer.save()
+        self.order.recompute_status()  # mirrors offer_select view
+        self.offer.refresh_from_db()
+        self.assertEqual(self.order.status, Status.TAKEN)
+        self.assertFalse(self.offer.can_edit)
+
+        self.client.force_login(self.carrier)
+        url = self.reverse("trips:offer_edit", args=[self.offer.pk])
+        resp = self.client.post(url, self._edit_payload(ask_cost_per_kg="999"), follow=True)
+        self.offer.refresh_from_db()
+        # Rejected: offer must be unchanged, and view must not render the edit form.
+        self.assertEqual(self.offer.ask_cost_per_kg, Decimal("100"))
+        self.assertTemplateNotUsed(resp, "trips/offer_edit.html")
+
+    def test_other_carrier_cannot_edit_someone_elses_offer(self):
+        other = make_user("oeo@x.com")
+        self.client.force_login(other)
+        url = self.reverse("trips:offer_edit", args=[self.offer.pk])
+        resp = self.client.post(url, self._edit_payload(ask_cost_per_kg="999"), follow=True)
+        self.offer.refresh_from_db()
+        self.assertEqual(self.offer.ask_cost_per_kg, Decimal("100"))
+        self.assertTemplateNotUsed(resp, "trips/offer_edit.html")
