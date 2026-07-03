@@ -524,6 +524,9 @@ def proxy_purchase(request, order_id):
         messages.error(request, "Box Photo is required.")
         return redirect(dash + f"?package_ready={order.id}#package-ready")
     if form.is_valid() and formset.is_valid():
+        if any(not f.cleaned_data.get("purchase_photo") for f in formset.forms):
+            messages.error(request, "A product photo is required for every item.")
+            return redirect(dash + f"?package_ready={order.id}#package-ready")
         form.save()  # actual_weight_kg
         # One box photo (of it closed, ready to hand over). The storage
         # converts it to WebP on save.

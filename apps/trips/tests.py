@@ -1,3 +1,4 @@
+import tempfile
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -965,3 +966,75 @@ class OfferEditTests(TestCase):
         self.offer.refresh_from_db()
         self.assertEqual(self.offer.ask_cost_per_kg, Decimal("100"))
         self.assertTemplateNotUsed(resp, "trips/offer_edit.html")
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ProxyPurchasePhotoRequiredTests(TestCase):
+    """Product photos must be mandatory when the Proxy Buyer marks a package
+    ready — previously the (blank=True) purchase_photo field had no server-side
+    presence check, so items could be sent through with no photo at all."""
+
+    def setUp(self):
+        from apps.trips.models import ProxyBuyer
+
+        self.buyer = make_user("ppb@x.com")
+        self.proxy_user = make_user("ppp@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="Bangkok Proxy", country="Thailand", email="p2@x.com",
+            user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.DEPOSIT_PAID,
+        )
+        self.item = RequestItem.objects.create(
+            request=self.order, name="Widget", quantity=2,
+            estimated_unit_cost=Decimal("10"),
+        )
+        self.client.force_login(self.proxy_user)
+        self.url = f"/trips/orders/{self.order.pk}/proxy-purchase/"
+
+    def _payload(self, **extra):
+        payload = {
+            "actual_weight_kg": "1.0",
+            "items-TOTAL_FORMS": "1",
+            "items-INITIAL_FORMS": "1",
+            "items-MIN_NUM_FORMS": "0",
+            "items-MAX_NUM_FORMS": "1000",
+            "items-0-id": str(self.item.pk),
+            "items-0-actual_quantity": "2",
+            "items-0-actual_unit_cost": "10",
+        }
+        payload.update(extra)
+        return payload
+
+    def test_missing_product_photo_is_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        box = SimpleUploadedFile("box.jpg", b"box-bytes", content_type="image/jpeg")
+        resp = self.client.post(self.url, self._payload(box_photos=box), follow=True)
+        self.item.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertFalse(self.item.purchase_photo)
+        self.assertEqual(self.order.status, Status.DEPOSIT_PAID)
+        self.assertContains(resp, "product photo is required")
+
+    def test_with_product_photo_succeeds(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        # A real (if tiny) GIF — purchase_photo is a Django ImageField, so
+        # Pillow must be able to decode it, unlike the raw box_photos upload.
+        gif_bytes = bytes.fromhex(
+            "47494638396101000100800000000000ffffff21f90401000000002c00000000"
+            "0100010000020144003b"
+        )
+        box = SimpleUploadedFile("box.jpg", b"box-bytes", content_type="image/jpeg")
+        photo = SimpleUploadedFile("item.gif", gif_bytes, content_type="image/gif")
+        resp = self.client.post(
+            self.url,
+            self._payload(**{"box_photos": box, "items-0-purchase_photo": photo}),
+            follow=True,
+        )
+        self.item.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertTrue(bool(self.item.purchase_photo))
+        self.assertEqual(self.order.status, Status.ITEMS_PURCHASED)

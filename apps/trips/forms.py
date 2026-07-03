@@ -516,6 +516,8 @@ class PurchaseItemForm(forms.ModelForm):
                 self.initial["actual_quantity"] = self.instance.quantity
             if not self.instance.actual_unit_cost:
                 self.initial["actual_unit_cost"] = self.instance.estimated_unit_cost
+            if not self.instance.purchase_photo:
+                self.fields["purchase_photo"].widget.attrs["required"] = True
 
 
 PurchaseItemFormSet = inlineformset_factory(
