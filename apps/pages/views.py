@@ -148,6 +148,15 @@ def contact(request):
                 event="contact",
                 cc_admin=False,
             )
+            send_email(
+                to_address=msg.email,
+                subject="Thank you for contacting ProxyBuying.",
+                template="contact_confirmation",
+                context={"msg": msg, "faq_url": request.build_absolute_uri(reverse("pages:page", args=["faq"]))},
+                event="contact_confirmation",
+                cc_admin=False,
+                reply_to=["support@proxybuying.com"],
+            )
             messages.success(request, "Message sent successfully! Thanks for reaching out. We will look over your request and get back to you within 24-48 hours.")
             return redirect("pages:contact")
     else:

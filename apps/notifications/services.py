@@ -60,7 +60,7 @@ def deliver_in_background(send_callable):
 
 
 def send_email(*, to_user=None, to_address=None, subject, template, context=None, event="",
-               cc_admin=True, attachments=None):
+               cc_admin=True, attachments=None, reply_to=None):
     """Render an HTML email (with plaintext fallback) and log it.
 
     Per spec, the admin is cc'd on all traveler/buyer correspondence.
@@ -92,7 +92,8 @@ def send_email(*, to_user=None, to_address=None, subject, template, context=None
             event=event,
         )
         try:
-            msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [address], cc=cc)
+            msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [address], cc=cc,
+                                         reply_to=reply_to)
             msg.attach_alternative(html_body, "text/html")
             for filename, content, mimetype in (attachments or []):
                 msg.attach(filename, content, mimetype)
