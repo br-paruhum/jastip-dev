@@ -804,6 +804,56 @@ class ChatBoxAutoOpenAtEstimateSentTests(TestCase):
         self.assertTrue(self._open_map(self.buyer)["buyer_proxy"])
 
 
+class ChatBoxAutoOpenAtStep4Tests(TestCase):
+    """Tabs Status Part-1, Step 4 (Note 4-1): once a Carrier has a pending offer
+    on a RESPONDED order, the Buyer<->Carrier chat box should auto-open on the
+    other side whenever the counterpart posts. Real posts always carry the
+    audience of the specific box the form was submitted from (see
+    trips.views.request_message) - not derived from order status - so this
+    test posts with audience=CARRIER_BUYER explicitly, matching real usage."""
+
+    def setUp(self):
+        from apps.trips.models import Message, ProxyBuyer, TravelerOffer
+        self.Message = Message
+        self.buyer = make_user("s4caob@x.com")
+        self.proxy_user = make_user("s4caop@x.com")
+        self.carrier = make_user("s4caoc@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.RESPONDED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier, ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.PENDING,
+        )
+
+    def _open_map(self, user):
+        return {b["audience"]: b["open"] for b in self.order.chat_boxes(user)}
+
+    def test_carrier_box_opens_on_buyer_message(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.buyer, body="Confirming route details",
+            audience=self.Message.Audience.CARRIER_BUYER,
+        )
+        self.assertTrue(self._open_map(self.carrier)["carrier_buyer"])
+
+    def test_buyer_box_reopens_on_carrier_reply(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.buyer, body="Confirming route details",
+            audience=self.Message.Audience.CARRIER_BUYER,
+        )
+        self.Message.objects.create(
+            request=self.order, sender=self.carrier, body="Confirmed, all good",
+            audience=self.Message.Audience.CARRIER_BUYER,
+        )
+        self.assertTrue(self._open_map(self.buyer)["carrier_buyer"])
+
+
 class ProfileGateTests(TestCase):
     def test_profile_complete_requires_name_and_verified_phone(self):
         u = User.objects.create_user(email="x@y.com", password="pw")

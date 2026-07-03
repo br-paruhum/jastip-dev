@@ -140,3 +140,42 @@ class OrderDetailStep3FoldTests(TestCase):
         content = resp.content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OfferDetailStep4FoldTests(TestCase):
+    """Tabs Status Part-1, Step 4 (Carrier submits offer, order.status stays
+    RESPONDED - offer_create calls recompute_status() which keeps it there
+    since the offer is still pending): on the Carrier's own offer-detail panel
+    (accounts:profile?offer=<id>), Payment Terms should open on their first
+    look (still awaiting the buyer's decision) - Notes is already always open
+    there (hardcoded), unaffected by this step."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from apps.trips.models import TravelerOffer
+        from apps.trips.constants import OfferStatus
+        self.reverse = reverse
+        self.buyer = make_user("s4b@x.com")
+        self.proxy_user = make_user("s4p@x.com")
+        self.carrier = make_user("s4c@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p4@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.RESPONDED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.offer = TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier, ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.PENDING,
+        )
+
+    def test_carrier_sees_payment_terms_open_while_offer_pending(self):
+        self.client.force_login(self.carrier)
+        resp = self.client.get(self.reverse("accounts:profile") + f"?offer={self.offer.pk}#offer-detail")
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')

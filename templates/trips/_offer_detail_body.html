@@ -97,7 +97,9 @@
 {% endif %}
 {% endif %}
 
-<details class="card fold mt-2">
+<!-- Opens expanded on the Carrier's first look at their offer (still pending
+     the buyer's decision), then stays closed once the buyer has acted on it. -->
+<details class="card fold mt-2"{% if leg_offer.order.status == "responded" %} open{% endif %}>
   <summary><h3>Payment Terms</h3></summary>
   <div class="fold-body payment-terms">{{ PAYMENT_TERM|safe }}</div>
 </details>
