@@ -138,15 +138,20 @@
 </div></div>
 {% endif %}
 
-<!-- Payment Terms (foldable, closed by default) — editable in admin: Site Settings -->
-<details class="card fold mt-2">
+<!-- Payment Terms (foldable) — editable in admin: Site Settings.
+     Hidden from the Proxy Buyer until they've sent their estimate (nothing to
+     price yet); opens expanded on each party's first look, then stays closed. -->
+{% if not is_order_proxy or bf_order.status != "request_received" %}
+<details class="card fold mt-2"{% if is_order_buyer and bf_order.status == "request_received" %} open{% endif %}>
   <summary><h3>Payment Terms</h3></summary>
   <div class="fold-body payment-terms">
     {{ PAYMENT_TERM|safe }}
   </div>
 </details>
+{% endif %}
 
-<details class="card fold mt-2">
+{% if not is_order_proxy or bf_order.status != "request_received" %}
+<details class="card fold mt-2"{% if is_order_buyer and bf_order.status == "request_received" %} open{% endif %}>
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if bf_order.is_cargo %}
@@ -360,6 +365,7 @@
   {% endif %}
   </div>
 </details>
+{% endif %}
 
 <!-- Payments (foldable) -->
 {% if bf_order.transaction.payments.all %}
