@@ -37,7 +37,7 @@ class OrderDetailPaymentTermsNotesFoldTests(TestCase):
             name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
         )
         self.order = Order.objects.create(
-            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.REQUEST_RECEIVED,
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.OPEN,
             max_acceptable_date=date.today() + timedelta(days=10),
         )
 
@@ -67,3 +67,39 @@ class OrderDetailPaymentTermsNotesFoldTests(TestCase):
         content = resp.content.decode()
         self.assertIn("<h3>Payment Terms</h3>", content)
         self.assertIn("<h3>Notes</h3>", content)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep2FoldTests(TestCase):
+    """Tabs Status Part-1, Step 2 (Proxy sends estimate, status=ESTIMATE_SENT):
+    Payment Terms opens expanded on the Proxy's first look (closes for the
+    Buyer, since their first look was Step 1); Notes stays open for both."""
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        self.buyer = make_user("s2b@x.com")
+        self.proxy_user = make_user("s2p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p2@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.ESTIMATE_SENT,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_payment_terms_closed_but_notes_open_at_step2(self):
+        resp = self._get(self.buyer)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_payment_terms_and_notes_open_at_step2(self):
+        resp = self._get(self.proxy_user)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')

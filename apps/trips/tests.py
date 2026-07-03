@@ -761,6 +761,49 @@ class ReviewDraftTests(TestCase):
         self.assertEqual(self.req.status, Status.ACCEPTED)
 
 
+class ChatBoxAutoOpenAtEstimateSentTests(TestCase):
+    """Tabs Status Part-1, Step 2 (Note 2-1): once the Proxy sends the estimate
+    (status=ESTIMATE_SENT), the Buyer<->Proxy chat box should auto-open on the
+    other side whenever the counterpart posts — including a reply on top of an
+    already-seen message. This is already covered by the generic Phase-9
+    ChatRead/chat_boxes unread mechanism; this test locks that in."""
+
+    def setUp(self):
+        from apps.trips.models import Message, ProxyBuyer
+        self.Message = Message
+        self.buyer = make_user("caob@x.com")
+        self.proxy_user = make_user("caop@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.ESTIMATE_SENT,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def _open_map(self, user):
+        return {b["audience"]: b["open"] for b in self.order.chat_boxes(user)}
+
+    def test_proxy_box_opens_on_buyer_message(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.buyer, body="Can you adjust the margin?",
+            audience=self.order.message_audience_for_status(),
+        )
+        self.assertTrue(self._open_map(self.proxy_user)["buyer_proxy"])
+        self.assertFalse(self._open_map(self.buyer)["buyer_proxy"])  # own message, not open for self
+
+    def test_buyer_box_reopens_on_proxy_reply(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.buyer, body="Can you adjust the margin?",
+            audience=self.order.message_audience_for_status(),
+        )
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user, body="Sure, revising now.",
+            audience=self.order.message_audience_for_status(),
+        )
+        self.assertTrue(self._open_map(self.buyer)["buyer_proxy"])
+
+
 class ProfileGateTests(TestCase):
     def test_profile_complete_requires_name_and_verified_phone(self):
         u = User.objects.create_user(email="x@y.com", password="pw")
