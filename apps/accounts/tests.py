@@ -323,3 +323,48 @@ class OfferDetailStep5NotesTests(TestCase):
         )
         content = self._get().content.decode()
         self.assertIn("Buyer submit transfer proof, waiting for admin fund verification.", content)
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep6FoldTests(TestCase):
+    """Tabs Status Part-2, Step 6 (Proxy marks package ready, status=
+    ITEMS_PURCHASED): both the Buyer's and the Proxy's Notes fold should open
+    by default (was previously closed - items_purchased wasn't listed in the
+    fold's open-state condition)."""
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        self.buyer = make_user("s6b@x.com")
+        self.proxy_user = make_user("s6p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p6@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.ITEMS_PURCHASED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_notes_open(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_notes_open(self):
+        content = self._get(self.proxy_user).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_never_sees_payments_fold(self):
+        # Spec: Proxy's "Payment" row is "Never" - already satisfied by the
+        # buyer-only gate from Part-1 Step 5 (fcc855c); locked in here.
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        content = self._get(self.proxy_user).content.decode()
+        self.assertNotIn("<h3>Payments</h3>", content)

@@ -883,6 +883,57 @@ class ChatBoxAutoOpenAtStep5cTests(TestCase):
         self.assertTrue(boxes["buyer_proxy"])
 
 
+class ChatBoxAutoOpenAtStep6Tests(TestCase):
+    """Tabs Status Part-2, Step 6 (Note 6-1): once the Proxy marks the package
+    ready (status=ITEMS_PURCHASED), the Proxy<->Carrier chat box should
+    auto-open on either side whenever the counterpart posts - including on the
+    Proxy's side after they've already replied (already covered by the generic
+    Phase-9 chat_boxes/ChatRead mechanism - locked in here)."""
+
+    def setUp(self):
+        from apps.trips.models import Message, ProxyBuyer, TravelerOffer
+        self.Message = Message
+        self.buyer = make_user("s6caob@x.com")
+        self.proxy_user = make_user("s6caop@x.com")
+        self.carrier = make_user("s6caoc@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.ITEMS_PURCHASED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+
+    def _open_map(self, user):
+        return {b["audience"]: b["open"] for b in self.order.chat_boxes(user)}
+
+    def test_proxy_box_opens_on_carrier_message(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.carrier, body="Package received, weighing now",
+            audience=self.Message.Audience.PROXY_CARRIER,
+        )
+        self.assertTrue(self._open_map(self.proxy_user)["proxy_carrier"])
+
+    def test_carrier_box_opens_on_proxy_reply(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.carrier, body="Package received, weighing now",
+            audience=self.Message.Audience.PROXY_CARRIER,
+        )
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user, body="Great, ready whenever you are",
+            audience=self.Message.Audience.PROXY_CARRIER,
+        )
+        self.assertTrue(self._open_map(self.carrier)["proxy_carrier"])
+
+
 class ProfileGateTests(TestCase):
     def test_profile_complete_requires_name_and_verified_phone(self):
         u = User.objects.create_user(email="x@y.com", password="pw")
