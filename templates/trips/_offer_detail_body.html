@@ -121,7 +121,11 @@
     {% elif leg_offer.order.status == "responded" %}
     <p class="muted">Waiting for Buyer's Acceptance</p>
     {% elif leg_offer.order.status == "accepted" %}
+    {% if leg_offer.order.deposit_pending %}
+    <p class="muted">Buyer submit transfer proof, waiting for admin fund verification.</p>
+    {% else %}
     <p class="muted">Buyer accepted your offer rate — awaiting for Buyer's deposit.</p>
+    {% endif %}
     {% elif leg_offer.order.status == "deposit_paid" %}
     <p>Buyer's deposit verified. Please wait for Proxy Buyer to submit the Actual Cost.</p>
     {% elif leg_offer.order.status == "items_purchased" %}

@@ -273,3 +273,53 @@ class OrderDetailStep5FoldTests(TestCase):
         resp = self._get(self.proxy_user)
         content = resp.content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OfferDetailStep5NotesTests(TestCase):
+    """Note 5.2: on the Carrier's own offer-detail panel, once the order is
+    ACCEPTED, Notes wording should distinguish 5a (awaiting the buyer's
+    deposit) from 5b (deposit_pending - proof already submitted)."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from apps.trips.models import TravelerOffer, Payment, Transaction
+        from apps.trips.constants import OfferStatus
+        self.reverse = reverse
+        self.Payment = Payment
+        self.buyer = make_user("s5nb@x.com")
+        self.carrier = make_user("s5nc@x.com")
+        proxy_user = make_user("s5np@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p5n@x.com", user=proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.ACCEPTED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.offer = TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier, ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand", to_city="Jakarta", to_country="Indonesia",
+            # order_accept (Step 5a) never selects the leg - Flow-1 proxy
+            # offers stay PENDING through the whole carry flow (no leg).
+            offer_status=OfferStatus.PENDING,
+        )
+        self.tx = Transaction.objects.create(request=self.order)
+
+    def _get(self):
+        self.client.force_login(self.carrier)
+        return self.client.get(self.reverse("accounts:profile") + f"?offer={self.offer.pk}#offer-detail")
+
+    def test_carrier_sees_awaiting_deposit_before_proof_submitted(self):
+        content = self._get().content.decode()
+        self.assertIn("Buyer accepted your offer rate — awaiting for Buyer's deposit.", content)
+
+    def test_carrier_sees_verification_wording_once_proof_submitted(self):
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=self.Payment.PaymentStatus.PENDING,
+        )
+        content = self._get().content.decode()
+        self.assertIn("Buyer submit transfer proof, waiting for admin fund verification.", content)
