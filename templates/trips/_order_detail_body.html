@@ -250,9 +250,9 @@
     {% if is_order_buyer %}
       {% if bf_order.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
       {% if bf_order.delivery_preference == "reship" %}
-      <p>You chose <strong>reshipment</strong> when you placed the order. Please check the Message tab from the Carrier below for the Reshipment Cost, Cost Calculation Proof from the courier, and the Carrier's bank details. After you make the bank transfer, the Carrier will ship the package to your location.</p>
+      <p>You chose Reshipment option. Please check the Message from the Carrier below for the Reshipment Cost, Courier Cost Proof, and Carrier's bank details.<br> After you make the bank transfer, Carrier will ship the package to your location.</p>
       {% else %}
-      <p>You chose <strong>local pickup</strong> when you placed the order. Collect your package from the carrier below, verify the items, then click <strong>Confirm Received</strong> to release the payment. Please use the chat Messages below to find the best time to visit the carrier's location.</p>
+      <p>You chose Pick up option. Please send a Message to the Carrier to find the best time for you to visit Carrier's location to review and received the package.</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:100px">Name</td><td>: {{ bf_order.proxy_traveler.full_name }}</td></tr>
         {% if bf_order.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_address }}</span>{% if bf_order.proxy_traveler.traveler_destination_city %}, {{ bf_order.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
