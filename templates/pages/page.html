@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load safehtml %}
 {% block title %}{{ page.title }} — {{ SITE_NAME }}{% endblock %}
 {% block meta_description %}{{ page.meta_description|default:page.title }}{% endblock %}
 {% block content %}
@@ -16,7 +17,7 @@
             {% for f in faqs %}
             <details class="card" style="margin-bottom:12px">
               <summary class="card-body" style="cursor:pointer;font-weight:700">{{ f.question }}</summary>
-              <div class="card-body" style="padding-top:0">{{ f.answer|safe }}</div>
+              <div class="card-body" style="padding-top:0">{{ f.answer|safe_fragment }}</div>
             </details>
             {% endfor %}
           </div>
