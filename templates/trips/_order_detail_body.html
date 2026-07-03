@@ -211,11 +211,11 @@
     {% endif %}
   {% elif bf_order.status == "package_arrived" %}
     {% if not is_order_buyer %}
-    <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
+    <p class="muted">The package has arrived at the destination. Waiting for Buyer to receive the package.</p>
     {% elif bf_order.balance_pending %}
     <p>Balance proof submitted — awaiting admin verification.</p>
     {% if bf_order.balance_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
-    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Payment Proof</button></div>
+    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
     {% elif bf_order.balance_extra_due > 0 %}
     {% with s=bf_order.balance_settlement %}
     <p>Your package has arrived.<br>Please pay the unpaid balance of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong>{% if s.ref_amount %} ({{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} @ {{ s.rate|floatformat:2 }}){% endif %} to:</p>
@@ -230,7 +230,7 @@
     <form method="post" action="{% url 'trips:request_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
       {% csrf_token %}
       <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
-      <button class="btn btn-primary" type="submit">Submit Payment Proof</button>
+      <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
     </form>
     {% elif bf_order.balance_refund_due > 0 %}
     <p class="muted">Your deposit exceeded the final invoice. A refund of <strong>{{ bf_order.currency }} {{ bf_order.balance_refund_due|floatformat:0|intcomma }}</strong> will be processed to you.</p>
@@ -263,7 +263,7 @@
     {% endif %}
   {% elif bf_order.status == "reship_requested" %}
     {% if is_order_buyer %}
-    <p>You chose reshipment when you placed the order. Please check the Message tab from the Carrier below for the Reshipment Cost, Cost Calculation Proof from the courier, and the Carrier's bank details. After you make the bank transfer, the Carrier will ship the package to your location.</p>
+    <p>You chose Reshipment option. Please check the Message from the Carrier below for the Reshipment Cost, Courier Cost Proof, and Carrier's bank details.<br> After you make the bank transfer, Carrier will ship the package to your location.</p>
     <p class="help">Only click <strong>Package Received</strong> after the Carrier has sent the AWB and you have received the package.</p>
     <form method="post" action="{% url 'trips:request_clear' bf_order.id %}" style="text-align:center">{% csrf_token %}
       <button class="btn btn-primary" type="submit">Package Received</button>

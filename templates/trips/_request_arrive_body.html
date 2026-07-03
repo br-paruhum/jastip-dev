@@ -7,8 +7,8 @@
 <p class="muted">Enter your customs-duty <strong>estimate</strong>. The buyer pays this amount upfront, and
   it is final. Upload the estimate proof now; the actual receipt is uploaded after the buyer pays.</p>
 {% else %}
-<p class="muted">The buyer has paid your duty estimate. Make the actual customs payment, then upload the
-  actual receipt for the record.</p>
+<p class="muted">Buyer has made Customs Duty payment. Proceed with the actual duty payment, then upload the
+  actual receipt for reimbursement record.</p>
 {% endif %}
 
 <form method="post" action="{% url 'trips:request_arrive' arrive_req.id %}" enctype="multipart/form-data" class="card" style="margin-top:18px">
@@ -16,11 +16,11 @@
   <div class="card-body">
     <div class="card-band-row">Process Arrival Details</div>
     <div class="form-row" style="margin-top:20px">
-      <div class="form-field"><label>Custom Duty Currency</label>
+      <div class="form-field"><label>Customs Duty Currency</label>
         <div class="static-field muted">{{ arrive_req.destination_currency }}</div>
         {{ arrive_form.custom_fare_currency }}
       </div>
-      <div class="form-field"><label>Custom Duty Estimate Amount</label>
+      <div class="form-field"><label>Customs Duty Amount</label>
         {% if arrive_req.status == "package_received" %}
         {{ arrive_form.custom_fare_amount }}{{ arrive_form.custom_fare_amount.errors }}
         {% else %}
@@ -30,7 +30,7 @@
       </div>
     </div>
     {% if arrive_req.status == "package_received" %}
-    <div class="form-field"><label>Please upload Duty Estimate here.</label>
+    <div class="form-field"><label>Upload Proforma Proof here.</label>
       {% if arrive_req.custom_fare_estimate_proof %}
       <div style="margin-bottom:6px">
         <a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank"><img src="{{ arrive_req.custom_fare_estimate_proof.url }}" alt="Estimate proof" style="max-width:120px;border-radius:8px;display:block"></a>
@@ -40,15 +40,15 @@
       {{ arrive_form.custom_fare_estimate_proof }}{{ arrive_form.custom_fare_estimate_proof.errors }}
     </div>
     {% else %}
-    <div class="form-field"><label>Duty Estimate Proof</label>
+    <div class="form-field"><label>Proforma Proof</label>
       {% if arrive_req.custom_fare_estimate_proof %}
-      <div><a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank" class="btn btn-outline btn-sm">View Estimate Proof</a></div>
+      <div><a href="{{ arrive_req.custom_fare_estimate_proof.url }}" target="_blank" class="btn btn-outline btn-sm">View Proforma Proof</a></div>
       {% else %}
       <div class="static-field muted">No estimate proof was uploaded.</div>
       {% endif %}
     </div>
     {% endif %}
-    <div class="form-field"><label>Please upload the actual receipt here.</label>
+    <div class="form-field"><label>Upload Actual Proof.</label>
       {% if arrive_req.custom_fare_proof %}
       <div style="margin-bottom:6px">
         <a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank"><img src="{{ arrive_req.custom_fare_proof.url }}" alt="Actual receipt" style="max-width:120px;border-radius:8px;display:block"></a>
@@ -58,7 +58,7 @@
       {{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}
     </div>
     {{ arrive_form.non_field_errors }}
-    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Estimate{% else %}Actual Duty Paid{% endif %}</button></div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Amount{% else %}Send Actual Receipt{% endif %}</button></div>
   </div>
 </form>
 
@@ -66,8 +66,8 @@
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
     {% if arrive_req.status == "package_received" %}
-    <p>Please fill in Custom Duty Estimate Amount, and upload the estimate proof. You will be informed
-      when buyer has made a payment. By then, you can make the actual Duty payment.</p>
+    <p>Please fill in Customs Duty amount and upload its Proforma Proof. You will be informed
+      when buyer has made a payment. By then, you can make the Actual Duty payment.</p>
     {% else %}
     <p>Buyer has made payment, please upload the actual receipt.</p>
     {% endif %}
