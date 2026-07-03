@@ -179,3 +179,90 @@ class OfferDetailStep4FoldTests(TestCase):
         resp = self.client.get(self.reverse("accounts:profile") + f"?offer={self.offer.pk}#offer-detail")
         content = resp.content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep5FoldTests(TestCase):
+    """Tabs Status Part-1, Step 5a/5b/5c: buyer accepts the carrier's offer
+    (status=ACCEPTED, deposit_pending=False) -> submits transfer proof
+    (status=ACCEPTED, deposit_pending=True) -> admin verifies
+    (status=DEPOSIT_PAID). Buyer's Notes: open/closed/open across those three
+    states (Note 5.1 - hide the pay form while awaiting verification). Proxy's
+    Notes: stays open throughout. Payments fold: buyer-only, open once shown."""
+
+    def setUp(self):
+        from django.urls import reverse
+        from apps.trips.models import Payment, Transaction
+        self.reverse = reverse
+        self.Payment = Payment
+        self.buyer = make_user("s5b@x.com")
+        self.proxy_user = make_user("s5p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p5@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.ACCEPTED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.tx = Transaction.objects.create(request=self.order)
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_step5a_buyer_notes_open_no_payment_yet(self):
+        resp = self._get(self.buyer)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertIn("Submit Transfer Proof", content)
+        self.assertNotIn("<h3>Payments</h3>", content)  # no payment record yet
+
+    def test_step5a_proxy_notes_open(self):
+        resp = self._get(self.proxy_user)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_step5b_buyer_notes_closed_shows_awaiting_verification(self):
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=self.Payment.PaymentStatus.PENDING,
+        )
+        resp = self._get(self.buyer)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertIn("awaiting admin verification of your deposit", content)
+        self.assertNotIn('<div style="margin-bottom:10px"><input type="file" name="proof"', content)  # Note 5.1
+        # Payments fold: buyer-only, open once a payment exists.
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+
+    def test_step5b_proxy_never_sees_payments_fold(self):
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=self.Payment.PaymentStatus.PENDING,
+        )
+        resp = self._get(self.proxy_user)
+        content = resp.content.decode()
+        self.assertNotIn("<h3>Payments</h3>", content)
+        # Proxy's Notes stays open even while deposit is pending.
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_step5c_buyer_notes_open_after_verification_clay_button(self):
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=self.Payment.PaymentStatus.VERIFIED,
+            proof="deposit_proofs/x.jpg",
+        )
+        self.order.status = Status.DEPOSIT_PAID
+        self.order.save()
+        resp = self._get(self.buyer)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        # Note 5.3: the View Transfer Proof link uses the clay/primary button, not outline.
+        self.assertIn('class="btn btn-primary btn-sm">View Transfer Proof</a>', content)
+
+    def test_step5c_proxy_notes_open(self):
+        self.order.status = Status.DEPOSIT_PAID
+        self.order.save()
+        resp = self._get(self.proxy_user)
+        content = resp.content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')

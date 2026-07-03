@@ -854,6 +854,34 @@ class ChatBoxAutoOpenAtStep4Tests(TestCase):
         self.assertTrue(self._open_map(self.buyer)["carrier_buyer"])
 
 
+class ChatBoxAutoOpenAtStep5cTests(TestCase):
+    """Tabs Status Part-1, Step 5c (Note 5.4): once admin verifies the deposit
+    (status=DEPOSIT_PAID), the Buyer<->Proxy chat box should auto-open on the
+    Buyer's side when the Proxy posts (already covered by the generic
+    Phase-9 chat_boxes/ChatRead mechanism - locked in here)."""
+
+    def setUp(self):
+        from apps.trips.models import Message, ProxyBuyer
+        self.Message = Message
+        self.buyer = make_user("s5caob@x.com")
+        self.proxy_user = make_user("s5caop@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, status=Status.DEPOSIT_PAID,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def test_buyer_box_opens_on_proxy_message(self):
+        self.Message.objects.create(
+            request=self.order, sender=self.proxy_user, body="Starting to purchase now",
+            audience=self.Message.Audience.BUYER_PROXY,
+        )
+        boxes = {b["audience"]: b["open"] for b in self.order.chat_boxes(self.buyer)}
+        self.assertTrue(boxes["buyer_proxy"])
+
+
 class ProfileGateTests(TestCase):
     def test_profile_complete_requires_name_and_verified_phone(self):
         u = User.objects.create_user(email="x@y.com", password="pw")

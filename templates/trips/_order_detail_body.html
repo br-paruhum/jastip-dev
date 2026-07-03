@@ -151,7 +151,7 @@
 {% endif %}
 
 {% if not is_order_proxy or bf_order.status != "open" %}
-<details class="card fold mt-2"{% if bf_order.status == "estimate_sent" or bf_order.status == "responded" or is_order_buyer and bf_order.status == "open" %} open{% endif %}>
+<details class="card fold mt-2"{% if bf_order.status == "estimate_sent" or bf_order.status == "responded" or bf_order.status == "deposit_paid" or is_order_buyer and bf_order.status == "open" or is_order_proxy and bf_order.status == "accepted" or is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %} open{% endif %}>
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if bf_order.is_cargo %}
@@ -196,7 +196,7 @@
   {% elif bf_order.status == "deposit_paid" %}
     {% if is_order_buyer %}
     <p class="muted">Deposit verified. Proxy Buyer can start buying your ordered products.</p>
-    {% if bf_order.deposit_proof_url %}<div style="text-align:center"><a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View Transfer Proof</a></div>{% endif %}
+    {% if bf_order.deposit_proof_url %}<div style="text-align:center"><a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Transfer Proof</a></div>{% endif %}
     {% else %}
     <p class="muted">Buyer's deposit verified. You can start buying the products, prepare the package (box or luggage), then select "Enter Actual Cost" button above.</p>
     {% endif %}
@@ -334,6 +334,11 @@
     {% endif %}
   {% elif bf_order.status == "accepted" %}
     {% if is_order_buyer %}
+    {% if bf_order.deposit_pending %}
+    <p>Transfer proof submitted — awaiting admin verification of your deposit.</p>
+    {% if bf_order.deposit_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.deposit_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
+    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+    {% else %}
     <p>Shipment cost accepted. Please pay the deposit to confirm — the Proxy Buyer then starts purchasing.</p>
     {% with s=bf_order.deposit_settlement %}
     <p>Please make a bank transfer of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong>{% if s.ref_amount %} ({{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} @ {{ s.rate|floatformat:2 }}){% endif %} to:</p>
@@ -350,6 +355,7 @@
       <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
       <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
     </form>
+    {% endif %}
     {% else %}
     <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
     {% endif %}
@@ -367,9 +373,9 @@
 </details>
 {% endif %}
 
-<!-- Payments (foldable) -->
-{% if bf_order.transaction.payments.all %}
-<details class="card fold mt-2">
+<!-- Payments (foldable) - buyer-only; Proxy/Carrier never see this ledger. -->
+{% if is_order_buyer and bf_order.transaction.payments.all %}
+<details class="card fold mt-2" open>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">
