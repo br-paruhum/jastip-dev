@@ -1,4 +1,5 @@
 import json
+from datetime import time
 
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
@@ -505,6 +506,7 @@ def profile(request):
             route_initial = {
                 "from_city": _offer_order.from_city, "from_country": _offer_order.from_country,
                 "to_city": _offer_order.to_city, "to_country": _offer_order.to_country,
+                "travel_time": time(12, 0),
             }
             # Re-bind to the rejected submission only when it was for this order.
             bound = offer_post.get("data") if offer_post and str(offer_post.get("order_id")) == str(_offer_order.id) else None
