@@ -40,11 +40,10 @@
         <p class="help">Remeasured final weight of the package - shipment cost will be recalculated on the invoice accordingly.</p>
       </div>
       <div class="form-field">
-        <label>Box Photos</label>
-        <input type="file" name="box_photos" accept="image/png,image/jpeg" multiple>
-        <p class="help">Of the box before &amp; after closing — up to 2.</p>
-        {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank">Current photo 1</a>{% endif %}
-        {% if package_ready_order.box_photo_2 %} · <a href="{{ package_ready_order.box_photo_2.url }}" target="_blank">Current photo 2</a>{% endif %}
+        <label>Box Photo</label>
+        <input type="file" name="box_photos" accept="image/png,image/jpeg" {% if not package_ready_order.box_photo_1 %}required{% endif %}>
+        <p class="help">Upload box photo before it closed</p>
+        {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank">Current photo</a>{% endif %}
       </div>
     </div>
     <div style="text-align:center;margin-top:12px">

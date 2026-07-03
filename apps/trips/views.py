@@ -519,16 +519,17 @@ def proxy_purchase(request, order_id):
         return redirect(detail)
     form = PurchaseWeightForm(request.POST, instance=order)  # actual total weight
     formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order)
+    box_files = request.FILES.getlist("box_photos")[:1]
+    if not box_files and not order.box_photo_1:
+        messages.error(request, "Box Photo is required.")
+        return redirect(dash + f"?package_ready={order.id}#package-ready")
     if form.is_valid() and formset.is_valid():
         form.save()  # actual_weight_kg
-        # Task 9: up to 2 box photos (before/after closing) from one multi-file
-        # input. The storage converts each to WebP on save.
-        box_files = request.FILES.getlist("box_photos")[:2]
+        # One box photo (of it closed, ready to hand over). The storage
+        # converts it to WebP on save.
         if box_files:
             order.box_photo_1 = box_files[0]
-            if len(box_files) > 1:
-                order.box_photo_2 = box_files[1]
-            order.save(update_fields=["box_photo_1", "box_photo_2"])
+            order.save(update_fields=["box_photo_1"])
         formset.save()  # persist any actual costs/qty the proxy entered
         # Default any blank actuals to the estimate — the proxy bought as ordered,
         # so the invoice's Actual column is always populated.
