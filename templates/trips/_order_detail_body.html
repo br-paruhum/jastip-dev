@@ -151,7 +151,7 @@
 {% endif %}
 
 {% if not is_order_proxy or bf_order.status != "open" %}
-<details class="card fold mt-2"{% if bf_order.status == "estimate_sent" or bf_order.status == "responded" or bf_order.status == "deposit_paid" or bf_order.status == "items_purchased" or bf_order.status == "package_received" or bf_order.status == "package_arrived" or is_order_buyer and bf_order.status == "open" or is_order_proxy and bf_order.status == "accepted" or is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %} open{% endif %}>
+<details class="card fold mt-2"{% if bf_order.status == "estimate_sent" or bf_order.status == "responded" or bf_order.status == "deposit_paid" or bf_order.status == "items_purchased" or bf_order.status == "package_received" or bf_order.status == "package_arrived" and not bf_order.balance_pending or is_order_buyer and bf_order.status == "open" or is_order_proxy and bf_order.status == "accepted" or is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %} open{% endif %}>
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if bf_order.is_cargo %}
@@ -374,11 +374,12 @@
 {% endif %}
 
 <!-- Payments (foldable) - buyer-only; Proxy/Carrier never see this ledger.
-     Opens right when a payment is submitted/verified (deposit_pending or just
-     verified at deposit_paid), then folds closed again through the stable
-     in-between steps (items_purchased, package_received, ...). -->
+     Opens right when a payment is submitted/pending verification
+     (deposit_pending, balance_pending) or was just verified (deposit_paid),
+     then folds closed again through the stable in-between steps
+     (items_purchased, package_received, package_arrived, ...). -->
 {% if is_order_buyer and bf_order.transaction.payments.all %}
-<details class="card fold mt-2"{% if bf_order.deposit_pending or bf_order.status == "deposit_paid" %} open{% endif %}>
+<details class="card fold mt-2"{% if bf_order.deposit_pending or bf_order.status == "deposit_paid" or bf_order.balance_pending %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">

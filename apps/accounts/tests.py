@@ -490,3 +490,67 @@ class OrderDetailStep9FoldTests(TestCase):
         )
         content = self._get(self.buyer).content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+
+    def test_buyer_notes_closed_once_balance_pending(self):
+        # Step 10-1 (Buyer submits transfer proof) shares the same
+        # package_arrived status as Step 9 - the Notes force-open must turn
+        # off once balance_pending flips True, or it'd never fold back down.
+        from decimal import Decimal
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.BALANCE,
+            currency=self.order.currency, amount=Decimal("10"), status=Payment.PaymentStatus.PENDING,
+        )
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep10_1FoldTests(TestCase):
+    """Tabs Status Part-2, Step 10-1 (Buyer submits transfer proof for the
+    balance, status=PACKAGE_ARRIVED + balance_pending=True): Buyer's and
+    Proxy's Notes fold back to closed (Show/Close, not forced open - that's
+    Step 9's behaviour only); the Buyer's Payments fold opens; Proxy still
+    never sees the Payments fold."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from apps.trips.models import Payment, Transaction
+        self.reverse = reverse
+        self.Payment = Payment
+        self.buyer = make_user("s101b@x.com")
+        self.proxy_user = make_user("s101p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p101@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.PACKAGE_ARRIVED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        self.tx = Transaction.objects.create(request=self.order)
+        self.Payment.objects.create(
+            transaction=self.tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.BALANCE,
+            currency=self.order.currency, amount=Decimal("10"), status=self.Payment.PaymentStatus.PENDING,
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_notes_closed(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_notes_closed(self):
+        content = self._get(self.proxy_user).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+
+    def test_buyer_payments_fold_open(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+
+    def test_proxy_never_sees_payments_fold(self):
+        content = self._get(self.proxy_user).content.decode()
+        self.assertNotIn("<h3>Payments</h3>", content)
