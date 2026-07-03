@@ -604,3 +604,49 @@ class OfferDetailStep10_1FoldTests(TestCase):
         )
         content = self._get().content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep10_2FoldTests(TestCase):
+    """Tabs Status Part-2, Step 10-2 (Admin verifies the buyer's balance,
+    status=READY_FOR_PICKUP): the Buyer's Notes and Payments folds should
+    both be open by default - ready_for_pickup wasn't listed in either
+    fold's open-state condition. Proxy's Notes stays default (Show/Close,
+    not forced open) - only the real Buyer needed this fix."""
+
+    def setUp(self):
+        from decimal import Decimal
+        from django.urls import reverse
+        from apps.trips.models import Payment, Transaction
+        self.reverse = reverse
+        self.Payment = Payment
+        self.buyer = make_user("s102b@x.com")
+        self.proxy_user = make_user("s102p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p102@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.READY_FOR_PICKUP,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+        tx = Transaction.objects.create(request=self.order)
+        self.Payment.objects.create(
+            transaction=tx, direction=self.Payment.Direction.INBOUND, kind=self.Payment.Kind.BALANCE,
+            currency=self.order.currency, amount=Decimal("10"), status=self.Payment.PaymentStatus.VERIFIED,
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_notes_open(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_buyer_payments_fold_open(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+
+    def test_proxy_notes_not_forced_open(self):
+        content = self._get(self.proxy_user).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
