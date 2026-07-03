@@ -245,6 +245,13 @@ class OrderDetailStep5FoldTests(TestCase):
         self.assertNotIn("<h3>Payments</h3>", content)
         # Proxy's Notes stays open even while deposit is pending.
         self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        # Regression: the deposit_pending branch is role-neutral (no status
+        # check gates it), so it used to leak the buyer's own "upload proof"
+        # text/button/link to the Proxy too - Proxy should see the generic
+        # waiting text instead.
+        self.assertNotIn("Your uploaded proof:", content)
+        self.assertNotIn("Submit Transfer Proof", content)
+        self.assertIn("Buyer accepted the shipment cost. Waiting for the Buyer's deposit", content)
 
     def test_step5c_buyer_notes_open_after_verification_clay_button(self):
         self.Payment.objects.create(

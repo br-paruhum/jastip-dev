@@ -190,9 +190,13 @@
   </div>
   {% endif %}
   {% if bf_order.deposit_pending %}
+    {% if is_order_buyer %}
     <p>Transfer proof submitted — awaiting admin verification of your deposit.</p>
     {% if bf_order.deposit_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.deposit_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
     <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+    {% else %}
+    <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
+    {% endif %}
   {% elif bf_order.status == "deposit_paid" %}
     {% if is_order_buyer %}
     <p class="muted">Deposit verified. Proxy Buyer can start buying your ordered products.</p>
@@ -333,12 +337,9 @@
     <p class="muted">A carrier has offered to carry this cargo. Waiting for the buyer to accept the shipment cost.</p>
     {% endif %}
   {% elif bf_order.status == "accepted" %}
+    {# deposit_pending is handled earlier in this chain (see above) - only the
+       not-yet-submitted case reaches here. #}
     {% if is_order_buyer %}
-    {% if bf_order.deposit_pending %}
-    <p>Transfer proof submitted — awaiting admin verification of your deposit.</p>
-    {% if bf_order.deposit_proof_url %}<p class="help">Your uploaded proof: <a href="{{ bf_order.deposit_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
-    <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
-    {% else %}
     <p>Shipment cost accepted. Please pay the deposit to confirm — the Proxy Buyer then starts purchasing.</p>
     {% with s=bf_order.deposit_settlement %}
     <p>Please make a bank transfer of <strong>IDR {{ s.idr|by_currency:"IDR" }}</strong>{% if s.ref_amount %} ({{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }} @ {{ s.rate|floatformat:2 }}){% endif %} to:</p>
@@ -355,7 +356,6 @@
       <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
       <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
     </form>
-    {% endif %}
     {% else %}
     <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
     {% endif %}
