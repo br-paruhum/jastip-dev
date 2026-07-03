@@ -124,10 +124,9 @@ class Command(BaseCommand):
                 defaults={"name": name, "sell_rate": sell, "updated_at": tt_ts},
             )
             if not is_new:
-                obj.name = name
                 obj.sell_rate = sell
                 obj.updated_at = tt_ts
-                obj.save(update_fields=["name", "sell_rate", "updated_at"])
+                obj.save(update_fields=["sell_rate", "updated_at"])
                 updated += 1
             else:
                 created += 1
