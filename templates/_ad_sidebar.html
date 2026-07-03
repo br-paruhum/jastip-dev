@@ -13,6 +13,12 @@ AdSense units instead — no template changes needed on the pages that include i
          data-full-width-responsive="true"></ins>
     <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
   {% else %}
+    <div class="ad-card ad-card-cta">
+      <span class="ad-badge">Proxy Buyer</span>
+      <h4>Become a Proxy Buyer?</h4>
+      <p>Earn your margin while staying abroad by buying and sending products specific to your country.</p>
+      <a class="btn btn-primary btn-sm" href="{% url 'pages:contact' %}?topic={{ "become a proxy buyer"|urlencode }}">Get started</a>
+    </div>
     {% for promo in sidebar_promos %}
       <div class="ad-card">
         {% if promo.badge %}<span class="ad-badge">{{ promo.badge }}</span>{% endif %}
