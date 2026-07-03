@@ -369,13 +369,27 @@ class OrderDetailStep6FoldTests(TestCase):
         content = self._get(self.proxy_user).content.decode()
         self.assertNotIn("<h3>Payments</h3>", content)
 
+    def test_buyer_payments_fold_closed(self):
+        # The Payments fold used to hardcode `open` whenever any payment
+        # existed - it should be closed at this stable in-between step.
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
 class OrderDetailStep8FoldTests(TestCase):
     """Tabs Status Part-2, Step 8 (Carrier received the package, status=
     PACKAGE_RECEIVED): both the Buyer's and the Proxy's Notes fold should
     open by default (was previously closed - package_received wasn't listed
-    in the fold's open-state condition)."""
+    in the fold's open-state condition). The Buyer's Payments fold should be
+    closed by default at this stable in-between step (it used to hardcode
+    `open` unconditionally whenever any payment existed)."""
 
     def setUp(self):
         from django.urls import reverse
@@ -411,3 +425,13 @@ class OrderDetailStep8FoldTests(TestCase):
         )
         content = self._get(self.proxy_user).content.decode()
         self.assertNotIn("<h3>Payments</h3>", content)
+
+    def test_buyer_payments_fold_closed(self):
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')

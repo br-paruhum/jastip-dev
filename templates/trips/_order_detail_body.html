@@ -373,9 +373,12 @@
 </details>
 {% endif %}
 
-<!-- Payments (foldable) - buyer-only; Proxy/Carrier never see this ledger. -->
+<!-- Payments (foldable) - buyer-only; Proxy/Carrier never see this ledger.
+     Opens right when a payment is submitted/verified (deposit_pending or just
+     verified at deposit_paid), then folds closed again through the stable
+     in-between steps (items_purchased, package_received, ...). -->
 {% if is_order_buyer and bf_order.transaction.payments.all %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2"{% if bf_order.deposit_pending or bf_order.status == "deposit_paid" %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">
