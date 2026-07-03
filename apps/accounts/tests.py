@@ -435,3 +435,58 @@ class OrderDetailStep8FoldTests(TestCase):
         )
         content = self._get(self.buyer).content.decode()
         self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class OrderDetailStep9FoldTests(TestCase):
+    """Tabs Status Part-2, Step 9 (Carrier sends duty amount, status=
+    PACKAGE_ARRIVED): both the Buyer's and the Proxy's Notes fold should
+    open by default (was previously closed - package_arrived wasn't listed
+    in the fold's open-state condition, same gap as Steps 6 and 8). The
+    Buyer's Payments fold stays closed here too (no pending/verified deposit
+    at this exact status)."""
+
+    def setUp(self):
+        from django.urls import reverse
+        self.reverse = reverse
+        self.buyer = make_user("s9b@x.com")
+        self.proxy_user = make_user("s9p@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p9@x.com", user=self.proxy_user,
+        )
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.PACKAGE_ARRIVED,
+            max_acceptable_date=date.today() + timedelta(days=10),
+        )
+
+    def _get(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.reverse("accounts:profile") + f"?order={self.order.pk}#order-detail")
+
+    def test_buyer_notes_open(self):
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_notes_open(self):
+        content = self._get(self.proxy_user).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+
+    def test_proxy_never_sees_payments_fold(self):
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        content = self._get(self.proxy_user).content.decode()
+        self.assertNotIn("<h3>Payments</h3>", content)
+
+    def test_buyer_payments_fold_closed(self):
+        from apps.trips.models import Payment, Transaction
+        tx = Transaction.objects.create(request=self.order)
+        Payment.objects.create(
+            transaction=tx, direction=Payment.Direction.INBOUND, kind=Payment.Kind.DEPOSIT,
+            currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
+        )
+        content = self._get(self.buyer).content.decode()
+        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
