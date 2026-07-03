@@ -10,7 +10,7 @@
         {% if page %}
           <span class="eyebrow">{{ page.get_kind_display }}</span>
           <h1>{{ page.title }}</h1>
-          <div class="tag-prose">{{ page.body|safe }}</div>
+          <div class="tag-prose">{{ page.body|safe_fragment }}</div>
 
           {% if faqs %}
           <div class="mt-3">

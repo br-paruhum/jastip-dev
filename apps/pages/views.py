@@ -93,6 +93,10 @@ def home(request):
 
 def page_detail(request, slug):
     page = get_object_or_404(SitePage, slug=slug, is_published=True)
+    # The How-To guide is a static template (single source of truth); the legacy
+    # CMS SitePage of the same kind is an unlinked duplicate — send it there.
+    if page.kind == SitePage.Kind.HOW_TO:
+        return redirect("pages:how_to")
     faqs = FAQItem.objects.filter(is_published=True) if page.kind == SitePage.Kind.FAQ else None
     return render(request, "pages/page.html", {"page": page, "faqs": faqs})
 

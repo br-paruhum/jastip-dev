@@ -58,11 +58,16 @@ class _Normalizer(HTMLParser):
         if tag not in ALLOWED:
             return  # drop the tag, keep any text via handle_data
         parts = [tag]
+        kept = {}
         for key, val in attrs:
             if key in ALLOWED[tag] and val is not None:
                 if key == "href" and not _safe_url(val):
                     continue
+                kept[key] = val
                 parts.append('%s="%s"' % (key, escape(val, quote=True)))
+        # Links opening a new tab must not leak window.opener to the target.
+        if tag == "a" and kept.get("target") == "_blank" and "rel" not in kept:
+            parts.append('rel="noopener noreferrer"')
         self.out.append("<%s>" % " ".join(parts))
         if tag not in VOID:
             self.stack.append(tag)
