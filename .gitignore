@@ -41,6 +41,7 @@ graphify-out/
 *.swp
 *.bak
 *.bak-*
+.~lock.*#
 
 # --- Obsidian vault (proxybuying-obsidian/) -------------------------------
 # Track ONLY AI-Context/ (roadmap, soul, identity, references, …). Ignore
