@@ -169,6 +169,12 @@ details.fold > summary h3 { margin: 0; }
 details.fold > summary::after { content: "\25BE"; color: var(--muted); font-size: .9rem; transition: transform .2s ease; }
 details.fold:not([open]) > summary::after { transform: rotate(-90deg); }
 details.fold > .fold-body { padding: 0 20px 20px; }
+/* Notes/guidance card: soft-clay header, always the first card on a detail view
+   and expanded on load (see the `open` attribute in _order_notes.html). */
+details.notes-fold > summary { background: var(--clay-soft); }
+details.notes-fold[open] > summary { border-bottom: 1px solid var(--cream-200); }
+details.notes-fold > summary h3 { color: var(--clay-dark); }
+details.notes-fold > .fold-body { padding-top: 20px; }
 /* Payment Terms: tight bullet list — markers sit by the tab-header left edge,
    wrapped lines hang-indent under the text (proper ul/li, not a paragraph). */
 .fold-body.payment-terms ul { margin: 0; padding-left: 1.2em; list-style-position: outside; }

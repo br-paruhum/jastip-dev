@@ -1,7 +1,7 @@
 {% load humanize %}
 {% comment %}Per-counterpart message boxes on an order (Phase 9, Task-27).
 Pass: chat_obj (Order) and chat_boxes (list from Order.chat_boxes(user)). Each
-counterpart is rendered as its own foldable "Messages" card — a private thread
+counterpart is rendered as its own foldable "Chat Box" card — a private thread
 the third party never sees; admin reads all. Boxes stay collapsed on load and
 only auto-open when they hold an unseen message (box.open). Optional:
 hide_chat_intro, chat_empty_msg, chat_handover_prefill, chat_admin_note
@@ -15,7 +15,7 @@ hide_chat_intro, chat_empty_msg, chat_handover_prefill, chat_admin_note
 <details class="card fold mt-2 chat-box-fold" data-seen-url="{% url 'trips:chat_seen' chat_obj.id %}" data-audience="{{ box.audience }}"{% if box.open %} open{% endif %}>
   <summary>
     <div class="chat-title">
-      <h3>Messages</h3>
+      <h3>Chat Box</h3>
       <div class="chat-box-head">&rarr; with {{ box.label }}</div>
     </div>
   </summary>
