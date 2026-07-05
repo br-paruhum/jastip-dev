@@ -70,6 +70,10 @@
   </div>
 </div></div>
 {% else %}
+{% if estimate_order %}
+{# Proxy sends/edits the estimate inline here — merged from the former ?estimate= sub-panel. #}
+{% include "trips/_proxy_estimate_body.html" %}
+{% else %}
 <!-- Products (proxy buying) — Est/Actual invoice, mirrors the plan-first proxy
      format. The buyer lists items only; the Proxy Buyer fills estimated prices
      when they respond, and actuals after purchase. No item margin (buyer-first:
@@ -138,14 +142,33 @@
     </tbody>
   </table>
   </div>
+  {% if is_order_proxy and bf_order.proxy_actuals_editable %}
+  {# #Step-6.1-Proxy — Finalizing Order / Edit Order Data action (moved from the Notes card) #}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?package_ready={{ bf_order.id }}#package-ready">{% if bf_order.status == "deposit_paid" %}Finalizing Order{% else %}Edit Order Data{% endif %}</a>
+  </div>
+  {% endif %}
 </div></div>
+{% endif %}
+{% endif %}
+
+{# Edit / Cancel — buyer-only control, sits directly below the Invoice (Total Due). #}
+{% if is_order_buyer and bf_order.can_edit %}
+<div class="mt-2" style="text-align:center">
+  <a class="btn btn-primary" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+  <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block;margin-left:32px"
+        onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
+    {% csrf_token %}
+    <button class="btn btn-outline" type="submit">Cancel</button>
+  </form>
+</div>
 {% endif %}
 
 <!-- Payment Terms (foldable) — editable in admin: Site Settings.
      Hidden from the Proxy Buyer until they've sent their estimate (nothing to
      price yet); opens expanded on each party's first look, then stays closed. -->
 {% if not is_order_proxy or bf_order.status != "open" %}
-<details class="card fold mt-2"{% if is_order_buyer and bf_order.status == "open" or is_order_proxy and bf_order.status == "estimate_sent" %} open{% endif %}>
+<details class="card fold mt-2">
   <summary><h3>Payment Terms</h3></summary>
   <div class="fold-body payment-terms">
     {{ PAYMENT_TERM|safe }}
@@ -179,6 +202,11 @@
     </tr>
     {% endfor %}
   </table>
+  {% if bf_order.deposit_proof_url %}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Transfer Proof</a>
+  </div>
+  {% endif %}
   </div>
 </details>
 {% endif %}
@@ -457,14 +485,3 @@
 {% endif %}
 
 {% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% elif bf_order.status == "deposit_paid" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True %}{% endif %}
-
-{% if bf_order.can_edit %}
-<div class="mt-2" style="text-align:center">
-  <a class="btn btn-primary" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
-  <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block;margin-left:32px"
-        onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
-    {% csrf_token %}
-    <button class="btn btn-outline" type="submit">Cancel</button>
-  </form>
-</div>
-{% endif %}

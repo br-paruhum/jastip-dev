@@ -6,13 +6,24 @@
   <div class="container">
     <span class="eyebrow">{% if proxy %}PROXY BUYING PROCESS START{% else %}Buyer · Order First{% endif %}</span>
     <h1>Post an Order</h1>
-    {% if proxy %}
-    <p class="muted">Fill in your destination city, products, quantity, and order deadline.</p>
-    {% else %}
+    {% if not proxy %}
     <p class="muted">No carrier yet — post your route, items and price, and carriers will respond with offers.</p>
     {% endif %}
     <div class="profile-layout mt-2">
       <div class="profile-main">
+    {# Notes/guidance card — always first, always expanded, soft-clay header. #}
+    <details class="card fold notes-fold" open style="margin-bottom:16px">
+      <summary><h3>Notes</h3></summary>
+      <div class="fold-body">
+      {% if proxy %}
+        {# #Step-1.1-Buyer — proxy-buying order creation form #}
+        <p class="muted">Fill in all required data. After you click “Send Order”, the Proxy Buyer will be notified.</p>
+      {% else %}
+        {# #Step-1.1-Buyer (cargo) — buyer-first cargo order creation form #}
+        <p class="muted">Notes placeholder — Step 1.1 (Buyer, cargo): post your route, items and price, then carriers respond with offers.</p>
+      {% endif %}
+      </div>
+    </details>
     <form method="post" enctype="multipart/form-data" class="card">
       {% csrf_token %}
       {% if proxy %}<input type="hidden" name="proxy" value="{{ proxy.id }}">{% endif %}
@@ -102,7 +113,7 @@
         {% endif %}
 
         <div style="text-align:center;margin-top:12px">
-          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Post Order{% endif %}</button>
+          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Send Order{% endif %}</button>
         </div>
       </div>
     </form>

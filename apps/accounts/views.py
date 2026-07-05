@@ -323,6 +323,14 @@ def profile(request):
                     ),
                     "chat_boxes": order.chat_boxes(user),
                 }
+                if (is_order_proxy and not order.is_cargo
+                        and order.status in (Status.OPEN, Status.ESTIMATE_SENT)):
+                    # Estimate form embedded on the order page (merged from the
+                    # former ?estimate= sub-panel): the proxy sends it at OPEN and
+                    # edits it at ESTIMATE_SENT, all on the main detail view.
+                    order_ctx["estimate_order"] = order
+                    order_ctx["estimate_form"] = ProxyEstimateForm(instance=order)
+                    order_ctx["estimate_formset"] = ReviewItemFormSet(instance=order, prefix="est_items")
             order = None
         elif order and (user in (order.buyer, order.plan.traveler) or user.is_staff):
             is_traveler = user == order.plan.traveler

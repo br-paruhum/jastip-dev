@@ -1,0 +1,113 @@
+{% load humanize money %}
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+  <span class="eyebrow" style="margin:0">Respond to {{ offer_form_order.actor_label }} · {{ offer_form_order.reference }} · {{ offer_form_order.route }}</span>
+</div>
+
+{# Notes/guidance card — always first, always expanded, soft-clay header. #}
+{% include "trips/_order_notes.html" with note_order=offer_form_order note_role="carrier_offer" %}
+
+{% if offer_form_order.is_cargo %}
+<!-- Cargo: carry offer (rate + capacity) -->
+<form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card mt-2">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="card-band-row">Place an Offer</div>
+    <p class="muted" style="margin-top:14px">
+      <strong>{{ offer_form_order.reference }}</strong> ·
+      Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
+      Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
+      {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
+    </p>
+    <div class="form-row">
+      <div class="form-field"><label>Your Rate per kg</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
+      <div class="form-field"><label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>From City</label>
+        <div class="static-field muted">{{ offer_form_order.from_city }}</div>
+        <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
+      </div>
+      <div class="form-field">
+        <label>From Country</label>
+        <div class="static-field muted">{{ offer_form_order.from_country }}</div>
+        <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>To City</label>
+        <div class="static-field muted">{{ offer_form_order.to_city }}</div>
+        <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
+      </div>
+      <div class="form-field">
+        <label>To Country</label>
+        <div class="static-field muted">{{ offer_form_order.to_country }}</div>
+        <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
+      <div class="form-field"><label>Travel Time</label>{{ offer_form_obj.travel_time }}{{ offer_form_obj.travel_time.errors }}</div>
+    </div>
+    <div class="form-field">
+      <label>Drop-off Address</label>{{ offer_form_obj.drop_off_address }}{{ offer_form_obj.drop_off_address.errors }}
+      <p class="help">Hidden from the buyer until their deposit clears.</p>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-primary" type="submit">Submit Offer</button>
+    </div>
+  </div>
+</form>
+{% else %}
+<!-- Products (Flow-1): carrier carry offer — rate + offer weight + travel date -->
+<form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card mt-2">
+  {% csrf_token %}
+  <div class="card-body">
+    <div class="card-band-row">Place an Offer</div>
+    <p class="muted" style="margin-top:14px">
+      <strong>{{ offer_form_order.reference }}</strong> - {{ offer_form_order.route }}<br>
+      Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg -
+      Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
+    </p>
+    <div class="form-row">
+      <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
+      <div class="form-field"><label>Offer Weight (kg)</label>
+        <div class="static-field muted">{{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg</div>
+        <input type="hidden" name="avail_kg" value="{{ offer_form_order.estimated_weight_kg }}">
+        <p class="help">The buyer's estimated weight — fixed here. The Proxy Buyer's <strong>Actual Weight</strong> replaces it at the <strong>Package Ready</strong> step, and the <strong>final weight</strong> is measured at the <strong>Cargo hand-over</strong> step.</p></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>From City</label>
+        <div class="static-field muted">{{ offer_form_order.from_city }}</div>
+        <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
+      </div>
+      <div class="form-field">
+        <label>From Country</label>
+        <div class="static-field muted">{{ offer_form_order.from_country }}</div>
+        <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>To City</label>
+        <div class="static-field muted">{{ offer_form_order.to_city }}</div>
+        <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
+      </div>
+      <div class="form-field">
+        <label>To Country</label>
+        <div class="static-field muted">{{ offer_form_order.to_country }}</div>
+        <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
+      <div class="form-field"><label>Travel Time</label>{{ offer_form_obj.travel_time }}{{ offer_form_obj.travel_time.errors }}</div>
+    </div>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-primary" type="submit">Submit Offer</button>
+    </div>
+  </div>
+</form>
+{% endif %}

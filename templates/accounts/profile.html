@@ -226,7 +226,7 @@
               <div class="form-field"><label>Notes to Carriers</label>{{ new_order_form.buyer_notes }}</div>
 
               <div style="text-align:center;margin-top:12px">
-                <button class="btn btn-primary" type="submit">Post Order</button>
+                <button class="btn btn-primary" type="submit">Send Order</button>
               </div>
             </form>
           </div></div>
@@ -277,7 +277,6 @@
         <!-- Panel: Orders to fulfill as Proxy Buyer (Flow-1) -->
         <div data-panel="proxy-orders">
           <h2 style="margin-top:0">My Proxy Buying</h2>
-          <p class="muted">Buyers chose you to source these products. Send your estimate (unit costs, total weight, margin).</p>
           <div class="dash-tables">
           <div class="table-wrap">
             <table class="offers offers-centered offers-allcenter">
@@ -291,7 +290,7 @@
                   <td class="status-cell">{% include "trips/_status_badge.html" with status=o.status label=o.buyer_status_display tone=o.status_tone %}</td>
                   <td class="action-cell">
                     {% if o.status == "open" %}
-                      <a class="btn btn-primary btn-sm" href="?estimate={{ o.id }}#estimate-form">Send Estimate</a>
+                      <a class="btn btn-primary btn-sm" href="?order={{ o.id }}#order-detail">Process Estimate</a>
                     {% else %}
                       <a class="btn btn-outline btn-sm" href="?order={{ o.id }}#order-detail">Manage</a>
                     {% endif %}
@@ -308,12 +307,8 @@
         </div>
         {% endif %}
 
-        {% if estimate_order %}
-        <!-- Panel: Send Estimate (proxy buyer, Flow-1) -->
-        <div data-panel="estimate-form" data-origin="proxy-orders">
-          {% include "trips/_proxy_estimate_body.html" %}
-        </div>
-        {% endif %}
+        {% comment %}Send/Edit Estimate is now embedded in the order-detail panel
+        (_order_detail_body.html) — no separate estimate-form panel.{% endcomment %}
 
         {% if package_ready_order %}
         <!-- Panel: Package Ready (proxy buyer records actual costs, Flow-1) -->
@@ -388,112 +383,7 @@
         {% if offer_form_order %}
         <!-- Panel: respond to a buyer-first order (carrier) -->
         <div data-panel="offer-form" data-origin="travel-plans">
-          <span class="eyebrow">Respond to {{ offer_form_order.actor_label }}</span>
-          {% if offer_form_order.is_cargo %}
-          <!-- Cargo: carry offer (rate + capacity) -->
-          <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
-            {% csrf_token %}
-            <div class="card-body">
-              <div class="card-band-row">Place an Offer</div>
-              <p class="muted" style="margin-top:14px">
-                <strong>{{ offer_form_order.reference }}</strong> ·
-                Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
-                Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
-                {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
-              </p>
-              <div class="form-row">
-                <div class="form-field"><label>Your Rate per kg</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
-                <div class="form-field"><label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}</div>
-              </div>
-              <div class="form-row">
-                <div class="form-field">
-                  <label>From City</label>
-                  <div class="static-field muted">{{ offer_form_order.from_city }}</div>
-                  <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
-                </div>
-                <div class="form-field">
-                  <label>From Country</label>
-                  <div class="static-field muted">{{ offer_form_order.from_country }}</div>
-                  <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-field">
-                  <label>To City</label>
-                  <div class="static-field muted">{{ offer_form_order.to_city }}</div>
-                  <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
-                </div>
-                <div class="form-field">
-                  <label>To Country</label>
-                  <div class="static-field muted">{{ offer_form_order.to_country }}</div>
-                  <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
-                <div class="form-field"><label>Travel Time</label>{{ offer_form_obj.travel_time }}{{ offer_form_obj.travel_time.errors }}</div>
-              </div>
-              <div class="form-field">
-                <label>Drop-off Address</label>{{ offer_form_obj.drop_off_address }}{{ offer_form_obj.drop_off_address.errors }}
-                <p class="help">Hidden from the buyer until their deposit clears.</p>
-              </div>
-              <div style="text-align:center;margin-top:12px">
-                <button class="btn btn-primary" type="submit">Submit Offer</button>
-              </div>
-            </div>
-          </form>
-          {% else %}
-          <!-- Products (Flow-1): carrier carry offer — rate + offer weight + travel date -->
-          <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card" style="margin-top:18px">
-            {% csrf_token %}
-            <div class="card-body">
-              <div class="card-band-row">Place an Offer</div>
-              <p class="muted" style="margin-top:14px">
-                <strong>{{ offer_form_order.reference }}</strong> - {{ offer_form_order.route }}<br>
-                Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg -
-                Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
-              </p>
-              <div class="form-row">
-                <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
-                <div class="form-field"><label>Offer Weight (kg)</label>
-                  <div class="static-field muted">{{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg</div>
-                  <input type="hidden" name="avail_kg" value="{{ offer_form_order.estimated_weight_kg }}">
-                  <p class="help">The buyer's estimated weight — fixed here. The Proxy Buyer's <strong>Actual Weight</strong> replaces it at the <strong>Package Ready</strong> step, and the <strong>final weight</strong> is measured at the <strong>Cargo hand-over</strong> step.</p></div>
-              </div>
-              <div class="form-row">
-                <div class="form-field">
-                  <label>From City</label>
-                  <div class="static-field muted">{{ offer_form_order.from_city }}</div>
-                  <input type="hidden" name="from_city" value="{{ offer_form_order.from_city }}">
-                </div>
-                <div class="form-field">
-                  <label>From Country</label>
-                  <div class="static-field muted">{{ offer_form_order.from_country }}</div>
-                  <input type="hidden" name="from_country" value="{{ offer_form_order.from_country }}">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-field">
-                  <label>To City</label>
-                  <div class="static-field muted">{{ offer_form_order.to_city }}</div>
-                  <input type="hidden" name="to_city" value="{{ offer_form_order.to_city }}">
-                </div>
-                <div class="form-field">
-                  <label>To Country</label>
-                  <div class="static-field muted">{{ offer_form_order.to_country }}</div>
-                  <input type="hidden" name="to_country" value="{{ offer_form_order.to_country }}">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-field"><label>Travel Date</label>{{ offer_form_obj.travel_date }}{{ offer_form_obj.travel_date.errors }}</div>
-                <div class="form-field"><label>Travel Time</label>{{ offer_form_obj.travel_time }}{{ offer_form_obj.travel_time.errors }}</div>
-              </div>
-              <div style="text-align:center;margin-top:12px">
-                <button class="btn btn-primary" type="submit">Submit Offer</button>
-              </div>
-            </div>
-          </form>
-          {% endif %}
+          {% include "trips/_offer_form_body.html" %}
         </div>
         {% endif %}
 

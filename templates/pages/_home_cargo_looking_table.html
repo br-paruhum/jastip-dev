@@ -35,11 +35,11 @@
           {% if o.is_locked_fcfs %}
             <span class="btn btn-sm btn-blocked" title="A carrier is already handling this cargo">Locked</span>
           {% elif o.can_offer %}
-            <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ o.id }}#offer-form">Offer</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ o.id }}#offer-form">Send Offer</a>
           {% elif user.is_authenticated and o.buyer_id == user.id %}
             <span class="btn btn-sm btn-blocked">Your order</span>
           {% else %}
-            <a class="btn btn-primary btn-sm" href="{% url 'account_login' %}">Offer</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'account_login' %}">Send Offer</a>
           {% endif %}
         </td>
       </tr>

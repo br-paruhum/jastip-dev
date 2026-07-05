@@ -469,7 +469,7 @@ def offer_create(request, order_id):
 def proxy_estimate(request, order_id):
     dashboard = reverse("accounts:profile")
     order = get_object_or_404(Order, pk=order_id, plan__isnull=True)
-    panel = dashboard + f"?estimate={order.id}#estimate-form"
+    panel = dashboard + f"?order={order.id}#order-detail"
     if not (order.proxy_buyer_id and order.proxy_buyer.user_id == request.user.id):
         messages.error(request, "Only the assigned Proxy Buyer can send an estimate.")
         return redirect(dashboard + "#proxy-orders")
@@ -524,9 +524,6 @@ def proxy_purchase(request, order_id):
         messages.error(request, "Box Photo is required.")
         return redirect(dash + f"?package_ready={order.id}#package-ready")
     if form.is_valid() and formset.is_valid():
-        if any(not f.cleaned_data.get("purchase_photo") for f in formset.forms):
-            messages.error(request, "A product photo is required for every item.")
-            return redirect(dash + f"?package_ready={order.id}#package-ready")
         form.save()  # actual_weight_kg
         # One box photo (of it closed, ready to hand over). The storage
         # converts it to WebP on save.
@@ -552,6 +549,10 @@ def proxy_purchase(request, order_id):
         workflow.on_items_purchased(order)
         messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
         return redirect(detail)
+    # Missing product photos are now a per-item field error (formset invalid);
+    # surface one clear, non-noisy message instead of ten identical field errors.
+    if any(f.errors.get("purchase_photo") for f in formset.forms):
+        messages.error(request, "A product photo is required for every purchased item (set quantity to 0 if not bought).")
     for err in formset.non_form_errors():
         messages.error(request, err)
     for field, errs in form.errors.items():
@@ -694,7 +695,7 @@ def order_deposit_pay(request, order_id):
         proof=request.FILES.get("proof"),
         note=request.POST.get("note", ""),
     )
-    messages.success(request, "Deposit proof submitted. Admin will verify it shortly.")
+    messages.success(request, "Transfer proof submitted. Wait for admin fund verification.")
     return redirect(detail)
 
 
@@ -842,7 +843,7 @@ def leg_deposit_pay(request, pk):
         proof=request.FILES.get("proof"),
         note=request.POST.get("note", ""),
     )
-    messages.success(request, "Deposit proof submitted. Admin will verify it shortly.")
+    messages.success(request, "Transfer proof submitted. Waiting for admin fund verification.")
     return redirect(detail_url)
 
 

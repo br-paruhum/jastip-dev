@@ -1,6 +1,9 @@
 {% load humanize %}
 <h2 style="margin:6px 0 0">Actual Cost Update</h2>
 <p>Enter the actual unit cost for each product, then Mark Package Ready. Buyer will be notified.</p>
+
+{# Notes/guidance card — first card, always expanded, soft-clay header. #}
+{% include "trips/_order_notes.html" with note_order=package_ready_order note_role="package_ready" %}
 <form method="post" action="{% url 'trips:proxy_purchase' package_ready_order.id %}" enctype="multipart/form-data" class="card" style="margin-top:14px">
   {% csrf_token %}
   {{ package_ready_formset.management_form }}
@@ -30,7 +33,9 @@
         <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
       </tr>
       {% if f.purchase_note %}<tr><td colspan="4" style="border-bottom:0;padding:0 0 4px">{{ f.purchase_note }}</td></tr>{% endif %}
-      <tr><td colspan="4" style="padding:0 0 10px"><span class="help">Photo</span><br>{{ f.purchase_photo }}{{ f.purchase_photo.errors }}</td></tr>
+      <tr><td colspan="4" style="padding:0 0 10px"><span class="help">Photo</span><br>
+        {% if f.instance.purchase_photo %}<span class="help">Current</span> <a href="{{ f.instance.purchase_photo.url }}" target="_blank" class="btn btn-primary btn-sm" style="margin-bottom:6px">View Product Photo</a><br>{% endif %}
+        {{ f.purchase_photo }}{{ f.purchase_photo.errors }}</td></tr>
       {% endfor %}
     </table>
     <div class="form-row mt-2">
@@ -43,7 +48,7 @@
         <label>Box Photo</label>
         <input type="file" name="box_photos" accept="image/png,image/jpeg" {% if not package_ready_order.box_photo_1 %}required{% endif %}>
         <p class="help">Upload box photo before it closed</p>
-        {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank">Current photo</a>{% endif %}
+        {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank" class="btn btn-primary btn-sm">View Box Photo</a>{% endif %}
       </div>
     </div>
     <div style="text-align:center;margin-top:12px">

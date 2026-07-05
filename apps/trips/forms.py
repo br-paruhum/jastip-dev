@@ -503,6 +503,10 @@ class PurchaseItemForm(forms.ModelForm):
         widgets = {
             "actual_quantity": forms.NumberInput(attrs={"class": "num-right", "min": "0"}),
             "actual_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
+            # Plain FileInput (not ClearableFileInput) — the existing photo is
+            # surfaced as a "View Product Photo" button in the template instead of
+            # Django's default "Currently: <link> Clear" markup.
+            "purchase_photo": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
             "purchase_note": forms.TextInput(
                 attrs={"placeholder": "Note: e.g.: short availability, out-of-stock or substituted as agreed",
                        "style": "width:560px;max-width:100%;font-size:1.05rem"}
@@ -516,8 +520,23 @@ class PurchaseItemForm(forms.ModelForm):
                 self.initial["actual_quantity"] = self.instance.quantity
             if not self.instance.actual_unit_cost:
                 self.initial["actual_unit_cost"] = self.instance.estimated_unit_cost
-            if not self.instance.purchase_photo:
-                self.fields["purchase_photo"].widget.attrs["required"] = True
+
+    def clean(self):
+        cleaned = super().clean()
+        # A product photo is mandatory for every *purchased* line, enforced per
+        # item (not just the first row). It depends on the submitted quantity, so
+        # it lives here rather than as a static required flag:
+        #   - blank quantity defaults to the ordered amount (bought as-is) => required
+        #   - explicit 0 (e.g. out of stock) => exempt, no photo needed
+        #   - a photo already on file (re-edit) or freshly uploaded => satisfied
+        qty = cleaned.get("actual_quantity")
+        purchased = qty is None or qty > 0
+        if purchased and not self.instance.purchase_photo and not cleaned.get("purchase_photo"):
+            self.add_error(
+                "purchase_photo",
+                "A product photo is required (or set the quantity to 0 if not purchased).",
+            )
+        return cleaned
 
 
 PurchaseItemFormSet = inlineformset_factory(

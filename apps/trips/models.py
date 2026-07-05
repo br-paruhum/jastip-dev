@@ -2170,9 +2170,9 @@ class Payment(models.Model):
         OUTBOUND = "outbound", "Outbound (from admin)"
 
     class Kind(models.TextChoices):
-        DEPOSIT = "deposit", "Buyer deposit"
-        BALANCE = "balance", "Buyer balance (unpaid amount)"
-        PAYOUT = "payout", "Payout to carrier"
+        DEPOSIT = "deposit", "Buyer's First Deposit"
+        BALANCE = "balance", "Buyer's Second Deposit"
+        PAYOUT = "payout", "Payout to Carrier"
         REFUND = "refund", "Refund"
 
     class Method(models.TextChoices):
