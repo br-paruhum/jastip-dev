@@ -1611,10 +1611,10 @@ def request_reship_cost(request, pk):
             form.save()
             workflow.on_reship_cost_sent(req)
             messages.success(request, "Cost sent. Buyer has been notified.")
-            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+            return _traveler_invoice_redirect(req)
         else:
             messages.error(request, "Please fill in all required fields.")
-    return redirect(reverse("accounts:profile") + f"?reship_cost={req.id}#reship-cost-order")
+    return _traveler_invoice_redirect(req)
 
 
 # --- Traveler: submit AWB → In Transit --------------------------------------
@@ -1633,11 +1633,11 @@ def request_reship(request, pk):
         if form.is_valid():
             form.save()
             workflow.on_reshipped(req)
-            messages.success(request, "Package marked as shipped. Buyer has been notified.")
-            return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+            messages.success(request, "Package marked as sent. Buyer has been notified.")
+            return _traveler_invoice_redirect(req)
         else:
-            messages.error(request, "Please enter an AWB number before submitting.")
-    return redirect(reverse("accounts:profile") + f"?reship={req.id}#reship-order")
+            messages.error(request, "Please attach the AWB document before submitting.")
+    return _traveler_invoice_redirect(req)
 
 
 # --- Buyer: upload reshipment payment proof ---------------------------------
@@ -1662,6 +1662,23 @@ def request_reship_proof(request, pk):
     return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
 
 
+# --- Buyer: set preferred courier for reshipment ----------------------------
+@profile_required
+@require_POST
+def request_set_courier(request, pk):
+    req = get_object_or_404(Order, pk=pk)
+    if request.user != req.buyer:
+        messages.error(request, "Only the buyer can set the preferred courier.")
+        return redirect(req.get_absolute_url())
+    if req.status not in (Status.RESHIP_REQUESTED, Status.RESHIP_COST_SENT):
+        messages.info(request, "The preferred courier can't be changed at this stage.")
+        return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+    req.preferred_courier = (request.POST.get("preferred_courier") or "").strip()
+    req.save(update_fields=["preferred_courier", "updated_at"])
+    messages.success(request, "Preferred courier saved.")
+    return redirect(reverse("accounts:profile") + f"?order={req.id}#order-detail")
+
+
 @login_required
 def request_invoice(request, pk):
     """Full buyer invoice (all financials) as a printable page — the buyer's
@@ -1674,6 +1691,33 @@ def request_invoice(request, pk):
         messages.error(request, "This invoice has no items yet.")
         return redirect(req.get_absolute_url())
     return render(request, "trips/order_invoice_print.html", {"req": req})
+
+
+@login_required
+def request_packing_list(request, pk):
+    """Printable Packing List — Product Name + Qty only, no financials. It is an
+    internal checklist for the hand-over between Proxy Buyer↔Carrier and
+    Carrier↔Buyer, so the buyer, staff, and any assigned carrier may open it."""
+    req = get_object_or_404(Order, pk=pk)
+    allowed = (
+        request.user.is_staff
+        or req.buyer_id == request.user.id
+        or (req.plan_id and req.plan.traveler_id == request.user.id)
+        or any(leg.traveler_id == request.user.id for leg in req.confirmed_legs)
+        # Flow-1 proxy order: the carrier is the single live offer's traveler
+        # (no leg is created), so let them open the packing list too.
+        or (not req.plan_id and any(
+            o.traveler_id == request.user.id
+            and o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+            for o in req.traveler_offers.all()))
+    )
+    if not allowed:
+        messages.error(request, "You don't have access to this packing list.")
+        return redirect(reverse("accounts:profile"))
+    if not req.items.exists():
+        messages.error(request, "This packing list has no items yet.")
+        return redirect(req.get_absolute_url())
+    return render(request, "trips/order_packing_list_print.html", {"req": req})
 
 
 @login_required

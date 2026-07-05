@@ -1,30 +1,19 @@
 {% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">{% if leg_offer.order.is_cargo %}Leg{% else %}Order{% endif %} {{ leg_offer.order.reference }} · {{ leg_offer.route }}</span>
-  {% if leg_offer.leg_status %}
-    {% include "trips/_status_badge.html" with label=leg_offer.get_leg_status_display tone="info" %}
-  {% elif leg_offer.offer_status == "selected" %}
-    <span class="badge badge-info">Awaiting drop-off</span>
-  {% elif not leg_offer.order.is_cargo %}
-    {% if leg_offer.offer_status == "rejected" %}
-      {% include "trips/_status_badge.html" with label="Not Selected" tone="muted" %}
-    {% elif leg_offer.offer_status == "withdrawn" %}
-      {% include "trips/_status_badge.html" with label="Withdrawn" tone="muted" %}
-    {% elif leg_offer.order.status == "responded" %}
-      {% include "trips/_status_badge.html" with label="Waiting for Buyer's Acceptance" tone="info" %}
-    {% else %}
-      {% include "trips/_status_badge.html" with status=leg_offer.order.status label=leg_offer.order.get_status_display tone=leg_offer.order.status_tone %}
-    {% endif %}
-  {% else %}
-    <span class="badge badge-info">{{ leg_offer.get_offer_status_display }}</span>
-  {% endif %}
   {% if leg_offer.leg_status or leg_offer.order.customs_phase %}
-    <a class="btn btn-outline btn-sm" style="margin-left:auto" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}{% if leg_offer.order.is_multi_leg_cargo %}?leg={{ leg_offer.id }}{% endif %}" target="_blank">Print Customs Invoice</a>
+    <a class="btn btn-outline btn-sm" style="margin-left:auto;border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}{% if leg_offer.order.is_multi_leg_cargo %}?leg={{ leg_offer.id }}{% endif %}" target="_blank">Print Customs Invoice</a>
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' leg_offer.order_id %}" target="_blank">Print Packing List</a>
   {% endif %}
 </div>
 
 {# Notes/guidance card — always first, always expanded, soft-clay header. #}
 {% include "trips/_order_notes.html" with note_order=leg_offer.order note_role="carrier" %}
+
+{# Reshipment tab — carrier view, when the buyer chose reshipment. #}
+{% if leg_offer.order.is_reship_flow %}
+{% include "trips/_reship_tab.html" with ro=leg_offer.order reship_is_buyer=False %}
+{% endif %}
 
 {% if leg_offer.order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
@@ -56,6 +45,12 @@
     <tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
   </table>
+  {% if leg_offer.order.box_photo_1 or leg_offer.order.box_photo_2 %}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    {% if leg_offer.order.box_photo_1 %}<a href="{{ leg_offer.order.box_photo_1.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo</a>{% endif %}
+    {% if leg_offer.order.box_photo_2 %}<a href="{{ leg_offer.order.box_photo_2.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo 2</a>{% endif %}
+  </div>
+  {% endif %}
 </div></div>
 
 <div class="card mt-2"><div class="card-body">

@@ -45,14 +45,6 @@ Context expected (Django include passes the parent context through):
   {# CARRIER VIEW — offer-detail (leg_offer). Acts on leg_offer / order.   #}
   {# ==================================================================== #}
   {% elif note_role == "carrier" %}
-    {% if leg_offer.order.box_photo_1 %}
-    <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)">
-      <p class="help" style="margin:0 0 6px">Package box photo</p>
-      <div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:nowrap">
-        <a href="{{ leg_offer.order.box_photo_1.url }}" target="_blank" style="flex:0 1 150px;min-width:0"><img src="{{ leg_offer.order.box_photo_1.url }}" alt="Box photo" style="width:100%;border-radius:8px"></a>
-      </div>
-    </div>
-    {% endif %}
     {% if leg_offer.offer_status == "pending" %}
       {% if leg_offer.order.is_cargo or leg_offer.order.status == "responded" %}
       {# #Step-4.2-Carrier #}
@@ -74,12 +66,15 @@ Context expected (Django include passes the parent context through):
           <form method="post" action="{% url 'trips:request_receive' leg_offer.order_id %}" style="margin-top:8px">
             {% csrf_token %}
             <div class="form-field" style="max-width:280px;margin:0 auto">
-              <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
+              <label style="display:block;text-align:center">Measured Weight (kg) <span style="color:var(--danger)">*</span></label>
               <input type="number" name="actual_weight_kg" step="0.1" min="0.1" class="num-right"
                      value="{{ leg_offer.order.effective_weight_kg|floatformat:'-2' }}" required>
-              <p class="help">Estimated was {{ leg_offer.order.estimated_weight_kg|floatformat:'-2' }} kg. The carry fee is finalised on this weight.</p>
+              <p class="help">Final Carry Fee is calculated using this value.</p>
             </div>
-            <div style="text-align:center;margin-top:12px"><button class="btn btn-primary btn-sm" type="submit">Confirm Received</button></div>
+            <div style="text-align:center;margin-top:12px">
+              <button class="btn btn-primary btn-sm" type="submit">Confirm Received</button>
+              <p class="help" style="margin-top:10px">By clicking this button, I confirm that all items listed on the Packing List have been physically checked and found correct.</p>
+            </div>
           </form>
         {% elif leg_offer.travel_date_passed %}
         <p>You've arrived. Record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
@@ -91,26 +86,33 @@ Context expected (Django include passes the parent context through):
       {# #Step-7-Carrier #Step-8.1-Carrier #}
         {% if leg_offer.travel_date_passed %}
         {% if leg_offer.order.is_proxy_buyer_first %}
-        <p>You've arrived. Send the buyer your customs-duty <strong>estimate</strong> — they pay it upfront, then you make the actual duty payment.</p>
-        <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Send Duty Estimate</a></div>
+        <p>You have arrived. Please send Customs Duty amount.</p>
+        <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Send Duty Amount</a></div>
         {% else %}
         <p>Goods in your custody. When you arrive at the destination, record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
         <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Package Arrived</a></div>
         {% endif %}
         {% else %}
-        <p class="muted">Goods received. You can confirm arrival on or after your travel date ({{ leg_offer.travel_date|date:"d-M-Y" }}).</p>
+        <p class="muted">You have received the package. Upon arrival, fill in Customs Duty amount.</p>
         {% endif %}
       {% elif leg_offer.order.status == "package_arrived" %}
-      {# #Step-8.2-Carrier #Step-9.1-Carrier #Step-9.2-Carrier #}
+      {# #Step-9.2-Carrier (8.2 & 9.1 split inline below by balance_pending) #}
       {% if leg_offer.order.is_proxy_buyer_first %}
-      <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the Actual Proof.</p>
+        {% if leg_offer.order.balance_pending %}
+        {# #Step-9.1-Carrier #}
+        <p class="muted">Buyer has submit Transfer Proof. Wait for Admin verification before make Duty payment.</p>
+        {% else %}
+        {# #Step-8.2-Carrier #}
+        <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the receipt.</p>
+        {% endif %}
       {% else %}
       <p class="muted">Buyer notified, wait for Unpaid Balance payment.</p>
       {% endif %}
       {% elif leg_offer.order.status == "ready_for_pickup" %}
       {# #Step-10.1-Carrier #Step-10.2-Carrier #}
       {% if leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}
-      <p class="muted">Buyer’s payment received. Please proceed with the customs duty payment and upload the receipt.</p>
+      {# #Step-9.2-Carrier #}
+      <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the proof.</p>
       <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a></div>
       {% elif leg_offer.order.pickup_selected %}
       {% if leg_offer.order.is_proxy_buyer_first %}<p class="help" style="margin-top:10px">&#10003; Actual duty receipt recorded.</p>{% endif %}
@@ -119,28 +121,32 @@ Context expected (Django include passes the parent context through):
       <p class="muted">Balance settled. Waiting for the buyer to choose pickup or request reshipment.</p>
       {% endif %}
       {% elif leg_offer.order.status == "reship_requested" %}
-      {# #Step-11-Carrier #Step-12-Carrier #}
-      <p>Buyer requested reship to:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.full_name }}
-{{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
-{{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
-      <p>Please send the Reshipment cost, Courier's proof, and your Bank Account details to the Buyer using the Chat Box below.</p>
-      <p>After the Buyer sends the bank transfer proof to reimburse your reshipment cost, you can ship the package and send (attached) the AWB proof also using the Chat Box below.</p>
+      {% if leg_offer.order.preferred_courier %}
+      {# #Step-11-Carrier #}
+      <p>Fill in Reshipment Cost using Buyer's prefered courier.</p>
+      {% else %}
+      {# #Step-10.1-Carrier #}
+      <p>Please wait for Buyer to send his/her Preferred Courier data before you send Reshipment cost.</p>
+      {% endif %}
       {% elif leg_offer.order.status == "reship_cost_sent" %}
+      {% if leg_offer.order.reshipment_proof %}
       {# #Step-13-Carrier #}
-      <p>Cost sent to buyer. Delivery address:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;color:var(--muted);white-space:pre-wrap">{{ leg_offer.order.buyer.full_name }}
-{{ leg_offer.order.buyer.buyer_invoice_address }}{% if leg_offer.order.buyer.buyer_destination_city %}
-{{ leg_offer.order.buyer.buyer_destination_city }}{% endif %}</blockquote>
-      {% if leg_offer.order.reshipment_proof %}<p class="muted">Buyer's payment proof uploaded &#10003; — ready to ship. <a href="{{ leg_offer.order.reshipment_proof.url }}" target="_blank" class="btn btn-sm" style="background:#fff;border:1px solid var(--clay);color:var(--clay-dark)">View payment proof</a></p>{% else %}<p class="muted">Waiting for the buyer to upload reshipment payment proof.</p>{% endif %}
-      <div style="text-align:center;margin-top:12px"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?reship={{ leg_offer.order_id }}#reship-order">Submit AWB</a></div>
+      <p>Transfer Proof received. Please send the package, upload AWB and select "Package Sent".</p>
+      {% else %}
+      {# #Step-12-Carrier #}
+      <p>Reshipment Cost sent. Wait for Buyer's transfer proof.</p>
+      {% endif %}
       {% elif leg_offer.order.status == "reshipping" %}
       {# #Step-14-Carrier #}
-      <p>Package shipped. AWB / Tracking: <strong>{{ leg_offer.order.awb_number }}</strong>{% if leg_offer.order.awb_document %}&nbsp;<a href="{{ leg_offer.order.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}</p>
-      <p class="muted">Waiting for the buyer to confirm receipt.</p>
+      <p>Package sent. Wating for receive confirmation from Buyer.</p>
       {% elif leg_offer.order.status == "clear" %}
-      {# #Step-15.1-Carrier #Step-15.2-Carrier #}
-      <p><span class="badge badge-success">Clear</span> Pickup confirmed. Your payout (full amount less the 2.5% fee) is being released.</p>
+      {% if leg_offer.order.delivery_preference == "reship" %}
+      {# #Step-15.1-Carrier #}
+      <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
+      {% else %}
+      {# #Step-15.2-Carrier #}
+      <p><span class="badge badge-success">Clear</span> Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
+      {% endif %}
       {% elif leg_offer.order.status == "closed" %}
       <p><span class="badge badge-success">Closed</span> Complete. Thank you!</p>
       {% else %}
@@ -266,7 +272,7 @@ Context expected (Django include passes the parent context through):
     {% elif o.status == "package_received" %}
       {% if is_order_buyer %}
       {# #Step-7-Buyer #}
-      <p class="muted">Carrier has received you package from Proxy Buyer and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
+      <p class="muted">Carrier has received your package from Proxy Buyer and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
       {% elif is_order_proxy %}
       {# #Step-7-Proxy #}
       <p class="muted">You've handed the goods to the carrier. Your payout will be disbursed after Buyer receive the package.</p>
@@ -276,13 +282,16 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif o.status == "package_arrived" %}
       {% if not is_order_buyer %}
-      {# #Step-8.2-Proxy #Step-9.1-Proxy #}
-      <p class="muted">The package has arrived at the destination. Waiting for Buyer to receive the package.</p>
+        {% if o.balance_pending %}
+        {# #Step-9.1-Proxy #}
+        <p class="muted">Buyer has submit Transfer Proof for Customs Duty payment. Your payout will be disbursed after Buyer receive the package.</p>
+        {% else %}
+        {# #Step-8.2-Proxy #}
+        <p class="muted">Carrier has arrived. Your payout will be disbursed after Buyer receive the package.</p>
+        {% endif %}
       {% elif o.balance_pending %}
       {# #Step-9.1-Buyer #}
-      <p>Balance proof submitted — awaiting admin verification.</p>
-      {% if o.balance_proof_url %}<p class="help">Your uploaded proof: <a href="{{ o.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
-      <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
+      <p>Transfer Proof Submitted. Wait for Admin verification.</p>
       {% elif o.balance_extra_due > 0 %}
       {# #Step-8.2-Buyer #}
       {% with s=o.balance_settlement %}
@@ -307,7 +316,10 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif o.status == "ready_for_pickup" %}
       {% if is_order_buyer %}
+        {% if o.is_proxy_buyer_first and not o.custom_fare_proof %}
         {# #Step-9.2-Buyer #}
+        <p class="muted">Your deposit verified. Waiting for Carrier to make Duty payment.</p>
+        {% else %}
         {% if o.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ o.currency }} {{ o.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
         {% if o.delivery_preference == "reship" %}
         {# #Step-10.1-Buyer #}
@@ -326,54 +338,72 @@ Context expected (Django include passes the parent context through):
           <button class="btn btn-primary" type="submit">Confirm Received</button>
         </form>
         {% endif %}
+        {% endif %}
       {% else %}
-      {# #Step-10.1-Proxy #Step-10.2-Proxy #}
-      {% if o.pickup_selected %}
-      <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
-      {% else %}
-      <p class="muted">The package has arrived at the destination. Waiting for the buyer to choose pickup or reshipment.</p>
-      {% endif %}
+        {% if o.is_proxy_buyer_first and not o.custom_fare_proof %}
+        {# #Step-9.2-Proxy #}
+        <p class="muted">Buyer's deposit verified. Your payout will be disbursed after Buyer receive the package.</p>
+        {% else %}
+        {# #Step-10.1-Proxy #Step-10.2-Proxy #}
+        {% if o.pickup_selected %}
+        <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
+        {% else %}
+        <p class="muted">The package has arrived at the destination. Waiting for the buyer to choose pickup or reshipment.</p>
+        {% endif %}
+        {% endif %}
       {% endif %}
     {% elif o.status == "reship_requested" %}
       {% if is_order_buyer %}
-      {# #Step-11-Buyer #Step-13-Buyer #}
-      <p>You chose Reshipment option. Please check the Chat Box from the Carrier below for the Reshipment Cost, Courier Cost Proof, and Carrier's bank details.<br> After you make the bank transfer, Carrier will ship the package to your location.</p>
-      <p class="help">Only click <strong>Package Received</strong> after the Carrier has sent the AWB and you have received the package.</p>
-      <form method="post" action="{% url 'trips:request_clear' o.id %}" style="text-align:center">{% csrf_token %}
-        <button class="btn btn-primary" type="submit">Package Received</button>
-      </form>
+        {% if o.preferred_courier %}
+        {# #Step-11-Buyer #}
+        <p class="muted">Prefered courier sent. Wait for Reshipment Cost.</p>
+        {% else %}
+        {# #Step-10.1-Buyer #}
+        <p>Customs Duty paid. Please fill in your prefered courier name and type (regular, express, etc.).</p>
+        {% endif %}
       {% else %}
-      {# #Step-11-Proxy #Step-13-Proxy #}
-      <p class="muted">The buyer requested reshipment. Waiting for the buyer to confirm receipt once it's delivered — your payout is released then.</p>
+      {# #Step-10.1-Proxy #Step-11-Proxy #}
+      <p class="muted">Waiting for Carrier to send the package to Buyer. Your payout will be disbursed after Buyer receive the package.</p>
       {% endif %}
     {% elif o.status == "reship_cost_sent" %}
       {% if is_order_buyer %}
-      {# #Step-12-Buyer #}
-      <p>Reshipment cost: <strong>{{ o.destination_currency }} {{ o.reshipment_cost_amount|floatformat:0|intcomma }}</strong>{% if o.reshipment_cost_proof %}&nbsp;<a href="{{ o.reshipment_cost_proof.url }}" target="_blank" class="btn btn-sm" style="background:#fff;border:1px solid var(--clay);color:var(--clay-dark)">View proof</a>{% endif %}</p>
-      <p>Please transfer to:</p>
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0 0 12px;color:var(--muted);white-space:pre-wrap">{{ o.proxy_traveler.traveler_bank_details }}</blockquote>
-      {% if o.reshipment_proof %}<p class="muted">Payment proof uploaded &#10003; — waiting for the Carrier to ship.</p>{% else %}<p>Upload your payment proof once transferred:</p>{% include "trips/_reship_proof_form.html" with req=o %}{% endif %}
+        {% if o.reshipment_proof %}
+        {# #Step-13-Buyer #}
+        <p class="muted">Transfer Proof sent. Wait for Airway Bill.</p>
+        {% else %}
+        {# #Step-12-Buyer #}
+        <p>Reshipment Cost received please pay and upload Transfer proof.</p>
+        {% endif %}
       {% else %}
-      {# #Step-12-Proxy #}
-      <p class="muted">Reshipment is being arranged with the buyer. Waiting for the buyer to confirm receipt once it's delivered — your payout is released then.</p>
+      {# #Step-12-Proxy #Step-13-Proxy #}
+      <p class="muted">Waiting for Carrier to send the package to Buyer. Your payout will be disbursed after Buyer receive the package.</p>
       {% endif %}
     {% elif o.status == "reshipping" %}
       {% if is_order_buyer %}
       {# #Step-14-Buyer #}
-      <p>Your package is in transit. AWB / Tracking: <strong>{{ o.awb_number }}</strong>{% if o.awb_document %}&nbsp;<a href="{{ o.awb_document.url }}" target="_blank" class="help">(View waybill)</a>{% endif %}</p>
-      <p class="muted">Once you receive it, confirm below to release the Proxy Buyer's payment.</p>
+      <p>Package sent. Waiting for the package.</p>
       <form method="post" action="{% url 'trips:request_clear' o.id %}" style="text-align:center">{% csrf_token %}<button class="btn btn-primary" type="submit">Confirm Received</button></form>
       {% else %}
       {# #Step-14-Proxy #}
-      <p class="muted">The package is being reshipped to the buyer. Waiting for the buyer to confirm receipt — your payout is released then.</p>
+      <p class="muted">Package sent by the Carrier. Your payout will be disbursed after Buyer receive the package.</p>
       {% endif %}
     {% elif o.status == "clear" %}
-      {% if is_order_proxy and not is_order_buyer %}
-      {# #Step-15.1-Proxy #}
-      <p><span class="badge badge-success">Clear</span> The buyer confirmed pickup{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Your product purchase payout will be disbursed within the next 24 hours.</p>
+      {% if is_order_buyer %}
+        {% if o.delivery_preference == "reship" %}
+        {# #Step-15.1-Buyer #}
+        <p><span class="badge badge-success">Clear</span> You confirmed have reviewed and received the package{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Transaction closed.</p>
+        {% else %}
+        {# #Step-15.2-Buyer #}
+        <p><span class="badge badge-success">Clear</span> You have reviewed and received the package. Transaction closed.</p>
+        {% endif %}
       {% else %}
-      {# #Step-15.1-Buyer #}
-      <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. The proxy buyer and the carrier are being paid shortly.</p>
+        {% if o.delivery_preference == "reship" %}
+        {# #Step-15.1-Proxy #}
+        <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
+        {% else %}
+        {# #Step-15.2-Proxy #}
+        <p><span class="badge badge-success">Clear</span> Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
+        {% endif %}
       {% endif %}
     {% elif o.status == "closed" %}
       <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>

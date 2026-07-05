@@ -678,7 +678,9 @@ class ReshipmentCostForm(forms.ModelForm):
 
 
 class AWBForm(forms.ModelForm):
-    """Carrier uploads AWB number + document to mark package as shipped."""
+    """Carrier uploads the AWB document to mark the package as shipped
+    ("Package Sent"). The AWB/tracking number input was removed from the UI, so
+    only the document is required."""
 
     class Meta:
         model = Order
@@ -692,9 +694,7 @@ class AWBForm(forms.ModelForm):
             "awb_document": forms.FileInput(),
         }
 
-    def clean_awb_number(self):
-        val = self.cleaned_data.get("awb_number", "").strip()
-        if not val:
-            raise forms.ValidationError("AWB / tracking number is required.")
-        return val
-        return cleaned
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["awb_number"].required = False
+        self.fields["awb_document"].required = True

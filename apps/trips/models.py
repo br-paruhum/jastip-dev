@@ -358,6 +358,8 @@ class Order(ListingTimingMixin, models.Model):
     # Reshipment — step 4: traveler uploads AWB + waybill.
     awb_number = models.CharField(max_length=80, blank=True)
     awb_document = models.FileField(upload_to="awb/", blank=True, null=True)
+    # Reshipment — buyer's preferred courier (name + type, e.g. "JNE regular").
+    preferred_courier = models.CharField(max_length=200, blank=True)
 
     rejection_reason = models.TextField(blank=True)
     buyer_cleared = models.BooleanField(default=False)
@@ -1367,6 +1369,15 @@ class Order(ListingTimingMixin, models.Model):
         return self.is_proxy_buyer_first and self.status in {
             Status.ITEMS_PURCHASED, Status.PACKAGE_RECEIVED,
             Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.CLEAR,
+        }
+
+    @property
+    def is_reship_flow(self) -> bool:
+        """The buyer chose reshipment and the order has reached the reship phase
+        — gates the dedicated Reshipment tab (Buyer + Carrier)."""
+        return self.delivery_preference == FulfillmentMethod.RESHIP and self.status in {
+            Status.RESHIP_REQUESTED, Status.RESHIP_COST_SENT, Status.RESHIPPING,
+            Status.CLEAR, Status.CLOSED,
         }
 
     @property

@@ -1,24 +1,15 @@
 {% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Order {{ bf_order.reference }} · {{ bf_order.route }}</span>
-  {% if not bf_order.is_cargo and bf_order.status == "responded" %}
-    {# Buyer already accepted the estimate; once a carrier quotes a rate it's "Offer Received". #}
-    {% include "trips/_status_badge.html" with label=bf_order.pending_offers|yesno:"Offer Received,Awaiting Carrier" tone="info" %}
-  {% elif not bf_order.is_cargo and bf_order.status == "open" %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label="Order Sent" tone=bf_order.status_tone %}
-  {% elif not bf_order.is_cargo and bf_order.status == "estimate_sent" %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label=is_order_buyer|yesno:"Estimate Received,Estimate Sent" tone=bf_order.status_tone %}
-  {% elif not bf_order.is_cargo and bf_order.status == "accepted" %}
-    {% include "trips/_status_badge.html" with label=bf_order.deposit_pending|yesno:"Temp Book — Verifying,Temp Book — Deposit Due" tone="info" %}
-  {% elif bf_order.status == "ready_for_pickup" and bf_order.pickup_selected %}
-    {% include "trips/_status_badge.html" with label="Out for Pick-Up" tone="info" %}
-  {% else %}
-    {% include "trips/_status_badge.html" with status=bf_order.status label=bf_order.get_status_display tone=bf_order.status_tone %}
-  {% endif %}
 </div>
 
 {# Notes/guidance card — always first, always expanded, soft-clay header. #}
 {% include "trips/_order_notes.html" with note_order=bf_order note_role="order" %}
+
+{# Reshipment tab — buyer view only, when the buyer chose reshipment. #}
+{% if is_order_buyer and bf_order.is_reship_flow %}
+{% include "trips/_reship_tab.html" with ro=bf_order reship_is_buyer=True %}
+{% endif %}
 
 <div class="card mt-2"><div class="card-body">
   <table class="invoice">
@@ -81,7 +72,10 @@
 <div class="card mt-2"><div class="card-body">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <h3 style="margin-top:0;margin-bottom:0">Invoice — {{ bf_order.currency }}</h3>
-    {% if is_order_buyer %}<a class="btn btn-outline btn-sm" style="margin-left:auto" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>{% endif %}
+    {% if is_order_buyer %}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>
+      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
+    </span>{% endif %}
   </div>
   <div class="table-wrap" style="margin-top:14px">
   <table class="invoice inv2">
@@ -198,13 +192,14 @@
       <td style="text-align:center">{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
           {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
           {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
-      <td class="muted">{{ p.created_at|date:"d M H:i" }}</td>
+      <td class="muted" style="text-align:center">{{ p.created_at|date:"d M H:i" }}</td>
     </tr>
     {% endfor %}
   </table>
-  {% if bf_order.deposit_proof_url %}
-  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
-    <a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Transfer Proof</a>
+  {% if bf_order.deposit_proof_url or bf_order.balance_proof_url %}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    {% if bf_order.deposit_proof_url %}<a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View First Deposit Proof</a>{% endif %}
+    {% if bf_order.balance_proof_url %}<a href="{{ bf_order.balance_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Second Deposit Proof</a>{% endif %}
   </div>
   {% endif %}
   </div>
