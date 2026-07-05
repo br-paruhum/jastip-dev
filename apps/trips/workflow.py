@@ -71,12 +71,24 @@ def _set_status(request_obj, status, *, sync_plan=True):
 # --- Lifecycle steps --------------------------------------------------------
 
 def on_proxy_order_created(order):
-    """Flow-1 step 1: buyer posted an order and picked a proxy buyer -> notify the
-    proxy (email + WhatsApp) so they can send an estimate.
+    """Flow-1 step 1: buyer posted an order and picked a proxy buyer.
+
+    Confirm receipt to the buyer (email + WhatsApp) and notify the proxy (email
+    + WhatsApp) so they can send an estimate.
 
     The proxy is an admin-curated entry that may exist *without* a linked Buyer
     account, so we notify the ProxyBuyer's own admin-set email/WhatsApp fields
     and only fall back to the linked user's contacts when those are blank."""
+    # Buyer confirmation — acknowledge the order they just placed.
+    send_email(
+        to_user=order.buyer,
+        subject=f"We received your order {order.reference}",
+        template="order_received",
+        context=_ctx(order),
+        event="order_received",
+    )
+    notify_see_email(order.buyer, event="order_received")
+    # Notify the proxy to send an estimate.
     _notify_proxy(
         order,
         subject=f"New order to source {order.reference}",

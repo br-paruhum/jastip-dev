@@ -72,8 +72,8 @@
 <div class="card mt-2"><div class="card-body">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <h3 style="margin-top:0;margin-bottom:0">Invoice — {{ bf_order.currency }}</h3>
-    {% if is_order_buyer %}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>
+    {% if is_order_buyer or is_order_proxy %}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      {% if is_order_buyer %}<a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>{% endif %}
       <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
     </span>{% endif %}
   </div>
@@ -211,15 +211,18 @@
 <details class="card fold mt-2" open>
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
-  <table class="invoice" style="max-width:480px">
+  <table class="invoice">
     <tr><td>Products Cost + Margin</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_gross|floatformat:0|intcomma }}</td></tr>
     <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_commission|floatformat:0|intcomma }})</td></tr>
     <tr class="total"><td>Total Due to You</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }}{% if not bf_order.proxy_disbursed_at %} {% if bf_order.proxy_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Pending buyer receipt</span>{% endif %}{% endif %}</td></tr>
     {% if bf_order.proxy_disbursed_at %}
-    <tr><td>Payout Disbursed</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }}) <span class="muted" style="font-weight:400">Released on {{ bf_order.proxy_disbursed_at|date:"d M Y, H:i" }}</span></td></tr>
+    <tr><td>Payout Disbursed *)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }})</td></tr>
     <tr class="total"><td>Outstanding</td><td class="num-right">-</td></tr>
     {% endif %}
   </table>
+  {% if bf_order.proxy_disbursed_at %}
+  <p class="help" style="margin-top:8px">*) Released on {{ bf_order.proxy_disbursed_at|date:"d M Y, H:i" }}</p>
+  {% endif %}
   {% if bf_order.proxy_disbursed_at and bf_order.proxy_disbursement_proof %}
   <div style="text-align:center;margin-top:12px"><a href="{{ bf_order.proxy_disbursement_proof.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Transfer Proof</a></div>
   {% endif %}

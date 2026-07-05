@@ -1,0 +1,9 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">We've received your order</h2>
+  <p>Thank you — we've received your order <strong>{{ request_obj.reference }}</strong>
+     ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>
+  <p>Your Proxy Buyer will review the items and send you an estimate to Accept or Reject.
+     We'll let you know as soon as it's ready.</p>
+  {% include "_email_button.html" with url=request_url label="View your order" %}
+{% endblock %}

@@ -1702,6 +1702,8 @@ def request_packing_list(request, pk):
     allowed = (
         request.user.is_staff
         or req.buyer_id == request.user.id
+        # Proxy buyer reconciles the goods against this list at hand-over.
+        or (req.proxy_buyer_id and req.proxy_buyer.user_id == request.user.id)
         or (req.plan_id and req.plan.traveler_id == request.user.id)
         or any(leg.traveler_id == request.user.id for leg in req.confirmed_legs)
         # Flow-1 proxy order: the carrier is the single live offer's traveler
