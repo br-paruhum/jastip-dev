@@ -140,7 +140,10 @@ Context expected (Django include passes the parent context through):
       {# #Step-14-Carrier #}
       <p>Package sent. Wating for receive confirmation from Buyer.</p>
       {% elif leg_offer.order.status == "clear" %}
-      {% if leg_offer.order.delivery_preference == "reship" %}
+      {% if leg_offer.order.traveler_paid_at %}
+      {# #Step-16-Carrier #}
+      <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ leg_offer.order.traveler_paid_at|date:"d M Y, H:i" }}. Thank you for doing business with ProxyBuying.</p>
+      {% elif leg_offer.order.delivery_preference == "reship" %}
       {# #Step-15.1-Carrier #}
       <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
       {% else %}
@@ -389,15 +392,21 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif o.status == "clear" %}
       {% if is_order_buyer %}
-        {% if o.delivery_preference == "reship" %}
+        {% if o.proxy_disbursed_at and o.traveler_paid_at %}
+        {# #Step-16-Buyer #}
+        <p><span class="badge badge-success">Clear</span> For your records, the Carrier's and Proxy Buyer's payouts have been disbursed on {{ o.traveler_paid_at|date:"d M Y, H:i" }}.</p>
+        {% elif o.delivery_preference == "reship" %}
         {# #Step-15.1-Buyer #}
-        <p><span class="badge badge-success">Clear</span> You confirmed have reviewed and received the package{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Transaction closed.</p>
+        <p><span class="badge badge-success">Clear</span> You have reviewed and received the package{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Transaction closed.</p>
         {% else %}
         {# #Step-15.2-Buyer #}
         <p><span class="badge badge-success">Clear</span> You have reviewed and received the package. Transaction closed.</p>
         {% endif %}
       {% else %}
-        {% if o.delivery_preference == "reship" %}
+        {% if o.proxy_disbursed_at %}
+        {# #Step-16-Proxy #}
+        <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ o.proxy_disbursed_at|date:"d M Y, H:i" }}. Thank you for doing business with ProxyBuying.</p>
+        {% elif o.delivery_preference == "reship" %}
         {# #Step-15.1-Proxy #}
         <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
         {% else %}

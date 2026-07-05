@@ -87,11 +87,18 @@
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="max-width:440px">
-    <tr><td>Carry fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|floatformat:0|intcomma }}</td></tr>
-    {% if leg_offer.order.actual_custom %}<tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>{% endif %}
-    <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|floatformat:0|intcomma }}</td></tr>
-    <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if leg_offer.order.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.order.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
+    <tr><td>Carry Fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|floatformat:0|intcomma }}</td></tr>
+    <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|floatformat:0|intcomma }})</td></tr>
+    <tr><td>Customs Duty Reimbursement</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>
+    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if not leg_offer.order.traveler_paid_at %} {% if leg_offer.order.traveler_payout_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}{% endif %}</td></tr>
+    {% if leg_offer.order.traveler_paid_at %}
+    <tr><td>Payout Disbursed</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }}) <span class="muted" style="font-weight:400">Released on {{ leg_offer.order.traveler_paid_at|date:"d M Y, H:i" }}</span></td></tr>
+    <tr class="total"><td>Outstanding</td><td class="num-right">-</td></tr>
+    {% endif %}
   </table>
+  {% if leg_offer.order.traveler_paid_at and leg_offer.order.traveler_payout_proof %}
+  <div style="text-align:center;margin-top:12px"><a href="{{ leg_offer.order.traveler_payout_proof.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Transfer Proof</a></div>
+  {% endif %}
   {% if user.is_staff and leg_offer.order.traveler_payout_disbursable and not leg_offer.order.traveler_paid_at %}
   <form method="post" action="{% url 'trips:release_disbursement' leg_offer.order_id %}" enctype="multipart/form-data" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
     {% csrf_token %}<input type="hidden" name="kind" value="traveler">
