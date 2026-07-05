@@ -115,8 +115,12 @@ Context expected (Django include passes the parent context through):
       <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the proof.</p>
       <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a></div>
       {% elif leg_offer.order.pickup_selected %}
-      {% if leg_offer.order.is_proxy_buyer_first %}<p class="help" style="margin-top:10px">&#10003; Actual duty receipt recorded.</p>{% endif %}
+      {% if leg_offer.order.is_proxy_buyer_first %}
+      {# #Step-10.2-Carrier #}
+      <p class="muted">Customs Duty paid. Use Chat Box to inform Buyer for the time to visit collecting the package.</p>
+      {% else %}
       <p class="muted">Balance settled. Waiting for the buyer to receive the package.</p>
+      {% endif %}
       {% else %}
       <p class="muted">Balance settled. Waiting for the buyer to choose pickup or request reshipment.</p>
       {% endif %}
@@ -323,13 +327,13 @@ Context expected (Django include passes the parent context through):
         {# #Step-9.2-Buyer #}
         <p class="muted">Your deposit verified. Waiting for Carrier to make Duty payment.</p>
         {% else %}
-        {% if o.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ o.currency }} {{ o.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% else %}<p class="muted"><span class="badge badge-success">Paid</span> Your balance is settled — nothing more to pay.</p>{% endif %}
+        {% if o.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ o.currency }} {{ o.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% endif %}
         {% if o.delivery_preference == "reship" %}
         {# #Step-10.1-Buyer #}
         <p>You chose Reshipment option. Please check the Chat Box from the Carrier below for the Reshipment Cost, Courier Cost Proof, and Carrier's bank details.<br> After you make the bank transfer, Carrier will ship the package to your location.</p>
         {% else %}
         {# #Step-10.2-Buyer #}
-        <p>You chose Pick up option. Please send a Chat Box message to the Carrier to find the best time for you to visit Carrier's location to review and received the package.</p>
+        <p>Custom Duty Paid. Check Chat Box to see the time set by Carrier to visit Carrier location.</p>
         <table class="invoice" style="max-width:400px;margin-bottom:12px">
           <tr><td style="width:100px">Name</td><td>: {{ o.proxy_traveler.full_name }}</td></tr>
           {% if o.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ o.proxy_traveler.traveler_address }}</span>{% if o.proxy_traveler.traveler_destination_city %}, {{ o.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
@@ -347,9 +351,9 @@ Context expected (Django include passes the parent context through):
         {# #Step-9.2-Proxy #}
         <p class="muted">Buyer's deposit verified. Your payout will be disbursed after Buyer receive the package.</p>
         {% else %}
-        {# #Step-10.1-Proxy #Step-10.2-Proxy #}
         {% if o.pickup_selected %}
-        <p class="muted">The package has arrived at the destination. Waiting for the buyer to receive the package.</p>
+        {# #Step-10.2-Proxy #}
+        <p class="muted">Waiting for Buyer to collect the package. Your payout will be disbursed after Buyer receive the package.</p>
         {% else %}
         <p class="muted">The package has arrived at the destination. Waiting for the buyer to choose pickup or reshipment.</p>
         {% endif %}
@@ -400,7 +404,7 @@ Context expected (Django include passes the parent context through):
         <p><span class="badge badge-success">Clear</span> You have reviewed and received the package{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Transaction closed.</p>
         {% else %}
         {# #Step-15.2-Buyer #}
-        <p><span class="badge badge-success">Clear</span> You have reviewed and received the package. Transaction closed.</p>
+        <p><span class="badge badge-success">Clear</span> You have reviewed and received the package{% if o.cleared_at %} on {{ o.cleared_at|date:"d M Y, H:i" }}{% endif %}. Transaction closed.</p>
         {% endif %}
       {% else %}
         {% if o.proxy_disbursed_at %}

@@ -456,7 +456,7 @@ def offer_create(request, order_id):
             order.recompute_status()
         workflow.on_offer_submitted(order, offer)
         messages.success(request, "Offer submitted. The buyer will review it.")
-        return redirect(dashboard_url + "#travel-plans")
+        return redirect(dashboard_url + f"?offer={offer.id}#offer-detail")
     # Keep the carrier's entered values and show the field errors inline (not as
     # prefixed banner messages) by re-rendering the form bound on the dashboard.
     request.session["offer_form_post"] = {"order_id": order.id, "data": request.POST.dict()}
