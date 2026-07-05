@@ -117,40 +117,45 @@
       {num:'5', a:'buyer',
        t:'<ul><li><b>Accept</b> or <b>Reject</b> Offer from Carrier,</li><li>If Accept, pay ProxyBuying <b>Total Estimated Products Cost, Margin</b> and <b>Total Estimated Shipment Cost</b>.</li></ul>'},
       {num:'6', a:'proxy',
-       t:'<ul><li>Start sourcing and buy the products,</li><li>Chat with Buyer via internal <b>Message</b> on any sourcing issues (shortage, out-of-stock, price increase, substitution),</li><li>When done, input <b>Actual Cost, Total Weight</b> and upload <b>Products</b> and <b>Box/Luggage Photo</b>.</li></ul>'},
+       t:'<ul><li>Start sourcing and buy the products,</li><li>Chat with Buyer via internal <b>Chat Boxe</b> on any sourcing issues (shortage, out-of-stock, price increase, substitution),</li><li>When done, input <b>Actual Cost, Total Weight</b> and upload <b>Products</b> and <b>Box/Luggage Photo</b>.</li></ul>'},
       {num:'7', a:'carrier',
-       t:'Send chat to Proxy Buyer via internal <b>Message</b> to confirm the time and place to hand over the package.',
-      tail:{num:'8', a:'carrier',
-        t:'Received the package from Proxy Buyer.'}} ]},
+       t:'<ul><li>Chat with Proxy Buyer via <b>Chat Box</b> to confirm the time and place to hand over the package.</li><li>Received the package on the agreed time and location</li></ul>'} ]},
 
     {divider:'Travel Date'},
 
     {align:'stretch', mflip:true, c:[
-      {num:'10', a:'buyer',
+      {num:'9', a:'buyer',
        t:'Pay ProxyBuying for <b>Customs Duty</b>, Products and Shipment Cost shortage (Actual minus Estimate), if any.'},
-      {num:'9', a:'carrier',
-       t:'On arrival, send <b>Customs Duty</b> amount and upload <b>Proforma Proof</b>.',
-       tail:{num:'11', a:'carrier',
-         t:'<b>Pay</b> and upload Actual Customs Duty <b>Proof</b>.'}} ]},
+      {num:'8', a:'carrier',
+       t:'On arrival, send <b>Customs Duty</b> amount.'} ]},
 
     {divider:'Buyer selected: Reship the package'},
 
-    {align:'top', mflip:true, c:[
-      {num:'13', a:'buyer',
-       t:'Send Bank Transfer <b>Proof</b> to Carrier via internal <b>Message</b>.'},
-      {num:'12', a:'carrier',
-       t:'Send <b>Shipment Cost</b> amount and <b>Bank Account</b> details to Buyer via internal <b>Message</b>.'} ]},
+    {c:[ {num:'10.1', a:'carrier',
+       t:'<b>Pay</b> and upload Customs Duty <b>Receipt</b>.'} ]},
 
     {align:'top', mflip:true, c:[
-      {num:'15-1', a:'buyer',
-       t:'After receiving the package, review it and click <b>Confirm Received</b> the package.'},
+      {num:'11', a:'buyer',
+       t:'Fill in <b>Preferred Courier</b> name and type.'},
+      {num:'12', a:'carrier',
+       t:'Fill in <b>Reshipment Cost</b> amount.'} ]},
+
+    {align:'top', mflip:true, c:[
+      {num:'13', a:'buyer',
+       t:'Upload Bank Transfer <b>Proof</b>.'},
       {num:'14', a:'carrier',
-       t:'Send the <b>Package</b> and send (attached)<b> AWB Proof</b> to Buyer via internal <b>Message</b>.'} ]},
+       t:'Send the <b>Package</b> and upload <b>AWB</b>.'} ]},
+
+    {c:[ {num:'15.1', a:'buyer',
+       t:'After receiving the package, review it and click <b>Confirm Received</b>.'} ]},
 
     {divider:'Buyer selected: Pick up the package'},
 
+    {c:[ {num:'10.2', a:'carrier',
+       t:'<b>Pay</b> and upload Customs Duty <b>Receipt</b>.'} ]},
+
     {mflip:true, c:[ {num:'15-2', a:'buyer',
-       t:'Visit Carrier’s location, review the package and click <b>Confirm Received</b> the package.'} ]},
+       t:'Visit Carrier’s location, review the package and click <b>Confirm Received</b>.'} ]},
 
     {divider:'PROXYBUYING DISBURSE PROXY BUYER AND CARRIER PAYOUTS - Transaction Completed'},
   ];
