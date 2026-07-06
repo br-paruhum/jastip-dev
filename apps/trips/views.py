@@ -390,11 +390,10 @@ def order_edit(request, pk):
                     order.from_country = proxy.country
                     order.from_city = proxy.city
                 if revising_estimate:
-                    # The order changed — the proxy's estimate no longer applies.
-                    # Reset it (weight, margin, per-item costs) and reopen so the
-                    # proxy re-estimates.
-                    order.estimated_weight_kg = Decimal("0")
-                    order.proxy_margin_percent = Decimal("0")
+                    # The order changed — send it back to the proxy to re-estimate,
+                    # but KEEP the amounts already entered (weight, margin, existing
+                    # per-item unit costs). Only newly added products stay at 0, so
+                    # the proxy only has to price what's new.
                     order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
@@ -413,12 +412,11 @@ def order_edit(request, pk):
                         else:
                             # Switched to Products before any offer: drop any
                             # stale "purchased" data so the traveler buys later.
+                            # (Existing items keep their proxy-estimated unit cost;
+                            # newly added ones default to 0 — see revising_estimate.)
                             item.actual_quantity = 0
                             item.actual_unit_cost = Decimal("0")
                             item.purchased_at = None
-                            if revising_estimate:
-                                # Clear the proxy's per-item estimate too.
-                                item.estimated_unit_cost = Decimal("0")
                         item.save()
                     if proxy is not None:
                         _save_order_photos(order, request.FILES.getlist("order_photos"))
