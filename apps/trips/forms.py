@@ -147,10 +147,14 @@ class OrderForm(forms.ModelForm):
             "from_city", "from_country", "to_city", "to_country",
             "to_address", "to_postal_code", "delivery_preference",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
-            "cargo_only", "partial_allowed", "buyer_notes",
+            "cargo_only", "partial_allowed", "buyer_notes", "proxy_buyer_notes",
         ]
         widgets = {
             "to_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Destination delivery address"}),
+            "proxy_buyer_notes": forms.Textarea(attrs={
+                "rows": 4,
+                "placeholder": "Any specific request for the Proxy Buyer — you can also paste a product URL here (optional).",
+            }),
             "max_acceptable_date": DATE_INPUT,
             "bid_weight_kg": forms.NumberInput(
                 attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal",
@@ -176,7 +180,10 @@ class OrderForm(forms.ModelForm):
                 "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
             ):
                 self.fields.pop(name, None)
+            self.fields["proxy_buyer_notes"].required = False
             return
+        # Non-proxy (cargo) orders talk to Carriers, not a proxy buyer.
+        self.fields.pop("proxy_buyer_notes", None)
         # The bool model fields don't preselect their string-keyed choices on
         # edit (str(True) != "1"), so map them back explicitly.
         if self.instance and self.instance.pk:

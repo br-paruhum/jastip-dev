@@ -261,6 +261,10 @@ class Order(ListingTimingMixin, models.Model):
 
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUEST_RECEIVED)
     buyer_notes = models.TextField(blank=True)
+    # Flow-1 (proxy buying): free-text instructions from the buyer to the proxy
+    # buyer (specific requests, reference links, etc.), set at order creation.
+    # Distinct from ``buyer_notes`` which is addressed to Carriers (cargo flow).
+    proxy_buyer_notes = models.TextField(blank=True)
 
     # --- Buyer-first fields (used only when plan is null) ---
     from_city = models.CharField(max_length=80, blank=True)
@@ -764,6 +768,12 @@ class Order(ListingTimingMixin, models.Model):
           offer, and not past the 24h deadline lock."""
         if self.plan_id:
             return self.status == Status.REQUEST_RECEIVED and not self.plan.listing_locked
+        # Flow-1 (proxy buying): the buyer may also revise the order while the
+        # proxy's estimate is on the table (Accept | Edit | Reject). Editing sends
+        # the order back to the proxy to re-estimate (see order_edit), so it's
+        # allowed even though the listing window may be locked.
+        if self.proxy_buyer_id and self.status == Status.ESTIMATE_SENT:
+            return True
         if self.status != Status.OPEN or self.listing_locked:
             return False
         live = {OfferStatus.PENDING, OfferStatus.SELECTED}
@@ -2038,6 +2048,24 @@ class Refund(Order):
         proxy = True
         verbose_name = "Refund"
         verbose_name_plural = "Refunds"
+
+
+class OrderPhoto(models.Model):
+    """Flow-1 (proxy buying): reference photos the buyer attaches to the whole
+    order for the proxy buyer (e.g. a screenshot of the product, a label).
+    Optional, capped at 10 per order in the view. Auto-converted to WebP by the
+    storage."""
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="photos")
+    image = models.ImageField(upload_to="order_photos/", storage=webp_storage)
+    position = models.PositiveSmallIntegerField(default=1)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+
+    def __str__(self):
+        return f"Photo #{self.position} for {self.order.reference}"
 
 
 class RequestItem(models.Model):

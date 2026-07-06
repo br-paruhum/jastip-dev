@@ -163,6 +163,19 @@ def on_estimate_rejected(order):
         notify_see_email(proxy_user, event="estimate_rejected")
 
 
+def on_order_revised_after_estimate(order):
+    """Flow-1: the buyer edited their order while the proxy's estimate was on the
+    table, so the order reverts to 'awaiting estimate' — ask the proxy to review
+    the changes and re-send an estimate."""
+    _notify_proxy(
+        order,
+        subject=f"Order {order.reference} was updated — please re-estimate",
+        template="proxy_new_order",
+        ctx=_ctx(order),
+        event="proxy_new_order",
+    )
+
+
 def on_proxy_offer_accepted(order, offer):
     """Flow-1 step 8: buyer accepted the carrier's shipment cost -> notify the
     carrier (prepare to receive the cargo) and the proxy buyer (deposit incoming)."""

@@ -45,6 +45,7 @@ from .forms import (
 )
 from .models import (
     Order,
+    OrderPhoto,
     ChatRead,
     ExchangeRate,
     ItemLegAllocation,
@@ -57,6 +58,28 @@ from .models import (
     TravelPlan,
     Transaction,
 )
+
+# Flow-1 proxy order reference photos: optional, capped, image-only. The storage
+# re-encodes each to WebP on save; validate the raw upload here.
+ORDER_PHOTO_MAX = 10
+ORDER_PHOTO_MAX_BYTES = 10 * 1024 * 1024  # 10 MB per image (pre-compression)
+
+
+def _save_order_photos(order, files):
+    """Attach uploaded reference photos to a proxy order, capped at
+    ``ORDER_PHOTO_MAX`` total (existing + new). Non-images / oversized files are
+    skipped; returns the number saved. Compression to WebP happens in storage."""
+    existing = order.photos.count()
+    room = max(ORDER_PHOTO_MAX - existing, 0)
+    saved = 0
+    for f in files[:room]:
+        if getattr(f, "size", 0) > ORDER_PHOTO_MAX_BYTES:
+            continue
+        if not (getattr(f, "content_type", "") or "").startswith("image/"):
+            continue
+        OrderPhoto.objects.create(order=order, image=f, position=existing + saved + 1)
+        saved += 1
+    return saved
 
 
 def profile_required(view):
@@ -319,6 +342,8 @@ def order_create(request):
                         item.actual_unit_cost = item.estimated_unit_cost
                         item.purchased_at = timezone.now()
                     item.save()
+                if proxy is not None:
+                    _save_order_photos(order, request.FILES.getlist("order_photos"))
             if proxy is not None:
                 workflow.on_proxy_order_created(order)
                 messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
@@ -348,6 +373,10 @@ def order_edit(request, pk):
         return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     # A proxy (Flow-1) order keeps its proxy + Products typing on edit.
     proxy = order.proxy_buyer
+    # Buyer revising a proxy order after the estimate arrived (Accept | Edit |
+    # Reject): editing invalidates the estimate, so send it back to the proxy to
+    # re-quote (see below). Capture the state before the form touches the instance.
+    revising_estimate = proxy is not None and order.status == Status.ESTIMATE_SENT
     if request.method == "POST":
         cargo = proxy is None and request.POST.get("cargo_only") == "1"
         ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
@@ -360,6 +389,13 @@ def order_edit(request, pk):
                     order.cargo_only = False
                     order.from_country = proxy.country
                     order.from_city = proxy.city
+                if revising_estimate:
+                    # The order changed — the proxy's estimate no longer applies.
+                    # Reset it (weight, margin, per-item costs) and reopen so the
+                    # proxy re-estimates.
+                    order.estimated_weight_kg = Decimal("0")
+                    order.proxy_margin_percent = Decimal("0")
+                    order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
                 formset.save()
@@ -380,11 +416,20 @@ def order_edit(request, pk):
                             item.actual_quantity = 0
                             item.actual_unit_cost = Decimal("0")
                             item.purchased_at = None
+                            if revising_estimate:
+                                # Clear the proxy's per-item estimate too.
+                                item.estimated_unit_cost = Decimal("0")
                         item.save()
+                    if proxy is not None:
+                        _save_order_photos(order, request.FILES.getlist("order_photos"))
             if not items:
                 messages.error(request, "Keep at least one item on the order.")
                 return redirect(request.path)
-            messages.success(request, "Order updated.")
+            if revising_estimate:
+                workflow.on_order_revised_after_estimate(order)
+                messages.success(request, "Order updated. The Proxy Buyer will review the changes and re-send an estimate.")
+            else:
+                messages.success(request, "Order updated.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(instance=order, proxy=proxy)

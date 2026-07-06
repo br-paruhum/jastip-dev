@@ -24,8 +24,20 @@
     {% endif %}
     <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}</td></tr>
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
+{% if bf_order.proxy_buyer_notes %}<tr><td>Notes to Proxy Buyer</td><td class="num-right">{{ bf_order.proxy_buyer_notes|linebreaksbr }}</td></tr>{% endif %}
   </table>
 </div></div>
+
+{% if bf_order.photos.all %}
+<div class="card mt-2"><div class="card-body">
+  <h3 style="margin-top:0">Reference Photos</h3>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% for p in bf_order.photos.all %}
+    <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Reference photo {{ forloop.counter }}" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
+    {% endfor %}
+  </div>
+</div></div>
+{% endif %}
 
 {% if bf_order.is_cargo %}
 <div class="card mt-2"><div class="card-body">

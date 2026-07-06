@@ -112,6 +112,26 @@
         <div class="form-field"><label>Notes to Carriers</label>{{ form.buyer_notes }}</div>
         {% endif %}
 
+        {% if proxy %}
+        {# #Step-1.1-Buyer — extra order-level context for the proxy buyer. #}
+        <div class="form-field" style="margin-top:30px">
+          <label>Notes to Proxy Buyer</label>{{ form.proxy_buyer_notes }}{{ form.proxy_buyer_notes.errors }}
+          <p class="help">Optional — any specific request for the Proxy Buyer. You can also paste a product URL here.</p>
+        </div>
+        <div class="form-field" style="margin-top:30px">
+          <label>Reference Photos</label>
+          {% if order and order.photos.all %}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            {% for p in order.photos.all %}
+            <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Reference photo {{ forloop.counter }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
+            {% endfor %}
+          </div>
+          {% endif %}
+          <input type="file" name="order_photos" id="order-photos" accept="image/*" multiple>
+          <p class="help">Optional — attach up to 10 photos (e.g. a screenshot of the product). Images are compressed automatically.</p>
+        </div>
+        {% endif %}
+
         <div style="text-align:center;margin-top:12px">
           <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Send Order{% endif %}</button>
         </div>
@@ -189,6 +209,17 @@
 
   applyOrderType();
   refreshAddState();
+
+  // Reference-photo cap: 10 total (existing count is already subtracted server-
+  // side, but warn early so the buyer doesn't over-select).
+  var photoInput = document.getElementById('order-photos');
+  if (photoInput) {
+    photoInput.addEventListener('change', function () {
+      if (photoInput.files.length > 10) {
+        alert('You can attach at most 10 photos. Only the first 10 will be uploaded.');
+      }
+    });
+  }
 })();
 </script>
 {% endblock %}
