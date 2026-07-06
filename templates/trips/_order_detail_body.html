@@ -154,12 +154,25 @@
     <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?package_ready={{ bf_order.id }}#package-ready">{% if bf_order.status == "deposit_paid" %}Finalizing Order{% else %}Edit Order Data{% endif %}</a>
   </div>
   {% endif %}
+  {% if is_order_buyer and bf_order.status == "estimate_sent" %}
+  {# #Step-2.2-Buyer — Accept | Edit | Reject the proxy's estimate. Buttons live
+     in the Invoice card, never in the Notes tab. Editing re-opens for re-estimate;
+     Reject cancels — so there is no separate Cancel here. #}
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap">
+    <form method="post" action="{% url 'trips:proxy_estimate_accept' bf_order.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+    <a class="btn btn-outline btn-sm" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:proxy_estimate_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+  </div>
+  {% endif %}
 </div></div>
 {% endif %}
 {% endif %}
 
-{# Edit / Cancel — buyer-only control, sits directly below the Invoice (Total Due). #}
-{% if is_order_buyer and bf_order.can_edit %}
+{# Edit / Cancel — buyer-only control, sits directly below the Invoice (Total Due).
+   Hidden once the proxy's estimate is on the table (estimate_sent): the buyer
+   acts on it via Accept | Edit | Reject in the Invoice card above, and can no
+   longer plain-Cancel the order. #}
+{% if is_order_buyer and bf_order.can_edit and bf_order.status != "estimate_sent" %}
 <div class="mt-2" style="text-align:center">
   <a class="btn btn-primary" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
   <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block;margin-left:32px"

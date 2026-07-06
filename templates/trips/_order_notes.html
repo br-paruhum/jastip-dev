@@ -422,13 +422,8 @@ Context expected (Django include passes the parent context through):
       <p><span class="badge badge-success">Closed</span> This transaction is complete. Thank you!</p>
     {% elif o.status == "estimate_sent" %}
       {% if is_order_buyer %}
-      {# #Step-2.2-Buyer #}
-      <p>Proxy Buyer has sent the estimate. Please Accept, Edit, or Reject it. Editing your order sends it back to the Proxy Buyer to re-estimate. Use the Chat Box if you want to negotiate the Margin with Proxy Buyer.</p>
-      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
-        <form method="post" action="{% url 'trips:proxy_estimate_accept' o.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
-        <a class="btn btn-outline btn-sm" href="{% url 'trips:order_edit' o.id %}">Edit</a>
-        <form method="post" action="{% url 'trips:proxy_estimate_reject' o.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
-      </div>
+      {# #Step-2.2-Buyer — decision buttons live in the Invoice card below, never here. #}
+      <p>Proxy Buyer has sent the estimate. Please Accept, Edit, or Reject it in the Invoice below. Editing your order sends it back to the Proxy Buyer to re-estimate. Use the Chat Box if you want to negotiate the Margin with Proxy Buyer.</p>
       {% elif is_order_proxy %}
       {# #Step-2.2-Proxy #}
       <p class="muted">Estimate Sent, waiting for Buyer to Accept it. Use the Chat Box to check if Buyer is asking to negotiate the Margin. You still be able to edit the Margin before Buyer Accepting or Rejecting your estimate.</p>

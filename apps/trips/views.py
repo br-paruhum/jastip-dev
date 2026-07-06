@@ -449,7 +449,9 @@ def order_cancel(request, pk):
     if order.buyer_id != request.user.id:
         messages.error(request, "You can only cancel your own order.")
         return redirect(reverse("accounts:profile") + "#my-orders")
-    if not order.can_edit:
+    # Once the proxy's estimate is on the table the buyer can't plain-cancel —
+    # they Reject the estimate instead (order_edit is still allowed for revisions).
+    if not order.can_edit or order.status == Status.ESTIMATE_SENT:
         messages.error(request, "This order can no longer be cancelled.")
         return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     order.status = Status.CANCELLED
