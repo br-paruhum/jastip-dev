@@ -35,8 +35,8 @@ for arg in "$@"; do
 done
 
 case "$env" in
-  stg) DIR="/var/www/jastip-stg"; SERVICE="jastip-stg"; URL="https://stg.jastip.me" ;;
-  prd) DIR="/var/www/jastip-prd"; SERVICE="jastip-prd"; URL="https://www.jastip.me" ;;
+  stg) DIR="/var/www/jastip-stg"; SERVICE="jastip-stg"; URL="https://stg.proxybuying.com" ;;
+  prd) DIR="/var/www/jastip-prd"; SERVICE="jastip-prd"; URL="https://www.proxybuying.com" ;;
 esac
 
 # ── Safety: confirm production, and warn if local HEAD isn't pushed ───────────
