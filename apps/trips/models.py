@@ -897,12 +897,17 @@ class Order(ListingTimingMixin, models.Model):
         return self.plan.shipment_currency if self.plan_id else self.settlement_currency
 
     @property
+    def destination_country(self) -> str:
+        """The order's destination country: the order's own value, falling back
+        to the plan's for plan-first orders (which leave to_country blank)."""
+        return self.to_country or (self.plan.to_country if self.plan_id else "")
+
+    @property
     def destination_currency(self) -> str:
         """Currency at the destination country — customs duty is always paid here
         (mirrors shipment always being in the origin currency). Resolved via the
         fx/kurs table; falls back to IDR."""
-        country = self.to_country or (self.plan.to_country if self.plan_id else "")
-        return ExchangeRate.currency_for_country(country)
+        return ExchangeRate.currency_for_country(self.destination_country)
 
     @property
     def proxy_traveler(self):
