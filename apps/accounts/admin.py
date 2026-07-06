@@ -28,3 +28,25 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
             "fields": ("email", "usable_password", "password1", "password2"),
         }),
     )
+
+    # Sensitive profile PII (delivery addresses + bank accounts). Shown
+    # READ-ONLY and only to superusers, on the change page only. Never expose
+    # password or the phone OTP here.
+    SENSITIVE_FIELDS = (
+        "buyer_destination_city", "buyer_invoice_address", "buyer_bank_details",
+        "traveler_destination_city", "traveler_address", "traveler_bank_details",
+    )
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = super().get_fieldsets(request, obj)
+        if obj is not None and request.user.is_superuser:
+            fieldsets = tuple(fieldsets) + (
+                ("Addresses & Bank details (read-only)", {"fields": self.SENSITIVE_FIELDS}),
+            )
+        return fieldsets
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = tuple(super().get_readonly_fields(request, obj))
+        if request.user.is_superuser:
+            readonly += self.SENSITIVE_FIELDS
+        return readonly
