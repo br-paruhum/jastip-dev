@@ -17,7 +17,7 @@
       <div class="fold-body">
       {% if proxy %}
         {# #Step-1.1-Buyer — proxy-buying order creation form #}
-        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Order”, the Proxy Buyer will be notified.</li></ul>
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
       {% else %}
         {# #Step-1.1-Buyer (cargo) — buyer-first cargo order creation form #}
         <p class="muted">Notes placeholder — Step 1.1 (Buyer, cargo): post your route, items and price, then carriers respond with offers.</p>
@@ -101,7 +101,7 @@
           {% endif %}
         </div>
         <div class="form-field" style="margin-top:30px">
-          <label>{{ form.delivery_preference.label }}</label>{{ form.delivery_preference }}{{ form.delivery_preference.errors }}
+          <label>{{ form.delivery_preference.label }} <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" style="stroke:var(--danger);vertical-align:-5px;margin-left:5px" aria-hidden="true" role="img"><title>Choose carefully — reshipment adds a cost you pay later.</title><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="16.7" x2="12" y2="16.7"/></svg></label>{{ form.delivery_preference }}{{ form.delivery_preference.errors }}
           <p class="help">Notes: If you select 'Reship package' you have to pay reshipment cost to the Buyer later.</p>
         </div>
         {% if not proxy %}

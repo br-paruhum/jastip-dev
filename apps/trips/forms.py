@@ -133,11 +133,11 @@ class OrderForm(forms.ModelForm):
     # Task 3: buyer's delivery preference, chosen at order creation.
     delivery_preference = forms.ChoiceField(
         choices=[
-            (FulfillmentMethod.RESHIP, "Reship package to Buyer's location"),
             (FulfillmentMethod.PICKUP, "Pick up at Carrier's location"),
+            (FulfillmentMethod.RESHIP, "Reship package to Buyer's location"),
         ],
         widget=forms.Select(),
-        initial=FulfillmentMethod.RESHIP,
+        initial=FulfillmentMethod.PICKUP,
         label="Delivery Preference",
     )
 
