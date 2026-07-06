@@ -42,7 +42,8 @@
       <div class="inv-meta-label">Billed To</div>
       <div class="inv-meta-val">{{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}
 {{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}
-{{ req.buyer.buyer_destination_city }}{% endif %}</div>
+{{ req.buyer.buyer_destination_city }}{% endif %}{% with billed_country=req.to_country|default:req.plan.to_country %}{% if billed_country %}
+{{ billed_country }}{% endif %}{% endwith %}</div>
     </div>
     <div>
       <div class="inv-meta-label">Sourced By (Proxy Buyer)</div>

@@ -414,5 +414,9 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
 
 @media (max-width: 860px) {
   .profile-layout { flex-direction: column; }
+  /* Column flex + align-items:flex-start makes children size to their content
+     width. Force both columns full-width so the "My Profile" card fills the
+     screen on load (before the Credentials fold expands with wider content). */
+  .profile-main { width: 100%; }
   .profile-side { order: -1; flex-basis: auto; width: 100%; }
 }
