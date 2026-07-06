@@ -102,11 +102,13 @@ CHAT_STATUSES = {
 #   note 5  -> Buyer  + Proxy   (deposit paid; proxy starts sourcing)
 #   note 6  -> Proxy  + Carrier (proxy sent actual cost / "Package Ready")
 #   note 8+ -> Carrier + Buyer  (carrier received the package, through close)
-# Buyer<->Proxy also opens as soon as the proxy sends the estimate (the buyer
-# now has to Accept/Reject it) and stays open through the pre-deposit stages,
-# not just from DEPOSIT_PAID onward.
+# Buyer<->Proxy opens as soon as the proxy is assigned (Step-2.1, status OPEN) so
+# the two can discuss product issues (out-of-stock, shortages, etc.) while the
+# proxy prepares the estimate, and stays open through the pre-deposit stages, not
+# just from DEPOSIT_PAID onward.
 MSG_TAB_BUYER_PROXY = {
-    Status.ESTIMATE_SENT, Status.RESPONDED, Status.ACCEPTED, Status.DEPOSIT_PAID,
+    Status.OPEN, Status.ESTIMATE_SENT, Status.RESPONDED, Status.ACCEPTED,
+    Status.DEPOSIT_PAID,
 }
 MSG_TAB_PROXY_CARRIER = {Status.ITEMS_PURCHASED}
 MSG_TAB_CARRIER_BUYER = {
@@ -118,7 +120,8 @@ MSG_TAB_CARRIER_BUYER = {
 # so the tab simply opens to both once the order is an active transaction
 # (deposit paid / package handed over) and stays open through close.
 MSG_TAB_TWO_PARTY = (
-    MSG_TAB_BUYER_PROXY | MSG_TAB_PROXY_CARRIER | MSG_TAB_CARRIER_BUYER
+    (MSG_TAB_BUYER_PROXY | MSG_TAB_PROXY_CARRIER | MSG_TAB_CARRIER_BUYER)
+    - {Status.OPEN}  # a 2-party order at OPEN has no carrier yet — no chat
     | {Status.TAKEN, Status.PACKAGE_DROPPED_OFF, Status.WEIGHT_VERIFIED}
 )
 

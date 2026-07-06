@@ -8,8 +8,7 @@ estimate_formset in context (set in accounts.views.profile via order_ctx).{% end
   {{ estimate_formset.management_form }}
   <div class="card-body">
     <div class="card-band-row">{% if estimate_order.status == "open" %}Send Estimate{% else %}Edit Estimate{% endif %}</div>
-    <p class="muted" style="margin-top:14px">Fill in the Unit Cost of each product, the Estimated Total Weight and your Margin, then {% if estimate_order.status == "open" %}Send Estimate{% else %}Update Estimate{% endif %}.</p>
-    <table class="invoice" style="table-layout:fixed;width:560px;max-width:100%">
+    <table class="invoice" style="table-layout:fixed;width:560px;max-width:100%;margin-top:14px">
       <colgroup>
         <col style="width:310px">
         <col style="width:100px">
@@ -42,6 +41,5 @@ estimate_formset in context (set in accounts.views.profile via order_ctx).{% end
     <div style="text-align:center;margin-top:12px">
       <button class="btn btn-primary" type="submit">{% if estimate_order.status == "open" %}Send Estimate{% else %}Update Estimate{% endif %}</button>
     </div>
-    <p class="help mt-2">After you send the Estimate, the Buyer is asked to Accept it. Use the "Chat Box" tab to negotiate the margin with the Buyer.</p>
   </div>
 </form>
