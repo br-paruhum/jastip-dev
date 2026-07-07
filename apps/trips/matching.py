@@ -79,7 +79,7 @@ def surface_matches(order, *, source=MatchSource.PUSH, notify=True):
         return []
     cfg = _settings()
     now = timezone.now()
-    expires = now + timedelta(hours=cfg.carrier_match_window_hours)
+    expires = now + timedelta(minutes=cfg.carrier_match_window_minutes)
     already = set(
         order.carrier_matches.filter(status__in=HELD_MATCH_STATUSES)
         .values_list("plan_id", flat=True)
@@ -99,30 +99,74 @@ def surface_matches(order, *, source=MatchSource.PUSH, notify=True):
     return created
 
 
-def send_order_to_plan(order, plan, *, by_user):
-    """Pull path (board 'Send Order', PLAN §6.d): the buyer puts their order in
-    front of a specific queued carrier. Creates a PENDING hold they then accept
-    from their order page. Returns (match_or_None, message)."""
-    if by_user != order.buyer:
-        return None, "Only the buyer can send this order."
-    if not order_is_matchable(order):
-        return None, "This order isn't ready to be sent to a carrier yet."
-    if plan.traveler_id == order.buyer_id:
-        return None, "You can't send your order to your own travel plan."
-    if plan.status not in OPEN_PLAN_STATUSES:
-        return None, "This carrier is no longer accepting orders."
-    weight = order.estimated_weight_kg
-    if plan.carrier_first_remaining_kg < weight:
-        return None, "This carrier no longer has enough spare weight for your order."
-    if order.carrier_matches.filter(plan=plan, status__in=HELD_MATCH_STATUSES).exists():
-        return None, "You've already sent this order to that carrier."
-    cfg = _settings()
-    now = timezone.now()
-    match = CarrierMatch.objects.create(
-        order=order, plan=plan, allocated_kg=weight, source=MatchSource.PULL,
-        offered_at=now, window_expires_at=now + timedelta(hours=cfg.carrier_match_window_hours),
+def plan_fits_order(plan, order) -> bool:
+    """Whether a specific queued plan satisfies the matching gate (§7) for a
+    specific order: same route, enough lead time, within the buyer's deadline,
+    not the buyer's own plan, and still open."""
+    if plan.status not in OPEN_PLAN_STATUSES or plan.traveler_id == order.buyer_id:
+        return False
+    same_route = (
+        plan.from_city.lower() == order.from_city.lower()
+        and plan.from_country.lower() == order.from_country.lower()
+        and plan.to_city.lower() == order.to_city.lower()
+        and plan.to_country.lower() == order.to_country.lower()
     )
-    return match, "Order sent — review and accept the carrier's rate on your order page."
+    if not same_route:
+        return False
+    min_travel = timezone.now().date() + timedelta(days=_settings().carrier_match_lead_days)
+    if plan.travel_date < min_travel:
+        return False
+    # Deadline gate: `<=` (arrive-on-deadline OK — the deadline is the buyer's
+    # expectation, not a hard cutoff). Skipped when no deadline is set.
+    if order.max_acceptable_date and plan.travel_date > order.max_acceptable_date:
+        return False
+    return True
+
+
+def send_carrier_to_buyer(plan, *, buyer):
+    """Pull path (home board 'Send Order', PLAN §6.d): the buyer picked a queued
+    carrier. Put that carrier in front of each of the buyer's orders that are
+    'Looking for a Carrier' and fit this plan (route / timing / capacity) by
+    creating a PENDING hold on each — so the carrier shows up (with Accept) when
+    they open the order on the My Orders page. Returns (created_count, message)."""
+    if plan.traveler_id == buyer.id:
+        return 0, "You can't send an order to your own travel plan."
+    if plan.status not in OPEN_PLAN_STATUSES:
+        return 0, "This carrier is no longer accepting orders."
+    orders = [
+        o for o in Order.objects.filter(
+            buyer=buyer, plan__isnull=True, cargo_only=False,
+            status=Status.RESPONDED, proxy_buyer__isnull=False,
+        ).prefetch_related("carrier_matches")
+        if order_is_matchable(o)
+    ]
+    if not orders:
+        return 0, ("You have no order ready for a carrier yet — accept your "
+                   "proxy buyer's estimate first.")
+    now = timezone.now()
+    expires = now + timedelta(minutes=_settings().carrier_match_window_minutes)
+    # Track remaining locally so we never oversell this one plan across several of
+    # the buyer's orders in a single click (the prefetch cache won't refresh mid-loop).
+    remaining = plan.carrier_first_remaining_kg
+    created = 0
+    for order in orders:
+        weight = order.estimated_weight_kg
+        if not plan_fits_order(plan, order) or remaining < weight:
+            continue
+        if order.carrier_matches.filter(plan=plan, status__in=HELD_MATCH_STATUSES).exists():
+            continue
+        CarrierMatch.objects.create(
+            order=order, plan=plan, allocated_kg=weight, source=MatchSource.PULL,
+            offered_at=now, window_expires_at=expires,
+        )
+        remaining -= weight
+        created += 1
+    if created == 0:
+        return 0, "This carrier doesn't fit any of your open orders (route, dates or capacity)."
+    return created, (
+        f"Carrier sent to {created} order{'s' if created != 1 else ''}. "
+        "Open an order below and Accept the carrier."
+    )
 
 
 def accept_match(match, *, by_user):

@@ -51,12 +51,12 @@ class SiteSettings(models.Model):
             "and hand the goods over before departure. Default 3."
         ),
     )
-    carrier_match_window_hours = models.PositiveSmallIntegerField(
-        default=3,
-        verbose_name="Carrier-first: accept window (hours)",
+    carrier_match_window_minutes = models.PositiveSmallIntegerField(
+        default=180,
+        verbose_name="Carrier-first: accept window (minutes)",
         help_text=(
             "Carrier-First matching: how long a surfaced carrier offer stays live on the "
-            "buyer's page before it expires and releases its held weight. Default 3 hours."
+            "buyer's page before it expires and releases its held weight. Default 180 (3 hours)."
         ),
     )
     updated_at = models.DateTimeField(auto_now=True)

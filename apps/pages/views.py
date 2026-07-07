@@ -11,8 +11,8 @@ from django.views.decorators.http import require_GET
 
 from apps.blog.models import Post
 from apps.notifications.services import send_email
-from apps.trips.constants import OfferStatus, Status
-from apps.trips.models import Order, ProxyBuyer
+from apps.trips.constants import OfferStatus, OPEN_PLAN_STATUSES, Status
+from apps.trips.models import Order, ProxyBuyer, TravelPlan
 
 from .forms import ContactForm
 from .models import ContactMessage, FAQItem, SitePage
@@ -78,6 +78,15 @@ def home(request):
 
     cargo_looking.sort(key=lambda o: o.max_acceptable_date or date.max)
 
+    # Board 2 (Carrier-First): queued carriers with spare capacity waiting for
+    # orders. Buyers "Send Order" here to put a carrier in front of their orders.
+    queuing_carriers = list(
+        TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
+        .select_related("traveler")
+        .prefetch_related("buy_requests", "carrier_matches")
+        .order_by("travel_date", "-created_at")
+    )
+
     latest_posts = Post.objects.filter(status=Post.Status.PUBLISHED)[:3]
     return render(
         request,
@@ -86,6 +95,8 @@ def home(request):
             "proxy_buyers": proxy_buyers,
             # Board 1 (Looking for Traveler) = proxy-sourced cargo orders.
             "cargo_looking": cargo_looking,
+            # Board 2 (Queuing Carrier) = open travel plans (carrier-first).
+            "queuing_carriers": queuing_carriers,
             "latest_posts": latest_posts,
         },
     )

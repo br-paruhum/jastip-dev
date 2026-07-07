@@ -208,7 +208,9 @@ def _travel_rows(plans, offers):
                 "type_label": plan.type_label, "type_is_cargo": plan.carrier_only,
                 "is_closed": plan.is_closed or plan.status in {Status.CLEAR, Status.CLOSED},
                 "ref": plan.reference, "date": plan.travel_date, "route": plan.route,
-                "available": plan.available_weight_kg, "remaining": plan.remaining_weight_kg,
+                # Carrier-First: show remaining net of any carrier-match holds so the
+                # carrier sees their spare weight drop as buyers claim it.
+                "available": plan.available_weight_kg, "remaining": plan.carrier_first_remaining_kg,
                 "counterparty": None,
                 "status_label": _trip_status_label(plan.status), "status_tone": plan.status_tone,
                 "plan": plan, "sort_key": plan.created_at,

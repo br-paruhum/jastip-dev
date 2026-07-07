@@ -50,6 +50,19 @@
   </div>
 </section>
 
+<!-- Board 2: Queuing Carrier — carriers with spare capacity waiting for orders -->
+<section id="queuing-carrier" class="section-cream">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Buyer Sends Here</span>
+      <h2>Queuing Carrier</h2>
+      <p>Carriers with spare luggage space on their route. Once your Proxy Buyer's
+        estimate is accepted, press <em>Send Order</em> to offer your order to an Open carrier.</p>
+    </div>
+    {% include "pages/_home_carrier_queue_table.html" with queuing_carriers=queuing_carriers empty_msg="No queuing carriers exist for now." %}
+  </div>
+</section>
+
 <!-- Latest blog -->
 <section>
   <div class="container">

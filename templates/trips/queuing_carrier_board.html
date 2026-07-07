@@ -14,7 +14,7 @@
     {% if matchable_orders %}
     <p class="help" style="margin-bottom:16px">You have
       {{ matchable_orders|length }} order{{ matchable_orders|length|pluralize }} looking for a
-      carrier. Pick one when you press <em>Send Order</em>.</p>
+      carrier. Press <em>Send Order</em> on an Open carrier, then Accept it from My Orders.</p>
     {% else %}
     <p class="help" style="margin-bottom:16px">You have no orders ready to send yet — an order
       must have an accepted estimate (status “Looking for a Carrier”) before it can be sent.</p>
@@ -50,19 +50,13 @@
             <td>
               {% if plan.is_queue_locked %}
                 <span class="muted">—</span>
-              {% elif matchable_orders %}
-                <form method="post" action="{% url 'trips:send_order_to_carrier' plan.id %}"
-                      style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              {% elif user.id == plan.traveler_id %}
+                <span class="muted">Your plan</span>
+              {% else %}
+                <form method="post" action="{% url 'trips:send_order_to_carrier' plan.id %}" style="display:inline">
                   {% csrf_token %}
-                  <select name="order_id" required style="max-width:180px">
-                    {% for o in matchable_orders %}
-                    <option value="{{ o.id }}">{{ o.reference }} · {{ o.estimated_weight_kg|floatformat:1 }} kg</option>
-                    {% endfor %}
-                  </select>
                   <button class="btn btn-primary btn-sm" type="submit">Send Order</button>
                 </form>
-              {% else %}
-                <span class="muted">—</span>
               {% endif %}
             </td>
           </tr>

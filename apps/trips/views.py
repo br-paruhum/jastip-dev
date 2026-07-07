@@ -795,13 +795,12 @@ def match_reject(request, pk):
 @profile_required
 @require_POST
 def send_order_to_carrier(request, plan_id):
+    """Pull path: the buyer picked a queued carrier on the home board. Put it in
+    front of their matching orders, then send them to My Orders to Open + Accept."""
     plan = get_object_or_404(TravelPlan, pk=plan_id)
-    order = get_object_or_404(Order, pk=request.POST.get("order_id"), buyer=request.user)
-    match, msg = matching.send_order_to_plan(order, plan, by_user=request.user)
-    (messages.success if match else messages.error)(request, msg)
-    if match:
-        return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
-    return redirect(reverse("trips:queuing_carrier_board"))
+    created, msg = matching.send_carrier_to_buyer(plan, buyer=request.user)
+    (messages.success if created else messages.info)(request, msg)
+    return redirect(reverse("accounts:profile") + "#my-orders")
 
 
 # --- Traveler: withdraw a pending offer -------------------------------------

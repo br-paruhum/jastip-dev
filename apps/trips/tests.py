@@ -1287,3 +1287,38 @@ class CarrierFirstMatchingTests(TestCase):
         resp = self.client.get("/trips/carriers/queue/")
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Queuing Carrier")
+
+    # --- pull path (Send Order from the board) -----------------------------
+    def test_send_carrier_to_buyer_holds_fitting_orders(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus
+        order = self._order(weight="5")
+        plan = self._plan(avail="20")
+        created, _ = matching.send_carrier_to_buyer(plan, buyer=self.buyer)
+        self.assertEqual(created, 1)
+        m = order.carrier_matches.get()
+        self.assertEqual(m.status, MatchStatus.PENDING)
+        self.assertEqual(m.get_source_display(), "Buyer picked")   # MatchSource.PULL
+
+    def test_send_carrier_to_buyer_no_fitting_order(self):
+        from apps.trips import matching
+        plan = self._plan(avail="20", to_city="Surabaya")          # wrong route
+        self._order(weight="5")
+        created, msg = matching.send_carrier_to_buyer(plan, buyer=self.buyer)
+        self.assertEqual(created, 0)
+
+    def test_send_carrier_does_not_oversell_across_orders(self):
+        from apps.trips import matching
+        plan = self._plan(avail="6")
+        self._order(weight="5")
+        self._order(weight="5")
+        created, _ = matching.send_carrier_to_buyer(plan, buyer=self.buyer)
+        self.assertEqual(created, 1)                                # only one 5kg fits in 6kg
+
+    @override_settings(**_NO_MANIFEST_STORAGES)
+    def test_home_board_renders(self):
+        self._plan(avail="20", rate="150")
+        resp = self.client.get("/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Queuing Carrier")
+        self.assertContains(resp, "Send Order")

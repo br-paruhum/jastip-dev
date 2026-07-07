@@ -2014,7 +2014,7 @@ class CarrierMatch(models.Model):
     source = models.CharField(max_length=4, choices=MatchSource.choices, default=MatchSource.PUSH)
 
     offered_at = models.DateTimeField(default=timezone.now, help_text="Start of the accept window.")
-    window_expires_at = models.DateTimeField(help_text="offered_at + SiteSettings.carrier_match_window_hours.")
+    window_expires_at = models.DateTimeField(help_text="offered_at + SiteSettings.carrier_match_window_minutes.")
     responded_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

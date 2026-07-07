@@ -458,7 +458,7 @@ Context expected (Django include passes the parent context through):
         {% endfor %}
         {% else %}
         {# #Step-3-Buyer #}
-        <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer the shipment cost. Matching queued carriers will appear here automatically — or browse the <a href="{% url 'trips:queuing_carrier_board' %}">Queuing Carrier board</a>.</p>
+        <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer the shipment cost. Matching queued carriers will appear here automatically — or browse the <a href="{% url 'pages:home' %}#queuing-carrier">Queuing Carrier board</a> on the home page.</p>
         {% endif %}
       {% else %}
         {% if o.pending_offers or o.live_carrier_matches %}

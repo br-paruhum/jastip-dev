@@ -1,0 +1,53 @@
+{% load humanize %}
+{% if queuing_carriers %}
+<div class="table-wrap">
+  <table class="offers offers-centered">
+    <thead>
+      <tr>
+        <th>Travel Date</th>
+        <th>Route</th>
+        <th>Spare Weight<br>(kg)</th>
+        <th>Rate<br>(/kg)</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for plan in queuing_carriers %}
+      <tr class="{% if plan.is_queue_locked %}row-closed{% endif %}">
+        <td style="text-align:center">{{ plan.travel_date|date:"d-M-Y" }}</td>
+        <td class="route-cell">
+          <strong>{{ plan.from_city }} → {{ plan.to_city }}</strong>
+          <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
+        </td>
+        <td class="avail-cell">{{ plan.carrier_first_remaining_kg|floatformat:1 }}</td>
+        <td class="avail-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|floatformat:0|intcomma }}</td>
+        <td class="status-cell">
+          {% if plan.is_queue_locked %}
+            {% include "trips/_status_badge.html" with status="locked" label="Locked" tone="muted" %}
+          {% else %}
+            {% include "trips/_status_badge.html" with status="open" label="Open" tone="success" %}
+          {% endif %}
+        </td>
+        <td class="action-cell">
+          {% if plan.is_queue_locked %}
+            <span class="btn btn-sm btn-blocked" title="This carrier is effectively full">Locked</span>
+          {% elif not user.is_authenticated %}
+            <a class="btn btn-primary btn-sm" href="{% url 'account_login' %}">Send Order</a>
+          {% elif user.id == plan.traveler_id %}
+            <span class="btn btn-sm btn-blocked">Your plan</span>
+          {% else %}
+            <form method="post" action="{% url 'trips:send_order_to_carrier' plan.id %}" style="display:inline">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Send Order</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="text-center muted">{{ empty_msg }}</p>
+{% endif %}
