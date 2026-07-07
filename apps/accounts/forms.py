@@ -49,10 +49,10 @@ class ProfileForm(forms.ModelForm):
             for name in ("traveler_destination_city", "traveler_address", "traveler_bank_details"):
                 del self.fields[name]
             # Proxy buyers source & purchase abroad — they never receive the
-            # package themselves, so no destination city / reshipment address.
+            # package themselves, so no destination city. Their address is kept:
+            # it is the Sender address on the customs invoice.
             if is_proxy_buyer:
-                for name in ("buyer_destination_city", "buyer_invoice_address"):
-                    del self.fields[name]
+                del self.fields["buyer_destination_city"]
 
     def clean_phone_country_code(self):
         code = (self.cleaned_data["phone_country_code"] or "").strip()

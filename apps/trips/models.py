@@ -1036,21 +1036,18 @@ class Order(ListingTimingMixin, models.Model):
         return (idr / rate.sell_rate).quantize(TWO_PLACES)
 
     def _settlement(self, amount: Decimal) -> dict:
-        """The buyer always settles in IDR (the platform holds one IDR account).
-        Returns what to charge plus a foreign-currency figure shown for the
-        buyer's reference only — they convert at their bank and still pay in IDR:
-          idr        — amount to actually transfer (Decimal, IDR)
-          ref_ccy    — foreign currency code for the reference line ("" if none)
-          ref_amount — that foreign equivalent (Decimal) or None
-        The reference is the order's own currency when it's foreign; otherwise the
-        destination-country currency, so an IDR-origin order still hints the
-        buyer's local cost (e.g. EUR for a German buyer)."""
+        """Payment figures for a bank-transfer request.
+          origin_idr — True when the order's origin currency is IDR
+          idr        — the IDR figure (Decimal)
+          ref_ccy    — origin currency code when it's foreign ("" for an IDR order)
+          ref_amount — the origin-currency amount (Decimal) or None
+          rate       — IDR per 1 unit of ref_ccy (Decimal) or None
+        For an IDR-origin order the buyer sees IDR only. For a foreign-origin
+        order the origin currency leads with the IDR equivalent shown beside it,
+        e.g. "EUR 1,000.00 (IDR 20,000,000 @ 20,000)"."""
         if self.currency == Currency.IDR:
-            ref = self._amount_in(amount, self.destination_currency)
-            rate = (amount / ref) if ref else None  # IDR per 1 ref unit
-            return {"idr": amount,
-                    "ref_ccy": self.destination_currency if ref is not None else "",
-                    "ref_amount": ref, "rate": rate}
+            return {"origin_idr": True, "idr": amount,
+                    "ref_ccy": "", "ref_amount": None, "rate": None}
         idr = self._idr_equivalent(amount)
         rate = None  # BCA TT sell rate actually used (IDR per 1 unit of order ccy)
         try:
@@ -1058,7 +1055,8 @@ class Order(ListingTimingMixin, models.Model):
             rate = er.sell_rate or None
         except ExchangeRate.DoesNotExist:
             pass
-        return {"idr": idr if idr is not None else amount,
+        return {"origin_idr": False,
+                "idr": idr if idr is not None else amount,
                 "ref_ccy": self.currency, "ref_amount": amount, "rate": rate}
 
     @property

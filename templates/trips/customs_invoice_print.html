@@ -45,7 +45,8 @@
       <div><span class="label">DATE:</span> {% if ci.date %}{{ ci.date|date:"d-M-Y" }}{% else %}&mdash;{% endif %}</div>
       <div class="party">
         <span class="label">SHIPPER:</span><br>
-        ProxyBuying.com{% if req.proxy_buyer.city or req.proxy_buyer.country %}<br>
+        {{ req.proxy_buyer.user.full_name|default:req.proxy_buyer.name }}{% if req.proxy_buyer.user.buyer_invoice_address %}<br>
+        {{ req.proxy_buyer.user.buyer_invoice_address }}{% endif %}{% if req.proxy_buyer.city or req.proxy_buyer.country %}<br>
         {{ req.proxy_buyer.city }}{% if req.proxy_buyer.city and req.proxy_buyer.country %}, {% endif %}{{ req.proxy_buyer.country }}{% endif %}
       </div>
     </div>
