@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from .constants import (
     ACTIVE_TX_STATUSES,
     COUNTRY_CHOICES,
+    HELD_MATCH_STATUSES,
     MSG_TAB_BUYER_PROXY,
     MSG_TAB_CARRIER_BUYER,
     MSG_TAB_PROXY_CARRIER,
@@ -23,6 +24,8 @@ from .constants import (
     Currency,
     FulfillmentMethod,
     LegStatus,
+    MatchSource,
+    MatchStatus,
     OfferStatus,
     Status,
 )
@@ -235,6 +238,40 @@ class TravelPlan(ListingTimingMixin, models.Model):
         Surplus = total capacity − weight taken by buyers who joined this plan."""
         remaining = self.available_weight_kg - self.utilized_weight_kg
         return remaining if remaining > 0 else Decimal("0").quantize(TWO_PLACES)
+
+    # --- Carrier-First (Queuing Carrier board) — see PLAN-carrier-first-orders.md ---
+    @property
+    def held_hold_kg(self) -> Decimal:
+        """Weight reserved by carrier-first CarrierMatch holds (pending + accepted).
+        A carrier-first match never sets ``order.plan`` (the order stays on buyer-first
+        rails), so its weight is NOT in ``utilized_weight_kg`` — the CarrierMatch ledger
+        is the sole record of it. Iterates the prefetched ``carrier_matches`` cache."""
+        total = sum(
+            (m.allocated_kg for m in self.carrier_matches.all()
+             if m.status in HELD_MATCH_STATUSES),
+            Decimal("0"),
+        )
+        return total.quantize(TWO_PLACES)
+
+    @property
+    def carrier_first_remaining_kg(self) -> Decimal:
+        """Spare weight still offerable to carrier-first buyers: total capacity minus
+        both plan-first orders (``utilized_weight_kg``) and carrier-first holds
+        (``held_hold_kg``). Never negative for display."""
+        remaining = self.available_weight_kg - self.utilized_weight_kg - self.held_hold_kg
+        return remaining.quantize(TWO_PLACES) if remaining > 0 else Decimal("0.00")
+
+    @property
+    def is_queue_locked(self) -> bool:
+        """Queuing Carrier board status: Locked once too little spare weight remains
+        to be worth offering (below the shared min-remaining threshold), else Open."""
+        from apps.pages.models import SiteSettings
+        threshold = SiteSettings.load().min_remaining_weight_kg
+        return self.carrier_first_remaining_kg < threshold
+
+    @property
+    def queue_status_label(self) -> str:
+        return "Locked" if self.is_queue_locked else "Open"
 
 
 class Order(ListingTimingMixin, models.Model):
@@ -674,6 +711,17 @@ class Order(ListingTimingMixin, models.Model):
     @property
     def pending_offers(self) -> list:
         return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.PENDING]
+
+    @property
+    def live_carrier_matches(self) -> list:
+        """Carrier-First matches still awaiting this buyer's decision (pending and
+        within the accept window). Surfaced alongside any manual carrier offers on
+        the RESPONDED order. Uses the prefetched ``carrier_matches`` cache."""
+        now = timezone.now()
+        return [
+            m for m in self.carrier_matches.all()
+            if m.status == MatchStatus.PENDING and m.window_expires_at > now
+        ]
 
     @property
     def total_allocated_weight_kg(self) -> Decimal:
@@ -1931,6 +1979,72 @@ class TravelerOffer(models.Model):
             direction=LegPayment.Direction.OUTBOUND, kind=LegPayment.Kind.REFUND,
         )
         return sum((p.amount for p in qs), Decimal("0.00")).quantize(TWO_PLACES)
+
+
+class CarrierMatch(models.Model):
+    """Carrier-First surfacing + hold record — see PLAN-carrier-first-orders.md.
+
+    Links a RESPONDED (buyer accepted the proxy estimate) Products order to a
+    queued ``TravelPlan``, and reserves that order's estimated weight against the
+    plan's queue capacity while the buyer decides. It is the mirror of
+    ``TravelerOffer`` (system→buyer, not carrier→order) and doubles as the hold
+    ledger: ``pending`` + ``accepted`` rows both subtract from
+    ``TravelPlan.carrier_first_remaining_kg``.
+
+    On accept the order does NOT gain ``order.plan`` — instead a PENDING
+    ``TravelerOffer`` is spun up from the plan and routed through the existing
+    ``order_accept`` path, so the whole Flow-1 Products downstream is reused
+    unchanged. The CarrierMatch stays ``accepted`` as the capacity record.
+    """
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="carrier_matches")
+    plan = models.ForeignKey(TravelPlan, on_delete=models.CASCADE, related_name="carrier_matches")
+    # The TravelerOffer created when this match is accepted (drives the transaction
+    # lifecycle). Null while pending/expired/rejected.
+    offer = models.ForeignKey(
+        "TravelerOffer", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="carrier_match",
+    )
+
+    allocated_kg = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        help_text="Weight held/allocated = the order's Total Estimated Weight at surface time.",
+    )
+    status = models.CharField(max_length=10, choices=MatchStatus.choices, default=MatchStatus.PENDING)
+    source = models.CharField(max_length=4, choices=MatchSource.choices, default=MatchSource.PUSH)
+
+    offered_at = models.DateTimeField(default=timezone.now, help_text="Start of the accept window.")
+    window_expires_at = models.DateTimeField(help_text="offered_at + SiteSettings.carrier_match_window_hours.")
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["order", "status"]),
+            models.Index(fields=["plan", "status"]),
+        ]
+        constraints = [
+            # An order attaches to exactly one carrier (no partial split here —
+            # that is a buyer-first feature). At most one accepted match per order.
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(status="accepted"),
+                name="uniq_accepted_match_per_order",
+            ),
+        ]
+        verbose_name = "Carrier match"
+        verbose_name_plural = "Carrier matches"
+
+    def __str__(self):
+        return f"Match {self.order.reference} ↔ {self.plan.reference} ({self.get_status_display()})"
+
+    @property
+    def is_live(self) -> bool:
+        """Still on the buyer's page awaiting a decision (pending and not past the window)."""
+        return self.status == MatchStatus.PENDING and timezone.now() < self.window_expires_at
 
 
 class LegTransaction(models.Model):

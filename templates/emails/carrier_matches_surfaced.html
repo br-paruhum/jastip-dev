@@ -1,0 +1,12 @@
+{% extends "email_base.html" %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">A carrier is available for your order</h2>
+  <p>{{ match_count }} carrier{{ match_count|pluralize }} can carry your order
+     <strong>{{ request_obj.reference }}</strong>
+     ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>
+  <p>Review {% if match_count > 1 %}them{% else %}it{% endif %} on your order page and
+     accept the one you want before the offer window closes. If you don't respond in time,
+     the offer{{ match_count|pluralize }} will simply drop off — the carrier{{ match_count|pluralize }}
+     stay{{ match_count|pluralize:"s," }} on the board and nothing is charged.</p>
+  {% include "_email_button.html" with url=request_url label="Review carrier offers" %}
+{% endblock %}

@@ -146,6 +146,29 @@ def on_estimate_accepted(order):
             event="estimate_accepted",
         )
         notify_see_email(proxy_user, event="estimate_accepted")
+    # Carrier-First: the order is now 'Looking for a Carrier' — surface any queued
+    # carriers on the buyer's page straight away (the cron matcher is the backstop).
+    try:
+        from . import matching
+        matching.surface_matches(order)
+    except Exception:  # pragma: no cover - matching must never block the estimate flow
+        logger.exception("Carrier-first match pass failed for order %s", order.reference)
+
+
+def on_carrier_matches_surfaced(order, matches):
+    """Carrier-First: one or more queued carriers now match this order -> tell the
+    buyer to review and accept one before the window closes."""
+    if not matches:
+        return
+    ctx = _ctx(order, matches=matches, match_count=len(matches))
+    send_email(
+        to_user=order.buyer,
+        subject=f"A carrier is available for your order {order.reference}",
+        template="carrier_matches_surfaced",
+        context=ctx,
+        event="carrier_matches_surfaced",
+    )
+    notify_see_email(order.buyer, event="carrier_matches_surfaced")
 
 
 def on_estimate_rejected(order):

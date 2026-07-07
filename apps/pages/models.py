@@ -42,6 +42,23 @@ class SiteSettings(models.Model):
             "carrier payout and to the proxy buyer's final disbursement. Default 50,000."
         ),
     )
+    carrier_match_lead_days = models.PositiveSmallIntegerField(
+        default=3,
+        verbose_name="Carrier-first: minimum lead days",
+        help_text=(
+            "Carrier-First matching: a queued carrier is only offered to a buyer when its "
+            "travel date is at least this many days from today — enough runway to purchase "
+            "and hand the goods over before departure. Default 3."
+        ),
+    )
+    carrier_match_window_hours = models.PositiveSmallIntegerField(
+        default=3,
+        verbose_name="Carrier-first: accept window (hours)",
+        help_text=(
+            "Carrier-First matching: how long a surfaced carrier offer stays live on the "
+            "buyer's page before it expires and releases its held weight. Default 3 hours."
+        ),
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

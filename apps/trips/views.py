@@ -13,6 +13,7 @@ from django.views.decorators.http import require_POST
 
 from . import workflow
 from . import flow_types
+from . import matching
 from apps.notifications.services import send_email, send_whatsapp
 from .constants import (
     FulfillmentMethod,
@@ -46,6 +47,7 @@ from .forms import (
 from .models import (
     Order,
     OrderPhoto,
+    CarrierMatch,
     ChatRead,
     ExchangeRate,
     ItemLegAllocation,
@@ -742,6 +744,64 @@ def order_deposit_pay(request, order_id):
     )
     messages.success(request, "Transfer proof submitted. Wait for admin fund verification.")
     return redirect(detail)
+
+
+# --- Carrier-First: Queuing Carrier board + buyer match actions -------------
+@profile_required
+def queuing_carrier_board(request):
+    """The Queuing Carrier board (PLAN-carrier-first-orders.md): open queued
+    carriers with route, travel date, spare weight, rate and Open/Locked status.
+    Buyers can send a 'Looking for a Carrier' order to a carrier from here (pull)."""
+    plans = list(
+        TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
+        .exclude(traveler=request.user)
+        .select_related("traveler")
+        .prefetch_related("buy_requests", "carrier_matches")
+        .order_by("travel_date", "-created_at")
+    )
+    matchable_orders = [
+        o for o in Order.objects.filter(
+            buyer=request.user, plan__isnull=True, cargo_only=False,
+            status=Status.RESPONDED, proxy_buyer__isnull=False,
+        ).prefetch_related("carrier_matches")
+        if o.estimated_weight_kg > 0
+    ]
+    return render(request, "trips/queuing_carrier_board.html", {
+        "plans": plans,
+        "matchable_orders": matchable_orders,
+    })
+
+
+@profile_required
+@require_POST
+def match_accept(request, pk):
+    match = get_object_or_404(CarrierMatch.objects.select_related("order", "plan"), pk=pk)
+    detail = reverse("accounts:profile") + f"?order={match.order_id}#order-detail"
+    ok, msg = matching.accept_match(match, by_user=request.user)
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect(detail)
+
+
+@profile_required
+@require_POST
+def match_reject(request, pk):
+    match = get_object_or_404(CarrierMatch.objects.select_related("order"), pk=pk)
+    detail = reverse("accounts:profile") + f"?order={match.order_id}#order-detail"
+    ok, msg = matching.reject_match(match, by_user=request.user)
+    (messages.success if ok else messages.error)(request, msg)
+    return redirect(detail)
+
+
+@profile_required
+@require_POST
+def send_order_to_carrier(request, plan_id):
+    plan = get_object_or_404(TravelPlan, pk=plan_id)
+    order = get_object_or_404(Order, pk=request.POST.get("order_id"), buyer=request.user)
+    match, msg = matching.send_order_to_plan(order, plan, by_user=request.user)
+    (messages.success if match else messages.error)(request, msg)
+    if match:
+        return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
+    return redirect(reverse("trips:queuing_carrier_board"))
 
 
 # --- Traveler: withdraw a pending offer -------------------------------------

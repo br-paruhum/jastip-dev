@@ -428,24 +428,46 @@ Context expected (Django include passes the parent context through):
       {# #Step-2.2-Proxy #}
       <p class="muted">Estimate Sent, waiting for Buyer to Accept it. Use the Chat Box to check if Buyer is asking to negotiate the Margin. You still be able to edit the Margin before Buyer Accepting or Rejecting your estimate.</p>
       {% endif %}
-    {% elif o.status == "responded" and o.pending_offers %}
+    {% elif o.status == "responded" %}
       {% if is_order_buyer %}
-      {# #Step-4.2-Buyer #}
-      <p>1 carrier offered to carry your order. Please Accept or Reject it. If there are more than 1 carrier listed, accept the one you prefer - the others are then declined automatically. Use the Chat Box if you want to negotiate the offer on shipment cost.</p>
-      {% for offer in o.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
-      <table class="invoice" style="max-width:440px;margin-bottom:8px">
-        <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
-        <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
-        <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
-      </table>
-      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
-        <form method="post" action="{% url 'trips:order_accept' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
-        <form method="post" action="{% url 'trips:order_reject' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
-      </div>
-      {% endif %}{% endfor %}
+        {% if o.pending_offers or o.live_carrier_matches %}
+        {# #Step-4.2-Buyer #}
+        <p>A carrier offered to carry your order. Please Accept or Reject it. If more than one is listed, accept the one you prefer — the others are then declined automatically. Use the Chat Box if you want to negotiate the shipment cost.</p>
+        {% for offer in o.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
+        <table class="invoice" style="max-width:440px;margin-bottom:8px">
+          <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
+          <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
+          <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
+        </table>
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+          <form method="post" action="{% url 'trips:order_accept' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+          <form method="post" action="{% url 'trips:order_reject' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+        </div>
+        {% endif %}{% endfor %}
+        {% for match in o.live_carrier_matches %}
+        <table class="invoice" style="max-width:440px;margin-bottom:4px">
+          <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ match.plan.shipment_cost_per_kg|floatformat:0|intcomma }}</td></tr>
+          <tr><td>Weight</td><td class="num-right">{{ match.allocated_kg|floatformat:1 }} kg</td></tr>
+          <tr><td>Travel Date</td><td class="num-right">{{ match.plan.travel_date|date:"d-M-Y" }}{% if match.plan.travel_time %} {{ match.plan.travel_time|time:"H:i" }}{% endif %}</td></tr>
+        </table>
+        <p class="help" style="text-align:center;margin:0 0 6px">Queued carrier from the board — respond by {{ match.window_expires_at|date:"d-M H:i" }} or this offer drops off (nothing is charged).</p>
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
+          <form method="post" action="{% url 'trips:match_accept' match.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+          <form method="post" action="{% url 'trips:match_reject' match.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+        </div>
+        {% endfor %}
+        {% else %}
+        {# #Step-3-Buyer #}
+        <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer the shipment cost. Matching queued carriers will appear here automatically — or browse the <a href="{% url 'trips:queuing_carrier_board' %}">Queuing Carrier board</a>.</p>
+        {% endif %}
       {% else %}
-      {# #Step-4.2-Proxy #}
-      <p class="muted">A carrier has offered to carry Buyer's order. Waiting for Buyer to accept the shipment cost.</p>
+        {% if o.pending_offers or o.live_carrier_matches %}
+        {# #Step-4.2-Proxy #}
+        <p class="muted">A carrier has offered to carry Buyer's order. Waiting for Buyer to accept the shipment cost.</p>
+        {% else %}
+        {# #Step-3-Proxy #}
+        <p class="muted">Buyer accepted your estimate. Buyer's order is now waiting for a Carrier to offer the shipment cost.</p>
+        {% endif %}
       {% endif %}
     {% elif o.status == "accepted" %}
       {% if is_order_buyer %}
@@ -469,14 +491,6 @@ Context expected (Django include passes the parent context through):
       {% else %}
       {# #Step-5.1-Proxy #}
       <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
-      {% endif %}
-    {% elif o.status == "responded" %}
-      {% if is_order_proxy and not is_order_buyer %}
-      {# #Step-3-Proxy #}
-      <p class="muted">Buyer accepted your estimate. Buyer's order is now waiting for a Carrier to offer the shipment cost.</p>
-      {% else %}
-      {# #Step-3-Buyer #}
-      <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer the shipment cost.</p>
       {% endif %}
     {% else %}
       {% if is_order_proxy and not is_order_buyer %}

@@ -1089,3 +1089,201 @@ class ProxyPurchasePhotoRequiredTests(TestCase):
         self.order.refresh_from_db()
         self.assertTrue(bool(self.item.purchase_photo))
         self.assertEqual(self.order.status, Status.ITEMS_PURCHASED)
+
+
+@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+class CarrierFirstMatchingTests(TestCase):
+    """Carrier-First (Queuing Carrier) matching — hold ledger, guard-rail, gates,
+    accept/reject/expire. See PLAN-carrier-first-orders.md."""
+
+    def setUp(self):
+        from apps.trips.models import ProxyBuyer
+        self.buyer = make_user("cfb@x.com")
+        self.proxy_user = make_user("cfp@x.com")
+        self.carrier = make_user("cfc@x.com")
+        self.proxy = ProxyBuyer.objects.create(
+            name="BKK Proxy", country="Thailand", email="p@x.com", user=self.proxy_user,
+        )
+
+    def _order(self, *, weight="5", status=Status.RESPONDED, cargo=False,
+               deadline_days=30, proxy=True):
+        return Order.objects.create(
+            buyer=self.buyer,
+            proxy_buyer=self.proxy if proxy else None,
+            status=status,
+            cargo_only=cargo,
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            settlement_currency="IDR",
+            estimated_weight_kg=Decimal(weight),
+            max_acceptable_date=date.today() + timedelta(days=deadline_days),
+        )
+
+    def _plan(self, *, traveler=None, avail="20", rate="100", travel_days=10,
+              from_city="Bangkok", to_city="Jakarta", status=Status.NEW):
+        return TravelPlan.objects.create(
+            traveler=traveler or self.carrier,
+            travel_date=date.today() + timedelta(days=travel_days),
+            from_city=from_city, from_country="Thailand",
+            to_city=to_city, to_country="Indonesia",
+            available_weight_kg=Decimal(avail),
+            shipment_currency=Currency.IDR,
+            shipment_cost_per_kg=Decimal(rate),
+            status=status,
+        )
+
+    # --- ledger -------------------------------------------------------------
+    def test_surface_creates_hold_and_decrements_remaining(self):
+        from apps.trips import matching
+        order = self._order(weight="5")
+        plan = self._plan(avail="20")
+        created = matching.surface_matches(order, notify=False)
+        self.assertEqual(len(created), 1)
+        plan.refresh_from_db()
+        self.assertEqual(plan.held_hold_kg, Decimal("5.00"))
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("15.00"))
+
+    def test_guardrail_skips_plan_without_capacity(self):
+        from apps.trips import matching
+        plan = self._plan(avail="6")
+        o1 = self._order(weight="5")
+        self.assertEqual(len(matching.surface_matches(o1, notify=False)), 1)
+        # Only 1kg left now — a second 5kg order must NOT be offered this carrier.
+        o2 = self._order(weight="5")
+        self.assertEqual(len(matching.surface_matches(o2, notify=False)), 0)
+
+    def test_open_locked_boundary(self):
+        from apps.trips import matching
+        plan = self._plan(avail="5")
+        order = self._order(weight="5")
+        matching.surface_matches(order, notify=False)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("0.00"))
+        self.assertTrue(plan.is_queue_locked)          # 0 < 0.99 default threshold
+        self.assertEqual(plan.queue_status_label, "Locked")
+
+    # --- matching gate ------------------------------------------------------
+    def test_lead_time_gate(self):
+        from apps.trips import matching
+        order = self._order(weight="5")
+        self._plan(avail="20", travel_days=2)          # inside the 3-day lead → skip
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 0)
+        self._plan(avail="20", travel_days=5)          # enough lead → match
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 1)
+
+    def test_deadline_gate_inclusive(self):
+        from apps.trips import matching
+        order = self._order(weight="5", deadline_days=4)
+        self._plan(avail="20", travel_days=5)          # arrives after deadline → skip
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 0)
+        self._plan(avail="20", travel_days=4)          # arrives ON deadline → match (<=)
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 1)
+
+    def test_route_and_own_plan_excluded(self):
+        from apps.trips import matching
+        order = self._order(weight="5")
+        self._plan(avail="20", to_city="Surabaya")     # wrong route
+        self._plan(avail="20", traveler=self.buyer)    # buyer's own plan
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 0)
+
+    def test_cargo_and_non_responded_not_matchable(self):
+        from apps.trips import matching
+        self._plan(avail="20")
+        cargo = self._order(weight="5", cargo=True, proxy=False)
+        self.assertEqual(len(matching.surface_matches(cargo, notify=False)), 0)
+        early = self._order(weight="5", status=Status.ESTIMATE_SENT)
+        self.assertEqual(len(matching.surface_matches(early, notify=False)), 0)
+
+    # --- accept / reject / expire ------------------------------------------
+    def test_accept_creates_offer_and_advances_order(self):
+        from apps.trips import matching
+        from apps.trips.models import TravelerOffer
+        from apps.trips.constants import MatchStatus, OfferStatus
+        order = self._order(weight="5")
+        plan = self._plan(avail="20", rate="120")
+        match = matching.surface_matches(order, notify=False)[0]
+        ok, _ = matching.accept_match(match, by_user=self.buyer)
+        self.assertTrue(ok)
+        order.refresh_from_db(); match.refresh_from_db()
+        self.assertEqual(order.status, Status.ACCEPTED)
+        self.assertEqual(match.status, MatchStatus.ACCEPTED)
+        offer = TravelerOffer.objects.get(order=order)
+        self.assertEqual(offer.traveler, self.carrier)
+        self.assertEqual(offer.ask_cost_per_kg, Decimal("120"))
+        self.assertEqual(offer.offer_status, OfferStatus.PENDING)
+        self.assertEqual(match.offer_id, offer.id)
+        # Accepted hold still reserves the weight.
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("15.00"))
+
+    def test_accept_releases_sibling_holds(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus
+        order = self._order(weight="5")
+        p1 = self._plan(avail="20", rate="100")
+        p2 = self._plan(avail="20", rate="90", traveler=make_user("cfc2@x.com"))
+        created = matching.surface_matches(order, notify=False)
+        self.assertEqual(len(created), 2)
+        chosen = next(m for m in created if m.plan_id == p1.id)
+        other = next(m for m in created if m.plan_id == p2.id)
+        matching.accept_match(chosen, by_user=self.buyer)
+        other.refresh_from_db()
+        self.assertEqual(other.status, MatchStatus.REJECTED)
+        p2.refresh_from_db()
+        self.assertEqual(p2.carrier_first_remaining_kg, Decimal("20.00"))  # hold released
+
+    def test_second_accept_blocked_after_order_taken(self):
+        from apps.trips import matching
+        order = self._order(weight="5")
+        self._plan(avail="20", rate="100")
+        self._plan(avail="20", rate="90", traveler=make_user("cfc3@x.com"))
+        m1, m2 = matching.surface_matches(order, notify=False)
+        self.assertTrue(matching.accept_match(m1, by_user=self.buyer)[0])
+        ok, msg = matching.accept_match(m2, by_user=self.buyer)
+        self.assertFalse(ok)                            # order no longer RESPONDED
+
+    def test_reject_releases_hold(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus
+        order = self._order(weight="5")
+        plan = self._plan(avail="20")
+        match = matching.surface_matches(order, notify=False)[0]
+        ok, _ = matching.reject_match(match, by_user=self.buyer)
+        self.assertTrue(ok)
+        match.refresh_from_db(); plan.refresh_from_db()
+        self.assertEqual(match.status, MatchStatus.REJECTED)
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("20.00"))
+
+    def test_expire_stale_matches_releases_hold(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus
+        order = self._order(weight="5")
+        plan = self._plan(avail="20")
+        match = matching.surface_matches(order, notify=False)[0]
+        match.window_expires_at = timezone.now() - timedelta(minutes=1)
+        match.save(update_fields=["window_expires_at"])
+        self.assertEqual(matching.expire_stale_matches(), 1)
+        match.refresh_from_db(); plan.refresh_from_db()
+        self.assertEqual(match.status, MatchStatus.EXPIRED)
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("20.00"))
+
+    def test_estimate_accepted_hook_surfaces(self):
+        order = self._order(weight="5")
+        self._plan(avail="20")
+        workflow.on_estimate_accepted(order)            # the RESPONDED trigger
+        self.assertEqual(order.carrier_matches.count(), 1)
+
+    def test_no_duplicate_surface(self):
+        from apps.trips import matching
+        order = self._order(weight="5")
+        self._plan(avail="20")
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 1)
+        self.assertEqual(len(matching.surface_matches(order, notify=False)), 0)  # already held
+
+    @override_settings(**_NO_MANIFEST_STORAGES)
+    def test_board_page_renders(self):
+        self._plan(avail="20")
+        self.client.force_login(self.buyer)
+        resp = self.client.get("/trips/carriers/queue/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Queuing Carrier")

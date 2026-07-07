@@ -56,5 +56,10 @@ urlpatterns = [
     path("requests/<int:pk>/invoice/", views.request_invoice, name="request_invoice"),
     path("requests/<int:pk>/packing-list/", views.request_packing_list, name="request_packing_list"),
     path("orders/<int:order_id>/assign-items/", views.order_assign_items, name="order_assign_items"),
+    # Carrier-First (Queuing Carrier board + buyer match actions)
+    path("carriers/queue/", views.queuing_carrier_board, name="queuing_carrier_board"),
+    path("carriers/<int:plan_id>/send-order/", views.send_order_to_carrier, name="send_order_to_carrier"),
+    path("matches/<int:pk>/accept/", views.match_accept, name="match_accept"),
+    path("matches/<int:pk>/reject/", views.match_reject, name="match_reject"),
     path("fxrate/", views.kurs, name="fxrate"),
 ]

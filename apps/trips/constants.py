@@ -81,6 +81,30 @@ class FulfillmentMethod(models.TextChoices):
     RESHIP = "reship", "Reship"
 
 
+class MatchStatus(models.TextChoices):
+    """Lifecycle of a CarrierMatch — the carrier-first surfacing/hold record that
+    links a RESPONDED order to a queued TravelPlan (see PLAN-carrier-first-orders.md).
+
+    ``pending`` and ``accepted`` rows both hold weight against the plan's queue
+    capacity; ``expired``/``rejected`` release it."""
+
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    EXPIRED = "expired", "Expired"
+    REJECTED = "rejected", "Rejected"
+
+
+class MatchSource(models.TextChoices):
+    """How a CarrierMatch was created — for analytics only."""
+
+    PUSH = "push", "Auto-surfaced"   # matcher put it on the buyer's page
+    PULL = "pull", "Buyer picked"    # buyer clicked "Send Order" on the board
+
+
+# CarrierMatch rows that still reserve weight against a plan's queue capacity.
+HELD_MATCH_STATUSES = {MatchStatus.PENDING, MatchStatus.ACCEPTED}
+
+
 # Statuses where the travel plan is still accepting a new buyer block.
 OPEN_PLAN_STATUSES = {Status.NEW, Status.REOPEN}
 
