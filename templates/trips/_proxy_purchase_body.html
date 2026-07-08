@@ -51,8 +51,14 @@
         {% if package_ready_order.box_photo_1 %}<a href="{{ package_ready_order.box_photo_1.url }}" target="_blank" class="btn btn-primary btn-sm">View Box Photo</a>{% endif %}
       </div>
     </div>
-    <div style="text-align:center;margin-top:12px">
-      <button class="btn btn-primary" type="submit">Mark Package Ready</button>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
+      {% if package_ready_order.status == "items_purchased" %}
+      {# Already marked ready (before the carrier receives) — edit the fields, then Update. #}
+      <button class="btn btn-primary" type="submit" name="action" value="update">Update Package Details</button>
+      {% else %}
+      <button class="btn btn-primary" type="submit" name="action" value="ready">Mark Package Ready</button>
+      <button class="btn btn-outline" type="submit" name="action" value="save">Save</button>
+      {% endif %}
     </div>
   </div>
 </form>

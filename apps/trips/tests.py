@@ -1089,3 +1089,38 @@ class ProxyPurchasePhotoRequiredTests(TestCase):
         self.order.refresh_from_db()
         self.assertTrue(bool(self.item.purchase_photo))
         self.assertEqual(self.order.status, Status.ITEMS_PURCHASED)
+
+    def test_save_draft_persists_without_advancing_or_notifying(self):
+        # "Save" persists the entered actuals but keeps the order Finalizing,
+        # needs no photos, and does not notify the buyer.
+        from django.core import mail
+        mail.outbox = []
+        resp = self.client.post(
+            self.url,
+            self._payload(**{"action": "save", "items-0-actual_unit_cost": "12"}),
+            follow=True,
+        )
+        self.item.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Status.DEPOSIT_PAID)       # not advanced
+        self.assertEqual(self.item.actual_unit_cost, Decimal("12"))    # saved
+        self.assertFalse(self.item.purchase_photo)                     # no photo required
+        self.assertEqual(len(mail.outbox), 0)                          # buyer not notified
+        self.assertContains(resp, "Draft saved")
+
+    def test_update_after_ready_persists_and_stays_ready(self):
+        from django.core import mail
+        self.order.status = Status.ITEMS_PURCHASED
+        self.order.save(update_fields=["status"])
+        mail.outbox = []
+        resp = self.client.post(
+            self.url,
+            self._payload(**{"action": "update", "items-0-actual_unit_cost": "15"}),
+            follow=True,
+        )
+        self.item.refresh_from_db()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Status.ITEMS_PURCHASED)    # stays ready
+        self.assertEqual(self.item.actual_unit_cost, Decimal("15"))    # edit saved
+        self.assertEqual(len(mail.outbox), 0)                          # no re-notify
+        self.assertContains(resp, "Package details updated")
