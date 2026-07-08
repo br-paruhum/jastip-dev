@@ -1390,6 +1390,23 @@ class CarrierFirstMatchingTests(TestCase):
         ok, _ = matching.accept_bound_carrier(order, by_user=self.buyer)
         self.assertTrue(ok)
 
+    @override_settings(**_NO_MANIFEST_STORAGES)
+    def test_accept_estimate_view_attaches_bound_carrier(self):
+        # End-to-end: the buyer's Accept-estimate POST on a carrier-bound order
+        # routes through accept_bound_carrier → ACCEPTED + a pending offer.
+        from apps.trips import matching
+        from apps.trips.constants import OfferStatus
+        plan = self._plan(avail="20", rate="120")
+        order = self._bound_order(plan, weight="5")
+        matching.hold_for_estimate(order)
+        self.client.force_login(self.buyer)
+        resp = self.client.post(f"/trips/orders/{order.id}/estimate-accept/", follow=True)
+        self.assertEqual(resp.status_code, 200)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Status.ACCEPTED)
+        self.assertEqual(
+            order.traveler_offers.filter(offer_status=OfferStatus.PENDING).count(), 1)
+
     def test_accept_bound_blocks_when_capacity_gone_after_timeout(self):
         from apps.trips import matching
         plan = self._plan(avail="5")
