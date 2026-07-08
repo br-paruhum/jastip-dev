@@ -733,6 +733,12 @@ def proxy_estimate_accept(request, order_id):
     if order.is_cargo or order.status != Status.ESTIMATE_SENT:
         messages.error(request, "There is no estimate to accept at this stage.")
         return redirect(detail)
+    # Flow-2 (Carrier-First): the carrier was chosen at order time, so accepting the
+    # estimate attaches it directly and goes straight to deposit (no RESPONDED step).
+    if order.carrier_first_plan_id:
+        ok, msg = matching.accept_bound_carrier(order, by_user=request.user)
+        (messages.success if ok else messages.error)(request, msg)
+        return redirect(detail)
     order.status = Status.RESPONDED
     order.save(update_fields=["status", "updated_at"])
     workflow.on_estimate_accepted(order)

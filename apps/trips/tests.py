@@ -1355,3 +1355,54 @@ class CarrierFirstMatchingTests(TestCase):
         order = self._order(weight="5", status=Status.ESTIMATE_SENT)   # no carrier_first_plan
         self.assertIsNone(matching.hold_for_estimate(order))
         self.assertEqual(order.carrier_matches.count(), 0)
+
+    def test_accept_bound_carrier_advances_to_deposit(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus, OfferStatus
+        plan = self._plan(avail="20", rate="120")
+        order = self._bound_order(plan, weight="5")
+        matching.hold_for_estimate(order)
+        ok, _ = matching.accept_bound_carrier(order, by_user=self.buyer)
+        self.assertTrue(ok)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Status.ACCEPTED)               # straight to deposit
+        offer = order.traveler_offers.get()
+        self.assertEqual(offer.offer_status, OfferStatus.PENDING)
+        self.assertEqual(offer.ask_cost_per_kg, Decimal("120"))       # the plan's carry rate
+        self.assertEqual(offer.avail_kg, Decimal("5"))
+        m = order.carrier_matches.get()
+        self.assertEqual(m.status, MatchStatus.ACCEPTED)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("15.00"))  # stays reserved
+
+    def test_accept_bound_within_window_ok_even_if_plan_full(self):
+        # The order's own live hold IS its room — a plan filled exactly by this
+        # order still accepts (remaining shows 0 but the hold belongs to us).
+        from apps.trips import matching
+        plan = self._plan(avail="5")
+        order = self._bound_order(plan, weight="5")
+        matching.hold_for_estimate(order)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("0.00"))
+        ok, _ = matching.accept_bound_carrier(order, by_user=self.buyer)
+        self.assertTrue(ok)
+
+    def test_accept_bound_blocks_when_capacity_gone_after_timeout(self):
+        from apps.trips import matching
+        plan = self._plan(avail="5")
+        order = self._bound_order(plan, weight="5")
+        m = matching.hold_for_estimate(order)
+        # Timeout: this order's hold expires (weight freed), then another bound
+        # order takes the whole plan before the buyer gets around to accepting.
+        m.window_expires_at = timezone.now() - timedelta(minutes=1)
+        m.save(update_fields=["window_expires_at"])
+        matching.expire_stale_matches()
+        other = self._bound_order(plan, weight="5")
+        matching.hold_for_estimate(other)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("0.00"))
+        ok, msg = matching.accept_bound_carrier(order, by_user=self.buyer)
+        self.assertFalse(ok)
+        self.assertIn("spare weight", msg)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Status.ESTIMATE_SENT)          # not advanced

@@ -201,6 +201,72 @@ def hold_for_estimate(order):
     return match
 
 
+def accept_bound_carrier(order, *, by_user):
+    """Flow-2 (Carrier-First): the buyer accepted the proxy estimate on an order
+    that is already bound to a carrier (``carrier_first_plan``). Re-check the
+    carrier still has room, then spin up a PENDING TravelerOffer from the plan and
+    advance the order straight to ACCEPTED (deposit) — skipping the RESPONDED
+    'looking for a carrier' step (the carrier was chosen at order time).
+    Returns (ok, message)."""
+    if by_user != order.buyer:
+        return False, "Only the buyer can accept the estimate."
+    plan = order.carrier_first_plan
+    if plan is None:
+        return False, "This order is not bound to a carrier."
+    if order.status != Status.ESTIMATE_SENT:
+        return False, "There is no estimate to accept at this stage."
+    weight = order.estimated_weight_kg
+    if not weight or weight <= 0:
+        return False, "The proxy estimate has no weight yet."
+    now = timezone.now()
+    # Capacity re-check (Flow-2 decision 3): ``carrier_first_remaining_kg`` already
+    # subtracts this order's own live hold, so add it back to measure the true room
+    # for THIS order. After a timed-out hold the room may have been taken by others.
+    own_hold = sum(
+        (m.allocated_kg for m in order.carrier_matches.all()
+         if m.status == MatchStatus.PENDING and m.window_expires_at > now),
+        0,
+    )
+    if plan.carrier_first_remaining_kg + own_hold < weight:
+        return False, "This carrier no longer has enough spare weight for your order."
+    with db_transaction.atomic():
+        offer = TravelerOffer.objects.create(
+            order=order,
+            traveler=plan.traveler,
+            ask_cost_per_kg=plan.shipment_cost_per_kg,
+            avail_kg=weight,
+            travel_date=plan.travel_date,
+            travel_time=plan.travel_time,
+            from_city=plan.from_city, from_country=plan.from_country,
+            to_city=plan.to_city, to_country=plan.to_country,
+            pickup_address=getattr(plan.traveler, "traveler_address", "") or "",
+            offer_status=OfferStatus.PENDING,
+        )
+        order.status = Status.ACCEPTED
+        order.save(update_fields=["status", "updated_at"])
+        order.traveler_offers.filter(offer_status=OfferStatus.PENDING).exclude(
+            pk=offer.pk
+        ).update(offer_status=OfferStatus.REJECTED)
+        # Commit the hold: reuse the pending/expired hold row (or start one) as the
+        # ACCEPTED capacity record so the weight stays reserved through the deposit.
+        match = (
+            order.carrier_matches.filter(plan=plan).exclude(status=MatchStatus.ACCEPTED)
+            .order_by("-created_at").first()
+        )
+        if match is None:
+            match = CarrierMatch(
+                order=order, plan=plan, source=MatchSource.PULL,
+                offered_at=now, window_expires_at=now,
+            )
+        match.allocated_kg = weight
+        match.status = MatchStatus.ACCEPTED
+        match.offer = offer
+        match.responded_at = now
+        match.save()
+    workflow.on_proxy_offer_accepted(order, offer)
+    return True, "Estimate accepted. Please pay the deposit to confirm."
+
+
 def accept_match(match, *, by_user):
     """Buyer accepts a surfaced carrier. Spins up a PENDING TravelerOffer from the
     plan and routes it through the existing order_accept path (order → ACCEPTED,
