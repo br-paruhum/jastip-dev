@@ -1267,11 +1267,14 @@ class CarrierFirstMatchingTests(TestCase):
         self.assertEqual(match.status, MatchStatus.EXPIRED)
         self.assertEqual(plan.carrier_first_remaining_kg, Decimal("20.00"))
 
-    def test_estimate_accepted_hook_surfaces(self):
+    def test_estimate_accepted_does_not_auto_surface(self):
+        # 2-flow model: accepting the estimate on an unbound (Flow-1) order opens it
+        # to carriers via the TravelerOffer board — it no longer auto-surfaces
+        # CarrierMatch holds onto the buyer's page.
         order = self._order(weight="5")
         self._plan(avail="20")
-        workflow.on_estimate_accepted(order)            # the RESPONDED trigger
-        self.assertEqual(order.carrier_matches.count(), 1)
+        workflow.on_estimate_accepted(order)
+        self.assertEqual(order.carrier_matches.count(), 0)
 
     def test_no_duplicate_surface(self):
         from apps.trips import matching

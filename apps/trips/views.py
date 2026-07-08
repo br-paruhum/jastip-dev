@@ -802,9 +802,9 @@ def order_deposit_pay(request, order_id):
 # --- Carrier-First: Queuing Carrier board + buyer match actions -------------
 @profile_required
 def queuing_carrier_board(request):
-    """The Queuing Carrier board (PLAN-carrier-first-orders.md): open queued
-    carriers with route, travel date, spare weight, rate and Open/Locked status.
-    Buyers can send a 'Looking for a Carrier' order to a carrier from here (pull)."""
+    """The Queuing Carrier board (Flow-2): open queued carriers with route, travel
+    date, spare weight, rate and Open/Locked status. Buyers press Send Order to
+    place an order against a carrier (opens the bound order form)."""
     plans = list(
         TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
         .exclude(traveler=request.user)
@@ -812,17 +812,7 @@ def queuing_carrier_board(request):
         .prefetch_related("buy_requests", "carrier_matches")
         .order_by("travel_date", "-created_at")
     )
-    matchable_orders = [
-        o for o in Order.objects.filter(
-            buyer=request.user, plan__isnull=True, cargo_only=False,
-            status=Status.RESPONDED, proxy_buyer__isnull=False,
-        ).prefetch_related("carrier_matches")
-        if o.estimated_weight_kg > 0
-    ]
-    return render(request, "trips/queuing_carrier_board.html", {
-        "plans": plans,
-        "matchable_orders": matchable_orders,
-    })
+    return render(request, "trips/queuing_carrier_board.html", {"plans": plans})
 
 
 @profile_required

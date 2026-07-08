@@ -44,8 +44,10 @@ class Command(BaseCommand):
             self.stdout.write("[dry-run] skipping match pass (would create/notify)")
             return
 
+        # 2-flow model: carriers are bound at order time (Flow-2) or found via the
+        # TravelerOffer board (Flow-1), so there is no auto-surface pass anymore —
+        # this command only expires timed-out Flow-2 estimate holds, freeing weight.
         expired = matching.expire_stale_matches()
-        created = matching.run_matcher(notify=not options["quiet"])
         self.stdout.write(self.style.SUCCESS(
-            f"Carrier-First: expired {expired} stale hold(s), surfaced {created} new match(es)."
+            f"Carrier-First: expired {expired} stale hold(s)."
         ))

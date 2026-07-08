@@ -7,18 +7,9 @@
     <span class="eyebrow">Carrier-First</span>
     <h1>Queuing Carrier Board</h1>
     <p class="muted">Carriers with spare luggage capacity, waiting for orders on their route.
-      Once your Proxy Buyer has sent an estimate and you've accepted it, you can send that
-      order to any <strong>Open</strong> carrier below — or matching carriers will appear on
-      your order page automatically.</p>
-
-    {% if matchable_orders %}
-    <p class="help" style="margin-bottom:16px">You have
-      {{ matchable_orders|length }} order{{ matchable_orders|length|pluralize }} looking for a
-      carrier. Press <em>Send Order</em> on an Open carrier, then Accept it from My Orders.</p>
-    {% else %}
-    <p class="help" style="margin-bottom:16px">You have no orders ready to send yet — an order
-      must have an accepted estimate (status “Looking for a Carrier”) before it can be sent.</p>
-    {% endif %}
+      Press <strong>Send Order</strong> on an <strong>Open</strong> carrier to place your
+      order against it — your Proxy Buyer sends an estimate, and once you accept it the carrier
+      is confirmed and you pay the deposit.</p>
 
     {% if plans %}
     <div style="overflow-x:auto">

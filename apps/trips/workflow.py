@@ -134,8 +134,10 @@ def on_estimate_sent(order):
 
 
 def on_estimate_accepted(order):
-    """Flow-1: buyer accepted the proxy's estimate -> the order now opens to
-    Carriers; let the proxy buyer know."""
+    """Flow-1 (unbound buyer-first): buyer accepted the proxy's estimate -> the
+    order now opens to Carriers (RESPONDED → Queuing Cargo, carriers place Offers);
+    let the proxy buyer know. Flow-2 (carrier-bound) orders never reach here — they
+    attach the pre-chosen carrier directly via matching.accept_bound_carrier."""
     proxy_user = order.proxy_buyer.user if order.proxy_buyer_id else None
     if proxy_user:
         send_email(
@@ -146,13 +148,6 @@ def on_estimate_accepted(order):
             event="estimate_accepted",
         )
         notify_see_email(proxy_user, event="estimate_accepted")
-    # Carrier-First: the order is now 'Looking for a Carrier' — surface any queued
-    # carriers on the buyer's page straight away (the cron matcher is the backstop).
-    try:
-        from . import matching
-        matching.surface_matches(order)
-    except Exception:  # pragma: no cover - matching must never block the estimate flow
-        logger.exception("Carrier-first match pass failed for order %s", order.reference)
 
 
 def on_carrier_matches_surfaced(order, matches):
