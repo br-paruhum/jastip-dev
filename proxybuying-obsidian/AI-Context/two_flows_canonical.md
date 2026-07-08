@@ -77,6 +77,31 @@ capacity while the Proxy's estimate is awaiting the Buyer's acceptance**:
 3. **On timeout:** **Keep the order↔carrier binding**; only free the weight. Re-check the
    carrier still has room when the buyer accepts later — if not, block with a message.
 
+### ✅ IMPLEMENTED 2026-07 (branch `carrier-first-flow`, commits abae8bd→d93f61e)
+All four chunks below are built, unit + end-to-end tested (25 CarrierFirstMatchingTests
+pass; the 6 pre-existing trips-suite failures are unrelated — verified identical on the
+pre-work baseline a87efa6). Migration `trips 0064_order_carrier_first_plan` applied to
+local dev. NOT pushed/deployed.
+
+**Friday manual-test recipe (local dev):**
+1. Carrier logs in → My Travel Plans → Create New Plan (route + date ≥ today+3, spare
+   weight, rate) → appears on home "Queuing Carrier".
+2. Buyer logs in → home → Queuing Carrier → **Send Order** on that carrier → product-order
+   form opens pre-bound (route locked, banner shows the carrier) → fill items + deadline → Send.
+3. Proxy Buyer (for the carrier's origin country) → Proxy Buying → sends estimate (weight +
+   margin). Carrier's spare weight on the board drops by the estimate weight; 3h hold window
+   starts. (Edit-order → proxy re-estimate resets the window + hold.)
+4. Buyer accepts the estimate → goes STRAIGHT to deposit (no carrier Accept/Reject step); a
+   pending TravelerOffer from the plan is attached. Then normal deposit → purchase → carry.
+5. Timeout check: `manage.py match_carriers` (or wait out the window) expires the hold and
+   frees the carrier's weight; the order↔carrier binding stays (accept re-checks capacity).
+
+**Deferred cleanup (non-behavioral):** dead PUSH/PULL helpers (`surface_matches`,
+`run_matcher`, `find_matching_plans`, `order_is_matchable`, `plan_fits_order`,
+`send_carrier_to_buyer`, `accept_match`, `reject_match`) + views `match_accept`/
+`match_reject`/`send_order_to_carrier` (+ urls) + `Order.live_carrier_matches` are left
+unreferenced for a later removal pass.
+
 ### Implementation plan (chunks; each leaves app runnable)
 - **A — Binding + entry form:** new `Order.carrier_first_plan` FK (null) + migration. Board
   "Send Order" → renders the **buyer-first product-order form** pre-bound to the plan; on
