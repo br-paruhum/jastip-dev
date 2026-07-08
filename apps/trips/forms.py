@@ -164,9 +164,10 @@ class OrderForm(forms.ModelForm):
             "buyer_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Notes for the carrier (optional)"}),
         }
 
-    def __init__(self, *args, proxy=None, **kwargs):
+    def __init__(self, *args, proxy=None, carrier_plan=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.proxy = proxy
+        self.carrier_plan = carrier_plan
         self.fields["max_acceptable_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
         self.fields["max_acceptable_date"].label = "Order Deadline"
         # Flow-1 (proxy buying): the order is always a Products order, the origin
@@ -180,6 +181,11 @@ class OrderForm(forms.ModelForm):
                 "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
             ):
                 self.fields.pop(name, None)
+            # Flow-2 (Carrier-First): the buyer ordered against a specific queued
+            # carrier, so the destination is fixed by the plan too (set server-side).
+            if carrier_plan is not None:
+                for name in ("to_country", "to_city"):
+                    self.fields.pop(name, None)
             self.fields["proxy_buyer_notes"].required = False
             return
         # Non-proxy (cargo) orders talk to Carriers, not a proxy buyer.

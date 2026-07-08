@@ -37,10 +37,7 @@
           {% elif user.id == plan.traveler_id %}
             <span class="btn btn-sm btn-blocked">Your plan</span>
           {% else %}
-            <form method="post" action="{% url 'trips:send_order_to_carrier' plan.id %}" style="display:inline">
-              {% csrf_token %}
-              <button class="btn btn-primary btn-sm" type="submit">Send Order</button>
-            </form>
+            <a class="btn btn-primary btn-sm" href="{% url 'trips:order_create' %}?carrier={{ plan.id }}">Send Order</a>
           {% endif %}
         </td>
       </tr>

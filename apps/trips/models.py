@@ -294,6 +294,14 @@ class Order(ListingTimingMixin, models.Model):
     proxy_buyer = models.ForeignKey(
         "ProxyBuyer", on_delete=models.SET_NULL, null=True, blank=True, related_name="orders"
     )
+    # Flow-2 (Carrier-First): the queued TravelPlan this order was placed against
+    # from the Queuing Carrier board. Bound at order creation; the carrier is
+    # auto-attached (a TravelerOffer is spun up) when the buyer accepts the proxy's
+    # estimate, so this flow skips the RESPONDED "looking for a carrier" step.
+    # Null for Flow-1 buyer-first orders (which find a carrier after the estimate).
+    carrier_first_plan = models.ForeignKey(
+        TravelPlan, on_delete=models.SET_NULL, null=True, blank=True, related_name="carrier_first_orders"
+    )
     reference = models.CharField(max_length=14, unique=True, editable=False, blank=True)
 
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUEST_RECEIVED)
@@ -478,6 +486,13 @@ class Order(ListingTimingMixin, models.Model):
         goods, so for the carrier's economics this behaves exactly like cargo;
         the product+margin is disbursed to the proxy instead."""
         return self.plan_id is None and self.proxy_buyer_id is not None and not self.cargo_only
+
+    @property
+    def is_carrier_first(self) -> bool:
+        """True for a Flow-2 order: a proxy-buying order placed against a specific
+        queued carrier (``carrier_first_plan``). The carrier is bound up front, so
+        accepting the proxy estimate attaches it directly and skips RESPONDED."""
+        return self.carrier_first_plan_id is not None and self.is_proxy_buyer_first
 
     @property
     def carrier_charges_carry_only(self) -> bool:

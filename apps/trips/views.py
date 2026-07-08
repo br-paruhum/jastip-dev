@@ -301,18 +301,50 @@ def _resolve_proxy(proxy_id):
     return ProxyBuyer.objects.filter(pk=proxy_id, is_active=True).first()
 
 
+def _resolve_proxy_for_country(country):
+    """Flow-2 (Carrier-First): the buyer picks a carrier, not a proxy, so the
+    Proxy Buyer who estimates the order is resolved from the carrier's origin
+    country (one per country for launch; lowest ``sequence`` wins if several)."""
+    if not country:
+        return None
+    return (
+        ProxyBuyer.objects.filter(country__iexact=country, is_active=True)
+        .order_by("sequence").first()
+    )
+
+
 @profile_required
 def order_create(request):
-    # Flow-1 entry: the buyer picked a proxy on the home "Proxy Buyers" list, so
-    # this is always a Products order with the origin country fixed by the proxy.
-    proxy = _resolve_proxy(request.GET.get("proxy") or request.POST.get("proxy"))
+    from apps.pages.models import SiteSettings
+    # Flow-2 entry: the buyer picked a queued carrier on the Queuing Carrier board
+    # ("Send Order"). The order is bound to that plan and routed to the Proxy Buyer
+    # for the carrier's origin country. Route (from AND to) is fixed by the plan.
+    carrier_plan = None
+    carrier_plan_id = request.GET.get("carrier") or request.POST.get("carrier")
+    if carrier_plan_id:
+        carrier_plan = get_object_or_404(TravelPlan, pk=carrier_plan_id)
+        min_kg = SiteSettings.load().min_remaining_weight_kg
+        if carrier_plan.traveler_id == request.user.id:
+            messages.error(request, "You cannot order against your own travel plan.")
+            return redirect(reverse("pages:home") + "#queuing-carrier")
+        if carrier_plan.is_closed or carrier_plan.carrier_first_remaining_kg < min_kg:
+            messages.error(request, "This carrier is no longer open for orders.")
+            return redirect(reverse("pages:home") + "#queuing-carrier")
+        proxy = _resolve_proxy_for_country(carrier_plan.from_country)
+        if proxy is None:
+            messages.error(request, "No Proxy Buyer is available for this carrier's origin country yet.")
+            return redirect(reverse("pages:home") + "#queuing-carrier")
+    else:
+        # Flow-1 entry: the buyer picked a proxy on the home "Proxy Buyers" list, so
+        # this is always a Products order with the origin country fixed by the proxy.
+        proxy = _resolve_proxy(request.GET.get("proxy") or request.POST.get("proxy"))
     if request.method == "POST":
         # Cargo lists items WITH a declared unit price (customs); Products lists
         # items only (the Proxy Buyer estimates prices later) — same split as the
         # plan-first flow (request_create). A proxy order is always Products.
         cargo = proxy is None and request.POST.get("cargo_only") == "1"
         ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
-        form = OrderForm(request.POST, proxy=proxy)
+        form = OrderForm(request.POST, proxy=proxy, carrier_plan=carrier_plan)
         formset = ItemFormSet(request.POST, request.FILES, instance=Order(), prefix="bf_items")
         if form.is_valid() and formset.is_valid():
             with db_transaction.atomic():
@@ -324,6 +356,14 @@ def order_create(request):
                     order.cargo_only = False
                     order.from_country = proxy.country
                     order.from_city = proxy.city
+                if carrier_plan is not None:
+                    # Flow-2: bind the carrier and fix the whole route to the plan
+                    # (the origin is the carrier's, not the proxy's city).
+                    order.carrier_first_plan = carrier_plan
+                    order.from_country = carrier_plan.from_country
+                    order.from_city = carrier_plan.from_city
+                    order.to_country = carrier_plan.to_country
+                    order.to_city = carrier_plan.to_city
                 order.status = Status.OPEN
                 order.settlement_currency = ExchangeRate.currency_for_country(order.from_country)
                 order.save()
@@ -348,16 +388,20 @@ def order_create(request):
                     _save_order_photos(order, request.FILES.getlist("order_photos"))
             if proxy is not None:
                 workflow.on_proxy_order_created(order)
-                messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
+                if carrier_plan is not None:
+                    messages.success(request, "Order sent. The Proxy Buyer will respond with an estimate, and your chosen carrier is reserved.")
+                else:
+                    messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
             else:
                 messages.success(request, "Order posted. Carriers can now respond with offers.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
-        form = OrderForm(proxy=proxy)
+        form = OrderForm(proxy=proxy, carrier_plan=carrier_plan)
         formset = OrderItemFormSet(instance=Order(), prefix="bf_items")
     from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "proxy": proxy,
+                   "carrier_plan": carrier_plan,
                    "role": _resolve_role(request),
                    "proxy_orders": _proxy_buying_orders(request.user),
                    "active_nav": "my-orders"})
