@@ -436,15 +436,20 @@ class Order(ListingTimingMixin, models.Model):
         super().save(*args, **kwargs)
 
     def _generate_reference(self) -> str:
-        """PRX-YYMMDDXXX — branded prefix + today's date + 3 random alphanumerics.
-        Retries on the rare same-day collision (reference is unique)."""
+        """Branded prefix + today's date + 3 random alphanumerics (YYMMDDXXX),
+        retrying on the rare same-day collision (reference is unique):
+          - ORD- for Buyer-First orders,
+          - OFR- for Carrier-First orders (placed against a queued carrier).
+        The flow is decided from carrier_first_plan, which is already set before
+        the first save() where the reference is generated."""
         import secrets
         import string
+        prefix = "OFR" if self.is_carrier_first else "ORD"
         date_part = timezone.now().strftime("%y%m%d")
         alphabet = string.ascii_uppercase + string.digits
         while True:
             suffix = "".join(secrets.choice(alphabet) for _ in range(3))
-            ref = f"PRX-{date_part}{suffix}"
+            ref = f"{prefix}-{date_part}{suffix}"
             if not type(self).objects.filter(reference=ref).exists():
                 return ref
 

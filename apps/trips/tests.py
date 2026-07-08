@@ -48,7 +48,7 @@ class LifecycleTests(TestCase):
 
     def test_reference_generated(self):
         self.assertTrue(self.plan.reference)
-        self.assertTrue(self.req.reference.startswith("PRX-"))
+        self.assertTrue(self.req.reference.startswith("ORD-"))
 
     def test_money_math(self):
         items = list(self.req.items.all())
@@ -1332,6 +1332,21 @@ class CarrierFirstMatchingTests(TestCase):
         order.carrier_first_plan = plan
         order.save(update_fields=["carrier_first_plan"])
         return order
+
+    def test_reference_prefix_by_flow(self):
+        # OFR- for Carrier-First (bound at creation, as order_create does), ORD- for
+        # a plain Buyer-First proxy order.
+        plan = self._plan(avail="20")
+        bound = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=self.proxy, status=Status.OPEN,
+            cargo_only=False, carrier_first_plan=plan,
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            estimated_weight_kg=Decimal("5"),
+        )
+        self.assertTrue(bound.reference.startswith("OFR-"), bound.reference)
+        unbound = self._order(weight="5")
+        self.assertTrue(unbound.reference.startswith("ORD-"), unbound.reference)
 
     def test_hold_for_estimate_reserves_weight_and_resets(self):
         from apps.trips import matching

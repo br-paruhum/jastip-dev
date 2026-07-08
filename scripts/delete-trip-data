@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+#
+# Usage: bash delete-trip-data <REF-NO> [-y]
+#   e.g. bash delete-trip-data PRX-26070648D
+#        bash delete-trip-data ORD-260712A9F -y     # skip the confirmation prompt
+#
+# Deletes an Order (or, if the reference matches a TravelPlan, that plan) and
+# everything that cascades from it — items, traveler offers, carrier matches,
+# the transaction + its payments, messages, chat reads, etc. Shows exactly what
+# will be removed and asks for confirmation first; pass -y to skip the prompt.
+#
+# Intended for cleaning up local / test data. It acts on whatever database the
+# project's Django settings point at, so run it where your test data lives.
+#
+set -euo pipefail
+
+REF=""
+ASSUME_YES=0
+for arg in "$@"; do
+  case "$arg" in
+    -y|--yes) ASSUME_YES=1 ;;
+    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    -*) echo "Unknown option: $arg" >&2; exit 2 ;;
+    *)  if [[ -z "$REF" ]]; then REF="$arg"; else echo "Unexpected argument: $arg" >&2; exit 2; fi ;;
+  esac
+done
+[[ -n "$REF" ]] || { echo "Usage: bash delete-trip-data <REF-NO> [-y]" >&2; exit 2; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP="$(dirname "$SCRIPT_DIR")"
+cd "$APP"
+PY="$APP/.venv/bin/python"
+[[ -x "$PY" ]] || PY="python"
+
+# ── Preview (read-only): resolve the reference and list what would be deleted ──
+if ! REF="$REF" "$PY" manage.py shell <<'PY'
+import os
+from django.db import router
+from django.db.models.deletion import Collector
+from apps.trips.models import Order, TravelPlan
+
+ref = os.environ["REF"].strip()
+obj = Order.objects.filter(reference=ref).first()
+kind = "Order"
+if obj is None:
+    obj = TravelPlan.objects.filter(reference=ref).first()
+    kind = "TravelPlan"
+if obj is None:
+    print(f"NOT FOUND: no Order or TravelPlan with reference {ref!r}")
+    raise SystemExit(3)
+
+collector = Collector(using=router.db_for_write(type(obj)))
+collector.collect([obj])
+print(f"{kind} {obj.reference} (id={obj.pk}) — cascade delete:")
+total = 0
+for model, instances in sorted(collector.data.items(), key=lambda kv: kv[0].__name__):
+    n = len(instances)
+    total += n
+    print(f"    {model._meta.label:<32} {n}")
+print(f"    {'TOTAL rows':<32} {total}")
+PY
+then
+  exit 1
+fi
+
+# ── Confirm ───────────────────────────────────────────────────────────────────
+if [[ "$ASSUME_YES" -ne 1 ]]; then
+  read -r -p "Delete all of the above for ${REF}? [y/N] " ans
+  case "$ans" in
+    y|Y|yes|YES) ;;
+    *) echo "Aborted — nothing deleted."; exit 0 ;;
+  esac
+fi
+
+# ── Delete ────────────────────────────────────────────────────────────────────
+REF="$REF" "$PY" manage.py shell <<'PY'
+import os
+from django.db import transaction
+from apps.trips.models import Order, TravelPlan
+
+ref = os.environ["REF"].strip()
+obj = (Order.objects.filter(reference=ref).first()
+       or TravelPlan.objects.filter(reference=ref).first())
+if obj is None:
+    raise SystemExit(f"ERROR: {ref} disappeared before delete")
+with transaction.atomic():
+    total, per_model = obj.delete()
+print(f"Deleted {total} row(s) for {ref}:")
+for label, n in sorted(per_model.items()):
+    print(f"    {label:<32} {n}")
+PY
+
+echo "Done."
