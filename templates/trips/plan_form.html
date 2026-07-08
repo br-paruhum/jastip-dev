@@ -10,6 +10,9 @@
 
     <form method="post" class="card" style="margin-top:18px">
       {% csrf_token %}
+      {# Travel plans are always Carrier-First offers — Carrier Only, no proxy-buying margin. #}
+      <input type="hidden" name="carrier_only" value="1">
+      <input type="hidden" name="margin_percent" value="0">
       <div class="card-body">
         <div class="card-band-row">Travel Plan Details</div>
         <div class="form-row">
@@ -24,23 +27,18 @@
           <div class="form-field"><label>To City</label>{{ form.to_city }}{{ form.to_city.errors }}</div>
           <div class="form-field"><label>To Country</label>{{ form.to_country }}{{ form.to_country.errors }}</div>
         </div>
-        <div class="form-field">
-          <label>Service</label>{{ form.carrier_only }}{{ form.carrier_only.errors }}
-          <p class="help">{{ form.carrier_only.help_text }}</p>
-        </div>
         <div class="form-row">
           <div class="form-field"><label>Available Weight (kg)</label>{{ form.available_weight_kg }}{{ form.available_weight_kg.errors }}</div>
-          <div class="form-field"><label>Margin (%)</label>{{ form.margin_percent }}
-            <p class="help">Applied on top of the ordered items cost. Ignored for Carrier Only.</p></div>
+          <div class="form-field">
+            <label>Shipment Cost per kg</label>
+            {{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}
+            <p class="help">Currency is set automatically from your From Country.</p>
+          </div>
         </div>
-        <div class="form-field">
-          <label>Shipment Cost per kg</label>
-          {{ form.shipment_cost_per_kg }}{{ form.shipment_cost_per_kg.errors }}
-          <p class="help">Currency is set automatically from your From Country.</p>
-        </div>
-          <div style="text-align: center;">
+          <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
             <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Submit Travel Plan{% endif %}</button>
-          </div>  
+            <a class="btn btn-outline" href="{% url 'accounts:profile' %}#travel-plans">Cancel</a>
+          </div>
       </div>
     </form>
   </div>
@@ -65,24 +63,6 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     suffix.textContent = '(' + (countryCurrency[country] || 'IDR') + ')';
   }
   countrySelect.addEventListener('change', update);
-  update();
-})();
-</script>
-<script>
-(function () {
-  var service = document.querySelector('select[name="carrier_only"]');
-  var margin = document.querySelector('[name="margin_percent"]');
-  if (!service || !margin) return;
-  function update() {
-    if (service.value === '1') {            // Carrier Only — no margin applies
-      if (!margin.readOnly) { margin.dataset.prev = margin.value; }
-      margin.value = '0'; margin.readOnly = true; margin.classList.add('input-muted');
-    } else {
-      if (margin.readOnly) { margin.value = margin.dataset.prev || margin.value; }
-      margin.readOnly = false; margin.classList.remove('input-muted');
-    }
-  }
-  service.addEventListener('change', update);
   update();
 })();
 </script>

@@ -126,12 +126,26 @@
         <!-- Panel: My Travel Plans -->
         <div data-panel="travel-plans">
 
-          <!-- Inline "Post a Travel Plan" form (toggled by the button above) -->
-          <div id="plan-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
+          <!-- Inline "Post a Travel Plan" form (toggled by "Create New Plan") -->
+          <div id="plan-form-wrap" style="display:none;margin-bottom:18px">
+
+            <!-- Notes / guidance card — always first, always expanded (matches order/offer Notes tab) -->
+            <details class="card fold notes-fold" open>
+              <summary><h3>Notes</h3></summary>
+              <div class="fold-body">
+                {# #Step-3.1-Carrier — Post a Travel Plan (Carrier-First) #}
+                <p class="muted">Fill in your trip details and spare luggage capacity, then click "Submit Travel Plan". Once posted, your plan joins the Queuing Carrier board and buyers can send their orders to you.</p>
+              </div>
+            </details>
+
+            <div class="card mt-2"><div class="card-body">
             <div class="card-band-row">Post a Travel Plan</div>
             <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
             <form method="post" action="{% url 'trips:plan_create' %}">
               {% csrf_token %}
+              {# Carrier-First plans are always Carrier Only (no proxy-buying, no margin). #}
+              <input type="hidden" name="carrier_only" value="1">
+              <input type="hidden" name="margin_percent" value="0">
               <div class="form-row">
                 <div class="form-field"><label>Travel Date</label>{{ plan_form.travel_date }}{{ plan_form.travel_date.errors }}</div>
                 <div class="form-field"><label>Travel Time</label>{{ plan_form.travel_time }}{{ plan_form.travel_time.errors }}</div>
@@ -144,30 +158,28 @@
                 <div class="form-field"><label>To City</label>{{ plan_form.to_city }}{{ plan_form.to_city.errors }}</div>
                 <div class="form-field"><label>To Country</label>{{ plan_form.to_country }}{{ plan_form.to_country.errors }}</div>
               </div>
-              <div class="form-field">
-                <label>Service</label>{{ plan_form.carrier_only }}{{ plan_form.carrier_only.errors }}
-                <p class="help">{{ plan_form.carrier_only.help_text }}</p>
-              </div>
               <div class="form-row" id="plan-cap-row">
                 <div class="form-field"><label>Available Weight (kg)</label>{{ plan_form.available_weight_kg }}{{ plan_form.available_weight_kg.errors }}</div>
-                <div class="form-field" id="plan-margin-field"><label>Margin (%)</label>{{ plan_form.margin_percent }}{{ plan_form.margin_percent.errors }}
-                  <p class="help">Applied on top of the ordered items cost.</p></div>
+                <div class="form-field" id="plan-shipment-field">
+                  <label>Shipment Cost per kg</label>
+                  {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
+                  <p class="help">Origin country currency will be set automatically.</p>
+                </div>
               </div>
-              <div class="form-field" id="plan-shipment-field">
-                <label>Shipment Cost per kg</label>
-                {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
-                <p class="help">Origin country currency will be set automatically.</p>
-              </div>
-              <div style="text-align:center">
+              <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
+                <button class="btn btn-outline" type="button" id="cancel-plan-form">Cancel</button>
               </div>
             </form>
-          </div></div>
-
-          <div class="dash-tables">
-            {% include "accounts/_travel_table.html" with rows=travel_rows empty="No travel plans or offers yet." heading="My Travel Plans" %}
+            </div></div>
           </div>
-          <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
+
+          <div id="plan-tables">
+            <div class="dash-tables">
+              {% include "accounts/_travel_table.html" with rows=travel_rows empty="No travel plans or offers yet." heading="My Travel Plans" show_create_plan=True %}
+            </div>
+            <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
+          </div>
         </div>
         {% endif %}
 
@@ -527,6 +539,7 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     if (names.indexOf(name) === -1) name = 'profile';
     // Collapse inline toggle forms whenever the user switches (or re-clicks) a tab.
     if (wrap) wrap.style.display = 'none';
+    if (planTables) planTables.style.display = '';
     if (orderWrap) orderWrap.style.display = 'none';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
     // Transient detail panels (order-detail, plan-detail) keep their origin tab
@@ -557,14 +570,24 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   // first measurement taken during activate().
   window.addEventListener('load', alignSide);
 
-  // Toggle the inline "Post a Travel Plan" form.
+  // Toggle the inline "Post a Travel Plan" form. Opening it hides the plan
+  // table below and re-aligns the sidebar to the Notes card now at the top.
   var toggle = document.getElementById('toggle-plan-form');
   var wrap = document.getElementById('plan-form-wrap');
+  var planTables = document.getElementById('plan-tables');
+  function setPlanFormOpen(open) {
+    if (!wrap) return;
+    wrap.style.display = open ? '' : 'none';
+    if (planTables) planTables.style.display = open ? 'none' : '';
+    alignSide();
+  }
   if (toggle && wrap) {
     toggle.addEventListener('click', function () {
-      wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+      setPlanFormOpen(wrap.style.display === 'none');
     });
   }
+  var cancelPlan = document.getElementById('cancel-plan-form');
+  if (cancelPlan) cancelPlan.addEventListener('click', function () { setPlanFormOpen(false); });
 
   // Live currency hint on the inline "Post a Travel Plan" form, scoped to its
   // own wrap since the "Post an Order" form on this same page also has a
@@ -581,29 +604,6 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
       };
       planCountrySelect.addEventListener('change', updatePlanCurrency);
       updatePlanCurrency();
-    }
-
-    // Margin only applies to Proxy Buyer plans. When the service is Carrier
-    // Only, hide the Margin field entirely and let Shipment Cost slide up into
-    // the row to use the freed space. (Server-side clean() forces margin to 0.)
-    var planService = wrap.querySelector('select[name="carrier_only"]');
-    var planCapRow = document.getElementById('plan-cap-row');
-    var planMarginField = document.getElementById('plan-margin-field');
-    var planShipmentField = document.getElementById('plan-shipment-field');
-    if (planService && planCapRow && planMarginField && planShipmentField) {
-      var shipmentHome = planShipmentField.parentNode;
-      var shipmentAnchor = planShipmentField.nextSibling;
-      var updatePlanService = function () {
-        if (planService.value === '1') {            // Carrier Only
-          planMarginField.style.display = 'none';
-          planCapRow.appendChild(planShipmentField);
-        } else {                                      // Proxy Buyer (default)
-          planMarginField.style.display = '';
-          shipmentHome.insertBefore(planShipmentField, shipmentAnchor);
-        }
-      };
-      planService.addEventListener('change', updatePlanService);
-      updatePlanService();
     }
   }
 
