@@ -1322,3 +1322,36 @@ class CarrierFirstMatchingTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Queuing Carrier")
         self.assertContains(resp, "Send Order")
+
+    # --- Flow-2 (Carrier-First): bind at order, hold at estimate -----------
+    def _bound_order(self, plan, **kw):
+        order = self._order(status=Status.ESTIMATE_SENT, **kw)
+        order.carrier_first_plan = plan
+        order.save(update_fields=["carrier_first_plan"])
+        return order
+
+    def test_hold_for_estimate_reserves_weight_and_resets(self):
+        from apps.trips import matching
+        from apps.trips.constants import MatchStatus
+        plan = self._plan(avail="20")
+        order = self._bound_order(plan, weight="5")
+        m = matching.hold_for_estimate(order)
+        self.assertIsNotNone(m)
+        self.assertEqual(m.status, MatchStatus.PENDING)
+        self.assertEqual(m.allocated_kg, Decimal("5.00"))
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("15.00"))
+        # Re-estimate: weight → 8, same match reused (no duplicate), window reset.
+        order.estimated_weight_kg = Decimal("8")
+        order.save(update_fields=["estimated_weight_kg"])
+        m2 = matching.hold_for_estimate(order)
+        self.assertEqual(m2.pk, m.pk)
+        self.assertEqual(order.carrier_matches.count(), 1)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("12.00"))
+
+    def test_hold_for_estimate_noop_when_unbound(self):
+        from apps.trips import matching
+        order = self._order(weight="5", status=Status.ESTIMATE_SENT)   # no carrier_first_plan
+        self.assertIsNone(matching.hold_for_estimate(order))
+        self.assertEqual(order.carrier_matches.count(), 0)

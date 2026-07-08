@@ -580,6 +580,9 @@ def proxy_estimate(request, order_id):
             order = form.save(commit=False)  # estimated_weight_kg + proxy_margin_percent
             order.status = Status.ESTIMATE_SENT
             order.save()
+            # Flow-2 (Carrier-First): reserve the bound carrier's weight for the
+            # estimate and (re)start the 3h accept window. No-op for Flow-1 orders.
+            matching.hold_for_estimate(order)
         if is_first_send:
             workflow.on_estimate_sent(order)
             messages.success(request, "Estimate sent. Your estimate is now waiting for Buyer to Accept it.")

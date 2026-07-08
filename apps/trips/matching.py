@@ -169,6 +169,38 @@ def send_carrier_to_buyer(plan, *, buyer):
     )
 
 
+def hold_for_estimate(order):
+    """Flow-2 (Carrier-First): the Proxy Buyer sent or edited the estimate on a
+    carrier-bound order. Place — or refresh, on re-estimate — the weight hold on
+    the bound plan and (re)start the accept window (``carrier_match_window_minutes``).
+
+    The hold = the Proxy's estimate weight; it subtracts from the plan's
+    ``carrier_first_remaining_kg`` until the buyer accepts (hold becomes committed)
+    or the window lapses (``expire_stale_matches`` flips it to EXPIRED, freeing the
+    weight — the binding on ``order.carrier_first_plan`` is kept regardless).
+    Returns the CarrierMatch, or None if the order is not carrier-bound / weightless."""
+    plan = order.carrier_first_plan
+    if plan is None:
+        return None
+    weight = order.estimated_weight_kg
+    if not weight or weight <= 0:
+        return None
+    now = timezone.now()
+    expires = now + timedelta(minutes=_settings().carrier_match_window_minutes)
+    # Reuse a still-pending hold (re-estimate) or start a fresh one; any earlier
+    # EXPIRED/REJECTED rows are left as history and don't count against capacity.
+    match = order.carrier_matches.filter(plan=plan, status=MatchStatus.PENDING).first()
+    if match is None:
+        match = CarrierMatch(order=order, plan=plan, source=MatchSource.PULL)
+    match.allocated_kg = weight
+    match.status = MatchStatus.PENDING
+    match.offered_at = now
+    match.window_expires_at = expires
+    match.responded_at = None
+    match.save()
+    return match
+
+
 def accept_match(match, *, by_user):
     """Buyer accepts a surfaced carrier. Spins up a PENDING TravelerOffer from the
     plan and routes it through the existing order_accept path (order → ACCEPTED,
