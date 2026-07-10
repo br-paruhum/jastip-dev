@@ -51,9 +51,14 @@
       </div>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+      {% if package_ready_order.status == "items_purchased" %}
+      {# Already marked ready (before the carrier receives) — edit the fields, then Update. #}
+      <button class="btn btn-primary" type="submit" name="action" value="update">Update Package Details</button>
+      {% else %}
       <button class="btn btn-primary" type="submit" name="action" value="ready">Mark Package Ready</button>
       {# Save partial progress and come back later — skips client-side "required" (e.g. box photo) via formnovalidate. #}
       <button class="btn btn-outline-clay" type="submit" name="action" value="save" formnovalidate>Save</button>
+      {% endif %}
     </div>
   </div>
 </form>

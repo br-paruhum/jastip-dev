@@ -531,10 +531,11 @@ class PurchaseItemForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, draft=False, **kwargs):
-        # draft=True → "Save" (partial): the proxy is saving work-in-progress to
-        # finish later, so per-line photo isn't required yet (see clean()).
-        self.draft = draft
+    def __init__(self, *args, require_photos=True, **kwargs):
+        # require_photos=False lets the proxy Save a draft (or Update an already-ready
+        # package) with incomplete photos; the mandatory-photo gate only applies when
+        # they actually Mark Package Ready.
+        self.require_photos = require_photos
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             if not self.instance.actual_quantity:
@@ -544,23 +545,20 @@ class PurchaseItemForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        # Partial "Save": persist whatever's entered, so skip the purchased-line
-        # photo rule — it's enforced only when the proxy Marks Package Ready.
-        if self.draft:
-            return cleaned
         # A product photo is mandatory for every *purchased* line, enforced per
         # item (not just the first row). It depends on the submitted quantity, so
         # it lives here rather than as a static required flag:
         #   - blank quantity defaults to the ordered amount (bought as-is) => required
         #   - explicit 0 (e.g. out of stock) => exempt, no photo needed
         #   - a photo already on file (re-edit) or freshly uploaded => satisfied
-        qty = cleaned.get("actual_quantity")
-        purchased = qty is None or qty > 0
-        if purchased and not self.instance.purchase_photo and not cleaned.get("purchase_photo"):
-            self.add_error(
-                "purchase_photo",
-                "A product photo is required (or set the quantity to 0 if not purchased).",
-            )
+        if self.require_photos:
+            qty = cleaned.get("actual_quantity")
+            purchased = qty is None or qty > 0
+            if purchased and not self.instance.purchase_photo and not cleaned.get("purchase_photo"):
+                self.add_error(
+                    "purchase_photo",
+                    "A product photo is required (or set the quantity to 0 if not purchased).",
+                )
         return cleaned
 
 

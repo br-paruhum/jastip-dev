@@ -615,17 +615,24 @@ def proxy_purchase(request, order_id):
     if not order.proxy_actuals_editable:
         messages.info(request, "Actual costs can't be changed at this stage.")
         return redirect(detail)
-    # "Save" (partial) vs "Mark Package Ready" (finalize) — same form, two buttons.
-    is_draft = request.POST.get("action") == "save"
+    package_ready = dash + f"?package_ready={order.id}#package-ready"
+    # Three submit actions on the workspace:
+    #   ready  — Mark Package Ready: strict (needs box + product photos), advances
+    #            the order to Package Ready and notifies the buyer.
+    #   save   — Save (still Finalizing): persist a draft, no advance, no notify.
+    #   update — Update Package Details (already Package Ready): persist edits, stay
+    #            ready, no re-notify.
+    action = request.POST.get("action") or "ready"
+    advancing = action == "ready" and order.status == Status.DEPOSIT_PAID
     form = PurchaseWeightForm(request.POST, instance=order)  # actual total weight
     formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order,
-                                  form_kwargs={"draft": is_draft})
+                                  form_kwargs={"require_photos": advancing})
     box_files = request.FILES.getlist("box_photos")[:1]
-    # Validate the forms FIRST (this is what flags missing per-product photos), then
-    # check the box photo — so a missing box photo no longer short-circuits and hides
-    # the product-photo warnings. Both requirements are surfaced together below.
+    # Validate the forms FIRST (this flags missing per-product photos), then check the
+    # box photo — so a missing box photo doesn't short-circuit and hide the product
+    # warnings. Both are surfaced together below. Only the strict "ready" path gates.
     forms_ok = form.is_valid() and formset.is_valid()
-    box_missing = not is_draft and not box_files and not order.box_photo_1
+    box_missing = advancing and not box_files and not order.box_photo_1
     if forms_ok and not box_missing:
         form.save()  # actual_weight_kg
         # One box photo (of it closed, ready to hand over). The storage
@@ -634,30 +641,32 @@ def proxy_purchase(request, order_id):
             order.box_photo_1 = box_files[0]
             order.save(update_fields=["box_photo_1"])
         formset.save()  # persist any actual costs/qty the proxy entered
-        if is_draft:
-            # Partial save: keep exactly what the proxy entered and stay on the
-            # package-ready form. Don't default blanks, don't mark ready, don't
-            # notify the buyer — they'll come back and Mark Package Ready later.
-            messages.success(request, "Draft saved. You can continue and Mark Package Ready later.")
-            return redirect(dash + f"?package_ready={order.id}#package-ready")
-        # Default any blank actuals to the estimate — the proxy bought as ordered,
-        # so the invoice's Actual column is always populated.
-        for item in order.items.all():
-            upd = []
-            if not item.actual_unit_cost:
-                item.actual_unit_cost = item.estimated_unit_cost
-                upd.append("actual_unit_cost")
-            if not item.actual_quantity:
-                item.actual_quantity = item.quantity
-                upd.append("actual_quantity")
-            if item.actual_unit_cost and not item.purchased_at:
-                item.purchased_at = timezone.now()
-                upd.append("purchased_at")
-            if upd:
-                item.save(update_fields=upd)
-        workflow.on_items_purchased(order)
-        messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
-        return redirect(detail)
+        if advancing:
+            # Default any blank actuals to the estimate — the proxy bought as ordered,
+            # so the invoice's Actual column is always populated.
+            for item in order.items.all():
+                upd = []
+                if not item.actual_unit_cost:
+                    item.actual_unit_cost = item.estimated_unit_cost
+                    upd.append("actual_unit_cost")
+                if not item.actual_quantity:
+                    item.actual_quantity = item.quantity
+                    upd.append("actual_quantity")
+                if item.actual_unit_cost and not item.purchased_at:
+                    item.purchased_at = timezone.now()
+                    upd.append("purchased_at")
+                if upd:
+                    item.save(update_fields=upd)
+            workflow.on_items_purchased(order)
+            messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
+            return redirect(detail)
+        # Save (draft) / Update (already ready): persist only, stay on the workspace.
+        messages.success(
+            request,
+            "Package details updated." if order.status == Status.ITEMS_PURCHASED
+            else "Draft saved. Click Mark Package Ready when everything is complete.",
+        )
+        return redirect(package_ready)
     # Not ready — surface EVERY missing requirement at once: box photo AND each
     # purchased product still missing its photo (named, so it's clear with >1 item).
     if box_missing:
