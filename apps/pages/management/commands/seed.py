@@ -24,21 +24,26 @@ from apps.trips.models import ExchangeRate, TravelPlan
 # this command and so re-seeding never reverts the page to old placeholder text.
 HOW_TO_BODY = (Path(__file__).resolve().parents[2] / "how_to_body.html").read_text(encoding="utf-8")
 
+# (slug, kind, title, body, refresh)
+#   refresh=True  → body is git-sourced (single source of truth); re-seed OVERWRITES the live row.
+#   refresh=False → admin-managed content; seed only CREATES it if missing and never clobbers a
+#                   live admin-edited body. Applies to FAQ, Privacy Policy, Terms & Conditions and
+#                   the placeholder pages — deploys must not revert hand-maintained prod copy.
 PAGES = [
-    ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY),
+    ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY, True),
     ("how-to-buyer-first", SitePage.Kind.GENERIC, "How It Works — Buyer First",
-     "<p>Coming soon — a guide to posting a Buyer First order and receiving traveler offers.</p>"),
-    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using ProxyBuying.</p>"),
+     "<p>Coming soon — a guide to posting a Buyer First order and receiving traveler offers.</p>", False),
+    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using ProxyBuying.</p>", False),
     ("faq-buyer-first", SitePage.Kind.GENERIC, "FAQ — Buyer First",
-     "<p>Coming soon — frequently asked questions about Buyer First orders.</p>"),
+     "<p>Coming soon — frequently asked questions about Buyer First orders.</p>", False),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """
 <p>We respect your privacy. Your name and phone number are never shown publicly — they are shared
 only with the counterparty of a transaction and the admin. We store the minimum data needed to
-operate the service and never sell your data.</p>"""),
+operate the service and never sell your data.</p>""", False),
     ("terms-conditions", SitePage.Kind.TERMS, "Terms & Conditions", """
 <p>By using ProxyBuying you agree to act in good faith. ProxyBuying is a platform that facilitates
 proxy purchasing and holds funds in escrow for a 2.5% fee. All correspondence between travelers and
-buyers is conducted through email with a copy to admin.</p>"""),
+buyers is conducted through email with a copy to admin.</p>""", False),
 ]
 
 # Exchange-rate skeleton: one row per supported foreign currency so the admin
@@ -77,17 +82,25 @@ class Command(BaseCommand):
         site.save()
         self.stdout.write(self.style.SUCCESS(f"Site set to {site.domain}"))
 
-        # Static pages
-        for slug, kind, title, body in PAGES:
-            SitePage.objects.update_or_create(
-                slug=slug, defaults={"kind": kind, "title": title, "body": body, "is_published": True}
-            )
+        # Static pages. Only How-To is git-sourced and refreshed on every seed; all other
+        # bodies (FAQ page, Privacy Policy, Terms & Conditions, placeholders) are admin-managed
+        # and created-only so a deploy never reverts hand-maintained prod copy.
+        for slug, kind, title, body, refresh in PAGES:
+            defaults = {"kind": kind, "title": title, "body": body, "is_published": True}
+            if refresh:
+                SitePage.objects.update_or_create(slug=slug, defaults=defaults)
+            else:
+                SitePage.objects.get_or_create(slug=slug, defaults=defaults)
         self.stdout.write(self.style.SUCCESS(f"{len(PAGES)} site pages ready"))
 
-        # FAQ
-        for i, (q, a) in enumerate(FAQS):
-            FAQItem.objects.update_or_create(question=q, defaults={"answer": a, "order": i})
-        self.stdout.write(self.style.SUCCESS(f"{len(FAQS)} FAQ items ready"))
+        # FAQ items are admin-managed: seed the defaults only on a fresh DB, never overwrite a
+        # curated prod set (update_or_create here previously clobbered live FAQ answers on deploy).
+        if not FAQItem.objects.exists():
+            for i, (q, a) in enumerate(FAQS):
+                FAQItem.objects.create(question=q, answer=a, order=i)
+            self.stdout.write(self.style.SUCCESS(f"{len(FAQS)} FAQ items seeded"))
+        else:
+            self.stdout.write("FAQ items already present — left as-is")
 
         # Exchange-rate skeleton (rates filled in by the fetch_kurs cron)
         for code, name, sequence in EXCHANGE_RATES:
