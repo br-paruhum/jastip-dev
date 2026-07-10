@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 <span class="eyebrow">Receive · {{ receive_req.reference }}</span>
 <h2>Confirm Package Received</h2>
 {% if receive_req.is_proxy_buyer_first %}
@@ -16,7 +16,7 @@
       <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
       {{ receive_form.actual_weight_kg }}{{ receive_form.actual_weight_kg.errors }}
       <p class="help">Estimated was {{ receive_req.estimated_weight_kg|floatformat:1 }} kg · carrier rate
-        {{ receive_req.currency }} {% if receive_req.plan %}{{ receive_req.plan.shipment_cost_per_kg|intcomma }}{% else %}{{ receive_req.effective_cost_per_kg|floatformat:0|intcomma }}{% endif %}/kg.</p>
+        {{ receive_req.currency }} {% if receive_req.plan %}{{ receive_req.plan.shipment_cost_per_kg|by_currency:receive_req.currency }}{% else %}{{ receive_req.effective_cost_per_kg|by_currency:receive_req.currency }}{% endif %}/kg.</p>
     </div>
     <div style="text-align:center"><button class="btn btn-primary" type="submit">Package Received</button></div>
   </div>

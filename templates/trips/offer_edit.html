@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% load static humanize %}
+{% load static humanize money %}
 {% block title %}Edit offer — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
   <div class="container" style="max-width:620px">
     <span class="eyebrow">Edit Offer · {{ offer.order.reference }}</span>
     <h1>Edit Your Offer</h1>
-    <p class="muted">Bid {{ offer.order.bid_weight_kg|floatformat:1 }} kg @ {{ offer.order.currency }} {{ offer.order.bid_cost_per_kg|intcomma }}/kg ·
+    <p class="muted">Bid {{ offer.order.bid_weight_kg|floatformat:1 }} kg @ {{ offer.order.currency }} {{ offer.order.bid_cost_per_kg|by_currency:offer.order.currency }}/kg ·
       Deadline {{ offer.order.max_acceptable_date|date:"d-M-Y" }}. You can edit until the buyer selects your offer.</p>
 
     <form method="post" class="card" style="margin-top:18px">

@@ -221,7 +221,7 @@ Context expected (Django include passes the parent context through):
         <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Avail (kg)</strong></td><td style="padding-left:16px"><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
         {% for offer in o.pending_offers %}
         <tr>
-          <td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td>
+          <td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|by_currency:o.currency }}</td>
           <td class="num-right">{{ offer.avail_kg }}</td>
           <td style="padding-left:16px">{{ offer.travel_date|date:"d-M-Y" }}</td>
           <td>{{ offer.get_offer_status_display }}</td>
@@ -311,7 +311,7 @@ Context expected (Django include passes the parent context through):
         <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
       </form>
       {% elif o.balance_refund_due > 0 %}
-      <p class="muted">Your deposit exceeded the final invoice. A refund of <strong>{{ o.currency }} {{ o.balance_refund_due|floatformat:0|intcomma }}</strong> will be processed to you.</p>
+      <p class="muted">Your deposit exceeded the final invoice. A refund of <strong>{{ o.currency }} {{ o.balance_refund_due|by_currency:o.currency }}</strong> will be processed to you.</p>
       {% else %}
       <p class="muted">Balance settled.</p>
       {% endif %}
@@ -321,7 +321,7 @@ Context expected (Django include passes the parent context through):
         {# #Step-9.2-Buyer #}
         <p class="muted">Your deposit verified. Waiting for Carrier to make Duty payment.</p>
         {% else %}
-        {% if o.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ o.currency }} {{ o.balance_refund_due|floatformat:0|intcomma }}</strong>, which admin will transfer back within 48 hours.</p>{% endif %}
+        {% if o.balance_refund_due > 0 %}<p class="muted"><span class="badge badge-success">Paid</span> Nothing more to pay. You overpaid <strong>{{ o.currency }} {{ o.balance_refund_due|by_currency:o.currency }}</strong>, which admin will transfer back within 48 hours.</p>{% endif %}
         {% if o.delivery_preference == "reship" %}
         {# #Step-10.1-Buyer #}
         <p>You chose Reshipment option. Please check the Chat Box from the Carrier below for the Reshipment Cost, Courier Cost Proof, and Carrier's bank details.<br> After you make the bank transfer, Carrier will ship the package to your location.</p>
@@ -429,7 +429,7 @@ Context expected (Django include passes the parent context through):
         <p>A carrier offered to carry your order. Please Accept or Reject it. If more than one is listed, accept the one you prefer — the others are then declined automatically. Use the Chat Box if you want to negotiate the shipment cost.</p>
         {% for offer in o.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
         <table class="invoice" style="max-width:440px;margin-bottom:8px">
-          <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|floatformat:0|intcomma }}</td></tr>
+          <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|by_currency:o.currency }}</td></tr>
           <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
           <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
         </table>

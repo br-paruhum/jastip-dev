@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize static %}
+{% load humanize static money %}
 {% block title %}Review request {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -30,7 +30,7 @@
         <div class="form-field mt-2">
           <label>Estimated weight of this package (kg)</label>
           {{ form.estimated_weight_kg }}{{ form.estimated_weight_kg.errors }}
-          <p class="help">Shipment cost = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg
+          <p class="help">Shipment cost = this weight × {{ req.currency }} {{ req.plan.shipment_cost_per_kg|by_currency:req.currency }}/kg
             (the plan's per-kg rate).</p>
         </div>
 

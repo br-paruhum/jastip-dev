@@ -24,7 +24,7 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
     </div>
 
     {% if ro.reshipment_cost_amount %}
-    <p style="margin-top:12px">Reshipment cost: <strong>{{ ro.destination_currency }} {{ ro.reshipment_cost_amount|floatformat:0|intcomma }}</strong>{% if ro.reshipment_cost_proof %}&nbsp;<a href="{{ ro.reshipment_cost_proof.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Cost Proof</a>{% endif %}</p>
+    <p style="margin-top:12px">Reshipment cost: <strong>{{ ro.destination_currency }} {{ ro.reshipment_cost_amount|by_currency:ro.destination_currency }}</strong>{% if ro.reshipment_cost_proof %}&nbsp;<a href="{{ ro.reshipment_cost_proof.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Cost Proof</a>{% endif %}</p>
     {% else %}
     <p class="muted" style="margin-top:12px">Waiting for the Carrier to send the reshipment cost.</p>
     {% endif %}
@@ -91,7 +91,7 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
       <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Send Cost</button></div>
     </form>
     {% else %}
-    <p style="margin-top:16px">Reshipment cost sent: <strong>{{ ro.destination_currency }} {{ ro.reshipment_cost_amount|floatformat:0|intcomma }}</strong></p>
+    <p style="margin-top:16px">Reshipment cost sent: <strong>{{ ro.destination_currency }} {{ ro.reshipment_cost_amount|by_currency:ro.destination_currency }}</strong></p>
     {% endif %}
 
     {% if ro.reshipment_proof %}

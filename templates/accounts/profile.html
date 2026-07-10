@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static humanize %}
+{% load static humanize money %}
 {% block title %}My Dashboard — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -423,7 +423,7 @@
               <input type="hidden" name="next" value="{% url 'accounts:profile' %}#pending-disbursements">
               <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
                 <div><span class="badge badge-warning">{{ d.label }}</span> {{ d.recipient }} —
-                  <strong>{{ row.order.currency }} {% if d.amount %}{{ d.amount|floatformat:0|intcomma }}{% else %}—{% endif %}</strong>
+                  <strong>{{ row.order.currency }} {% if d.amount %}{{ d.amount|by_currency:row.order.currency }}{% else %}—{% endif %}</strong>
                   {% if d.kind == "refund" %}
                     {% if d.account_no %}
                     <span class="muted" style="display:block;font-size:.85em;margin-top:2px">Refund to: {{ d.account_name }} · {{ d.bank_name }} {{ d.account_no }}</span>

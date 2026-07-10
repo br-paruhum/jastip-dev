@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 <span class="eyebrow">Arrival · {{ arrive_req.reference }}</span>
 <h2>Mark Package as Arrived</h2>
 
@@ -28,7 +28,7 @@
         {% if arrive_req.status == "package_received" %}
         {{ arrive_form.custom_fare_amount }}{{ arrive_form.custom_fare_amount.errors }}
         {% else %}
-        <div class="static-field muted">{{ arrive_req.destination_currency }} {{ arrive_req.custom_fare_amount|floatformat:0|intcomma }}</div>
+        <div class="static-field muted">{{ arrive_req.destination_currency }} {{ arrive_req.custom_fare_amount|by_currency:arrive_req.destination_currency }}</div>
         {{ arrive_form.custom_fare_amount.as_hidden }}
         {% endif %}
       </div>

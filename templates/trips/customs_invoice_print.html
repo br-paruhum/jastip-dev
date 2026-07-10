@@ -1,4 +1,4 @@
-{% load humanize %}<!doctype html>
+{% load humanize money %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -84,21 +84,21 @@
         <td class="num">{{ r.quantity }}</td>
         <td>{{ r.name }}</td>
         <td class="coo">{{ r.origin }}</td>
-        <td class="num">{{ r.unit_value|floatformat:0|intcomma }}</td>
-        <td class="num">{{ r.total_value|floatformat:0|intcomma }}</td>
+        <td class="num">{{ r.unit_value|by_currency:ci.currency }}</td>
+        <td class="num">{{ r.total_value|by_currency:ci.currency }}</td>
       </tr>
       {% endfor %}
       <tr class="sub">
         <td></td><td>Sub-Total</td><td></td><td></td>
-        <td class="num">{{ ci.subtotal|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.subtotal|by_currency:ci.currency }}</td>
       </tr>
       <tr>
         <td></td><td>Shipping Charges</td><td></td><td></td>
-        <td class="num">{{ ci.shipping|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.shipping|by_currency:ci.currency }}</td>
       </tr>
       <tr class="total">
         <td></td><td>Total Value</td><td></td><td></td>
-        <td class="num">{{ ci.total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ ci.total|by_currency:ci.currency }}</td>
       </tr>
       <tr><td colspan="5">&nbsp;</td></tr>
       <tr>

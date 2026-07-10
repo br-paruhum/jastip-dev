@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Travel Plan {{ plan.reference }}</span>
 </div>
@@ -39,7 +39,7 @@
     </tr>
     <tr>
       <td class="pc-label">Shipment Cost / kg:</td>
-      <td class="pc-val" colspan="3">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|intcomma }}</td>
+      <td class="pc-val" colspan="3">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|by_currency:plan.shipment_currency }}</td>
     </tr>
     {% if not plan.carrier_only %}
     <tr>

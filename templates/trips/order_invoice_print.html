@@ -90,24 +90,24 @@
         <td class="num">{{ item.quantity }}</td>
         <td class="num">{{ item.actual_quantity }}</td>
         <td>{{ item.unit }}</td>
-        <td class="num">{{ item.estimated_unit_cost|floatformat:0|intcomma }}</td>
-        <td class="num">{{ item.actual_unit_cost|floatformat:0|intcomma }}</td>
-        <td class="num">{{ item.estimated_line_total|floatformat:0|intcomma }}</td>
-        <td class="num">{{ item.actual_line_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ item.estimated_unit_cost|by_currency:req.currency }}</td>
+        <td class="num">{{ item.actual_unit_cost|by_currency:req.currency }}</td>
+        <td class="num">{{ item.estimated_line_total|by_currency:req.currency }}</td>
+        <td class="num">{{ item.actual_line_total|by_currency:req.currency }}</td>
       </tr>
       {% endfor %}
       <tr class="subtotal">
         <td>Sub-Total Items</td>
         <td class="num">{{ req.est_qty_total }}</td><td class="num">{{ req.act_qty_total }}</td>
         <td></td><td></td><td></td>
-        <td class="num">{{ req.items_estimated_total|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.items_actual_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.items_estimated_total|by_currency:req.currency }}</td>
+        <td class="num">{{ req.items_actual_total|by_currency:req.currency }}</td>
       </tr>
       <tr>
         <td>Margin{% if req.margin_percent %} ({{ req.margin_percent|floatformat:"-2" }}%){% endif %}</td>
         <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
-        <td class="num">{{ req.estimated_margin|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.actual_margin|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.estimated_margin|by_currency:req.currency }}</td>
+        <td class="num">{{ req.actual_margin|by_currency:req.currency }}</td>
       </tr>
       <tr>
         <td>Shipment</td>
@@ -115,24 +115,24 @@
         <td class="num">{% if req.actual_weight_kg %}{{ req.actual_weight_kg|floatformat:1 }}{% endif %}</td>
         <td></td>
         <td class="num"></td>
-        <td class="num">{{ req.effective_cost_per_kg|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.estimated_shipment_cost|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.shipment_cost|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.effective_cost_per_kg|by_currency:req.currency }}</td>
+        <td class="num">{{ req.estimated_shipment_cost|by_currency:req.currency }}</td>
+        <td class="num">{{ req.shipment_cost|by_currency:req.currency }}</td>
       </tr>
       <tr>
         <td>Custom Duty</td>
         <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
-        <td class="num">{{ req.estimated_custom|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.actual_custom|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.estimated_custom|by_currency:req.currency }}</td>
+        <td class="num">{{ req.actual_custom|by_currency:req.currency }}</td>
       </tr>
       <tr class="total">
         <td>Total Invoice</td>
         <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
-        <td class="num">{{ req.estimated_invoice_total|floatformat:0|intcomma }}</td>
-        <td class="num">{{ req.invoice_total|floatformat:0|intcomma }}</td>
+        <td class="num">{{ req.estimated_invoice_total|by_currency:req.currency }}</td>
+        <td class="num">{{ req.invoice_total|by_currency:req.currency }}</td>
       </tr>
-      <tr><td colspan="7">Deposit Due</td><td class="num">{{ req.deposit_due|floatformat:0|intcomma }}</td></tr>
-      <tr><td colspan="7">Deposit Paid</td><td class="num">({{ req.deposit_paid_amount|floatformat:0|intcomma }})</td></tr>
+      <tr><td colspan="7">Deposit Due</td><td class="num">{{ req.deposit_due|by_currency:req.currency }}</td></tr>
+      <tr><td colspan="7">Deposit Paid</td><td class="num">({{ req.deposit_paid_amount|by_currency:req.currency }})</td></tr>
       <tr class="total"><td colspan="7">Unpaid / (Overpaid)</td><td class="num">{{ req.invoice_unpaid_overpaid|accounting:0 }}</td></tr>
       <tr><td colspan="7">Final (Payment)/Refund Made</td><td class="num">{{ req.final_settlement|accounting:0 }}</td></tr>
       <tr class="total"><td colspan="7">Total Due</td><td class="num">{{ req.total_due|accounting:0 }}</td></tr>

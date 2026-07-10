@@ -19,7 +19,7 @@
     {% if bf_order.is_cargo %}
     <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
     <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg|floatformat:1 }} kg</td></tr>
-    <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|floatformat:0|intcomma }}</td></tr>
+    <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|by_currency:bf_order.currency }}</td></tr>
     <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
     {% endif %}
     <tr><td>Travel date</td><td class="num-right">{% if bf_order.carrier_first_plan %}{{ bf_order.carrier_first_plan.travel_date|date:"d-M-Y" }}{% else %}{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}{% endif %}</td></tr>
@@ -59,14 +59,14 @@
           <td class="lcell">{{ item.name }}</td>
           <td style="text-align:center">{{ item.quantity }}</td>
           <td style="text-align:center">{{ item.unit }}</td>
-          <td>{{ item.estimated_unit_cost|floatformat:0|intcomma }}</td>
-          <td>{{ item.estimated_line_total|floatformat:0|intcomma }}</td>
+          <td>{{ item.estimated_unit_cost|by_currency:bf_order.currency }}</td>
+          <td>{{ item.estimated_line_total|by_currency:bf_order.currency }}</td>
         </tr>
         {% endfor %}
         <tr class="total">
           <td class="lcell">Total</td>
           <td></td><td></td><td></td>
-          <td>{{ bf_order.currency }} {{ bf_order.items_actual_total|floatformat:0|intcomma }}</td>
+          <td>{{ bf_order.currency }} {{ bf_order.items_actual_total|by_currency:bf_order.currency }}</td>
         </tr>
       </tbody>
     </table>
@@ -117,41 +117,41 @@
         <td>{{ item.quantity }}</td>
         <td>{{ item.actual_quantity }}</td>
         <td class="unit-cell">{{ item.unit }}</td>
-        <td>{{ item.estimated_unit_cost|floatformat:0|intcomma }}</td>
-        <td>{{ item.actual_unit_cost|floatformat:0|intcomma }}</td>
-        <td>{{ item.estimated_line_total|floatformat:0|intcomma }}</td>
-        <td>{{ item.actual_line_total|floatformat:0|intcomma }}</td>
+        <td>{{ item.estimated_unit_cost|by_currency:bf_order.currency }}</td>
+        <td>{{ item.actual_unit_cost|by_currency:bf_order.currency }}</td>
+        <td>{{ item.estimated_line_total|by_currency:bf_order.currency }}</td>
+        <td>{{ item.actual_line_total|by_currency:bf_order.currency }}</td>
       </tr>
       {% endfor %}
       <tr class="subtotal">
         <td class="lcell">Sub-Total Items</td>
         <td>{{ bf_order.est_qty_total }}</td><td>{{ bf_order.act_qty_total }}</td><td></td>
         <td></td><td></td>
-        <td>{{ bf_order.items_estimated_total|floatformat:0|intcomma }}</td><td>{{ bf_order.items_actual_total|floatformat:0|intcomma }}</td>
+        <td>{{ bf_order.items_estimated_total|by_currency:bf_order.currency }}</td><td>{{ bf_order.items_actual_total|by_currency:bf_order.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Margin{% if bf_order.margin_percent %} ({{ bf_order.margin_percent|floatformat:"-2" }}%){% endif %}</td>
         <td></td><td></td><td></td><td></td><td></td>
-        <td>{{ bf_order.estimated_margin|floatformat:0|intcomma }}</td><td>{{ bf_order.actual_margin|floatformat:0|intcomma }}</td>
+        <td>{{ bf_order.estimated_margin|by_currency:bf_order.currency }}</td><td>{{ bf_order.actual_margin|by_currency:bf_order.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Shipment (kg)</td>
         <td>{{ bf_order.estimated_weight_kg|floatformat:1 }}</td><td>{% if bf_order.actual_weight_kg %}{{ bf_order.actual_weight_kg|floatformat:1 }}{% endif %}</td><td></td>
-        <td></td><td>{{ bf_order.effective_cost_per_kg|floatformat:0|intcomma }}</td>
-        <td>{{ bf_order.estimated_shipment_cost|floatformat:0|intcomma }}</td><td>{{ bf_order.shipment_cost|floatformat:0|intcomma }}</td>
+        <td></td><td>{{ bf_order.effective_cost_per_kg|by_currency:bf_order.currency }}</td>
+        <td>{{ bf_order.estimated_shipment_cost|by_currency:bf_order.currency }}</td><td>{{ bf_order.shipment_cost|by_currency:bf_order.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Custom Duty</td>
         <td></td><td></td><td></td><td></td><td></td>
-        <td>{{ bf_order.estimated_custom|floatformat:0|intcomma }}</td><td>{{ bf_order.actual_custom|floatformat:0|intcomma }}</td>
+        <td>{{ bf_order.estimated_custom|by_currency:bf_order.currency }}</td><td>{{ bf_order.actual_custom|by_currency:bf_order.currency }}</td>
       </tr>
       <tr class="total">
         <td class="lcell">Total Invoice</td>
         <td></td><td></td><td></td><td></td><td></td>
-        <td>{{ bf_order.estimated_invoice_total|floatformat:0|intcomma }}</td><td>{{ bf_order.invoice_total|floatformat:0|intcomma }}</td>
+        <td>{{ bf_order.estimated_invoice_total|by_currency:bf_order.currency }}</td><td>{{ bf_order.invoice_total|by_currency:bf_order.currency }}</td>
       </tr>
-      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ bf_order.deposit_due|floatformat:0|intcomma }}</td></tr>
-      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ bf_order.deposit_paid_amount|floatformat:0|intcomma }})</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ bf_order.deposit_due|by_currency:bf_order.currency }}</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ bf_order.deposit_paid_amount|by_currency:bf_order.currency }})</td></tr>
       <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ bf_order.invoice_unpaid_overpaid|accounting:0 }}</td></tr>
       <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ bf_order.final_settlement|accounting:0 }}</td></tr>
       <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>{{ bf_order.total_due|accounting:0 }}</td></tr>
@@ -216,7 +216,7 @@
     {% for p in bf_order.transaction.payments.all %}
     <tr>
       <td>{{ p.get_kind_display }}</td>
-      <td class="num-right">{{ p.currency }} {{ p.amount|floatformat:0|intcomma }}</td>
+      <td class="num-right">{{ p.currency }} {{ p.amount|by_currency:bf_order.currency }}</td>
       <td style="text-align:center">{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
           {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
           {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>
@@ -240,11 +240,11 @@
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">
-    <tr><td>Products Cost + Margin</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_gross|floatformat:0|intcomma }}</td></tr>
-    <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_commission|floatformat:0|intcomma }})</td></tr>
-    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }}{% if not bf_order.proxy_disbursed_at %} {% if bf_order.proxy_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Pending buyer receipt</span>{% endif %}{% endif %}</td></tr>
+    <tr><td>Products Cost + Margin</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_gross|by_currency:bf_order.currency }}</td></tr>
+    <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_commission|by_currency:bf_order.currency }})</td></tr>
+    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|by_currency:bf_order.currency }}{% if not bf_order.proxy_disbursed_at %} {% if bf_order.proxy_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Pending buyer receipt</span>{% endif %}{% endif %}</td></tr>
     {% if bf_order.proxy_disbursed_at %}
-    <tr><td>Payout Disbursed *)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|floatformat:0|intcomma }})</td></tr>
+    <tr><td>Payout Disbursed *)</td><td class="num-right">({{ bf_order.currency }} {{ bf_order.proxy_disbursement_total|by_currency:bf_order.currency }})</td></tr>
     <tr class="total"><td>Outstanding</td><td class="num-right">-</td></tr>
     {% endif %}
   </table>
@@ -317,7 +317,7 @@
 
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;padding:14px 16px;background:var(--cream-200,#f5f1ea);border-bottom:1px solid var(--line)">
         <span style="font-size:1.1rem;font-weight:800;color:var(--slate)">{{ leg.allocated_weight_kg|floatformat:1 }} kg</span>
-        <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|floatformat:0|intcomma }}/kg</span>
+        <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}/kg</span>
         {% if leg.deposit_verified %}
           <span class="badge badge-success" style="margin-left:auto">Deposit verified</span>
         {% elif leg.deposit_pending %}
@@ -336,7 +336,7 @@
           {% elif leg.deposit_pending %}
             <span class="badge badge-warning">Awaiting verification</span>
           {% else %}
-            <span class="muted">Due: {{ bf_order.currency }} {{ leg.deposit_due|floatformat:0|intcomma }}</span>
+            <span class="muted">Due: {{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</span>
           {% endif %}
         </div>
 
@@ -371,14 +371,14 @@
           {% elif leg.leg_status == "package_arrived" %}
             <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
             {% if leg.custom_fare_amount %}
-            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|floatformat:0|intcomma }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|floatformat:0|intcomma }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
+            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|by_currency:leg.custom_fare_currency }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
             {% endif %}
             {% if leg.extra_due > 0 and not leg.balance_settled %}
               {% if leg.balance_pending %}
               <p class="muted" style="margin:0 0 6px">Balance proof submitted — pending fund verification.</p>
               {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
               {% else %}
-              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|floatformat:0|intcomma }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
               <table class="invoice" style="max-width:540px;margin:0 0 10px">
                 <tr><td style="width:250px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
                 <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -392,7 +392,7 @@
               </form>
               {% endif %}
             {% elif leg.refund_due > 0 and not leg.balance_settled %}
-              <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|floatformat:0|intcomma }}</p>
+              <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|by_currency:bf_order.currency }}</p>
               {% if leg.refund_bank_details %}
                 <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
                 <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
@@ -439,7 +439,7 @@
             <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
           {% elif leg.leg_status == "reship_cost_sent" %}
             <p class="help" style="margin:0 0 4px">
-              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|floatformat:0|intcomma }} —
+              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|by_currency:bf_order.destination_currency }} —
               {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
             </p>
             {% if leg.reshipment_proof %}
@@ -464,7 +464,7 @@
           {% elif leg.leg_status == "dropoff_missed" %}
             <span class="badge badge-danger">Drop-off missed — leg cancelled</span>
             {% if leg.dropoff_refund_amount > 0 %}
-              <p class="muted" style="margin:4px 0">Refund due: {{ bf_order.currency }} {{ leg.dropoff_refund_amount|floatformat:0|intcomma }} (deposit minus 2.5% fee)</p>
+              <p class="muted" style="margin:4px 0">Refund due: {{ bf_order.currency }} {{ leg.dropoff_refund_amount|by_currency:bf_order.currency }} (deposit minus 2.5% fee)</p>
               {% if leg.refund_bank_details %}
                 <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
                 <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
@@ -489,10 +489,10 @@
           <p class="muted" style="margin:0 0 12px">Deposit proof submitted — pending fund verification.</p>
           <div style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
             {% if leg.deposit_proof_url %}<a href="{{ leg.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
-            <button class="btn btn-primary btn-sm" type="button" disabled>Pay {{ bf_order.currency }} {{ leg.deposit_due|floatformat:0|intcomma }}</button>
+            <button class="btn btn-primary btn-sm" type="button" disabled>Pay {{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</button>
           </div>
         {% else %}
-          <p style="margin:0 0 8px">Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|intcomma }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+          <p style="margin:0 0 8px">Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
           <table class="invoice" style="max-width:380px;margin:0 auto 12px;text-align:left">
             <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
             <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>

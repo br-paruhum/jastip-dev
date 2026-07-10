@@ -43,7 +43,7 @@
   <table class="invoice" style="margin-top:18px">
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
     <tr><td>Allocated weight</td><td class="num-right">{{ leg_offer.allocated_weight_kg|default:leg_offer.avail_kg|floatformat:1 }} kg</td></tr>
-    <tr><td>Your ask rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|floatformat:0|intcomma }} / kg</td></tr>
+    <tr><td>Your ask rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
     <tr><td>Drop-off deadline</td><td class="num-right">{{ leg_offer.drop_off_deadline|date:"d-M-Y" }}</td></tr>
     <tr><td>Deposit</td><td class="num-right">
       {% if leg_offer.deposit_verified %}<span class="badge badge-success">Verified</span>
@@ -67,17 +67,17 @@
     {% if leg_offer.order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
     {# Carry fee breakdown — merged in from the former "Your Carry Fee" card. #}
-    <tr><td>Shipment rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|floatformat:0|intcomma }} / kg</td></tr>
+    <tr><td>Shipment rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
     <tr>
       <td>{% if leg_offer.order.has_actual_weight %}Final weight{% else %}Estimated weight{% endif %}</td>
       <td class="num-right">{{ leg_offer.order.effective_weight_kg|floatformat:1 }} kg</td>
     </tr>
     <tr class="total">
       <td>Carry fee ({{ leg_offer.order.currency }})</td>
-      <td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.carry_fee_estimate|floatformat:0|intcomma }}</td>
+      <td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.carry_fee_estimate|by_currency:leg_offer.order.currency }}</td>
     </tr>
     {% if leg_offer.order.actual_custom %}
-    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>
+    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|by_currency:leg_offer.order.currency }}</td></tr>
     {% endif %}
   </table>
   {# View Box Photo — moved here, under the carry fee rows. #}
@@ -104,12 +104,12 @@
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">
-    <tr><td>Carry Fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|floatformat:0|intcomma }}</td></tr>
-    <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|floatformat:0|intcomma }})</td></tr>
-    <tr><td>Customs Duty Reimbursement</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>
-    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if not leg_offer.order.traveler_paid_at %} {% if leg_offer.order.traveler_payout_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}{% endif %}</td></tr>
+    <tr><td>Carry Fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|by_currency:leg_offer.order.currency }})</td></tr>
+    <tr><td>Customs Duty Reimbursement</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if not leg_offer.order.traveler_paid_at %} {% if leg_offer.order.traveler_payout_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}{% endif %}</td></tr>
     {% if leg_offer.order.traveler_paid_at %}
-    <tr><td>Payout Disbursed *)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|floatformat:0|intcomma }})</td></tr>
+    <tr><td>Payout Disbursed *)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }})</td></tr>
     <tr class="total"><td>Outstanding</td><td class="num-right">-</td></tr>
     {% endif %}
   </table>
@@ -142,12 +142,12 @@
   <summary><h3>Your Payout</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="max-width:440px">
-    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.deposit_due|floatformat:0|intcomma }}</td></tr>
-    <tr><td>Weight adjustment</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.weight_delta|floatformat:0|intcomma }}</td></tr>
-    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|floatformat:0|intcomma }}</td></tr>
-    <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|floatformat:0|intcomma }}</td></tr>
-    <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|floatformat:0|intcomma }}</td></tr>
-    <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|floatformat:0|intcomma }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
+    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.deposit_due|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr><td>Weight adjustment</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.weight_delta|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
     <tr><td>Status</td><td class="num-right">
       {% if leg_offer.payout_paid_at %}<span class="badge badge-success">Paid {{ leg_offer.payout_paid_at|date:"d M Y" }}</span>
       {% elif leg_offer.payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>

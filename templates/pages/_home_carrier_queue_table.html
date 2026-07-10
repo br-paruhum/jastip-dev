@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 {% if queuing_carriers %}
 <div class="table-wrap">
   <table class="offers offers-centered">
@@ -21,7 +21,7 @@
           <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
         </td>
         <td class="avail-cell">{{ plan.carrier_first_remaining_kg|floatformat:1 }}</td>
-        <td class="avail-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|floatformat:0|intcomma }}</td>
+        <td class="avail-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|by_currency:plan.shipment_currency }}</td>
         <td class="status-cell">
           {% if plan.is_queue_locked %}
             {% include "trips/_status_badge.html" with status="locked" label="Locked" tone="muted" %}

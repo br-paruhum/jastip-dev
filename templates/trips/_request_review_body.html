@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 <span class="eyebrow">Review · {{ review_req.reference }}</span>
 {% if review_req.is_cargo %}
 <h2>Cargo Request Acceptance</h2>
@@ -31,7 +31,7 @@
     <div class="form-field mt-2">
       <label>Estimated weight of this package (kg)</label>
       {{ review_form.estimated_weight_kg }}{{ review_form.estimated_weight_kg.errors }}
-      <p class="help">Shipment cost = this weight × {{ review_req.currency }} {{ review_req.plan.shipment_cost_per_kg|intcomma }}/kg</p>
+      <p class="help">Shipment cost = this weight × {{ review_req.currency }} {{ review_req.plan.shipment_cost_per_kg|by_currency:review_req.currency }}/kg</p>
     </div>
     <div class="form-field mt-2">
       <label>Reason (if rejecting)</label>

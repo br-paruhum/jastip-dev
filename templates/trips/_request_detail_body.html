@@ -26,16 +26,16 @@
         <td class="lcell">{{ item.name }}</td>
         <td>{{ item.quantity }}</td>
         <td class="unit-cell">{{ item.unit }}</td>
-        <td>{{ item.estimated_unit_cost|intcomma }}</td>
-        <td>{{ item.estimated_line_total|intcomma }}</td>
+        <td>{{ item.estimated_unit_cost|by_currency:req.currency }}</td>
+        <td>{{ item.estimated_line_total|by_currency:req.currency }}</td>
       </tr>
       {% endfor %}
-      <tr class="subtotal"><td class="lcell">For Customs Declared Value</td><td>{{ req.est_qty_total }}</td><td></td><td></td><td>{{ req.items_estimated_total|intcomma }}</td></tr>
-      <tr><td class="lcell">Carrier Fee (kg)</td><td>{{ req.effective_weight_kg }}</td><td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td><td>{{ req.effective_shipment_cost|intcomma }}</td></tr>
-      {% if req.actual_custom %}<tr><td class="lcell" colspan="4">Custom Duty (reimbursable)</td><td>{{ req.actual_custom|intcomma }}</td></tr>{% endif %}
-      <tr class="total"><td class="lcell" colspan="4">Total Charge</td><td>{{ req.cargo_charge_total|intcomma }}</td></tr>
-      <tr><td class="lcell" colspan="4">Deposit Due</td><td>{{ req.deposit_due|intcomma }}</td></tr>
-      <tr><td class="lcell" colspan="4">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
+      <tr class="subtotal"><td class="lcell">For Customs Declared Value</td><td>{{ req.est_qty_total }}</td><td></td><td></td><td>{{ req.items_estimated_total|by_currency:req.currency }}</td></tr>
+      <tr><td class="lcell">Carrier Fee (kg)</td><td>{{ req.effective_weight_kg }}</td><td></td><td>{{ req.plan.shipment_cost_per_kg|by_currency:req.currency }}</td><td>{{ req.effective_shipment_cost|by_currency:req.currency }}</td></tr>
+      {% if req.actual_custom %}<tr><td class="lcell" colspan="4">Custom Duty (reimbursable)</td><td>{{ req.actual_custom|by_currency:req.currency }}</td></tr>{% endif %}
+      <tr class="total"><td class="lcell" colspan="4">Total Charge</td><td>{{ req.cargo_charge_total|by_currency:req.currency }}</td></tr>
+      <tr><td class="lcell" colspan="4">Deposit Due</td><td>{{ req.deposit_due|by_currency:req.currency }}</td></tr>
+      <tr><td class="lcell" colspan="4">Deposit Paid</td><td>({{ req.deposit_paid_amount|by_currency:req.currency }})</td></tr>
       <tr class="total"><td class="lcell" colspan="4">Balance Due</td><td>{{ req.cargo_balance_due|accounting }}</td></tr>
     </tbody>
   </table>
@@ -60,41 +60,41 @@
         <td>{{ item.quantity }}</td>
         <td>{{ item.actual_quantity }}</td>
         <td class="unit-cell">{{ item.unit }}</td>
-        <td>{{ item.estimated_unit_cost|intcomma }}</td>
-        <td>{{ item.actual_unit_cost|intcomma }}</td>
-        <td>{{ item.estimated_line_total|intcomma }}</td>
-        <td>{{ item.actual_line_total|intcomma }}</td>
+        <td>{{ item.estimated_unit_cost|by_currency:req.currency }}</td>
+        <td>{{ item.actual_unit_cost|by_currency:req.currency }}</td>
+        <td>{{ item.estimated_line_total|by_currency:req.currency }}</td>
+        <td>{{ item.actual_line_total|by_currency:req.currency }}</td>
       </tr>
       {% endfor %}
       <tr class="subtotal">
         <td class="lcell">Sub-Total Items</td>
         <td>{{ req.est_qty_total }}</td><td>{{ req.act_qty_total }}</td><td></td>
         <td></td><td></td>
-        <td>{{ req.items_estimated_total|intcomma }}</td><td>{{ req.items_actual_total|intcomma }}</td>
+        <td>{{ req.items_estimated_total|by_currency:req.currency }}</td><td>{{ req.items_actual_total|by_currency:req.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Margin</td>
         <td></td><td>{{ req.plan.margin_percent|floatformat:"-2" }}%</td><td></td><td></td><td></td>
-        <td>{{ req.estimated_margin|intcomma }}</td><td>{{ req.actual_margin|intcomma }}</td>
+        <td>{{ req.estimated_margin|by_currency:req.currency }}</td><td>{{ req.actual_margin|by_currency:req.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Shipment (kg)</td>
         <td>{{ req.estimated_weight_kg }}</td><td>{% if req.actual_weight_kg %}{{ req.actual_weight_kg }}{% endif %}</td><td></td>
-        <td></td><td>{{ req.plan.shipment_cost_per_kg|intcomma }}</td>
-        <td>{{ req.estimated_shipment_cost|intcomma }}</td><td>{{ req.shipment_cost|intcomma }}</td>
+        <td></td><td>{{ req.plan.shipment_cost_per_kg|by_currency:req.currency }}</td>
+        <td>{{ req.estimated_shipment_cost|by_currency:req.currency }}</td><td>{{ req.shipment_cost|by_currency:req.currency }}</td>
       </tr>
       <tr>
-        <td class="lcell">Custom Duty{% if req.custom_fare_needs_conversion %}<br><span class="help">({{ req.custom_fare_currency }} {{ req.custom_fare_amount|intcomma }} converted)</span>{% endif %}</td>
+        <td class="lcell">Custom Duty{% if req.custom_fare_needs_conversion %}<br><span class="help">({{ req.custom_fare_currency }} {{ req.custom_fare_amount|by_currency:req.custom_fare_currency }} converted)</span>{% endif %}</td>
         <td></td><td></td><td></td><td></td><td></td>
-        <td>{{ req.estimated_custom|intcomma }}</td><td>{{ req.actual_custom|intcomma }}</td>
+        <td>{{ req.estimated_custom|by_currency:req.currency }}</td><td>{{ req.actual_custom|by_currency:req.currency }}</td>
       </tr>
       <tr class="total">
         <td class="lcell">Total Invoice</td>
         <td></td><td></td><td></td><td></td><td></td>
-        <td>{{ req.estimated_invoice_total|intcomma }}</td><td>{{ req.invoice_total|intcomma }}</td>
+        <td>{{ req.estimated_invoice_total|by_currency:req.currency }}</td><td>{{ req.invoice_total|by_currency:req.currency }}</td>
       </tr>
-      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ req.deposit_due|intcomma }}</td></tr>
-      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ req.deposit_paid_amount|intcomma }})</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Due *</td><td>{{ req.deposit_due|by_currency:req.currency }}</td></tr>
+      <tr><td class="lcell" colspan="7">Deposit Paid</td><td>({{ req.deposit_paid_amount|by_currency:req.currency }})</td></tr>
       <tr class="total"><td class="lcell" colspan="7">Unpaid / (Overpaid)</td><td>{{ req.invoice_unpaid_overpaid|accounting }}</td></tr>
       <tr><td class="lcell" colspan="7">Final (Payment)/Refund Made</td><td>{{ req.final_settlement|accounting }}</td></tr>
       <tr class="total"><td class="lcell" colspan="7">Total Due</td><td>{{ req.total_due|accounting }}</td></tr>
@@ -145,7 +145,7 @@
       <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
       {% else %}
       <p>Your cargo order was accepted by the carrier. Pay the carry deposit to lock it in.</p>
-      <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+      <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|by_currency:req.currency }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
       <table class="invoice" style="max-width:440px;margin-bottom:12px">
         <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
         <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -153,7 +153,7 @@
         <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
       </table>
       <p class="help">Carry deposit = your package weight ({{ req.estimated_weight_kg|floatformat:1 }} kg) × the carrier's rate
-        ({{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). Upload your transfer proof below.</p>
+        ({{ req.currency }} {{ req.plan.shipment_cost_per_kg|by_currency:req.currency }}/kg). Upload your transfer proof below.</p>
       {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
       {% endif %}
     {% else %}
@@ -187,7 +187,7 @@
         <a href="{{ req.balance_proof_url }}" target="_blank">view transfer proof</a></p>{% endif %}
       <div style="text-align:center"><button class="btn btn-primary" type="button" disabled>Submit Transfer Proof</button></div>
       {% elif req.balance_extra_due > 0 %}
-      <p>The package has arrived{% if req.actual_custom %}, including reimbursable customs duty of <strong>{{ req.currency }} {{ req.actual_custom|intcomma }}</strong>{% endif %}. Please pay the outstanding balance of <strong>{{ req.currency }} {{ req.balance_extra_due|intcomma }}</strong>{% if req.balance_due_now_idr %} or <strong>IDR {{ req.balance_due_now_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+      <p>The package has arrived{% if req.actual_custom %}, including reimbursable customs duty of <strong>{{ req.currency }} {{ req.actual_custom|by_currency:req.currency }}</strong>{% endif %}. Please pay the outstanding balance of <strong>{{ req.currency }} {{ req.balance_extra_due|by_currency:req.currency }}</strong>{% if req.balance_due_now_idr %} or <strong>IDR {{ req.balance_due_now_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
         <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -197,18 +197,18 @@
       {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
       {% elif req.balance_refund_due > 0 %}
       <p>The package has arrived. Your deposit <strong>exceeds</strong> the final charge — an overpaid
-         <strong>{{ req.currency }} {{ req.balance_refund_due|intcomma }}</strong> will be refunded by admin within 48 hours.</p>
+         <strong>{{ req.currency }} {{ req.balance_refund_due|by_currency:req.currency }}</strong> will be refunded by admin within 48 hours.</p>
       {% else %}
       <p>The package has arrived and your balance is fully settled — no further payment due. Delivery options are coming in the next update.</p>
       {% endif %}
     {% else %}
-      <p class="muted">Marked as arrived{% if req.actual_custom %} — customs duty {{ req.currency }} {{ req.actual_custom|intcomma }} recorded{% endif %}.
+      <p class="muted">Marked as arrived{% if req.actual_custom %} — customs duty {{ req.currency }} {{ req.actual_custom|by_currency:req.currency }} recorded{% endif %}.
         {% if req.balance_extra_due > 0 %}Awaiting the buyer's balance payment.{% else %}No balance due from the buyer.{% endif %}</p>
     {% endif %}
 
   {% elif is_buyer and req.status == "accepted" %}
     <p>Your request was accepted.</p>
-    <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|intcomma }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+    <p>Please make a bank transfer of <strong>{{ req.currency }} {{ req.deposit_due|by_currency:req.currency }}</strong>{% if req.deposit_due_idr %} or <strong>IDR {{ req.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
     <table class="invoice" style="max-width:440px;margin-bottom:12px">
       <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
       <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -229,7 +229,7 @@
 
   {% elif is_buyer and req.status == "package_arrived" %}
     {% if req.unpaid_amount > 0 %}
-      <p>The package has arrived. Please pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|intcomma }}</strong>{% if req.unpaid_amount_idr %} or <strong>IDR {{ req.unpaid_amount_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+      <p>The package has arrived. Please pay the unpaid balance of <strong>{{ req.currency }} {{ req.unpaid_amount|by_currency:req.currency }}</strong>{% if req.unpaid_amount_idr %} or <strong>IDR {{ req.unpaid_amount_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
       <table class="invoice" style="max-width:400px;margin-bottom:12px">
         <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
         <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -239,7 +239,7 @@
       {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
     {% elif req.unpaid_amount < 0 %}
       <p>The package has arrived. Your earlier payment <strong>exceeds</strong> the final amount — an
-         overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> will be refunded by admin within 48 hours.</p>
+         overpaid <strong>{{ req.currency }} {{ req.refund_due|by_currency:req.currency }}</strong> will be refunded by admin within 48 hours.</p>
     {% else %}
       <p>The package has arrived and your balance is fully settled — no further payment due.</p>
     {% endif %}
@@ -272,11 +272,11 @@
       {% endif %}
       {% if req.is_cargo %}
         {% if req.balance_refund_due > 0 %}
-        <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.balance_refund_due|intcomma }}</strong> —
+        <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.balance_refund_due|by_currency:req.currency }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
         {% endif %}
       {% elif req.refund_due > 0 %}
-        <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|intcomma }}</strong> —
+        <p class="muted">You overpaid <strong>{{ req.currency }} {{ req.refund_due|by_currency:req.currency }}</strong> —
            admin will transfer it back to you within 48 hours.</p>
       {% endif %}
       <form method="post" action="{% url 'trips:request_clear' req.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
@@ -309,7 +309,7 @@
 
   {% elif req.status == "reship_cost_sent" %}
     {% if is_buyer %}
-      <p>Reshipment cost: <strong>{{ req.destination_currency }} {{ req.reshipment_cost_amount|intcomma }}</strong>
+      <p>Reshipment cost: <strong>{{ req.destination_currency }} {{ req.reshipment_cost_amount|by_currency:req.destination_currency }}</strong>
         {% if req.reshipment_cost_proof %}&nbsp;<a href="{{ req.reshipment_cost_proof.url }}" target="_blank" class="help">(View proof)</a>{% endif %}
       </p>
       <p>Please transfer to:</p>
@@ -354,7 +354,7 @@
     <p><span class="badge badge-success">Clear</span> Pickup confirmed{% if req.cleared_at %}
        on {{ req.cleared_at|date:"d M Y, H:i" }}{% endif %}.<br>
        The carrier will be paid the full amount after deducted by 2.5% platform fee shortly.
-       {% if is_traveler %}<br>Your payout is: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|intcomma }}</nobr>{% if req.transaction.payout_to_traveler_idr %}</strong> - or equivalent to <strong>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>{% endif %}</strong>.
+       {% if is_traveler %}<br>Your payout is: <strong><nobr>{{ req.currency }} {{ req.transaction.payout_to_traveler|by_currency:req.currency }}</nobr>{% if req.transaction.payout_to_traveler_idr %}</strong> - or equivalent to <strong>IDR {{ req.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</nobr>{% endif %}</strong>.
        &nbsp;{% if req.traveler_paid_at %}<span class="badge badge-success">Paid {{ req.traveler_paid_at|date:"d M Y" }}</span>{% elif req.traveler_payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>{% endif %}{% endif %}</p>
 
   {% elif req.status == "closed" %}
@@ -376,7 +376,7 @@
     {% for p in req.transaction.payments.all %}
     <tr>
       <td>{{ p.get_kind_display }}</td>
-      <td class="num-right">{{ p.currency }} {{ p.amount|intcomma }}</td>
+      <td class="num-right">{{ p.currency }} {{ p.amount|by_currency:req.currency }}</td>
       <td>{% if p.status == "verified" %}<span class="badge badge-success">Verified</span>
           {% elif p.status == "pending" %}<span class="badge badge-warning">Pending</span>
           {% else %}<span class="badge badge-danger">Failed</span>{% endif %}</td>

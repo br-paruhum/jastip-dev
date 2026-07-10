@@ -1,4 +1,5 @@
 {% extends "admin/base_site.html" %}
+{% load money %}
 {% load i18n admin_urls %}
 
 {% block breadcrumbs %}
@@ -27,7 +28,7 @@
     <label for="id_replacement_offer">Replacement carrier offer</label><br>
     <select name="replacement_offer" id="id_replacement_offer" required>
       {% for offer in replacements %}
-        <option value="{{ offer.pk }}">{{ offer.traveler }} — {{ offer.avail_kg|floatformat:1 }} kg avail @ {{ offer.ask_cost_per_kg }}/kg</option>
+        <option value="{{ offer.pk }}">{{ offer.traveler }} — {{ offer.avail_kg|floatformat:1 }} kg avail @ {{ offer.ask_cost_per_kg|by_currency:offer.order.currency }}/kg</option>
       {% endfor %}
     </select>
   </div>

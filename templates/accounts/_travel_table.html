@@ -1,4 +1,4 @@
-{% load humanize %}
+{% load humanize money %}
 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:1rem;margin-bottom:16px">
   <h4 class="muted" style="margin:0">{{ heading }}</h4>
   {% if show_create_plan %}<button type="button" id="toggle-plan-form" class="btn btn-primary" style="padding:6px 14px;font-size:.85rem">Create New Plan</button>{% endif %}
@@ -12,7 +12,7 @@
       <tr class="{% if row.is_closed %}row-closed{% endif %}">
         <td>{{ row.ref }}
           {% if row.kind == "offer" %}
-            <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|intcomma }}/kg · {{ row.kg|floatformat:1 }} kg</div>
+            <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|by_currency:row.currency }}/kg · {{ row.kg|floatformat:1 }} kg</div>
           {% else %}
             <div class="muted" style="font-size:.8em">{% if row.plan_ref %}{{ row.plan_ref }} · {% endif %}{{ row.available|floatformat:1 }}/{{ row.remaining|floatformat:1 }} kg avail{% if row.counterparty %} · {{ row.counterparty|truncatechars:14 }}{% endif %}</div>
           {% endif %}

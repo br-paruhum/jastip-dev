@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load humanize static %}
+{% load humanize static money %}
 {% block title %}Record purchases {{ req.reference }} — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
@@ -31,7 +31,7 @@
           {{ form.actual_weight_kg }}{{ form.actual_weight_kg.errors }}
           <p class="help">Estimated was {{ req.estimated_weight_kg|floatformat:1 }} kg. Enter the final measured weight now —
             the invoice's <em>Actual</em> shipment cost is calculated from it (this weight × {{ req.currency }}
-            {{ req.plan.shipment_cost_per_kg|intcomma }}/kg).</p>
+            {{ req.plan.shipment_cost_per_kg|by_currency:req.currency }}/kg).</p>
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
