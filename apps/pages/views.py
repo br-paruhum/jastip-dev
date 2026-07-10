@@ -83,7 +83,7 @@ def home(request):
     queuing_carriers = list(
         TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
         .select_related("traveler")
-        .prefetch_related("buy_requests", "carrier_matches")
+        .prefetch_related("buy_requests", "carrier_matches__order")
         .order_by("travel_date", "-created_at")
     )
 

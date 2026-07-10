@@ -261,10 +261,16 @@ class TravelPlan(ListingTimingMixin, models.Model):
         returns to the board the moment the accept window (set from the Proxy Buyer's
         latest estimate) elapses — without waiting for the ``expire_stale_matches``
         sweep to flip its status. Mirrors ``accept_bound_carrier``'s own-hold check.
-        Iterates the prefetched ``carrier_matches`` cache."""
+
+        Once the carrier confirms receipt, the order's actual weight replaces the
+        reserved estimate (``allocated_kg``) so the board self-corrects — matching
+        ``utilized_weight_kg`` and giving the carrier no benefit from over-estimating.
+        Iterates the prefetched ``carrier_matches`` cache (needs ``__order``
+        prefetched in list views to avoid a query per match)."""
         now = timezone.now()
         total = sum(
-            (m.allocated_kg for m in self.carrier_matches.all()
+            ((m.order.actual_weight_kg if m.order.has_actual_weight else m.allocated_kg)
+             for m in self.carrier_matches.all()
              if m.status == MatchStatus.ACCEPTED
              or (m.status == MatchStatus.PENDING and m.window_expires_at > now)),
             Decimal("0"),

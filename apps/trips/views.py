@@ -834,7 +834,7 @@ def queuing_carrier_board(request):
         TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
         .exclude(traveler=request.user)
         .select_related("traveler")
-        .prefetch_related("buy_requests", "carrier_matches")
+        .prefetch_related("buy_requests", "carrier_matches__order")
         .order_by("travel_date", "-created_at")
     )
     return render(request, "trips/queuing_carrier_board.html", {"plans": plans})
