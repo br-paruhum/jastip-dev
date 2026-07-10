@@ -219,15 +219,18 @@ def accept_bound_carrier(order, *, by_user):
     if not weight or weight <= 0:
         return False, "The proxy estimate has no weight yet."
     now = timezone.now()
-    # Capacity re-check (Flow-2 decision 3): ``carrier_first_remaining_kg`` already
-    # subtracts this order's own live hold, so add it back to measure the true room
-    # for THIS order. After a timed-out hold the room may have been taken by others.
+    # Capacity re-check (Flow-2 decision 3): true room for THIS order = plan capacity
+    # minus everyone else's commitments. Use the RAW remaining (may go negative when
+    # oversubscribed) — ``carrier_first_remaining_kg`` floors at 0, which would mask an
+    # oversell here — then add back this order's own live hold (already counted inside
+    # ``held_hold_kg``) so we don't double-subtract it.
     own_hold = sum(
         (m.allocated_kg for m in order.carrier_matches.all()
          if m.status == MatchStatus.PENDING and m.window_expires_at > now),
         0,
     )
-    if plan.carrier_first_remaining_kg + own_hold < weight:
+    raw_remaining = plan.available_weight_kg - plan.utilized_weight_kg - plan.held_hold_kg
+    if raw_remaining + own_hold < weight:
         return False, "This carrier no longer has enough spare weight for your order."
     with db_transaction.atomic():
         offer = TravelerOffer.objects.create(

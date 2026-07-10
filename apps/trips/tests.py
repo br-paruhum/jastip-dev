@@ -1405,6 +1405,21 @@ class CarrierFirstMatchingTests(TestCase):
         ok, _ = matching.accept_bound_carrier(order, by_user=self.buyer)
         self.assertTrue(ok)
 
+    def test_accept_bound_carrier_blocks_oversell(self):
+        # A proxy estimate larger than the plan's spare weight must be rejected at
+        # accept — the floored carrier_first_remaining_kg (0) must NOT mask the
+        # oversell. Regression for the accept-time capacity guard.
+        from apps.trips import matching
+        plan = self._plan(avail="5")
+        order = self._bound_order(plan, weight="8")   # 8 > 5 capacity
+        matching.hold_for_estimate(order)
+        plan.refresh_from_db()
+        self.assertEqual(plan.carrier_first_remaining_kg, Decimal("0.00"))  # floored, hides -3
+        ok, _msg = matching.accept_bound_carrier(order, by_user=self.buyer)
+        self.assertFalse(ok)
+        order.refresh_from_db()
+        self.assertNotEqual(order.status, Status.ACCEPTED)
+
     @override_settings(**_NO_MANIFEST_STORAGES)
     def test_accept_estimate_view_attaches_bound_carrier(self):
         # End-to-end: the buyer's Accept-estimate POST on a carrier-bound order

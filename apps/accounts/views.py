@@ -265,7 +265,10 @@ def profile(request):
         # Traveler side: travel plans merged with buyer-first offers into one
         # "My Travel Plans" list (the traveler doesn't care about Proxy vs Carrier).
         # Closed rows stay inline (hidden via the dashboard's "hide closed" toggle).
-        my_plans = list(TravelPlan.objects.filter(traveler=user).prefetch_related("buy_requests"))
+        # carrier_matches__order feeds carrier_first_remaining_kg (the "remaining"
+        # column) without an extra query per match — see _travel_rows.
+        my_plans = list(TravelPlan.objects.filter(traveler=user)
+                        .prefetch_related("buy_requests", "carrier_matches__order"))
         my_offers = list(TravelerOffer.objects.filter(traveler=user).select_related("order"))
         travel_rows = _travel_rows(my_plans, my_offers)
     else:
