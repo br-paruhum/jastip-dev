@@ -17,8 +17,8 @@
     {% if bf_order.is_cargo %}<tr><td>Type</td><td class="num-right">{{ bf_order.actor_label }}</td></tr>{% endif %}
     {% if bf_order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     {% if bf_order.is_cargo %}
-    <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
-    <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg }} kg</td></tr>
+    <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
+    <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg|floatformat:1 }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|floatformat:0|intcomma }}</td></tr>
     <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
     {% endif %}
@@ -316,7 +316,7 @@
     <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden">
 
       <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;padding:14px 16px;background:var(--cream-200,#f5f1ea);border-bottom:1px solid var(--line)">
-        <span style="font-size:1.1rem;font-weight:800;color:var(--slate)">{{ leg.allocated_weight_kg }} kg</span>
+        <span style="font-size:1.1rem;font-weight:800;color:var(--slate)">{{ leg.allocated_weight_kg|floatformat:1 }} kg</span>
         <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|floatformat:0|intcomma }}/kg</span>
         {% if leg.deposit_verified %}
           <span class="badge badge-success" style="margin-left:auto">Deposit verified</span>
@@ -365,11 +365,11 @@
           {% elif leg.leg_status == "package_dropped_off" %}
             <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
           {% elif leg.leg_status == "weight_verified" %}
-            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg }} kg) — awaiting carrier confirmation</span>
+            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg|floatformat:1 }} kg) — awaiting carrier confirmation</span>
           {% elif leg.leg_status == "package_received" %}
             <span class="badge badge-success">Received by carrier</span>
           {% elif leg.leg_status == "package_arrived" %}
-            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg }} kg (allocated {{ leg.allocated_weight_kg }} kg)</p>
+            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
             {% if leg.custom_fare_amount %}
             <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|floatformat:0|intcomma }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|floatformat:0|intcomma }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
             {% endif %}

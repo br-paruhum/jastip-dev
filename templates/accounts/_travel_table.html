@@ -12,9 +12,9 @@
       <tr class="{% if row.is_closed %}row-closed{% endif %}">
         <td>{{ row.ref }}
           {% if row.kind == "offer" %}
-            <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|intcomma }}/kg · {{ row.kg }} kg</div>
+            <div class="muted" style="font-size:.8em">{{ row.currency }} {{ row.ask_cost_per_kg|intcomma }}/kg · {{ row.kg|floatformat:1 }} kg</div>
           {% else %}
-            <div class="muted" style="font-size:.8em">{% if row.plan_ref %}{{ row.plan_ref }} · {% endif %}{{ row.available }}/{{ row.remaining }} kg avail{% if row.counterparty %} · {{ row.counterparty|truncatechars:14 }}{% endif %}</div>
+            <div class="muted" style="font-size:.8em">{% if row.plan_ref %}{{ row.plan_ref }} · {% endif %}{{ row.available|floatformat:1 }}/{{ row.remaining|floatformat:1 }} kg avail{% if row.counterparty %} · {{ row.counterparty|truncatechars:14 }}{% endif %}</div>
           {% endif %}
         </td>
         <td>{{ row.date|date:"d-M-Y" }}</td>

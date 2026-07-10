@@ -15,7 +15,7 @@
     <div class="form-field">
       <label>Measured weight (kg) <span style="color:var(--danger)">*</span></label>
       {{ receive_form.actual_weight_kg }}{{ receive_form.actual_weight_kg.errors }}
-      <p class="help">Estimated was {{ receive_req.estimated_weight_kg }} kg · carrier rate
+      <p class="help">Estimated was {{ receive_req.estimated_weight_kg|floatformat:1 }} kg · carrier rate
         {{ receive_req.currency }} {% if receive_req.plan %}{{ receive_req.plan.shipment_cost_per_kg|intcomma }}{% else %}{{ receive_req.effective_cost_per_kg|floatformat:0|intcomma }}{% endif %}/kg.</p>
     </div>
     <div style="text-align:center"><button class="btn btn-primary" type="submit">Package Received</button></div>

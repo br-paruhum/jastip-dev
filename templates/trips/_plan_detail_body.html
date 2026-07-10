@@ -31,7 +31,7 @@
     {% endif %}
     <tr>
       <td class="pc-label">Available Weight:</td>
-      <td class="pc-val" colspan="3">{{ plan.available_weight_kg }} kg</td>
+      <td class="pc-val" colspan="3">{{ plan.available_weight_kg|floatformat:1 }} kg</td>
     </tr>
     <tr>
       <td class="pc-label">Remaining Weight:</td>

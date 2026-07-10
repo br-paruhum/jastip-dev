@@ -152,7 +152,7 @@
         <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
         <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
       </table>
-      <p class="help">Carry deposit = your package weight ({{ req.estimated_weight_kg }} kg) × the carrier's rate
+      <p class="help">Carry deposit = your package weight ({{ req.estimated_weight_kg|floatformat:1 }} kg) × the carrier's rate
         ({{ req.currency }} {{ req.plan.shipment_cost_per_kg|intcomma }}/kg). Upload your transfer proof below.</p>
       {% include "trips/_pay_form.html" with label="Upload transfer proof" %}
       {% endif %}
@@ -170,7 +170,7 @@
     {% endif %}
 
   {% elif req.is_cargo and req.status == "package_received" %}
-    <p class="muted">Package received by the carrier{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg }} kg recorded{% endif %}.</p>
+    <p class="muted">Package received by the carrier{% if req.has_actual_weight %} — final weight {{ req.actual_weight_kg|floatformat:1 }} kg recorded{% endif %}.</p>
     {% if is_traveler %}
     <p>Print the customs invoice to carry with the package, then once you arrive enter any customs duty paid and confirm arrival.</p>
     <div style="text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">

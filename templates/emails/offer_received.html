@@ -18,7 +18,7 @@
     </tr>
     <tr>
       <td style="padding:6px 0;color:#666;">Offering</td>
-      <td style="padding:6px 0;">{{ offer.avail_kg }} kg @ {{ order.currency }} {{ offer.ask_cost_per_kg }}/kg</td>
+      <td style="padding:6px 0;">{{ offer.avail_kg|floatformat:1 }} kg @ {{ order.currency }} {{ offer.ask_cost_per_kg }}/kg</td>
     </tr>
   </table>
   <p>Log in to review the offer and select it if it works for you.</p>

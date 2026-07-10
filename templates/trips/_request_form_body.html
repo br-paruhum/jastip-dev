@@ -1,7 +1,7 @@
 <span class="eyebrow">{% if order_form_plan.carrier_only %}Cargo Request{% else %}New Order{% endif %} · {{ order_form_plan.from_city }} → {{ order_form_plan.to_city }}</span>
 {% if order_form_plan.carrier_only %}
 <h2>Cargo Request</h2>
-<p class="muted">Maximum {{ order_form_plan.remaining_weight_kg }} kg</p>
+<p class="muted">Maximum {{ order_form_plan.remaining_weight_kg|floatformat:1 }} kg</p>
 {% else %}
 <h2>What would you like the carrier to buy?</h2>
 <p class="muted">Add up to 10 items. Photos are optional (png/jpeg/jpg, max 2 MB).

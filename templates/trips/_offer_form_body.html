@@ -14,7 +14,7 @@
     <div class="card-band-row">Place an Offer</div>
     <p class="muted" style="margin-top:14px">
       <strong>{{ offer_form_order.reference }}</strong> ·
-      Bid {{ offer_form_order.bid_weight_kg }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
+      Bid {{ offer_form_order.bid_weight_kg|floatformat:1 }} kg @ {{ offer_form_order.currency }} {{ offer_form_order.bid_cost_per_kg }}/kg ·
       Deadline {{ offer_form_order.max_acceptable_date|date:"d-M-Y" }}
       {% if offer_form_order.partial_allowed %}· Partial fulfillment allowed{% endif %}
     </p>

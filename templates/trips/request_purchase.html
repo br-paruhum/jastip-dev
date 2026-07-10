@@ -29,7 +29,7 @@
         <div class="form-field">
           <label>Actual shipment weight (kg)</label>
           {{ form.actual_weight_kg }}{{ form.actual_weight_kg.errors }}
-          <p class="help">Estimated was {{ req.estimated_weight_kg }} kg. Enter the final measured weight now —
+          <p class="help">Estimated was {{ req.estimated_weight_kg|floatformat:1 }} kg. Enter the final measured weight now —
             the invoice's <em>Actual</em> shipment cost is calculated from it (this weight × {{ req.currency }}
             {{ req.plan.shipment_cost_per_kg|intcomma }}/kg).</p>
         </div>
