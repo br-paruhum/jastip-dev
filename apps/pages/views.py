@@ -39,10 +39,14 @@ def home(request):
     }
     cargo_looking = []
 
-    # Flow-1 (proxy, FCFS one traveler) — unchanged.
+    # Flow-1 (proxy, FCFS one traveler) — unchanged. Carrier-First orders are
+    # bound to a plan (carrier_first_plan) and only consume that plan's Spare
+    # Weight on the Queuing Carrier board — they must never surface on this
+    # Queuing Cargo board, so exclude them.
     for o in (
         Order.objects.filter(
             plan__isnull=True, cargo_only=False, proxy_buyer__isnull=False,
+            carrier_first_plan__isnull=True,
             status__in={Status.RESPONDED} | CARRY_INFLIGHT,
         ).select_related("buyer").prefetch_related("traveler_offers")
     ):
