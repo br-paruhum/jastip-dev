@@ -15,14 +15,14 @@
   <table class="invoice">
     <tr class="title-band"><td colspan="2">Order Details</td></tr>
     {% if bf_order.is_cargo %}<tr><td>Type</td><td class="num-right">{{ bf_order.actor_label }}</td></tr>{% endif %}
-    <tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    {% if bf_order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     {% if bf_order.is_cargo %}
     <tr><td>Bid Weight</td><td class="num-right">{{ bf_order.bid_weight_kg }} kg</td></tr>
     <tr><td>Pending Weight</td><td class="num-right">{{ bf_order.remaining_bid_weight_kg }} kg</td></tr>
     <tr><td>Bid Price/kg</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.bid_cost_per_kg|floatformat:0|intcomma }}</td></tr>
     <tr><td>Partial</td><td class="num-right">{% if bf_order.partial_allowed %}Allowed{% else %}Not allowed{% endif %}</td></tr>
     {% endif %}
-    <tr><td>Travel date</td><td class="num-right">{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}</td></tr>
+    <tr><td>Travel date</td><td class="num-right">{% if bf_order.carrier_first_plan %}{{ bf_order.carrier_first_plan.travel_date|date:"d-M-Y" }}{% else %}{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}{% endif %}</td></tr>
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
 {% if bf_order.proxy_buyer_notes %}<tr><td>Notes to Proxy Buyer</td><td class="num-right">{{ bf_order.proxy_buyer_notes|linebreaksbr }}</td></tr>{% endif %}
   </table>
@@ -71,6 +71,16 @@
       </tbody>
     </table>
   </div>
+  {% if is_order_buyer and bf_order.can_edit and bf_order.status != "estimate_sent" %}
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap">
+    <a class="btn btn-primary btn-sm" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block"
+          onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
+      {% csrf_token %}
+      <button class="btn btn-outline-clay btn-sm" type="submit">Cancel</button>
+    </form>
+  </div>
+  {% endif %}
 </div></div>
 {% else %}
 {% if estimate_order %}
@@ -157,24 +167,24 @@
   {% if is_order_buyer and bf_order.status == "estimate_sent" %}
   <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap">
     <form method="post" action="{% url 'trips:proxy_estimate_accept' bf_order.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
-    <a class="btn btn-outline btn-sm" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
-    <form method="post" action="{% url 'trips:proxy_estimate_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:proxy_estimate_reject' bf_order.id %}">{% csrf_token %}<button class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" type="submit">Reject</button></form>
+  </div>
+  {% endif %}
+  {% if is_order_buyer and bf_order.can_edit and bf_order.status != "estimate_sent" %}
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap">
+    <a class="btn btn-primary btn-sm" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block"
+          onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
+      {% csrf_token %}
+      <button class="btn btn-outline-clay btn-sm" type="submit">Cancel</button>
+    </form>
   </div>
   {% endif %}
 </div></div>
 {% endif %}
 {% endif %}
 
-{% if is_order_buyer and bf_order.can_edit and bf_order.status != "estimate_sent" %}
-<div class="mt-2" style="text-align:center">
-  <a class="btn btn-primary" href="{% url 'trips:order_edit' bf_order.id %}">Edit</a>
-  <form method="post" action="{% url 'trips:order_cancel' bf_order.id %}" style="display:inline-block;margin-left:32px"
-        onsubmit="return confirm('Cancel this order? It will be removed from the listings.');">
-    {% csrf_token %}
-    <button class="btn btn-outline" type="submit">Cancel</button>
-  </form>
-</div>
-{% endif %}
 
 <!-- Payment Terms (foldable) — editable in admin: Site Settings.
      Hidden from the Proxy Buyer until they've sent their estimate (nothing to

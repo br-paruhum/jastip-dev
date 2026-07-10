@@ -42,6 +42,13 @@ Context expected (Django include passes the parent context through):
     <p class="muted">Please fill in all required data. After you click "Submit Offer" Buyer will be notified. Weight on Buyer's order is subject to final reweighing.</p>
 
   {# ==================================================================== #}
+  {# CARRIER — posted Travel Plan detail (Carrier-First), awaiting orders. #}
+  {# ==================================================================== #}
+  {% elif note_role == "plan" %}
+    {# #Step-1.2-Carrier #}
+    <p class="muted">Your travel plan is posted and now listed on the Queuing Carrier board. Buyers can send you their orders against your spare capacity. You can Edit or Cancel this plan until a buyer places an order, or until you are within 24 hours of travel.</p>
+
+  {# ==================================================================== #}
   {# CARRIER VIEW — offer-detail (leg_offer). Acts on leg_offer / order.   #}
   {# ==================================================================== #}
   {% elif note_role == "carrier" %}

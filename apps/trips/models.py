@@ -74,7 +74,7 @@ class TravelPlan(ListingTimingMixin, models.Model):
     """A carrier's offer: a trip with spare luggage capacity."""
 
     traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="travel_plans")
-    reference = models.CharField(max_length=12, unique=True, editable=False, blank=True)
+    reference = models.CharField(max_length=14, unique=True, editable=False, blank=True)
 
     travel_date = models.DateField()
     travel_time = models.TimeField(null=True, blank=True)
@@ -112,9 +112,19 @@ class TravelPlan(ListingTimingMixin, models.Model):
         super().save(*args, **kwargs)
 
     def _generate_reference(self) -> str:
+        """Destination-city prefix + today's date + 3 random alphanumerics
+        (e.g. JAK-YYMMDDXXX; JAK = first 3 letters of the destination city),
+        retrying on the rare same-day collision (reference is unique)."""
         import secrets
+        import string
         prefix = slugify(self.to_city)[:3].upper() or "JST"
-        return f"{prefix}-{secrets.token_hex(3).upper()}"
+        date_part = timezone.now().strftime("%y%m%d")
+        alphabet = string.ascii_uppercase + string.digits
+        while True:
+            suffix = "".join(secrets.choice(alphabet) for _ in range(3))
+            ref = f"{prefix}-{date_part}{suffix}"
+            if not type(self).objects.filter(reference=ref).exists():
+                return ref
 
     def get_absolute_url(self):
         return reverse("trips:plan_detail", args=[self.pk])
@@ -242,13 +252,21 @@ class TravelPlan(ListingTimingMixin, models.Model):
     # --- Carrier-First (Queuing Carrier board) — see PLAN-carrier-first-orders.md ---
     @property
     def held_hold_kg(self) -> Decimal:
-        """Weight reserved by carrier-first CarrierMatch holds (pending + accepted).
-        A carrier-first match never sets ``order.plan`` (the order stays on buyer-first
-        rails), so its weight is NOT in ``utilized_weight_kg`` — the CarrierMatch ledger
-        is the sole record of it. Iterates the prefetched ``carrier_matches`` cache."""
+        """Weight reserved by carrier-first CarrierMatch holds (accepted, plus
+        pending holds still inside their accept window). A carrier-first match never
+        sets ``order.plan`` (the order stays on buyer-first rails), so its weight is
+        NOT in ``utilized_weight_kg`` — the CarrierMatch ledger is the sole record.
+
+        A PENDING hold whose window has lapsed no longer counts, so the spare weight
+        returns to the board the moment the accept window (set from the Proxy Buyer's
+        latest estimate) elapses — without waiting for the ``expire_stale_matches``
+        sweep to flip its status. Mirrors ``accept_bound_carrier``'s own-hold check.
+        Iterates the prefetched ``carrier_matches`` cache."""
+        now = timezone.now()
         total = sum(
             (m.allocated_kg for m in self.carrier_matches.all()
-             if m.status in HELD_MATCH_STATUSES),
+             if m.status == MatchStatus.ACCEPTED
+             or (m.status == MatchStatus.PENDING and m.window_expires_at > now)),
             Decimal("0"),
         )
         return total.quantize(TWO_PLACES)
@@ -704,9 +722,14 @@ class Order(ListingTimingMixin, models.Model):
 
     @property
     def effective_cost_per_kg(self) -> Decimal:
-        """Shipment rate driving cost calculations: the plan's rate, the
-        single confirmed leg's accepted ask, or — before any leg is
-        confirmed — the buyer's opening bid (for list-page display only)."""
+        """Shipment rate driving cost calculations: the bound carrier's rate
+        (Carrier-First), the plan's rate, the single confirmed leg's accepted
+        ask, or — before any leg is confirmed — the buyer's opening bid (for
+        list-page display only)."""
+        # Carrier-First: the carrier is bound up front, so the shipment rate is
+        # fixed by their travel plan from the moment the order is placed.
+        if self.carrier_first_plan_id:
+            return self.carrier_first_plan.shipment_cost_per_kg
         if self.plan_id:
             return self.plan.shipment_cost_per_kg
         legs = self.confirmed_legs

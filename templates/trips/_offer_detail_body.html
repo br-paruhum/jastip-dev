@@ -42,34 +42,29 @@
     <tr class="title-band"><td colspan="2">Carry Details</td></tr>
     <tr><td>Order</td><td class="num-right">{{ leg_offer.order.reference }}</td></tr>
     <tr><td>Route</td><td class="num-right">{{ leg_offer.route }}</td></tr>
-    <tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>
+    {% if leg_offer.order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
-  </table>
-  {% if leg_offer.order.box_photo_1 or leg_offer.order.box_photo_2 %}
-  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-    {% if leg_offer.order.box_photo_1 %}<a href="{{ leg_offer.order.box_photo_1.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo</a>{% endif %}
-    {% if leg_offer.order.box_photo_2 %}<a href="{{ leg_offer.order.box_photo_2.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo 2</a>{% endif %}
-  </div>
-  {% endif %}
-</div></div>
-
-<div class="card mt-2"><div class="card-body">
-  <div class="card-band-row">Your Carry Fee — {{ leg_offer.order.currency }}</div>
-  <table class="invoice" style="margin-top:18px">
+    {# Carry fee breakdown — merged in from the former "Your Carry Fee" card. #}
     <tr><td>Shipment rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|floatformat:0|intcomma }} / kg</td></tr>
     <tr>
       <td>{% if leg_offer.order.has_actual_weight %}Final weight{% else %}Estimated weight{% endif %}</td>
       <td class="num-right">{{ leg_offer.order.effective_weight_kg|floatformat:1 }} kg</td>
     </tr>
     <tr class="total">
-      <td>Carry fee</td>
+      <td>Carry fee ({{ leg_offer.order.currency }})</td>
       <td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.carry_fee_estimate|floatformat:0|intcomma }}</td>
     </tr>
     {% if leg_offer.order.actual_custom %}
     <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|floatformat:0|intcomma }}</td></tr>
     {% endif %}
   </table>
-  <span class="help">The carry fee is your shipment rate × the carried weight. Customs duty you pay at the destination is reimbursed on top. Your final payout (less the platform fee) is shown below once the package arrives.</span>
+  {# View Box Photo — moved here, under the carry fee rows. #}
+  {% if leg_offer.order.box_photo_1 or leg_offer.order.box_photo_2 %}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    {% if leg_offer.order.box_photo_1 %}<a href="{{ leg_offer.order.box_photo_1.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo</a>{% endif %}
+    {% if leg_offer.order.box_photo_2 %}<a href="{{ leg_offer.order.box_photo_2.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo 2</a>{% endif %}
+  </div>
+  {% endif %}
   {% if leg_offer.can_edit %}
   <div class="mt-2" style="text-align:center;border-top:1px solid var(--line);padding-top:16px">
     <a class="btn btn-primary" href="{% url 'trips:offer_edit' leg_offer.id %}">Edit</a>

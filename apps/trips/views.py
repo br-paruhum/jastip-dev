@@ -111,7 +111,11 @@ def plan_create(request):
             plan.shipment_currency = ExchangeRate.currency_for_country(plan.from_country)
             plan.save()
             messages.success(request, "Travel plan published.")
-            return redirect(reverse("accounts:profile") + "#travel-plans")
+            # Land on the new plan's detail panel. ?plan= drives the server-side
+            # panel and (unlike the #fragment, which some browsers drop across a
+            # POST→302 redirect) always survives, so the dashboard JS can restore
+            # #plan-detail from it.
+            return redirect(reverse("accounts:profile") + f"?plan={plan.pk}#plan-detail")
     else:
         form = TravelPlanForm()
     country_currency_map_json = json.dumps(ExchangeRate.country_currency_map())
@@ -611,13 +615,18 @@ def proxy_purchase(request, order_id):
     if not order.proxy_actuals_editable:
         messages.info(request, "Actual costs can't be changed at this stage.")
         return redirect(detail)
+    # "Save" (partial) vs "Mark Package Ready" (finalize) — same form, two buttons.
+    is_draft = request.POST.get("action") == "save"
     form = PurchaseWeightForm(request.POST, instance=order)  # actual total weight
-    formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order)
+    formset = PurchaseItemFormSet(request.POST, request.FILES, instance=order,
+                                  form_kwargs={"draft": is_draft})
     box_files = request.FILES.getlist("box_photos")[:1]
-    if not box_files and not order.box_photo_1:
-        messages.error(request, "Box Photo is required.")
-        return redirect(dash + f"?package_ready={order.id}#package-ready")
-    if form.is_valid() and formset.is_valid():
+    # Validate the forms FIRST (this is what flags missing per-product photos), then
+    # check the box photo — so a missing box photo no longer short-circuits and hides
+    # the product-photo warnings. Both requirements are surfaced together below.
+    forms_ok = form.is_valid() and formset.is_valid()
+    box_missing = not is_draft and not box_files and not order.box_photo_1
+    if forms_ok and not box_missing:
         form.save()  # actual_weight_kg
         # One box photo (of it closed, ready to hand over). The storage
         # converts it to WebP on save.
@@ -625,6 +634,12 @@ def proxy_purchase(request, order_id):
             order.box_photo_1 = box_files[0]
             order.save(update_fields=["box_photo_1"])
         formset.save()  # persist any actual costs/qty the proxy entered
+        if is_draft:
+            # Partial save: keep exactly what the proxy entered and stay on the
+            # package-ready form. Don't default blanks, don't mark ready, don't
+            # notify the buyer — they'll come back and Mark Package Ready later.
+            messages.success(request, "Draft saved. You can continue and Mark Package Ready later.")
+            return redirect(dash + f"?package_ready={order.id}#package-ready")
         # Default any blank actuals to the estimate — the proxy bought as ordered,
         # so the invoice's Actual column is always populated.
         for item in order.items.all():
@@ -643,10 +658,20 @@ def proxy_purchase(request, order_id):
         workflow.on_items_purchased(order)
         messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
         return redirect(detail)
-    # Missing product photos are now a per-item field error (formset invalid);
-    # surface one clear, non-noisy message instead of ten identical field errors.
-    if any(f.errors.get("purchase_photo") for f in formset.forms):
-        messages.error(request, "A product photo is required for every purchased item (set quantity to 0 if not bought).")
+    # Not ready — surface EVERY missing requirement at once: box photo AND each
+    # purchased product still missing its photo (named, so it's clear with >1 item).
+    if box_missing:
+        messages.error(request, "Box Photo is required.")
+    missing_photo_names = [
+        (f.instance.name or f"Item {i + 1}")
+        for i, f in enumerate(formset.forms) if f.errors.get("purchase_photo")
+    ]
+    if missing_photo_names:
+        messages.error(
+            request,
+            "A product photo is required for: " + ", ".join(missing_photo_names)
+            + " (set that product's quantity to 0 if it wasn't purchased).",
+        )
     for err in formset.non_form_errors():
         messages.error(request, err)
     for field, errs in form.errors.items():

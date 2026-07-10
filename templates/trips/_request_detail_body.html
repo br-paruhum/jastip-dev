@@ -1,7 +1,6 @@
 {% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
   <span class="eyebrow" style="margin:0">Request {{ req.reference }} · {{ req.plan.from_city }} → {{ req.plan.to_city }}</span>
-  {% if is_buyer %}{% include "trips/_status_badge.html" with status=req.status label=req.buyer_status_display tone=req.status_tone %}{% else %}{% include "trips/_status_badge.html" with status=req.status label=req.detail_status_label tone=req.status_tone %}{% endif %}
 </div>
 
 <!-- Invoice (Estimate / Actual) -->

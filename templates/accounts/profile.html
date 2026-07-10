@@ -133,15 +133,14 @@
             <details class="card fold notes-fold" open>
               <summary><h3>Notes</h3></summary>
               <div class="fold-body">
-                {# #Step-3.1-Carrier — Post a Travel Plan (Carrier-First) #}
+                {# #Step-1.1-Carrier — Post a Travel Plan (Carrier-First) #}
                 <p class="muted">Fill in your trip details and spare luggage capacity, then click "Submit Travel Plan". Once posted, your plan joins the Queuing Carrier board and buyers can send their orders to you.</p>
               </div>
             </details>
 
             <div class="card mt-2"><div class="card-body">
             <div class="card-band-row">Post a Travel Plan</div>
-            <p class="muted">List your trip and spare luggage space, buyers will be able to order it.</p>
-            <form method="post" action="{% url 'trips:plan_create' %}">
+            <form method="post" action="{% url 'trips:plan_create' %}" style="margin-top:16px">
               {% csrf_token %}
               {# Carrier-First plans are always Carrier Only (no proxy-buying, no margin). #}
               <input type="hidden" name="carrier_only" value="1">
@@ -163,12 +162,12 @@
                 <div class="form-field" id="plan-shipment-field">
                   <label>Shipment Cost per kg</label>
                   {{ plan_form.shipment_cost_per_kg }}{{ plan_form.shipment_cost_per_kg.errors }}
-                  <p class="help">Origin country currency will be set automatically.</p>
+                  <p class="help">Use origin country currency.</p>
                 </div>
               </div>
               <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
-                <button class="btn btn-outline" type="button" id="cancel-plan-form">Cancel</button>
+                <button class="btn btn-outline-clay" type="button" id="cancel-plan-form">Cancel</button>
               </div>
             </form>
             </div></div>
@@ -556,7 +555,21 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
       history.replaceState(null, '', '#' + l.dataset.tab);
     });
   });
-  activate((location.hash || '#profile').slice(1));
+  // Prefer the URL #fragment. Some browsers drop the fragment when following a
+  // POST→302 redirect, so also infer the panel from ?plan=/?order= (which the
+  // browser always keeps); otherwise default to the Profile panel.
+  var params = new URLSearchParams(location.search);
+  var initialName = location.hash ? location.hash.slice(1) : '';
+  if (!initialName) {
+    if (params.get('plan')) initialName = 'plan-detail';
+    else if (params.get('order')) initialName = 'order-detail';
+    else initialName = 'profile';
+  }
+  activate(initialName);
+  if (!location.hash && initialName !== 'profile') {
+    // Restore the hash the browser dropped, keeping the query (?plan=/?order=) so a reload still resolves.
+    history.replaceState(null, '', location.pathname + location.search + '#' + initialName);
+  }
 
   // When a link only changes the hash (e.g. clicking "Open" while ?order= is
   // already in the URL), the browser does not reload — re-activate the panel

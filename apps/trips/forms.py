@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import time, timedelta
 from decimal import Decimal
 
 from django import forms
@@ -77,6 +77,9 @@ class TravelPlanForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["travel_date"].input_formats = ["%d-%b-%Y", "%Y-%m-%d"]
+        # Default a new plan's departure time to 12:00 (edits keep the saved value).
+        if self.instance.pk is None and not self.initial.get("travel_time"):
+            self.initial["travel_time"] = time(12, 0)
 
     def clean(self):
         cleaned = super().clean()
@@ -182,9 +185,11 @@ class OrderForm(forms.ModelForm):
             ):
                 self.fields.pop(name, None)
             # Flow-2 (Carrier-First): the buyer ordered against a specific queued
-            # carrier, so the destination is fixed by the plan too (set server-side).
+            # carrier, so the destination is fixed by the plan too (set server-side),
+            # and there's no offer window — the carrier is already chosen — so the
+            # Order Deadline doesn't apply (it stays required on the buyer-first flow).
             if carrier_plan is not None:
-                for name in ("to_country", "to_city"):
+                for name in ("to_country", "to_city", "max_acceptable_date"):
                     self.fields.pop(name, None)
             self.fields["proxy_buyer_notes"].required = False
             return
@@ -526,7 +531,10 @@ class PurchaseItemForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, draft=False, **kwargs):
+        # draft=True → "Save" (partial): the proxy is saving work-in-progress to
+        # finish later, so per-line photo isn't required yet (see clean()).
+        self.draft = draft
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             if not self.instance.actual_quantity:
@@ -536,6 +544,10 @@ class PurchaseItemForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        # Partial "Save": persist whatever's entered, so skip the purchased-line
+        # photo rule — it's enforced only when the proxy Marks Package Ready.
+        if self.draft:
+            return cleaned
         # A product photo is mandatory for every *purchased* line, enforced per
         # item (not just the first row). It depends on the submitted quantity, so
         # it lives here rather than as a static required flag:

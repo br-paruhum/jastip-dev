@@ -90,6 +90,9 @@ img { max-width: 100%; height: auto; display: block; }
 .btn-primary:hover { background: var(--clay-dark); color: #fff; }
 .btn-outline { background: transparent; color: var(--slate); border-color: var(--line); }
 .btn-outline:hover { border-color: var(--clay); color: var(--clay-dark); }
+/* Outline variant with a clay border + clay label (e.g. a secondary Cancel next to a clay primary). */
+.btn-outline-clay { background: #fff; color: var(--clay); border-color: var(--clay); }
+.btn-outline-clay:hover { background: var(--clay-soft); color: var(--clay-dark); border-color: var(--clay-dark); }
 .btn-ghost { background: var(--cream); color: var(--slate); }
 /* Register button: white label, clay hover to match the primary "I'm Travelling" button */
 .nav-links a.btn-register { color: #fff; }
