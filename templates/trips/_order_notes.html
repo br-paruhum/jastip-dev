@@ -69,20 +69,7 @@ Context expected (Django include passes the parent context through):
       {% elif leg_offer.order.status == "items_purchased" %}
       {# #Step-6.2-Carrier #}
         {% if leg_offer.order.is_proxy_buyer_first %}
-          <p>Proxy Buyer has the package ready. Use the Chat Box to set time and location for hand over the package. On hand over time, compare the Packing List with the actual items and photo of box/luggage photo, then weigh it for final check before selecting "Confirm Received".</p>
-          <form method="post" action="{% url 'trips:request_receive' leg_offer.order_id %}" style="margin-top:8px">
-            {% csrf_token %}
-            <div class="form-field" style="max-width:280px;margin:0 auto">
-              <label style="display:block;text-align:center">Measured Weight (kg) <span style="color:var(--danger)">*</span></label>
-              <input type="number" name="actual_weight_kg" step="0.1" min="0.1" class="num-right"
-                     value="{{ leg_offer.order.effective_weight_kg|floatformat:'-2' }}" required>
-              <p class="help">Final Carry Fee is calculated using this value.</p>
-            </div>
-            <div style="text-align:center;margin-top:12px">
-              <button class="btn btn-primary btn-sm" type="submit">Confirm Received</button>
-              <p class="help" style="margin-top:10px">By clicking this button, I confirm that all items listed on the Packing List have been physically checked and found correct.</p>
-            </div>
-          </form>
+          <p>Proxy Buyer has the package ready. Use the Chat Box to set time and location for hand over the package. On hand over time, compare the Packing List with the actual items and photo of box/luggage photo, then weigh it for final check before completing the <strong>Package Received Confirmation</strong> below.</p>
         {% elif leg_offer.travel_date_passed %}
         <p>You've arrived. Record any customs duty you paid (reimbursable) and confirm the package has arrived.</p>
         <div style="text-align:center"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Package Arrived</a></div>
