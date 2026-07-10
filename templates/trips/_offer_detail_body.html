@@ -80,11 +80,12 @@
     <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|by_currency:leg_offer.order.currency }}</td></tr>
     {% endif %}
   </table>
-  {# View Box Photo — moved here, under the carry fee rows. #}
-  {% if leg_offer.order.box_photo_1 or leg_offer.order.box_photo_2 %}
+  {# View Box Photo + Upload Receipt (duty proof) — action row under the carry fee rows. #}
+  {% if leg_offer.order.box_photo_1 or leg_offer.order.box_photo_2 or leg_offer.order.status == "ready_for_pickup" and leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}
   <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
     {% if leg_offer.order.box_photo_1 %}<a href="{{ leg_offer.order.box_photo_1.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo</a>{% endif %}
     {% if leg_offer.order.box_photo_2 %}<a href="{{ leg_offer.order.box_photo_2.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Box Photo 2</a>{% endif %}
+    {% if leg_offer.order.status == "ready_for_pickup" and leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}<a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a>{% endif %}
   </div>
   {% endif %}
   {% if leg_offer.can_edit %}
@@ -107,7 +108,7 @@
     <tr><td>Carry Fee</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.effective_shipment_cost|by_currency:leg_offer.order.currency }}</td></tr>
     <tr><td>Platform Fee (2.5%)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.commission_amount|by_currency:leg_offer.order.currency }})</td></tr>
     <tr><td>Customs Duty Reimbursement</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.actual_custom|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if not leg_offer.order.traveler_paid_at %} {% if leg_offer.order.traveler_payout_disbursable %}<span class="badge badge-warning">Ready to release</span>{% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}{% endif %}</td></tr>
+    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if not leg_offer.order.traveler_paid_at and leg_offer.order.traveler_payout_disbursable %} <span class="badge badge-warning">Ready to release</span>{% endif %}</td></tr>
     {% if leg_offer.order.traveler_paid_at %}
     <tr><td>Payout Disbursed *)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.order.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }})</td></tr>
     <tr class="total"><td>Outstanding</td><td class="num-right">-</td></tr>

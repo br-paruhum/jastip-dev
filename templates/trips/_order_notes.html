@@ -106,8 +106,7 @@ Context expected (Django include passes the parent context through):
       {# #Step-10.1-Carrier #Step-10.2-Carrier #}
       {% if leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}
       {# #Step-9.2-Carrier #}
-      <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the proof.</p>
-      <div style="text-align:center"><a class="btn btn-primary" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a></div>
+      <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the proof using the <strong>Upload Receipt</strong> button in the Carry Details card.</p>
       {% elif leg_offer.order.pickup_selected %}
       {% if leg_offer.order.is_proxy_buyer_first %}
       {# #Step-10.2-Carrier #}
