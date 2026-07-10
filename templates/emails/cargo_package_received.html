@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize %}
 {% block body %}
+  {# #Step-7-Buyer #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your package was received</h2>
   <p>Good news — the carrier has received your package for request
      <strong>{{ request_obj.reference }}</strong> and recorded the final measured weight.</p>

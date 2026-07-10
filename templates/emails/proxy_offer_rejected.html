@@ -1,5 +1,6 @@
 {% extends "email_base.html" %}
 {% block body %}
+  {# #Step-4.2-Carrier #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Offer declined</h2>
   <p>The buyer has declined your shipment offer for order <strong>{{ request_obj.reference }}</strong>
      ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>

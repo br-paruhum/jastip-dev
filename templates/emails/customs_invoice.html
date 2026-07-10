@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize %}
 {% block body %}
+  {# #Step-6.2-Carrier #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Customs Invoice — {{ request_obj.reference }}</h2>
   <p>Your customs invoice for the goods you are carrying for <strong>{{ buyer.full_name }}</strong> is
     attached to this email as a PDF. Please present it at customs.</p>

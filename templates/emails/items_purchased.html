@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize money %}
 {% block body %}
+  {# #Step-6.2-Buyer #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your items have been purchased</h2>
   <p>The carrier has purchased the items for request <strong>{{ request_obj.reference }}</strong>.</p>
   <p>Your invoice has been updated. Current invoice total:

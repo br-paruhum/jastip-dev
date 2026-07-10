@@ -1,5 +1,6 @@
 {% extends "email_base.html" %}
 {% block body %}
+  {# #Step-4-Buyer #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">A carrier is available for your order</h2>
   <p>{{ match_count }} carrier{{ match_count|pluralize }} can carry your order
      <strong>{{ request_obj.reference }}</strong>

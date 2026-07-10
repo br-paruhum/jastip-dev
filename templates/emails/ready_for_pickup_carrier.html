@@ -1,6 +1,6 @@
 {% extends "email_base.html" %}
 {% block body %}
-  {# #Step-10.1-Buyer #}
+  {# #Step-10.1-Carrier — balance verified, package ready for pickup. Split from ready_for_pickup so buyer + carrier copy can differ. #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Ready for pickup</h2>
   <p>The balance for request <strong>{{ request_obj.reference }}</strong> has been verified.
      The package is ready for pickup.</p>

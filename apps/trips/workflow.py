@@ -201,7 +201,7 @@ def on_proxy_offer_accepted(order, offer):
     send_email(
         to_user=offer.traveler,
         subject=f"Your offer on {order.reference} was accepted",
-        template="proxy_offer_accepted",
+        template="carrier_offer_accepted",
         context=ctx,
         event="offer_accepted",
     )
@@ -424,7 +424,7 @@ def on_cargo_arrived(request_obj):
         send_email(
             to_user=party,
             subject="Package ready for pickup",
-            template="ready_for_pickup",
+            template="ready_for_pickup" if party == request_obj.buyer else "ready_for_pickup_carrier",
             context=_ctx(request_obj),
             event="ready_for_pickup",
         )
@@ -473,7 +473,7 @@ def on_package_arrived_settled(request_obj):
         send_email(
             to_user=party,
             subject="Package ready for pickup",
-            template="ready_for_pickup",
+            template="ready_for_pickup" if party == request_obj.buyer else "ready_for_pickup_carrier",
             context=_ctx(request_obj),
             event="ready_for_pickup",
         )
@@ -490,7 +490,7 @@ def on_balance_verified(request_obj):
         send_email(
             to_user=party,
             subject="Package ready for pickup",
-            template="ready_for_pickup",
+            template="ready_for_pickup" if party == request_obj.buyer else "ready_for_pickup_carrier",
             context=_ctx(request_obj),
             event="ready_for_pickup",
         )
@@ -688,7 +688,7 @@ def on_offer_submitted(order, offer):
         send_email(
             to_user=proxy_user,
             subject=f"A carrier offered to carry order {order.reference}",
-            template="offer_received",
+            template="offer_received_proxy",
             context=ctx,
             event="offer_received",
         )

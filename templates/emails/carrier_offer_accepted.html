@@ -1,6 +1,6 @@
 {% extends "email_base.html" %}
 {% block body %}
-  {# #Step-5.2-Proxy #}
+  {# #Step-5.1-Carrier — buyer accepted the carrier's shipment-cost offer. Split from proxy_offer_accepted so carrier + proxy copy can differ. #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Shipment cost accepted</h2>
   <p>The buyer has accepted the shipment cost for order <strong>{{ request_obj.reference }}</strong>
      ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>

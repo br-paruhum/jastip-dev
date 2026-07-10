@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize money %}
 {% block body %}
+  {# #Step-16-Carrier #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your full payment is being released</h2>
   <p>The buyer has picked up the package for request #<strong>{{ request_obj.reference }}</strong> and
      confirmed everything is good.</p>

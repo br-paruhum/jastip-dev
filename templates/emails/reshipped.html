@@ -1,5 +1,6 @@
 {% extends "email_base.html" %}
 {% block body %}
+  {# #Step-14-Buyer #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Your package is on its way!</h2>
   <p>The carrier has shipped your package for request <strong>{{ request_obj.reference }}</strong>.</p>
   <p>AWB / Tracking number: <strong>{{ request_obj.awb_number }}</strong></p>

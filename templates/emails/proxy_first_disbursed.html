@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize money %}
 {% block body %}
+  {# #Step-16-Proxy #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">First payment released</h2>
   <p>The carrier has taken custody of the goods for order <strong>{{ request_obj.reference }}</strong>
      ({{ request_obj.from_city }} → {{ request_obj.to_city }}).</p>

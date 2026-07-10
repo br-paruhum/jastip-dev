@@ -1,6 +1,7 @@
 {% extends "email_base.html" %}
 {% load humanize money %}
 {% block body %}
+  {# #Step-12-Buyer #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">Reshipment cost details from your carrier</h2>
   <p>For request <strong>{{ request_obj.reference }}</strong>, the carrier has provided the reshipment cost:</p>
   <table style="border-collapse:collapse;margin:12px 0;font-size:14px">

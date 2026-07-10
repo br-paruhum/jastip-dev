@@ -1,7 +1,7 @@
 {% extends "email_base.html" %}
 {% load money %}
 {% block body %}
-  {# #Step-4.2-Buyer #}
+  {# #Step-4.2-Proxy — a carrier submitted an offer on the order this proxy is sourcing. Split from offer_received so buyer + proxy copy can differ. #}
   <h2 style="margin:0 0 12px;color:#1a1a18;">New offer on your order</h2>
   <p>A carrier has submitted an offer on your order <strong>{{ order.reference }}</strong>
      ({{ order.from_city }} → {{ order.to_city }}).</p>
