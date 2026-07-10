@@ -35,7 +35,7 @@
   {% if is_order_buyer and bf_order.status == "responded" and bf_order.pending_offers %}
   {# Accept/Reject the carrier offer(s) summarised in the table above. #}
   {% for offer in bf_order.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
-  <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px">
+  <div style="display:flex;gap:10px;justify-content:center;margin:16px 0 8px">
     <form method="post" action="{% url 'trips:order_accept' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
     <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
   </div>
