@@ -26,6 +26,20 @@
 {% if bf_order.buyer_notes %}<tr><td>Notes</td><td class="num-right">{{ bf_order.buyer_notes }}</td></tr>{% endif %}
 {% if bf_order.proxy_buyer_notes %}<tr><td>Notes to Proxy Buyer</td><td class="num-right">{{ bf_order.proxy_buyer_notes|linebreaksbr }}</td></tr>{% endif %}
   </table>
+  {% if is_order_buyer and bf_order.status == "responded" and bf_order.pending_offers %}
+  {# Carrier offer(s) awaiting the buyer's Accept/Reject — moved here from the Notes card. #}
+  {% for offer in bf_order.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
+  <table class="invoice" style="max-width:440px;margin:14px auto 8px">
+    <tr><td>Shipment Cost per kg</td><td class="num-right">{{ bf_order.currency }} {{ offer.ask_cost_per_kg|by_currency:bf_order.currency }}</td></tr>
+    <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
+    <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
+  </table>
+  <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px">
+    <form method="post" action="{% url 'trips:order_accept' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
+    <form method="post" action="{% url 'trips:order_reject' bf_order.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
+  </div>
+  {% endif %}{% endfor %}
+  {% endif %}
 </div></div>
 
 {% if bf_order.photos.all %}

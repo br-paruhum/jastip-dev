@@ -425,18 +425,7 @@ Context expected (Django include passes the parent context through):
       {% if is_order_buyer %}
         {% if o.pending_offers %}
         {# #Step-4.2-Buyer #}
-        <p>A carrier offered to carry your order. Please Accept or Reject it. If more than one is listed, accept the one you prefer — the others are then declined automatically. Use the Chat Box if you want to negotiate the shipment cost.</p>
-        {% for offer in o.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
-        <table class="invoice" style="max-width:440px;margin-bottom:8px">
-          <tr><td>Shipment Cost per kg</td><td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|by_currency:o.currency }}</td></tr>
-          <tr><td>Weight</td><td class="num-right">{{ offer.avail_kg|floatformat:1 }} kg</td></tr>
-          <tr><td>Travel Date</td><td class="num-right">{{ offer.travel_date|date:"d-M-Y" }}{% if offer.travel_time %} {{ offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
-        </table>
-        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
-          <form method="post" action="{% url 'trips:order_accept' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
-          <form method="post" action="{% url 'trips:order_reject' o.id %}">{% csrf_token %}<input type="hidden" name="offer_id" value="{{ offer.id }}"><button class="btn btn-outline btn-sm" type="submit">Reject</button></form>
-        </div>
-        {% endif %}{% endfor %}
+        <p>A carrier offered to carry your order. Review the offer and Accept or Reject it in the <strong>Order Details</strong> card below. If more than one is listed, accept the one you prefer — the others are then declined automatically. Use the Chat Box if you want to negotiate the shipment cost.</p>
         {% else %}
         {# #Step-3-Buyer #}
         <p class="muted">You accepted the estimate. Your order is now waiting for a Carrier to offer the shipment cost. Browse the <a href="{% url 'pages:home' %}#queuing-carrier">Queuing Carrier board</a> on the home page, or wait for a carrier to pick up your order.</p>
