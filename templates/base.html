@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ SITE_NAME }} — Proxy buying service, made easy{% endblock %}</title>
-  <meta name="description" content="{% block meta_description %}ProxyBuying connects carriers with spare luggage space to buyers who want items from abroad. Safe, transparent proxy purchasing.{% endblock %}">
+  <meta name="description" content="{% block meta_description %}goProxyBuy connects carriers with spare luggage space to buyers who want items from abroad. Safe, transparent proxy buying.{% endblock %}">
   <link rel="canonical" href="{% block canonical %}{{ request.build_absolute_uri }}{% endblock %}">
 
   <!-- Open Graph -->
@@ -37,7 +37,7 @@
 <body>
 <header class="site-header">
   <div class="container nav">
-    <a href="{% url 'pages:home' %}" class="brand"><picture><source srcset="{% static 'img/logo.webp' %}" type="image/webp"><img src="{% static 'img/logo.png' %}" alt="ProxyBuying" class="brand-logo" width="215" height="34"></picture></a>
+    <a href="{% url 'pages:home' %}" class="brand"><picture><source srcset="{% static 'img/logo.webp' %}" type="image/webp"><img src="{% static 'img/logo.png' %}" alt="goProxyBuy" class="brand-logo" width="215" height="34"></picture></a>
     <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
     <ul class="nav-links" id="navlinks">
         <li><a href="{% url 'pages:how_to' %}">How-To</a></li>
@@ -70,7 +70,7 @@
     <div class="footer-grid">
       <div>
         <a href="{% url 'pages:home' %}" class="brand">
-          <picture><source srcset="{% static 'img/logo-footer.webp' %}" type="image/webp"><img src="{% static 'img/logo-footer.png' %}" alt="ProxyBuying" class="footer-logo" width="190" height="30"></picture>
+          <picture><source srcset="{% static 'img/logo-footer.webp' %}" type="image/webp"><img src="{% static 'img/logo-footer.png' %}" alt="goProxyBuy" class="footer-logo" width="190" height="30"></picture>
         </a>
         <p class="muted" style="max-width:350px;margin-top:12px;color:#fff; font-size: 1em;">
           Proxy Buying Service Made Easy.<br>Carriers and Proxy Buyers earn, Buyers get the goods they want.
@@ -89,7 +89,7 @@
         </address>
       </div>
     </div>
-    <div class="footer-bottom" style="text-align: center; color: #ff7316;">© {% now "Y" %} ProxyBuying — All rights reserved.</div>
+    <div class="footer-bottom" style="text-align: center; color: #ff7316;">© {% now "Y" %} goProxyBuy — All rights reserved.</div>
   </div>
 </footer>
 <button id="to-top" aria-label="Back to top" title="Back to top">&uarr;</button>

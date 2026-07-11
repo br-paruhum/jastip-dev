@@ -1,10 +1,10 @@
 {% extends "email_base.html" %}
 {% block body %}
   <p>Hi <strong>{{ msg.name }}</strong>,</p>
-  <p>Thanks for reaching out to ProxyBuying! We have successfully received your message regarding <strong>{{ msg.get_topic_display }}</strong>.</p>
+  <p>Thanks for reaching out to goProxyBuy! We have successfully received your message regarding <strong>{{ msg.get_topic_display }}</strong>.</p>
   <p>Our team is currently looking over your request. We will review the details and get back to you directly at this email address within 24–48 hours.</p>
   <p>In the meantime, feel free to check out our <a href="{{ faq_url }}">FAQ page</a> for quick answers to common questions about buying, shipping, and earning with us.</p>
-  <p>Best regards,<br><strong>The ProxyBuying Team</strong><br>proxybuying.com</p>
+  <p>Best regards,<br><strong>The goProxyBuy Team</strong><br>goproxybuy.com</p>
   <p style="margin-top:20px;padding-top:16px;border-top:1px solid #e3ded2;color:#8a857a;font-size:13px">
     For your records, here is what you sent us: <span style="white-space:pre-wrap">"{{ msg.message }}"</span>
   </p>
