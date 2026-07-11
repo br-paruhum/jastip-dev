@@ -16,7 +16,7 @@
         <td style="text-align:center">{{ pb.city|default:"—" }}</td>
         <td style="text-align:center">{{ pb.margin_range|default:"—" }}</td>
         <td class="action-cell">
-          <a class="btn btn-primary btn-sm" href="{% url 'trips:order_create' %}?proxy={{ pb.id }}">Order</a>
+          <a class="btn btn-primary btn-sm" href="{% url 'trips:order_create' %}?proxy={{ pb.id }}">Send Order</a>
         </td>
       </tr>
       {% endfor %}

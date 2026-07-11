@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}How It Works — For Buyer — {{ SITE_NAME }}{% endblock %}
+{% block meta_description %}How goProxyBuy works for buyers — order against a traveler's offer or pick a proxy buyer to source and buy goods abroad or inter-city, a carrier brings them home, and payments stay secured until you confirm the package.{% endblock %}
+{% block content %}
+<section>
+  <div class="container">
+    <span class="eyebrow">How-To</span>
+    <h1>How It Works - For Buyer</h1>
+
+    <p class="hi-lead">Steps explaining the transaction cycle from Sending an Order, accepting proxy buyer's estimate and traveler's offer,  to receiving the package and disbursing traveler and proxy buyer's payouts.</p>
+
+    <div class="howto-ig">
+      <div class="hi-colhead">
+        <div class="hi-lane">Buyer</div>
+        <div class="hi-lane">Proxy Buyer</div>
+        <div class="hi-lane">Traveler</div>
+      </div>
+      <div class="hi-timeline" id="hi-timeline"></div>
+    </div>
+
+    {% include "pages/_howto_timeline.html" %}
+
+  </div>
+</section>
+
+<script>
+window.HOWTO_ROWS=[
+  {divider:"Option 1 — Buyer send order from “1. Queuing Traveler’s Offers” table"},
+  [ {num:"1", a:"buyer",
+     t:"<ul><li>Select a trip from <b>1. Queuing Traveler’s Offers</b> table that meets your route and date, then click <b>Send Order</b>.</li><li>After logging in, fill in the required data and click <b>Send Order</b>.</li></ul>"},
+    {num:"2", a:"proxy",
+     t:"Fill in <b>Cost and Weight Estimates</b>, <b>Margin (%)</b> and click <b>Send Estimates</b>."} ],
+  [ {num:"3.1", a:"buyer",
+     t:"<ul><li>Receive the Estimate and click <b>Accept</b>.</li><li>Pay goProxyBuy for <b>Total Product Cost</b>, <b>Total Shipment Cost</b> and <b>Proxy Buyer’s Margin</b>.</li></ul>"},
+    {num:"4", a:"proxy",
+     t:"<ul><li>Start sourcing and buy the products.</li><li>Input <b>Actual Cost</b>, <b>Total Weight</b>, upload the required photos and click <b>Mark Package Ready</b>.</li></ul>"},
+    {num:"5", a:"carrier",
+     t:"Receive the package."} ],
+
+  {divider:"Option 2 — Buyer send order from “2. Proxy Buyers List” table"},
+  [ {num:"1", a:"buyer",
+     t:"<ul><li>Select a Proxy Buyer from <b>2. Proxy Buyers List</b> table you plan to buy the goods from, then click <b>Send Order</b>.</li><li>After logging in, fill in the required data and click <b>Send Order</b>.</li></ul>"},
+    {num:"2", a:"proxy",
+     t:"Fill in <b>Cost and Weight Estimates</b>, <b>Margin (%)</b> and click <b>Send Estimates</b>."} ],
+  [ {num:"3.1", a:"buyer",
+     t:"<ul><li>Receive the Estimate and click <b>Accept</b>.</li><li>Order listed on <b>3. Queuing Buyer’s Cargo</b> table.</li></ul>"},
+    {num:"3.2", a:"carrier",
+     t:"<ul><li>Select from <b>3. Queuing Buyer’s Cargo</b> table and click <b>Send Offer</b>.</li><li>After logging in, fill in <b>Offer Rate per kg</b>, <b>Travel Date</b> and click <b>Send Offer</b>.</li></ul>"} ],
+  [ {num:"3.3", a:"buyer",
+     t:"<ul><li>Accept the Offer from the Carrier.</li><li>Pay goProxyBuy for <b>Total Product Cost</b>, <b>Total Shipment Cost</b> and <b>Proxy Buyer’s Margin</b>.</li></ul>"},
+    {num:"4", a:"proxy",
+     t:"<ul><li>Start sourcing and buy the products.</li><li>Input <b>Actual Cost</b>, <b>Total Weight</b>, upload the required photos and click <b>Mark Package Ready</b>.</li></ul>"},
+    {num:"5", a:"carrier",
+     t:"Receive the package."} ],
+
+  {divider:"Travel Date"},
+  {mflip:true, c:[
+    {num:"7", a:"buyer",
+     t:"Pay goProxyBuy for <b>Customs Duty</b>, plus Products and Shipment Cost shortage (Actual minus Estimate), if any."},
+    {num:"6", a:"carrier",
+     t:"On arrival, send the <b>Customs Duty</b> amount."} ]},
+
+  {divider:"Buyer selected: Reship the package"},
+  {mflip:true, c:[
+    {num:"9", a:"buyer", t:"Fill in <b>Preferred Courier</b> name and type."},
+    {num:"8", a:"carrier", t:"Pay and upload the <b>Customs Duty receipt</b>."} ]},
+  {mflip:true, c:[
+    {num:"11", a:"buyer", t:"Upload <b>Bank Transfer Proof</b>."},
+    {num:"10", a:"carrier", t:"Fill in <b>Reshipment Cost</b>."} ]},
+  {mflip:true, c:[
+    {num:"13", a:"buyer", t:"Receive the package, review it and click <b>Confirm Received</b>."},
+    {num:"12", a:"carrier", t:"Send the package and upload <b>AWB Proof</b>."} ]},
+
+  {divider:"Buyer selected: Pick up the package"},
+  {mflip:true, c:[
+    {num:"13", a:"buyer", t:"Visit the Carrier’s location, review the package and click <b>Confirm Received</b>."},
+    {num:"8", a:"carrier", t:"Pay and upload the <b>Customs Duty receipt</b>."} ]},
+
+  {divider:"goProxyBuy disburses Proxy Buyer and Carrier payouts — Transaction completed"}
+];
+</script>
+{% endblock %}

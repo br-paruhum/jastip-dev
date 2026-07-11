@@ -1,0 +1,68 @@
+<style>
+.howto-ig{width:100%;color:var(--slate-600);line-height:1.5}
+.howto-ig .hi-lead{font-size:clamp(13px,3.6vw,20px);color:var(--slate-400);margin:0 0 22px;max-width:900px}
+.howto-ig .hi-colhead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;
+  position:sticky;top:69px;z-index:5;background:var(--ivory);padding:12px 0}
+.howto-ig .hi-lane{font-weight:600;font-size:24px;letter-spacing:.04em;text-transform:uppercase;text-align:center;
+  padding:10px;border-radius:10px;color:var(--slate);background:var(--cream);border:1px solid var(--line)}
+.howto-ig .hi-timeline{position:relative}
+.howto-ig .hi-step{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start;padding:14px 0}
+.howto-ig .hi-span{grid-column:2 / 4}
+.howto-ig .hi-span .hi-msg{width:100%}
+.howto-ig .hi-empty{min-height:0}
+.howto-ig .hi-cell{display:flex;flex-direction:column;align-items:center;gap:8px}
+.howto-ig .hi-msg{width:100%;padding:12px 15px;border-radius:14px;border:1px solid var(--line);background:#fff;
+  box-shadow:0 1px 2px rgba(26,26,24,.06);font-size:16px;line-height:1.45;color:var(--slate-600);text-align:left}
+.howto-ig .hi-msg ul{margin:0;padding-left:1.2em;list-style-position:outside}
+.howto-ig .system .hi-msg{background:var(--cream)}
+.howto-ig .hi-divider{margin:18px 0 8px;padding:9px 12px;text-align:center;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;font-size:15px;color:var(--clay-dark);
+  background:#f5cba7;border:1px solid #d9a47f;border-radius:8px}
+.howto-ig .hi-mwho{display:none}
+.howto-ig .hi-num{min-width:44px;height:44px;border-radius:50px;padding:0 10px;display:inline-flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;
+  background:var(--clay);box-shadow:0 0 0 5px var(--ivory)}
+@media(max-width:760px){
+  .howto-ig .hi-colhead{display:none}
+  .howto-ig .hi-step{grid-template-columns:1fr;gap:10px;padding:12px 0}
+  .howto-ig .hi-empty{display:none}
+  /* Flip carrier above buyer in flagged rows so the single column reads in
+     ascending step order. */
+  .howto-ig .hi-step.hi-mflip .hi-cell.carrier{order:1}
+  .howto-ig .hi-step.hi-mflip .hi-cell.buyer{order:2}
+  .howto-ig .hi-cell{align-items:flex-start}
+  .howto-ig .hi-msg{text-align:left}
+  .howto-ig .hi-mwho{display:block;width:max-content;max-width:100%;margin:0 0 2px;
+    padding:3px 11px;border-radius:3px;border:1px solid var(--clay);background:#fff;
+    color:var(--clay);font-size:12.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  var ROWS=window.HOWTO_ROWS||[];
+  var LABEL={carrier:'Carrier', proxy:'Proxy Buyer', buyer:'Buyer', system:'goProxyBuy'};
+  var COL={buyer:0, proxy:1, carrier:2, system:1};
+  function cell(s){
+    var who=(s.a!=='system')?'<span class="hi-mwho">'+LABEL[s.a]+'</span>':'';
+    var bub=s.t?'<div class="hi-msg">'+s.t+'</div>':'';
+    return '<div class="hi-cell '+s.a+'"><div class="hi-num">'+s.num+'</div>'+who+bub+'</div>';
+  }
+  var tl=document.getElementById('hi-timeline');
+  if(!tl) return;
+  tl.innerHTML=ROWS.map(function(row){
+    if(row.divider){ return '<div class="hi-divider">'+row.divider+'</div>'; }
+    // A row is an array of steps, or {c:[steps], mflip:true}. A step with
+    // span:true takes both the Proxy Buyer and Carrier columns.
+    var steps=Array.isArray(row)?row:row.c;
+    var mflip=(!Array.isArray(row)&&row.mflip)?' hi-mflip':'';
+    var cells=['','',''], span=null;
+    steps.forEach(function(s){ if(s.span){span=s;} else {cells[COL[s.a]]=cell(s);} });
+    function slot(h){ return h||'<div class="hi-cell hi-empty"></div>'; }
+    var inner=span
+      ? slot(cells[0])+'<div class="hi-span">'+cell(span)+'</div>'
+      : slot(cells[0])+slot(cells[1])+slot(cells[2]);
+    return '<div class="hi-step'+mflip+'">'+inner+'</div>';
+  }).join('');
+});
+</script>

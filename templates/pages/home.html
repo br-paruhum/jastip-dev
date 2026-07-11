@@ -26,13 +26,26 @@
 
 {% if ADSENSE_CLIENT %}<div class="container"><div class="adslot">Advertisement</div></div>{% endif %}
 
+
+<!-- Board 1: Queuing Carrier — carriers with spare capacity waiting for orders -->
+<section id="queuing-carrier">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Buyer Starts Here</span>
+      <h2>1. Queuing Traveler's Offers</h2>
+      <p>Buyer find an offer that meets your route and date to Send an Order, otherwise select one from "2. Proxy Buyer List" table below.</p>
+    </div>
+    {% include "pages/_home_carrier_queue_table.html" with queuing_carriers=queuing_carriers empty_msg="No queuing carriers exist for now." %}
+  </div>
+</section>
+
 <!-- Proxy Buyers — pick one to start a proxy buying order -->
 <section class="section-cream" id="proxy-buyers">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">Starts Here</span>
-      <h2>Proxy Buyers List</h2>
-      <p>Select a proxy buyer below to start sourcing and buying your goods.</p>
+      <span class="eyebrow">Buyer Continues Here</span>
+      <h2>2. Proxy Buyers List</h2>
+      <p>Select a Proxy Buyer here. After you accept the the cost and weight estimates from the Proxy Buyer, your order will be listed on "3. Queuing Buyer's Cargo" table below awaiting for Traveler to send their Offer.</p>
     </div>
     {% include "pages/_home_proxy_table.html" with proxy_buyers=proxy_buyers empty_msg="No proxy buyers available yet." %}
   </div>
@@ -43,24 +56,13 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Carrier Starts Here</span>
-      <h2>Queuing Cargo</h2>
-      <p>Carrier can place Offer to any Request below that meets your route and date.</p>
+      <h2>3. Queuing Buyer's Cargo</h2>
+      <p>Traveler find buyer's cargo that meets your route and date to Send an Offer, otherwise create a new Travel Plan. Your plan will be listed on the "1. Queuing Traveler's Offers" table above.</p>
     </div>
     {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No queuing cargo exist for now." %}
   </div>
 </section>
 
-<!-- Board 2: Queuing Carrier — carriers with spare capacity waiting for orders -->
-<section id="queuing-carrier" class="section-cream">
-  <div class="container">
-    <div class="section-head">
-      <span class="eyebrow">Buyer Check Here</span>
-      <h2>Queuing Carrier</h2>
-      <p>Buyer can place Order to any Offer below that meets your route and date.</p>
-    </div>
-    {% include "pages/_home_carrier_queue_table.html" with queuing_carriers=queuing_carriers empty_msg="No queuing carriers exist for now." %}
-  </div>
-</section>
 
 <!-- Latest blog -->
 <section>

@@ -117,9 +117,16 @@ def page_detail(request, slug):
 
 
 def how_to(request):
-    # Static How-To page (Task 13) — replaces the former CMS-driven SitePage so
-    # the guide is a single source of truth in the template, not the database.
-    return render(request, "pages/how_to.html")
+    # Legacy /how-to/ — the guide is now split into buyer/traveler pages.
+    return redirect("pages:how_to_for_buyer")
+
+
+def how_to_for_buyer(request):
+    return render(request, "pages/how_to_for_buyer.html")
+
+
+def how_to_for_traveler(request):
+    return render(request, "pages/how_to_for_traveler.html")
 
 
 def _verify_turnstile(request):
