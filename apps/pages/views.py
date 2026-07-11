@@ -283,6 +283,9 @@ def chat(request):
     system_prompt = (
         f"You are the {settings.SITE_NAME} help assistant. Answer the user's "
         "question using ONLY the Q&A knowledge base below. Be concise and friendly. "
+        "Always reply in the same language the user writes in (for example, answer "
+        "in Bahasa Indonesia if they ask in Indonesian), even though the knowledge "
+        "base is written in English. "
         "If the answer is not in the knowledge base, say you don't have that "
         "information and suggest they use the Contact page at /contact/. Do not "
         "invent policies, prices, or steps.\n\n"
