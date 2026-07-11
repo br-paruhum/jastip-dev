@@ -229,6 +229,7 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 
 # --- Unfold admin theme -----------------------------------------------------
 from config.unfold import UNFOLD  # noqa: E402,F401
