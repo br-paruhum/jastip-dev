@@ -6,7 +6,6 @@ Idempotent — safe to run repeatedly.  Usage: python manage.py seed
 import datetime
 import os
 from decimal import Decimal
-from pathlib import Path
 
 from django.conf import settings
 from django.contrib.sites.models import Site
@@ -19,29 +18,20 @@ from apps.pages.models import FAQItem, SitePage
 from apps.trips.constants import Currency, Status
 from apps.trips.models import ExchangeRate, TravelPlan
 
-# Rich "How It Works" infographic body — single source of truth, also rendered
-# live at /how-to/.  Kept in its own file so it can be edited without bloating
-# this command and so re-seeding never reverts the page to old placeholder text.
-HOW_TO_BODY = (Path(__file__).resolve().parents[2] / "how_to_body.html").read_text(encoding="utf-8")
-
 # (slug, kind, title, body, refresh)
 #   refresh=True  → body is git-sourced (single source of truth); re-seed OVERWRITES the live row.
 #   refresh=False → admin-managed content; seed only CREATES it if missing and never clobbers a
-#                   live admin-edited body. Applies to FAQ, Privacy Policy, Terms & Conditions and
-#                   the placeholder pages — deploys must not revert hand-maintained prod copy.
+#                   live admin-edited body. Applies to FAQ, Privacy Policy, Terms & Conditions —
+#                   deploys must not revert hand-maintained prod copy.
+# The How-To guide is now the file-based /how-to/for-buyer|for-traveler pages, not a CMS SitePage.
 PAGES = [
-    ("how-to", SitePage.Kind.HOW_TO, "How It Works", HOW_TO_BODY, True),
-    ("how-to-buyer-first", SitePage.Kind.GENERIC, "How It Works — Buyer First",
-     "<p>Coming soon — a guide to posting a Buyer First order and receiving traveler offers.</p>", False),
-    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using ProxyBuying.</p>", False),
-    ("faq-buyer-first", SitePage.Kind.GENERIC, "FAQ — Buyer First",
-     "<p>Coming soon — frequently asked questions about Buyer First orders.</p>", False),
+    ("faq", SitePage.Kind.FAQ, "Frequently Asked Questions", "<p>Common questions about using goProxyBuy.</p>", False),
     ("privacy-policy", SitePage.Kind.PRIVACY, "Privacy Policy", """
 <p>We respect your privacy. Your name and phone number are never shown publicly — they are shared
 only with the counterparty of a transaction and the admin. We store the minimum data needed to
 operate the service and never sell your data.</p>""", False),
     ("terms-conditions", SitePage.Kind.TERMS, "Terms & Conditions", """
-<p>By using ProxyBuying you agree to act in good faith. ProxyBuying is a platform that facilitates
+<p>By using goProxyBuy you agree to act in good faith. goProxyBuy is a platform that facilitates
 proxy purchasing and holds funds in escrow for a 2.5% fee. All correspondence between travelers and
 buyers is conducted through email with a copy to admin.</p>""", False),
 ]

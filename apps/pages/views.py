@@ -118,7 +118,7 @@ def page_detail(request, slug):
 
 def how_to(request):
     # Legacy /how-to/ — the guide is now split into buyer/traveler pages.
-    return redirect("pages:how_to_for_buyer")
+    return redirect("pages:how_to_for_buyer", permanent=True)
 
 
 def how_to_for_buyer(request):
