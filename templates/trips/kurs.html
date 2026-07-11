@@ -3,7 +3,9 @@
 {% block title %}BCA Exchange Rates — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
-  <div class="container" style="max-width:680px">
+  <div class="container">
+    <div class="content-layout">
+      <div class="content-main">
     <h2 style="margin-bottom:.25rem">BCA Exchange Rates</h2>
     <p style="color:#666;font-size:.9rem;margin-top:0">
       TT Counter — Sell rate (bank sells / we buy)
@@ -39,6 +41,9 @@
       Source: <a href="https://www.bca.co.id/en/informasi/kurs" target="_blank" rel="noopener">BCA FX Rate</a>.
       For reference only — always confirm the latest rate before transacting.
     </p>
+      </div>
+      {% include "_ad_sidebar.html" %}
+    </div>
   </div>
 </section>
 {% endblock %}
