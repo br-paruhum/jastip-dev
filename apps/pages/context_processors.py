@@ -22,6 +22,7 @@ def site_globals(request):
         "SITE_NAME": getattr(settings, "SITE_NAME", "ProxyBuying"),
         "SITE_DOMAIN": getattr(settings, "SITE_DOMAIN", ""),
         "ADSENSE_CLIENT": getattr(settings, "ADSENSE_CLIENT", ""),
+        "CHATBOT_ENABLED": bool(getattr(settings, "GEMINI_API_KEY", "")),
         "TURNSTILE_SITE_KEY": getattr(settings, "TURNSTILE_SITE_KEY", ""),
         "COMMISSION_PERCENT": getattr(settings, "PLATFORM_COMMISSION_PERCENT", 2.5),
         "BANK": getattr(settings, "BANK_DETAILS", {}),

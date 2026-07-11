@@ -1,0 +1,76 @@
+{% if CHATBOT_ENABLED %}
+<div id="chatw" data-url="{% url 'pages:chat' %}" data-csrf="{{ csrf_token }}">
+  <button id="chatw-launch" aria-label="Open help chat" title="Need help?">💬</button>
+  <div id="chatw-panel" role="dialog" aria-label="Help chat" hidden>
+    <div class="chatw-head">
+      <span>Ask {{ SITE_NAME }}</span>
+      <button id="chatw-close" aria-label="Close chat">&times;</button>
+    </div>
+    <div id="chatw-log" class="chatw-log">
+      <div class="chatw-msg bot">Hi! Ask me anything about how {{ SITE_NAME }} works.</div>
+    </div>
+    <form id="chatw-form" class="chatw-form">
+      <input id="chatw-input" type="text" maxlength="500" autocomplete="off"
+             placeholder="Type your question…" required>
+      <button type="submit" class="btn btn-primary btn-sm">Send</button>
+    </form>
+  </div>
+</div>
+<style>
+#chatw-launch{position:fixed;right:20px;bottom:20px;width:54px;height:54px;border:0;border-radius:50%;
+  background:var(--clay);color:#fff;font-size:24px;line-height:1;cursor:pointer;
+  box-shadow:0 6px 18px rgba(26,26,24,.25);z-index:61}
+#chatw-launch:hover{background:var(--clay-dark)}
+#chatw-panel{position:fixed;right:20px;bottom:84px;width:340px;max-width:calc(100vw - 40px);
+  height:460px;max-height:calc(100vh - 120px);background:#fff;border:1px solid var(--line);
+  border-radius:14px;box-shadow:0 12px 40px rgba(26,26,24,.28);display:flex;flex-direction:column;
+  overflow:hidden;z-index:61}
+#chatw-panel[hidden]{display:none}
+.chatw-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;
+  background:var(--clay);color:#fff;font-weight:600}
+.chatw-head button{background:0;border:0;color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.chatw-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.chatw-msg{max-width:85%;padding:8px 12px;border-radius:12px;font-size:.9rem;line-height:1.45;
+  white-space:pre-wrap;word-wrap:break-word}
+.chatw-msg.bot{background:var(--cream);color:var(--slate);align-self:flex-start;border-bottom-left-radius:3px}
+.chatw-msg.me{background:var(--clay);color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
+.chatw-msg.err{background:#fdecea;color:#a12b1e;align-self:flex-start;font-size:.85rem}
+.chatw-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line)}
+.chatw-form input{flex:1;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.9rem}
+.chatw-form input:disabled{background:#f3f2ef}
+</style>
+<script>
+(function(){
+  var root=document.getElementById('chatw');if(!root)return;
+  var launch=document.getElementById('chatw-launch'),panel=document.getElementById('chatw-panel'),
+      close=document.getElementById('chatw-close'),form=document.getElementById('chatw-form'),
+      input=document.getElementById('chatw-input'),log=document.getElementById('chatw-log');
+  function add(text,cls){var d=document.createElement('div');d.className='chatw-msg '+cls;
+    d.textContent=text;log.appendChild(d);log.scrollTop=log.scrollHeight;return d;}
+  function toggle(open){panel.hidden=!open;launch.style.display=open?'none':'';
+    var tt=document.getElementById('to-top');if(tt)tt.style.display=open?'none':'';
+    if(open)input.focus();}
+  launch.addEventListener('click',function(){toggle(true);});
+  close.addEventListener('click',function(){toggle(false);});
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var msg=input.value.trim();if(!msg)return;
+    add(msg,'me');input.value='';input.disabled=true;
+    var typing=add('…','bot');
+    fetch(root.dataset.url,{method:'POST',headers:{'Content-Type':'application/json',
+        'X-CSRFToken':root.dataset.csrf},body:JSON.stringify({message:msg})})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+      .then(function(res){
+        typing.remove();
+        if(res.ok){add(res.j.reply,'bot');
+          if(res.j.remaining===0){input.placeholder='Question limit reached for this session.';
+            input.disabled=true;return;}}
+        else{add(res.j.error||'Something went wrong.','err');}
+        input.disabled=false;input.focus();
+      })
+      .catch(function(){typing.remove();add('Network error. Please try again.','err');
+        input.disabled=false;});
+  });
+})();
+</script>
+{% endif %}

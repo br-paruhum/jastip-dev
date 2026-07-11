@@ -1,13 +1,17 @@
+import json
 import logging
+import time
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 
 import requests
 from django.conf import settings
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from apps.blog.models import Post
 from apps.notifications.services import send_email
@@ -218,3 +222,96 @@ def ads_txt(request):
     return HttpResponse(
         f"google.com, {pub}, DIRECT, f08c47fec0942fa0\n", content_type="text/plain"
     )
+
+
+# --- Help chatbot -----------------------------------------------------------
+# Answers only from the howto_qa.md knowledge base, stuffed into the system prompt (the
+# whole file fits well inside Gemini's context — no retrieval needed).
+
+@lru_cache(maxsize=1)
+def load_howto_qa() -> str:
+    """Q&A knowledge base, read once per process. Restart to pick up edits.
+
+    Lives in the Obsidian vault so it can be edited there directly.
+    """
+    path = (
+        Path(settings.BASE_DIR)
+        / "proxybuying-obsidian" / "AI-Context" / "references" / "howto_qa.md"
+    )
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        logger.warning("howto_qa.md missing at %s", path)
+        return ""
+
+
+CHAT_MSG_MAXLEN = 500
+
+
+@require_POST
+def chat(request):
+    """Grounded help chatbot backed by Gemini. Key stays server-side."""
+    if not settings.GEMINI_API_KEY:
+        return JsonResponse({"error": "Chat is not available right now."}, status=503)
+
+    try:
+        message = (json.loads(request.body or "{}").get("message") or "").strip()
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Bad request."}, status=400)
+
+    if not message:
+        return JsonResponse({"error": "Please type a question."}, status=400)
+    if len(message) > CHAT_MSG_MAXLEN:
+        return JsonResponse(
+            {"error": f"Please keep it under {CHAT_MSG_MAXLEN} characters."}, status=400
+        )
+
+    # Throttle per session: N total questions, and N per rolling minute.
+    used = request.session.get("chat_used", 0)
+    if used >= settings.CHATBOT_MAX_QUESTIONS:
+        return JsonResponse(
+            {"error": "You've reached the question limit for this session."}, status=429
+        )
+    now = time.time()
+    recent = [t for t in request.session.get("chat_times", []) if now - t < 60]
+    if len(recent) >= settings.CHATBOT_RATE_PER_MIN:
+        return JsonResponse(
+            {"error": "You're sending messages too fast. Please wait a minute."},
+            status=429,
+        )
+
+    system_prompt = (
+        f"You are the {settings.SITE_NAME} help assistant. Answer the user's "
+        "question using ONLY the Q&A knowledge base below. Be concise and friendly. "
+        "If the answer is not in the knowledge base, say you don't have that "
+        "information and suggest they use the Contact page at /contact/. Do not "
+        "invent policies, prices, or steps.\n\n"
+        "=== KNOWLEDGE BASE ===\n" + load_howto_qa()
+    )
+
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
+    )
+    payload = {
+        "system_instruction": {"parts": [{"text": system_prompt}]},
+        "contents": [{"role": "user", "parts": [{"text": message}]}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600},
+    }
+    try:
+        resp = requests.post(url, json=payload, timeout=20)
+        resp.raise_for_status()
+        data = resp.json()
+        reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (requests.RequestException, KeyError, IndexError, ValueError):
+        logger.exception("Gemini chat request failed")
+        return JsonResponse(
+            {"error": "Sorry, I couldn't answer that right now. Please try again."},
+            status=502,
+        )
+
+    # Count only successful answers against the limits.
+    request.session["chat_used"] = used + 1
+    request.session["chat_times"] = recent + [now]
+    request.session.modified = True
+    return JsonResponse({"reply": reply, "remaining": settings.CHATBOT_MAX_QUESTIONS - used - 1})

@@ -100,7 +100,7 @@
 </footer>
 <button id="to-top" aria-label="Back to top" title="Back to top">&uarr;</button>
 <style>
-#to-top{position:fixed;right:20px;bottom:20px;width:46px;height:46px;border:0;border-radius:50%;
+#to-top{position:fixed;right:24px;bottom:84px;width:46px;height:46px;border:0;border-radius:50%;
   background:var(--clay);color:#fff;font-size:22px;line-height:1;cursor:pointer;
   box-shadow:0 6px 18px rgba(26,26,24,.25);opacity:0;visibility:hidden;
   transition:opacity .2s,visibility .2s;z-index:60}
@@ -117,5 +117,6 @@
 {% block extra_js %}{% endblock %}
 {% include "_cookie_consent.html" %}
 {% include "_notice_modal.html" %}
+{% include "_chat_widget.html" %}
 </body>
 </html>

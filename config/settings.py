@@ -208,6 +208,15 @@ PAYMENT_DEADLINE_HOURS = int(os.getenv("PAYMENT_DEADLINE_HOURS", "24"))
 # e.g. "ca-pub-1234567890123456"; blank disables the script + ad slots.
 ADSENSE_CLIENT = os.getenv("ADSENSE_CLIENT", "")
 
+# --- Help chatbot (Gemini) --------------------------------------------------
+# Blank key hides the widget and disables the endpoint. The Q&A the bot answers
+# from lives in proxybuying-obsidian/AI-Context/references/howto_qa.md (editable
+# in Obsidian; not rendered to users).
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+CHATBOT_MAX_QUESTIONS = int(os.getenv("CHATBOT_MAX_QUESTIONS", "5"))
+CHATBOT_RATE_PER_MIN = int(os.getenv("CHATBOT_RATE_PER_MIN", "2"))
+
 # Cloudflare Turnstile (contact form anti-spam). When both are blank the widget
 # and server-side verification are skipped, so the form still works; set them to
 # enable enforcement.
