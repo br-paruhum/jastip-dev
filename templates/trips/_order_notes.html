@@ -139,7 +139,7 @@ Context expected (Django include passes the parent context through):
       {% elif leg_offer.order.status == "clear" %}
       {% if leg_offer.order.traveler_paid_at %}
       {# #Step-16-Carrier #}
-      <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ leg_offer.order.traveler_paid_at|date:"d M Y, H:i" }}. Thank you for doing business with ProxyBuying.</p>
+      <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ leg_offer.order.traveler_paid_at|date:"d M Y, H:i" }}. Thank you for doing business with {{ SITE_NAME }}.</p>
       {% elif leg_offer.order.delivery_preference == "reship" %}
       {# #Step-15.1-Carrier #}
       <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
@@ -402,7 +402,7 @@ Context expected (Django include passes the parent context through):
       {% else %}
         {% if o.proxy_disbursed_at %}
         {# #Step-16-Proxy #}
-        <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ o.proxy_disbursed_at|date:"d M Y, H:i" }}. Thank you for doing business with ProxyBuying.</p>
+        <p><span class="badge badge-success">Clear</span> Your payout has been processed on {{ o.proxy_disbursed_at|date:"d M Y, H:i" }}. Thank you for doing business with {{ SITE_NAME }}.</p>
         {% elif o.delivery_preference == "reship" %}
         {# #Step-15.1-Proxy #}
         <p><span class="badge badge-success">Clear</span> Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
