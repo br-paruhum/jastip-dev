@@ -31,6 +31,12 @@
         <td class="num-right">{{ f.actual_quantity }}{{ f.actual_quantity.errors }}</td>
         <td class="num-right">{{ f.actual_unit_cost }}{{ f.actual_unit_cost.errors }}</td>
       </tr>
+      <tr><td colspan="4" style="border-bottom:0;padding:0 0 6px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1 1 320px">{{ f.customs_description }}{{ f.customs_description.errors }}</div>
+          <div style="flex:0 1 180px">{{ f.hs_code }}{{ f.hs_code.errors }}</div>
+        </div>
+      </td></tr>
       {% if f.purchase_note %}<tr><td colspan="4" style="border-bottom:0;padding:0 0 4px">{{ f.purchase_note }}</td></tr>{% endif %}
       <tr><td colspan="4" style="padding:0 0 10px"><span class="help">Photo</span><br>
         {% if f.instance.purchase_photo %}<span class="help">Current</span> <a href="{{ f.instance.purchase_photo.url }}" target="_blank" class="btn btn-primary btn-sm" style="margin-bottom:6px">View Product Photo</a><br>{% endif %}

@@ -1104,8 +1104,9 @@ class Order(ListingTimingMixin, models.Model):
             total_value = (Decimal(item.actual_line_total or 0) * mult).quantize(TWO_PLACES)
             subtotal += total_value
             rows.append(SimpleNamespace(
-                quantity=item.actual_quantity, name=item.name, origin=origin,
-                unit_value=unit_value, total_value=total_value,
+                quantity=item.actual_quantity,
+                name=item.customs_description or item.name, hs_code=item.hs_code,
+                origin=origin, unit_value=unit_value, total_value=total_value,
             ))
         shipping = Decimal(self.shipment_cost or 0).quantize(TWO_PLACES)
         return {
@@ -2292,6 +2293,10 @@ class RequestItem(models.Model):
         max_length=255, blank=True,
         help_text="Note if the item is unavailable, short, or substituted.",
     )
+    # Customs-facing description shown on the customs invoice in place of the
+    # buyer-facing product name (e.g. a generic HS-aligned term), plus its HS code.
+    customs_description = models.CharField(max_length=255, blank=True)
+    hs_code = models.CharField(max_length=20, blank=True)
     purchased_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

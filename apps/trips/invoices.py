@@ -107,40 +107,41 @@ def render_customs_invoice_pdf(req) -> bytes:
                          fontSize=9.5, leading=11, textColor=INK)
     hdr_c = ParagraphStyle("chdrc", parent=hdr, alignment=TA_CENTER)
     hdr_r = ParagraphStyle("chdrr", parent=hdr, alignment=TA_RIGHT)
-    data = [[Paragraph("Qty", hdr_r), Paragraph("Description of Goods", hdr_c),
-             Paragraph("Country of Origin", hdr_c),
+    data = [[Paragraph("Qty", hdr_c), Paragraph("Description of Goods", hdr_c),
+             Paragraph("HS Code", hdr_c), Paragraph("Country of Origin", hdr_c),
              Paragraph(f"Unit Value ({escape(ccy)})", hdr_r),
              Paragraph(f"Total Value ({escape(ccy)})", hdr_r)]]
     for r in ci["rows"]:
-        data.append([str(r.quantity), Paragraph(escape(r.name), item_cell), escape(r.origin or ""),
+        data.append([str(r.quantity), Paragraph(escape(r.name), item_cell),
+                     escape(getattr(r, "hs_code", "") or ""), escape(r.origin or ""),
                      idr0(r.unit_value), idr0(r.total_value)])
     sub_row = len(data)
-    data.append(["", "Sub-Total", "", "", idr0(ci["subtotal"])])
-    data.append(["", "Shipping Charges", "", "", idr0(ci["shipping"])])
+    data.append(["", "Sub-Total", "", "", "", idr0(ci["subtotal"])])
+    data.append(["", "Shipping Charges", "", "", "", idr0(ci["shipping"])])
     total_row = len(data)
-    data.append(["", "Total Value", "", "", idr0(ci["total"])])
+    data.append(["", "Total Value", "", "", "", idr0(ci["total"])])
     usd_row = None
     if ci.get("total_usd") is not None:
         usd_row = len(data)
-        data.append(["", "Total Value - USD Eqv.", "", "", f"USD {Decimal(ci['total_usd']):,.2f}"])
-    data.append(["", "", "", "", ""])
-    data.append(["", f"Number of Package: {ci['num_packages']}", "", "", ""])
+        data.append(["", "Total Value - USD Eqv.", "", "", "", f"USD {Decimal(ci['total_usd']):,.2f}"])
+    data.append(["", "", "", "", "", ""])
+    data.append(["", f"Number of Package: {ci['num_packages']}", "", "", "", ""])
 
     peach = colors.HexColor("#F5CBA7")
     peach_line = colors.HexColor("#D9A47F")
-    items_tbl = Table(data, colWidths=[14 * mm, 80 * mm, 28 * mm, 26 * mm, 26 * mm])
+    items_tbl = Table(data, colWidths=[14 * mm, 62 * mm, 24 * mm, 24 * mm, 25 * mm, 25 * mm])
     style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9.5),
-        ("ALIGN", (0, 0), (0, -1), "RIGHT"),    # Qty
-        ("ALIGN", (2, 0), (2, -1), "CENTER"),   # Country of Origin
-        ("ALIGN", (3, 0), (-1, -1), "RIGHT"),   # value columns
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),   # Qty
+        ("ALIGN", (2, 0), (3, -1), "CENTER"),   # HS Code + Country of Origin
+        ("ALIGN", (4, 0), (-1, -1), "RIGHT"),   # value columns
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("GRID", (0, 0), (-1, -1), 0.4, LINE),
         ("LINEBELOW", (0, 0), (-1, 0), 0.6, peach_line),
         ("FONTNAME", (1, sub_row), (1, sub_row), "Helvetica-Bold"),
-        ("FONTNAME", (4, sub_row), (4, sub_row), "Helvetica-Bold"),
+        ("FONTNAME", (5, sub_row), (5, sub_row), "Helvetica-Bold"),
         ("FONTNAME", (1, total_row), (-1, total_row), "Helvetica-Bold"),
         ("LINEABOVE", (0, total_row), (-1, total_row), 1.0, INK),
         ("TOPPADDING", (0, 0), (-1, -1), 5),

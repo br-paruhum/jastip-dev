@@ -528,7 +528,8 @@ class PurchaseWeightForm(forms.ModelForm):
 class PurchaseItemForm(forms.ModelForm):
     class Meta:
         model = RequestItem
-        fields = ["actual_quantity", "actual_unit_cost", "purchase_photo", "purchase_note"]
+        fields = ["actual_quantity", "actual_unit_cost", "purchase_photo",
+                  "customs_description", "hs_code", "purchase_note"]
         widgets = {
             "actual_quantity": forms.NumberInput(attrs={"class": "num-right", "min": "0"}),
             "actual_unit_cost": ThousandSeparatorNumberInput(attrs={"class": "money-input num-right"}),
@@ -536,6 +537,14 @@ class PurchaseItemForm(forms.ModelForm):
             # surfaced as a "View Product Photo" button in the template instead of
             # Django's default "Currently: <link> Clear" markup.
             "purchase_photo": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
+            "customs_description": forms.TextInput(
+                attrs={"placeholder": "Customs product description here",
+                       "style": "width:100%;font-size:1.05rem"}
+            ),
+            "hs_code": forms.TextInput(
+                attrs={"placeholder": "HS Code here",
+                       "style": "width:100%;font-size:1.05rem"}
+            ),
             "purchase_note": forms.TextInput(
                 attrs={"placeholder": "Note: e.g.: short availability, out-of-stock or substituted as agreed",
                        "style": "width:560px;max-width:100%;font-size:1.05rem"}
