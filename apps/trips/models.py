@@ -1800,12 +1800,20 @@ class TravelerOffer(models.Model):
                 and not self.order.listing_locked)
 
     @property
+    def effective_ask_cost_per_kg(self) -> Decimal:
+        """This carrier's per-kg rate for display, honoring a post-acceptance
+        order-level rate change (carrier_rate_override) when the buyer has agreed
+        to it; otherwise the carrier's own accepted ask."""
+        ovr = self.order.carrier_rate_override
+        return ovr if ovr is not None else self.ask_cost_per_kg
+
+    @property
     def carry_fee_estimate(self) -> Decimal:
-        """This carrier's carry fee for display = their own ask rate × the order's
+        """This carrier's carry fee for display = their effective rate × the order's
         effective (actual-or-estimated) carried weight. Per-offer, so each carrier
         sees their own quote even while several offers are pending (the order-level
         effective_cost_per_kg only resolves when a single offer is live)."""
-        return (self.ask_cost_per_kg * self.order.effective_weight_kg).quantize(TWO_PLACES)
+        return (self.effective_ask_cost_per_kg * self.order.effective_weight_kg).quantize(TWO_PLACES)
 
     @property
     def deposit_due(self) -> Decimal:

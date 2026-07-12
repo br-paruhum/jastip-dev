@@ -67,7 +67,7 @@
     {% if leg_offer.order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ leg_offer.order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
     {# Carry fee breakdown — merged in from the former "Your Carry Fee" card. #}
-    <tr><td>Shipment rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
+    <tr><td>Shipment rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.effective_ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
     <tr>
       <td>{% if leg_offer.order.has_actual_weight %}Final weight{% else %}Estimated weight{% endif %}</td>
       <td class="num-right">{{ leg_offer.order.effective_weight_kg|floatformat:1 }} kg</td>

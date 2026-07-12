@@ -1539,6 +1539,11 @@ class CarrierRateChangeTests(TestCase):
         self.assertEqual(self.order.carrier_rate_override, Decimal("80"))
         self.assertIsNone(self.order.pending_carrier_rate)
         self.assertEqual(self.order.effective_cost_per_kg, Decimal("80"))
+        # The carrier's Carry Details card reads the leg's effective rate + fee,
+        # which must now reflect the override (not the stale accepted ask).
+        offer = self.order.traveler_offers.first()
+        self.assertEqual(offer.effective_ask_cost_per_kg, Decimal("80"))
+        self.assertEqual(offer.carry_fee_estimate, Decimal("400"))  # 80 × 5 kg
 
     def test_higher_rate_waits_for_buyer_then_applies_on_approve(self):
         self._change("150")
