@@ -250,8 +250,8 @@ CHAT_MSG_MAXLEN = 500
 
 @require_POST
 def chat(request):
-    """Grounded help chatbot backed by Gemini. Key stays server-side."""
-    if not settings.GEMINI_API_KEY:
+    """Grounded help chatbot backed by Anthropic Claude. Key stays server-side."""
+    if not settings.ANTHROPIC_API_KEY:
         return JsonResponse({"error": "Chat is not available right now."}, status=503)
 
     try:
@@ -292,22 +292,30 @@ def chat(request):
         "=== KNOWLEDGE BASE ===\n" + load_howto_qa()
     )
 
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
-    )
     payload = {
-        "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": [{"role": "user", "parts": [{"text": message}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 600},
+        "model": settings.CHATBOT_MODEL,
+        "max_tokens": settings.CHATBOT_MAX_TOKENS,
+        "temperature": 0.2,
+        # cache_control caches the (large, unchanging) KB system prompt so the
+        # 2nd-5th questions in a session read it at ~0.1x cost instead of full price.
+        "system": [{"type": "text", "text": system_prompt,
+                    "cache_control": {"type": "ephemeral"}}],
+        "messages": [{"role": "user", "content": message}],
     }
     try:
-        resp = requests.post(url, json=payload, timeout=20)
+        resp = requests.post(
+            "https://api.anthropic.com/v1/messages", json=payload, timeout=20,
+            headers={
+                "x-api-key": settings.ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+        )
         resp.raise_for_status()
         data = resp.json()
-        reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        reply = data["content"][0]["text"].strip()
     except (requests.RequestException, KeyError, IndexError, ValueError):
-        logger.exception("Gemini chat request failed")
+        logger.exception("Anthropic chat request failed")
         return JsonResponse(
             {"error": "Sorry, I couldn't answer that right now. Please try again."},
             status=502,
