@@ -566,7 +566,10 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   var initialName = location.hash ? location.hash.slice(1) : '';
   if (params.get('plan')) initialName = 'plan-detail';
   else if (params.get('order')) initialName = 'order-detail';
-  else if (params.get('offer')) initialName = 'offer-detail';
+  // ?offer= drives two mutually-exclusive panels: the read-only offer-detail
+  // (existing leg) and the offer-form (new "Send Offer"). Only one is rendered,
+  // so route to whichever exists rather than assuming detail.
+  else if (params.get('offer')) initialName = names.indexOf('offer-form') !== -1 ? 'offer-form' : 'offer-detail';
   else if (!initialName) initialName = 'profile';
   activate(initialName);
   if (!location.hash && initialName !== 'profile') {
