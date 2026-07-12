@@ -107,8 +107,7 @@
      when they respond, and actuals after purchase. No item margin (buyer-first:
      jastip's fee is in the per-kg rate). -->
 {% if is_order_buyer and bf_order.pending_carrier_rate %}
-{# Carrier proposed a higher shipment rate after acceptance — the old rate stays
-   live until the buyer approves or rejects here. #}
+{# Higher rate proposed after acceptance: old rate stays live until buyer approves/rejects. #}
 <div class="card mt-2" style="border:1px solid var(--clay-dark)"><div class="card-body">
   <h3 style="margin-top:0">Shipment rate change — your approval needed</h3>
   <p>The carrier has proposed a higher shipment rate for this order:</p>

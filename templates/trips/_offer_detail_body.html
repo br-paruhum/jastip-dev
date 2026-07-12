@@ -90,8 +90,7 @@
   </div>
   {% endif %}
   {% if leg_offer.order.carrier_can_change_rate %}
-  {# Couriers price by a weight rate-table, so allow revising the per-kg rate up
-     until the package is handed over. Lower = auto; higher = buyer re-approves. #}
+  {# Revise per-kg rate until handover: lower auto-applies, higher needs buyer re-approval. #}
   <div class="mt-2" style="border-top:1px solid var(--line);padding-top:16px">
     {% if leg_offer.order.pending_carrier_rate %}
     <p class="help" style="margin:0 0 10px;text-align:center">Your proposed rate of
