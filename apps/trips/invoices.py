@@ -82,9 +82,12 @@ def render_customs_invoice_pdf(req) -> bytes:
     proxy_user = getattr(proxy, "user", None)
     proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
     proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
-    shipper = _party_block(proxy_name, proxy_addr, proxy_loc)
+    # Phone with country code, no "+" — required by the shipment company.
+    proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
+    shipper = _party_block(proxy_name, proxy_addr, proxy_loc, proxy_phone)
     receiver = _party_block(
-        req.buyer.full_name, req.buyer.buyer_invoice_address, req.buyer.buyer_destination_city
+        req.buyer.full_name, req.buyer.buyer_invoice_address,
+        req.buyer.buyer_destination_city, req.buyer.phone_e164.lstrip("+")
     )
     meta = Table([
         [Paragraph(f"<b>DATE:</b> {date_str}", label),
