@@ -552,19 +552,22 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     l.addEventListener('click', function (e) {
       e.preventDefault();
       activate(l.dataset.tab);
-      history.replaceState(null, '', '#' + l.dataset.tab);
+      // Drop any ?plan/?order/?offer detail query so the chosen tab sticks on
+      // reload (the query now outranks the hash).
+      history.replaceState(null, '', location.pathname + '#' + l.dataset.tab);
     });
   });
-  // Prefer the URL #fragment. Some browsers drop the fragment when following a
-  // POST→302 redirect, so also infer the panel from ?plan=/?order= (which the
-  // browser always keeps); otherwise default to the Profile panel.
+  // A detail query (?plan/?order/?offer) always identifies the panel: it survives
+  // a POST→302 redirect intact, whereas the #fragment is unreliable — some browsers
+  // drop it, others keep a stale list hash from an earlier tab. So the query wins
+  // over the hash; only fall back to the hash (or Profile) when no detail query is
+  // present. Tab clicks strip these params, so a chosen tab has a clean URL.
   var params = new URLSearchParams(location.search);
   var initialName = location.hash ? location.hash.slice(1) : '';
-  if (!initialName) {
-    if (params.get('plan')) initialName = 'plan-detail';
-    else if (params.get('order')) initialName = 'order-detail';
-    else initialName = 'profile';
-  }
+  if (params.get('plan')) initialName = 'plan-detail';
+  else if (params.get('order')) initialName = 'order-detail';
+  else if (params.get('offer')) initialName = 'offer-detail';
+  else if (!initialName) initialName = 'profile';
   activate(initialName);
   if (!location.hash && initialName !== 'profile') {
     // Restore the hash the browser dropped, keeping the query (?plan=/?order=) so a reload still resolves.

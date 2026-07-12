@@ -1,0 +1,10 @@
+{% extends "email_base.html" %}
+{% load money %}
+{% block body %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Your shipment rate went down</h2>
+  <p>The carrier for order <strong>{{ request_obj.reference }}</strong>
+     ({{ request_obj.from_city }} → {{ request_obj.to_city }}) has lowered their shipment
+     rate to <strong>{{ request_obj.currency }} {{ new_rate|by_currency:request_obj.currency }} / kg</strong>.</p>
+  <p>Your invoice has been updated automatically — no action is needed.</p>
+  {% include "_email_button.html" with url=request_url label="View your invoice" %}
+{% endblock %}

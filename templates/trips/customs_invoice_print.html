@@ -100,6 +100,12 @@
         <td></td><td>Total Value</td><td></td><td></td>
         <td class="num">{{ ci.total|by_currency:ci.currency }}</td>
       </tr>
+      {% if ci.total_usd is not None %}
+      <tr class="sub">
+        <td></td><td>Total Value - USD Eqv.</td><td></td><td></td>
+        <td class="num">USD {{ ci.total_usd|by_currency:"USD" }}</td>
+      </tr>
+      {% endif %}
       <tr><td colspan="5">&nbsp;</td></tr>
       <tr>
         <td></td><td>Number of Package: {{ ci.num_packages }}</td><td></td><td></td><td></td>

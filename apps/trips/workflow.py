@@ -150,6 +150,61 @@ def on_estimate_accepted(order):
         notify_see_email(proxy_user, event="estimate_accepted")
 
 
+def on_carrier_rate_lowered(order):
+    """Carrier dropped their per-kg rate after acceptance -> applied at once;
+    tell the buyer their invoice went down."""
+    send_email(
+        to_user=order.buyer,
+        subject=f"Shipment rate lowered on order {order.reference}",
+        template="carrier_rate_lowered",
+        context=_ctx(order, new_rate=order.carrier_rate_override),
+        event="carrier_rate_lowered",
+    )
+    notify_see_email(order.buyer, event="carrier_rate_lowered")
+
+
+def on_carrier_rate_proposed(order):
+    """Carrier proposed a HIGHER per-kg rate -> the old rate stays live until the
+    buyer approves. Ask the buyer to review and Approve or Reject."""
+    send_email(
+        to_user=order.buyer,
+        subject=f"New shipment rate needs your approval — order {order.reference}",
+        template="carrier_rate_proposed",
+        context=_ctx(order, new_rate=order.pending_carrier_rate, current_rate=order.effective_cost_per_kg),
+        event="carrier_rate_proposed",
+    )
+    notify_see_email(order.buyer, event="carrier_rate_proposed")
+
+
+def on_carrier_rate_approved(order):
+    """Buyer approved the carrier's higher rate -> let the carrier know it's live."""
+    traveler = _order_traveler(order)
+    if traveler:
+        send_email(
+            to_user=traveler,
+            subject=f"Your new rate was approved — order {order.reference}",
+            template="carrier_rate_decided",
+            context=_ctx(order, approved=True, new_rate=order.carrier_rate_override),
+            event="carrier_rate_approved",
+        )
+        notify_see_email(traveler, event="carrier_rate_approved")
+
+
+def on_carrier_rate_rejected(order):
+    """Buyer rejected the carrier's higher rate -> the previous rate stays; notify
+    the carrier."""
+    traveler = _order_traveler(order)
+    if traveler:
+        send_email(
+            to_user=traveler,
+            subject=f"Your new rate was declined — order {order.reference}",
+            template="carrier_rate_decided",
+            context=_ctx(order, approved=False, new_rate=order.pending_carrier_rate),
+            event="carrier_rate_rejected",
+        )
+        notify_see_email(traveler, event="carrier_rate_rejected")
+
+
 def on_carrier_matches_surfaced(order, matches):
     """Carrier-First: one or more queued carriers now match this order -> tell the
     buyer to review and accept one before the window closes."""

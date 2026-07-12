@@ -89,6 +89,26 @@
     {% if leg_offer.order.status == "ready_for_pickup" and leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %}<a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?arrive={{ leg_offer.order_id }}#arrive-order">Upload Receipt</a>{% endif %}
   </div>
   {% endif %}
+  {% if leg_offer.order.carrier_can_change_rate %}
+  {# Couriers price by a weight rate-table, so allow revising the per-kg rate up
+     until the package is handed over. Lower = auto; higher = buyer re-approves. #}
+  <div class="mt-2" style="border-top:1px solid var(--line);padding-top:16px">
+    {% if leg_offer.order.pending_carrier_rate %}
+    <p class="help" style="margin:0 0 10px;text-align:center">Your proposed rate of
+      <strong>{{ leg_offer.order.currency }} {{ leg_offer.order.pending_carrier_rate|by_currency:leg_offer.order.currency }} / kg</strong>
+      is awaiting the buyer's approval — the current rate stays in effect until they decide.</p>
+    {% endif %}
+    <form method="post" action="{% url 'trips:carrier_change_rate' leg_offer.order_id %}"
+          style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center">
+      {% csrf_token %}
+      <label style="font-size:.9rem">Change shipment rate / kg ({{ leg_offer.order.currency }})</label>
+      <input type="text" name="new_rate" required inputmode="decimal" class="money-input num-right"
+             style="max-width:140px" placeholder="{{ leg_offer.order.effective_cost_per_kg }}">
+      <button class="btn btn-primary btn-sm" type="submit">Update rate</button>
+    </form>
+    <p class="help" style="margin:8px 0 0;text-align:center">A lower rate updates the buyer's invoice immediately; a higher rate needs the buyer to re-approve it.</p>
+  </div>
+  {% endif %}
   {% if leg_offer.can_edit %}
   <div class="mt-2" style="text-align:center;border-top:1px solid var(--line);padding-top:16px">
     <a class="btn btn-primary" href="{% url 'trips:offer_edit' leg_offer.id %}">Edit</a>

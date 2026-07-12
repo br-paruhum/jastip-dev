@@ -355,6 +355,14 @@ class Order(ListingTimingMixin, models.Model):
     )
     bid_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0"))
     bid_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    # Post-acceptance shipment-rate revision (courier rate-table support). The
+    # carrier may adjust their per-kg rate after the buyer accepted and until the
+    # package is handed over to them. A lower (or equal) rate is applied at once
+    # via ``carrier_rate_override`` and wins in ``effective_cost_per_kg``; a
+    # higher rate is parked in ``pending_carrier_rate`` until the buyer re-approves
+    # (approval copies it into the override).
+    carrier_rate_override = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    pending_carrier_rate = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     partial_allowed = models.BooleanField(
         default=False, help_text="Allow this order to be split across multiple carriers."
     )
@@ -732,6 +740,11 @@ class Order(ListingTimingMixin, models.Model):
         (Carrier-First), the plan's rate, the single confirmed leg's accepted
         ask, or — before any leg is confirmed — the buyer's opening bid (for
         list-page display only)."""
+        # A carrier who revised their rate after acceptance (and the buyer either
+        # accepted the lower rate automatically or re-approved a higher one) wins
+        # over every flow default below.
+        if self.carrier_rate_override is not None:
+            return self.carrier_rate_override
         # Carrier-First: the carrier is bound up front, so the shipment rate is
         # fixed by their travel plan from the moment the order is placed.
         if self.carrier_first_plan_id:
@@ -1104,6 +1117,9 @@ class Order(ListingTimingMixin, models.Model):
             "subtotal": subtotal,
             "shipping": shipping,
             "total": subtotal + shipping,
+            # USD equivalent of the total at the current BCA rate (None when the
+            # order is already in USD or no active rate exists — then hide the row).
+            "total_usd": self._amount_in(subtotal + shipping, Currency.USD),
             "num_packages": 1,
         }
 
@@ -1183,6 +1199,18 @@ class Order(ListingTimingMixin, models.Model):
         Status.CLEAR, Status.CLOSED,
     }
     _CLEARED_STATUSES = {Status.CLEAR, Status.CLOSED}
+
+    # Carrier may revise the shipment rate once the buyer has committed (deposit
+    # paid) and before the package is handed over to them (Package Received).
+    _RATE_EDITABLE_STATUSES = {Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED}
+
+    @property
+    def carrier_can_change_rate(self) -> bool:
+        """The bound carrier may still adjust their per-kg shipment rate: the buyer
+        has accepted and paid the deposit, but the package hasn't been handed over
+        yet. Applies to the two carrier-carried flows (Carrier-First and buyer-first
+        Products), never plan-first proxy buying (the traveler is the proxy)."""
+        return self.plan_id is None and self.status in self._RATE_EDITABLE_STATUSES
 
     @property
     def proxy_disbursable(self) -> bool:

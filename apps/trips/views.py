@@ -27,6 +27,7 @@ from .constants import (
 from .forms import (
     AWBForm,
     BuyRequestForm,
+    CarrierRateForm,
     CustomFareForm,
     LegCustomFareForm,
     MessageForm,
@@ -141,7 +142,7 @@ def plan_edit(request, pk):
             plan.shipment_currency = ExchangeRate.currency_for_country(plan.from_country)
             plan.save()
             messages.success(request, "Travel plan updated.")
-            return redirect(reverse("accounts:profile") + "#travel-plans")
+            return redirect(reverse("accounts:profile") + f"?plan={plan.id}#plan-detail")
     else:
         form = TravelPlanForm(instance=plan)
     country_currency_map_json = json.dumps(ExchangeRate.country_currency_map())
@@ -957,6 +958,71 @@ def offer_select(request, pk):
         order.recompute_status()
     messages.success(request, "Offer selected. Pay this leg's deposit to reveal the carrier's drop-off address.")
     return redirect(detail_url)
+
+
+# --- Carrier: revise shipment rate after acceptance -------------------------
+# Couriers price by a weight rate-table, so the per-kg rate can change once the
+# real weight is known. A lower (or equal) rate applies immediately and the
+# invoice re-rates; a higher rate is held for the buyer to re-approve.
+@profile_required
+@require_POST
+def carrier_change_rate(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    if not _require_traveler(request, order):
+        messages.error(request, "Only the carrier can change the shipment rate.")
+        return redirect(order.get_absolute_url())
+    if not order.carrier_can_change_rate:
+        messages.error(request, "The shipment rate can no longer be changed for this order.")
+        return _traveler_invoice_redirect(order)
+    form = CarrierRateForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Enter a valid rate per kg.")
+        return _traveler_invoice_redirect(order)
+    new_rate = form.cleaned_data["new_rate"]
+    current = order.effective_cost_per_kg
+    if new_rate == current:
+        messages.info(request, "That is the same as the current rate.")
+        return _traveler_invoice_redirect(order)
+    if new_rate < current:
+        # Cheaper for the buyer — apply straight away and drop any pending proposal.
+        order.carrier_rate_override = new_rate
+        order.pending_carrier_rate = None
+        order.save(update_fields=["carrier_rate_override", "pending_carrier_rate", "updated_at"])
+        workflow.on_carrier_rate_lowered(order)
+        messages.success(request, "Rate lowered — the buyer's invoice has been updated.")
+    else:
+        # Dearer — hold it until the buyer re-approves; the old rate stays live.
+        order.pending_carrier_rate = new_rate
+        order.save(update_fields=["pending_carrier_rate", "updated_at"])
+        workflow.on_carrier_rate_proposed(order)
+        messages.success(request, "Higher rate submitted — waiting for the buyer to approve it.")
+    return _traveler_invoice_redirect(order)
+
+
+# --- Buyer: approve/reject a carrier's higher rate proposal -----------------
+@profile_required
+@require_POST
+def buyer_rate_decision(request, pk):
+    order = get_object_or_404(Order, pk=pk)
+    detail = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can decide on the new rate.")
+        return redirect(detail)
+    if order.pending_carrier_rate is None:
+        messages.info(request, "There is no rate change awaiting your approval.")
+        return redirect(detail)
+    if request.POST.get("decision") == "approve":
+        order.carrier_rate_override = order.pending_carrier_rate
+        order.pending_carrier_rate = None
+        order.save(update_fields=["carrier_rate_override", "pending_carrier_rate", "updated_at"])
+        workflow.on_carrier_rate_approved(order)
+        messages.success(request, "New rate approved — your invoice has been updated.")
+    else:
+        workflow.on_carrier_rate_rejected(order)  # still reads pending_carrier_rate
+        order.pending_carrier_rate = None
+        order.save(update_fields=["pending_carrier_rate", "updated_at"])
+        messages.success(request, "New rate rejected — the previous rate stays in effect.")
+    return redirect(detail)
 
 
 # --- Buyer: split the cargo goods across carriers (per-leg customs) ----------

@@ -106,6 +106,29 @@
      format. The buyer lists items only; the Proxy Buyer fills estimated prices
      when they respond, and actuals after purchase. No item margin (buyer-first:
      jastip's fee is in the per-kg rate). -->
+{% if is_order_buyer and bf_order.pending_carrier_rate %}
+{# Carrier proposed a higher shipment rate after acceptance — the old rate stays
+   live until the buyer approves or rejects here. #}
+<div class="card mt-2" style="border:1px solid var(--clay-dark)"><div class="card-body">
+  <h3 style="margin-top:0">Shipment rate change — your approval needed</h3>
+  <p>The carrier has proposed a higher shipment rate for this order:</p>
+  <table class="invoice" style="max-width:340px">
+    <tr><td>Current rate</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.effective_cost_per_kg|by_currency:bf_order.currency }} / kg</td></tr>
+    <tr><td>Proposed rate</td><td class="num-right">{{ bf_order.currency }} {{ bf_order.pending_carrier_rate|by_currency:bf_order.currency }} / kg</td></tr>
+  </table>
+  <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
+    <form method="post" action="{% url 'trips:buyer_rate_decision' bf_order.id %}">
+      {% csrf_token %}<input type="hidden" name="decision" value="approve">
+      <button class="btn btn-primary" type="submit">Approve new rate</button>
+    </form>
+    <form method="post" action="{% url 'trips:buyer_rate_decision' bf_order.id %}"
+          onsubmit="return confirm('Reject the new rate? The previous rate stays in effect.');">
+      {% csrf_token %}<input type="hidden" name="decision" value="reject">
+      <button class="btn btn-outline" type="submit">Reject</button>
+    </form>
+  </div>
+</div></div>
+{% endif %}
 <div class="card mt-2"><div class="card-body">
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <h3 style="margin-top:0;margin-bottom:0">Invoice — {{ bf_order.currency }}</h3>

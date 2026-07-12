@@ -46,6 +46,17 @@ class ThousandSeparatorNumberInput(forms.TextInput):
         return value
 
 
+class CarrierRateForm(forms.Form):
+    """Carrier revises their per-kg shipment rate after acceptance. A single
+    positive number; comparison against the current rate (lower auto-applies,
+    higher needs buyer re-approval) is done in the view."""
+
+    new_rate = forms.DecimalField(
+        min_value=Decimal("0.01"), max_digits=12, decimal_places=2,
+        widget=ThousandSeparatorNumberInput(attrs={"class": "money-input num-right", "placeholder": "New rate / kg"}),
+    )
+
+
 class TravelPlanForm(forms.ModelForm):
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)

@@ -1,0 +1,16 @@
+{% extends "email_base.html" %}
+{% load money %}
+{% block body %}
+  {% if approved %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Your new rate was approved</h2>
+  <p>The buyer approved your new shipment rate of
+     <strong>{{ request_obj.currency }} {{ new_rate|by_currency:request_obj.currency }} / kg</strong>
+     for order <strong>{{ request_obj.reference }}</strong>. It is now the invoiced rate.</p>
+  {% else %}
+  <h2 style="margin:0 0 12px;color:#1a1a18;">Your new rate was declined</h2>
+  <p>The buyer declined your proposed rate of
+     <strong>{{ request_obj.currency }} {{ new_rate|by_currency:request_obj.currency }} / kg</strong>
+     for order <strong>{{ request_obj.reference }}</strong>. The previous rate stays in effect.</p>
+  {% endif %}
+  {% include "_email_button.html" with url=request_url label="View the order" %}
+{% endblock %}

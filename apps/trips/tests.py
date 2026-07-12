@@ -1491,3 +1491,103 @@ class CarrierFirstMatchingTests(TestCase):
         self.assertIn("spare weight", msg)
         order.refresh_from_db()
         self.assertEqual(order.status, Status.ESTIMATE_SENT)          # not advanced
+
+
+@override_settings(STORAGES=_NO_MANIFEST_STORAGES)
+class CarrierRateChangeTests(TestCase):
+    """Courier revises their per-kg rate after the buyer accepted: a lower rate
+    re-rates the invoice at once, a higher rate is held until the buyer approves.
+    Editing is only open before the package is handed over (Package Received)."""
+
+    def setUp(self):
+        from django.urls import reverse
+        from apps.trips.models import TravelerOffer
+        self.reverse = reverse
+        self.buyer = make_user("crb@x.com")
+        self.carrier = make_user("crc@x.com")
+        self.order = Order.objects.create(
+            buyer=self.buyer, status=Status.DEPOSIT_PAID,
+            estimated_weight_kg=Decimal("5"),
+        )
+        TravelerOffer.objects.create(
+            order=self.order, traveler=self.carrier,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("5"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Bangkok", from_country="Thailand",
+            to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("5"),
+        )
+
+    def _change(self, rate):
+        self.client.force_login(self.carrier)
+        return self.client.post(
+            self.reverse("trips:carrier_change_rate", args=[self.order.pk]),
+            {"new_rate": rate},
+        )
+
+    def _decide(self, decision):
+        self.client.force_login(self.buyer)
+        return self.client.post(
+            self.reverse("trips:buyer_rate_decision", args=[self.order.pk]),
+            {"decision": decision},
+        )
+
+    def test_lower_rate_applies_immediately(self):
+        self.assertEqual(self.order.effective_cost_per_kg, Decimal("100"))
+        self._change("80")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.carrier_rate_override, Decimal("80"))
+        self.assertIsNone(self.order.pending_carrier_rate)
+        self.assertEqual(self.order.effective_cost_per_kg, Decimal("80"))
+
+    def test_higher_rate_waits_for_buyer_then_applies_on_approve(self):
+        self._change("150")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.pending_carrier_rate, Decimal("150"))
+        self.assertIsNone(self.order.carrier_rate_override)
+        self.assertEqual(self.order.effective_cost_per_kg, Decimal("100"))  # unchanged
+        self._decide("approve")
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.carrier_rate_override, Decimal("150"))
+        self.assertIsNone(self.order.pending_carrier_rate)
+        self.assertEqual(self.order.effective_cost_per_kg, Decimal("150"))
+
+    def test_higher_rate_rejected_keeps_previous(self):
+        self._change("150")
+        self._decide("reject")
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.pending_carrier_rate)
+        self.assertIsNone(self.order.carrier_rate_override)
+        self.assertEqual(self.order.effective_cost_per_kg, Decimal("100"))
+
+    def test_no_change_after_handover(self):
+        self.order.status = Status.PACKAGE_RECEIVED
+        self.order.save(update_fields=["status"])
+        self.assertFalse(self.order.carrier_can_change_rate)
+        self._change("80")
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.carrier_rate_override)
+
+    def test_only_carrier_can_change(self):
+        self.client.force_login(self.buyer)
+        self.client.post(
+            self.reverse("trips:carrier_change_rate", args=[self.order.pk]),
+            {"new_rate": "80"},
+        )
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.carrier_rate_override)
+
+    def test_detail_partials_render_rate_ui(self):
+        from django.template.loader import render_to_string
+        offer = self.order.traveler_offers.first()
+        carrier_html = render_to_string("trips/_offer_detail_body.html", {"leg_offer": offer})
+        self.assertIn("Change shipment rate", carrier_html)
+        # Buyer approval banner only shows when a higher rate is pending.
+        self.order.pending_carrier_rate = Decimal("150")
+        self.order.save(update_fields=["pending_carrier_rate"])
+        buyer_html = render_to_string(
+            "trips/_order_detail_body.html",
+            {"bf_order": self.order, "is_order_buyer": True, "is_order_proxy": False},
+        )
+        self.assertIn("your approval needed", buyer_html)
+        self.assertIn("Approve new rate", buyer_html)

@@ -119,13 +119,17 @@ def render_customs_invoice_pdf(req) -> bytes:
     data.append(["", "Shipping Charges", "", "", idr0(ci["shipping"])])
     total_row = len(data)
     data.append(["", "Total Value", "", "", idr0(ci["total"])])
+    usd_row = None
+    if ci.get("total_usd") is not None:
+        usd_row = len(data)
+        data.append(["", "Total Value - USD Eqv.", "", "", f"USD {Decimal(ci['total_usd']):,.2f}"])
     data.append(["", "", "", "", ""])
     data.append(["", f"Number of Package: {ci['num_packages']}", "", "", ""])
 
     peach = colors.HexColor("#F5CBA7")
     peach_line = colors.HexColor("#D9A47F")
     items_tbl = Table(data, colWidths=[14 * mm, 80 * mm, 28 * mm, 26 * mm, 26 * mm])
-    items_tbl.setStyle(TableStyle([
+    style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9.5),
@@ -143,7 +147,10 @@ def render_customs_invoice_pdf(req) -> bytes:
         ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-    ]))
+    ]
+    if usd_row is not None:
+        style_cmds.append(("FONTNAME", (1, usd_row), (-1, usd_row), "Helvetica-Bold"))
+    items_tbl.setStyle(TableStyle(style_cmds))
     story.append(items_tbl)
     story.append(Spacer(1, 16))
     story.append(Paragraph(
@@ -219,7 +226,7 @@ def render_invoice_pdf(req) -> bytes:
     data.append(["", "Margin", "", _mp_str, "", "", "",
                  _money(req.estimated_margin), _money(req.actual_margin)])
     data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight), "",
-                 "", _money(plan.shipment_cost_per_kg),
+                 "", _money(req.effective_cost_per_kg),
                  _money(req.estimated_shipment_cost), _money(req.shipment_cost)])
     data.append(["", "Custom Duty", "", "", "", "", "",
                  _money(req.estimated_custom), _money(req.actual_custom)])
