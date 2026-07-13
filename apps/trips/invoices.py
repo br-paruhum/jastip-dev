@@ -161,7 +161,7 @@ def render_customs_invoice_pdf(req) -> bytes:
     story.append(Spacer(1, 16))
     story.append(Paragraph(
         "This invoice is prepared for customs declaration purposes. Goods are carried "
-        "personally by the traveler on behalf of the buyer named above.", small))
+        "by Aramex on behalf of the shipper named above.", small))
 
     doc.build(story)
     return buf.getvalue()
