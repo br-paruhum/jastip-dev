@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, A5, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -47,6 +47,28 @@ def _party_block(name, *lines) -> str:
     return "<br/>".join(parts)
 
 
+def _customs_parties(req):
+    """Shipper (proxy buyer) and receiver (buyer) blocks shared by the customs
+    invoice and the box label so they render identically. Shipper address prints
+    one line per row of the proxy's credentials; its country comes from the admin
+    Proxy Buyers list. Phones carry the country code with the leading "+" removed
+    (shipment company requirement)."""
+    proxy = req.proxy_buyer
+    proxy_country = getattr(proxy, "country", "") if proxy else ""
+    proxy_user = getattr(proxy, "user", None)
+    proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
+    proxy_addr_lines = [ln for ln in (proxy_addr or "").splitlines() if ln.strip()]
+    proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
+    proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
+    shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
+    receiver = _party_block(
+        req.buyer.full_name, req.buyer.buyer_invoice_address,
+        req.buyer.buyer_destination_city, req.destination_country,
+        req.buyer.phone_e164.lstrip("+"),
+    )
+    return shipper, receiver
+
+
 def render_customs_invoice_pdf(req) -> bytes:
     """Customs (commercial) invoice PDF, matching customs_invoice_print.html and
     NewCustomsInvoiceFormat.pdf. Values are in IDR and INCLUDE the proxy margin;
@@ -75,22 +97,7 @@ def render_customs_invoice_pdf(req) -> bytes:
 
     # Meta: DATE / PURCHASE ORDER, then SHIPPER / RECEIVER blocks.
     date_str = ci["date"].strftime("%d-%b-%Y") if ci["date"] else "—"
-    proxy = req.proxy_buyer
-    proxy_country = getattr(proxy, "country", "") if proxy else ""
-    proxy_user = getattr(proxy, "user", None)
-    proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
-    # Proxy address prints one line per row of their credentials; country comes
-    # from the admin Proxy Buyers list (not the buyer-entered city).
-    proxy_addr_lines = [ln for ln in (proxy_addr or "").splitlines() if ln.strip()]
-    proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
-    # Phone with country code, no "+" — required by the shipment company.
-    proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
-    shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
-    receiver = _party_block(
-        req.buyer.full_name, req.buyer.buyer_invoice_address,
-        req.buyer.buyer_destination_city, req.destination_country,
-        req.buyer.phone_e164.lstrip("+")
-    )
+    shipper, receiver = _customs_parties(req)
     meta = Table([
         [Paragraph(f"<b>DATE:</b> {date_str}", label),
          Paragraph(f"<b>PURCHASE ORDER:</b> {escape(ci['reference'])}", label)],
@@ -112,41 +119,42 @@ def render_customs_invoice_pdf(req) -> bytes:
                          fontSize=9.5, leading=11, textColor=INK)
     hdr_c = ParagraphStyle("chdrc", parent=hdr, alignment=TA_CENTER)
     hdr_r = ParagraphStyle("chdrr", parent=hdr, alignment=TA_RIGHT)
+    def usd(v) -> str:
+        return f"{Decimal(v):,.2f}" if v is not None else ""
+
     data = [[Paragraph("Qty", hdr_c), Paragraph("Description of Goods", hdr_c),
              Paragraph("HS Code", hdr_c), Paragraph("Country of Origin", hdr_c),
              Paragraph(f"Unit Value ({escape(ccy)})", hdr_r),
-             Paragraph(f"Total Value ({escape(ccy)})", hdr_r)]]
+             Paragraph(f"Total Value ({escape(ccy)})", hdr_r),
+             Paragraph("Total Value (USD)", hdr_r)]]
     for r in ci["rows"]:
         data.append([str(r.quantity), Paragraph(escape(r.name), item_cell),
                      escape(getattr(r, "hs_code", "") or ""), escape(r.origin or ""),
-                     idr0(r.unit_value), idr0(r.total_value)])
+                     idr0(r.unit_value), idr0(r.total_value),
+                     usd(getattr(r, "total_value_usd", None))])
     sub_row = len(data)
-    data.append(["", "Sub-Total", "", "", "", idr0(ci["subtotal"])])
-    data.append(["", "Shipping Charges", "", "", "", idr0(ci["shipping"])])
+    data.append(["", "Sub-Total", "", "", "", idr0(ci["subtotal"]), usd(ci.get("subtotal_usd"))])
+    data.append(["", "Shipping Charges", "", "", "", idr0(ci["shipping"]), usd(ci.get("shipping_usd"))])
     total_row = len(data)
-    data.append(["", "Total Value", "", "", "", idr0(ci["total"])])
-    usd_row = None
-    if ci.get("total_usd") is not None:
-        usd_row = len(data)
-        data.append(["", "Total Value - USD Eqv.", "", "", "", f"USD {Decimal(ci['total_usd']):,.2f}"])
-    data.append(["", "", "", "", "", ""])
-    data.append(["", f"Number of Package: {ci['num_packages']}", "", "", "", ""])
+    data.append(["", "Total Value", "", "", "", idr0(ci["total"]), usd(ci.get("total_usd"))])
+    data.append(["", "", "", "", "", "", ""])
+    data.append(["", f"Number of Package: {ci['num_packages']}", "", "", "", "", ""])
 
     peach = colors.HexColor("#F5CBA7")
     peach_line = colors.HexColor("#D9A47F")
-    items_tbl = Table(data, colWidths=[14 * mm, 62 * mm, 24 * mm, 24 * mm, 25 * mm, 25 * mm])
+    items_tbl = Table(data, colWidths=[12 * mm, 50 * mm, 20 * mm, 22 * mm, 22 * mm, 24 * mm, 24 * mm])
     style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, -1), 9.5),
         ("ALIGN", (0, 0), (0, -1), "CENTER"),   # Qty
         ("ALIGN", (2, 0), (3, -1), "CENTER"),   # HS Code + Country of Origin
-        ("ALIGN", (4, 0), (-1, -1), "RIGHT"),   # value columns
+        ("ALIGN", (4, 0), (-1, -1), "RIGHT"),   # value columns (incl. USD)
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("GRID", (0, 0), (-1, -1), 0.4, LINE),
         ("LINEBELOW", (0, 0), (-1, 0), 0.6, peach_line),
         ("FONTNAME", (1, sub_row), (1, sub_row), "Helvetica-Bold"),
-        ("FONTNAME", (5, sub_row), (5, sub_row), "Helvetica-Bold"),
+        ("FONTNAME", (5, sub_row), (6, sub_row), "Helvetica-Bold"),
         ("FONTNAME", (1, total_row), (-1, total_row), "Helvetica-Bold"),
         ("LINEABOVE", (0, total_row), (-1, total_row), 1.0, INK),
         ("TOPPADDING", (0, 0), (-1, -1), 5),
@@ -154,8 +162,6 @@ def render_customs_invoice_pdf(req) -> bytes:
         ("LEFTPADDING", (0, 0), (-1, -1), 6),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
     ]
-    if usd_row is not None:
-        style_cmds.append(("FONTNAME", (1, usd_row), (-1, usd_row), "Helvetica-Bold"))
     items_tbl.setStyle(TableStyle(style_cmds))
     story.append(items_tbl)
     story.append(Spacer(1, 16))
@@ -164,6 +170,40 @@ def render_customs_invoice_pdf(req) -> bytes:
         "by Aramex on behalf of the shipper named above.", small))
 
     doc.build(story)
+    return buf.getvalue()
+
+
+def render_box_label_pdf(req) -> bytes:
+    """Box label to stick on the package: A5 landscape, two borderless columns —
+    SHIPPER (left) and RECEIVER (right), same party details as the customs
+    invoice, in a large font sized for A5."""
+    buf = BytesIO()
+    page = landscape(A5)
+    doc = SimpleDocTemplate(
+        buf, pagesize=page,
+        leftMargin=12 * mm, rightMargin=12 * mm, topMargin=14 * mm, bottomMargin=12 * mm,
+        title=f"Box Label {req.reference}",
+    )
+    styles = getSampleStyleSheet()
+    heading = ParagraphStyle("bl_head", parent=styles["Normal"], fontName="Helvetica-Bold",
+                             fontSize=20, leading=26, textColor=INK, spaceAfter=10)
+    body = ParagraphStyle("bl_body", parent=styles["Normal"], fontSize=16, leading=24, textColor=INK)
+
+    shipper, receiver = _customs_parties(req)
+    col_w = (page[0] - 24 * mm) / 2
+    tbl = Table([[
+        [Paragraph("SHIPPER", heading), Paragraph(shipper, body)],
+        [Paragraph("RECEIVER", heading), Paragraph(receiver, body)],
+    ]], colWidths=[col_w, col_w])
+    tbl.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (0, -1), 0),
+        ("LEFTPADDING", (1, 0), (1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+    ]))
+    doc.build([tbl])
     return buf.getvalue()
 
 

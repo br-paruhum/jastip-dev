@@ -1,5 +1,9 @@
 {% load humanize %}
-<h2 style="margin:6px 0 0">Actual Cost Update</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+  <h2 style="margin:6px 0 0">Actual Cost Update</h2>
+  <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)"
+     href="{% url 'trips:request_box_label' package_ready_order.id %}" target="_blank">Print Box Label</a>
+</div>
 
 {# Notes/guidance card — first card, always expanded, soft-clay header. #}
 {% include "trips/_order_notes.html" with note_order=package_ready_order note_role="package_ready" %}

@@ -66,10 +66,11 @@
 
   <table>
     <colgroup>
-      <col style="width:8%">
-      <col style="width:38%">
-      <col style="width:14%">
-      <col style="width:14%">
+      <col style="width:7%">
+      <col style="width:30%">
+      <col style="width:12%">
+      <col style="width:13%">
+      <col style="width:12%">
       <col style="width:13%">
       <col style="width:13%">
     </colgroup>
@@ -81,6 +82,7 @@
         <th class="coo">Country of Origin</th>
         <th class="num">Unit Value ({{ ci.currency }})</th>
         <th class="num">Total Value ({{ ci.currency }})</th>
+        <th class="num">Total Value (USD)</th>
       </tr>
     </thead>
     <tbody>
@@ -92,29 +94,27 @@
         <td class="coo">{{ r.origin }}</td>
         <td class="num">{{ r.unit_value|by_currency:ci.currency }}</td>
         <td class="num">{{ r.total_value|by_currency:ci.currency }}</td>
+        <td class="num">{% if r.total_value_usd is not None %}{{ r.total_value_usd|by_currency:"USD" }}{% endif %}</td>
       </tr>
       {% endfor %}
       <tr class="sub">
         <td></td><td>Sub-Total</td><td></td><td></td><td></td>
         <td class="num">{{ ci.subtotal|by_currency:ci.currency }}</td>
+        <td class="num">{% if ci.subtotal_usd is not None %}{{ ci.subtotal_usd|by_currency:"USD" }}{% endif %}</td>
       </tr>
       <tr>
         <td></td><td>Shipping Charges</td><td></td><td></td><td></td>
         <td class="num">{{ ci.shipping|by_currency:ci.currency }}</td>
+        <td class="num">{% if ci.shipping_usd is not None %}{{ ci.shipping_usd|by_currency:"USD" }}{% endif %}</td>
       </tr>
       <tr class="total">
         <td></td><td>Total Value</td><td></td><td></td><td></td>
         <td class="num">{{ ci.total|by_currency:ci.currency }}</td>
+        <td class="num">{% if ci.total_usd is not None %}{{ ci.total_usd|by_currency:"USD" }}{% endif %}</td>
       </tr>
-      {% if ci.total_usd is not None %}
-      <tr class="sub">
-        <td></td><td>Total Value - USD Eqv.</td><td></td><td></td><td></td>
-        <td class="num">USD {{ ci.total_usd|by_currency:"USD" }}</td>
-      </tr>
-      {% endif %}
-      <tr><td colspan="6">&nbsp;</td></tr>
+      <tr><td colspan="7">&nbsp;</td></tr>
       <tr>
-        <td></td><td>Number of Package: {{ ci.num_packages }}</td><td></td><td></td><td></td><td></td>
+        <td></td><td>Number of Package: {{ ci.num_packages }}</td><td></td><td></td><td></td><td></td><td></td>
       </tr>
     </tbody>
   </table>

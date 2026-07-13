@@ -1096,6 +1096,17 @@ class Order(ListingTimingMixin, models.Model):
         at 1."""
         mult = Decimal("1") + (self.margin_percent or Decimal("0")) / Decimal("100")
         origin = self.customs_origin_country
+
+        def _usd(amount):
+            """USD value for the rightmost "Total Value (USD)" column: the amount
+            itself when the order is already in USD, else the BCA cross-rate
+            (None when no active USD rate exists — then the cell is left blank)."""
+            if amount is None:
+                return None
+            if self.currency == Currency.USD:
+                return Decimal(amount).quantize(TWO_PLACES)
+            return self._amount_in(amount, Currency.USD)
+
         rows, subtotal = [], Decimal("0")
         for item in self.items.all():
             if not (item.actual_quantity and item.actual_quantity > 0):
@@ -1107,8 +1118,10 @@ class Order(ListingTimingMixin, models.Model):
                 quantity=item.actual_quantity,
                 name=item.customs_description or item.name, hs_code=item.hs_code,
                 origin=origin, unit_value=unit_value, total_value=total_value,
+                total_value_usd=_usd(total_value),
             ))
         shipping = Decimal(self.shipment_cost or 0).quantize(TWO_PLACES)
+        total = subtotal + shipping
         return {
             "date": self.customs_invoice_date,
             "reference": self.reference,
@@ -1117,10 +1130,12 @@ class Order(ListingTimingMixin, models.Model):
             "rows": rows,
             "subtotal": subtotal,
             "shipping": shipping,
-            "total": subtotal + shipping,
-            # USD equivalent of the total at the current BCA rate (None when the
-            # order is already in USD or no active rate exists — then hide the row).
-            "total_usd": self._amount_in(subtotal + shipping, Currency.USD),
+            "total": total,
+            # Per-line USD, feeding the rightmost "Total Value (USD)" column and
+            # its running totals. None (blank cell) when no active USD rate exists.
+            "subtotal_usd": _usd(subtotal),
+            "shipping_usd": _usd(shipping),
+            "total_usd": _usd(total),
             "num_packages": 1,
         }
 

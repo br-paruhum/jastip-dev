@@ -2009,3 +2009,30 @@ def request_customs_invoice(request, pk):
         if leg is None:
             leg = next((l for l in legs if l.traveler_id == request.user.id), None)
     return render(request, "trips/customs_invoice_print.html", {"req": req, "leg": leg})
+
+
+@login_required
+def request_box_label(request, pk):
+    """A5-landscape box label PDF (SHIPPER / RECEIVER blocks, same details as the
+    customs invoice). Opened by the proxy buyer to stick on the package, and
+    available to the same parties as the customs invoice."""
+    req = get_object_or_404(Order, pk=pk)
+    allowed = (
+        request.user.is_staff
+        or req.buyer_id == request.user.id
+        or (req.proxy_buyer_id and req.proxy_buyer.user_id == request.user.id)
+        or (req.plan_id and req.plan.traveler_id == request.user.id)
+        or any(leg.traveler_id == request.user.id for leg in req.confirmed_legs)
+        or (not req.plan_id and any(
+            o.traveler_id == request.user.id
+            and o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+            for o in req.traveler_offers.all()))
+    )
+    if not allowed:
+        messages.error(request, "You don't have access to this box label.")
+        return redirect(reverse("accounts:profile"))
+    from .invoices import render_box_label_pdf
+    pdf = render_box_label_pdf(req)
+    resp = HttpResponse(pdf, content_type="application/pdf")
+    resp["Content-Disposition"] = f'inline; filename="box-label-{req.reference}.pdf"'
+    return resp

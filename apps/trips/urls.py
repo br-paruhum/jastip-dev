@@ -55,6 +55,7 @@ urlpatterns = [
     path("requests/<int:pk>/chat-seen/", views.chat_seen, name="chat_seen"),
     path("requests/<int:pk>/refund-bank/", views.request_refund_bank, name="request_refund_bank"),
     path("requests/<int:pk>/customs-invoice/", views.request_customs_invoice, name="request_customs_invoice"),
+    path("requests/<int:pk>/box-label/", views.request_box_label, name="request_box_label"),
     path("requests/<int:pk>/invoice/", views.request_invoice, name="request_invoice"),
     path("requests/<int:pk>/packing-list/", views.request_packing_list, name="request_packing_list"),
     path("orders/<int:order_id>/assign-items/", views.order_assign_items, name="order_assign_items"),
