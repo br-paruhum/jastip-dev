@@ -134,6 +134,7 @@
     {% if is_order_buyer or is_order_proxy %}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       {% if is_order_buyer %}<a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>{% endif %}
       <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
+      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' bf_order.id %}" target="_blank">Print Box Label</a>
     </span>{% endif %}
   </div>
   <div class="table-wrap" style="margin-top:14px">
