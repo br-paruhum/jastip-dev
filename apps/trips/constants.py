@@ -225,6 +225,23 @@ _COUNTRY_NAMES = [
 # (value, label) — stored as the country name to match the model CharFields.
 COUNTRY_CHOICES = [("", "Select a country")] + [(n, n) for n in _COUNTRY_NAMES]
 
+# ISO 3166-1 alpha-2 codes for the customs invoice "Country of Origin" column,
+# which shows the short code (e.g. "ID") rather than the full country name.
+COUNTRY_ISO2 = {
+    "Australia": "AU", "Austria": "AT", "Bangladesh": "BD", "Belgium": "BE",
+    "Brazil": "BR", "Brunei": "BN", "Cambodia": "KH", "Canada": "CA", "China": "CN",
+    "Denmark": "DK", "Egypt": "EG", "Finland": "FI", "France": "FR", "Germany": "DE",
+    "Hong Kong": "HK", "India": "IN", "Indonesia": "ID", "Ireland": "IE", "Italy": "IT",
+    "Japan": "JP", "Jordan": "JO", "Kuwait": "KW", "Laos": "LA", "Macau": "MO",
+    "Malaysia": "MY", "Maldives": "MV", "Mexico": "MX", "Myanmar": "MM", "Nepal": "NP",
+    "Netherlands": "NL", "New Zealand": "NZ", "Norway": "NO", "Oman": "OM",
+    "Pakistan": "PK", "Philippines": "PH", "Poland": "PL", "Portugal": "PT",
+    "Qatar": "QA", "Saudi Arabia": "SA", "Singapore": "SG", "South Korea": "KR",
+    "Spain": "ES", "Sri Lanka": "LK", "Sweden": "SE", "Switzerland": "CH",
+    "Taiwan": "TW", "Thailand": "TH", "Turkey": "TR", "United Arab Emirates": "AE",
+    "United Kingdom": "GB", "United States": "US", "Vietnam": "VN",
+}
+
 
 DEFAULT_PAYMENT_TERM = (
     "100% of items ordered including margin + 100% of shipment cost, paid upfront. "

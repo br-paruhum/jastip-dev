@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from .constants import (
     ACTIVE_TX_STATUSES,
     COUNTRY_CHOICES,
+    COUNTRY_ISO2,
     HELD_MATCH_STATUSES,
     MSG_TAB_BUYER_PROXY,
     MSG_TAB_CARRIER_BUYER,
@@ -1096,6 +1097,9 @@ class Order(ListingTimingMixin, models.Model):
         at 1."""
         mult = Decimal("1") + (self.margin_percent or Decimal("0")) / Decimal("100")
         origin = self.customs_origin_country
+        # Country of Origin column shows the ISO alpha-2 code (e.g. "ID"), not the
+        # full name; fall back to the name if it's not in the map.
+        origin_code = COUNTRY_ISO2.get(origin, origin)
 
         def _usd(amount):
             """USD value for the rightmost "Total Value (USD)" column: the amount
@@ -1117,7 +1121,7 @@ class Order(ListingTimingMixin, models.Model):
             rows.append(SimpleNamespace(
                 quantity=item.actual_quantity,
                 name=item.customs_description or item.name, hs_code=item.hs_code,
-                origin=origin, unit_value=unit_value, total_value=total_value,
+                origin=origin_code, unit_value=unit_value, total_value=total_value,
                 total_value_usd=_usd(total_value),
             ))
         shipping = Decimal(self.shipment_cost or 0).quantize(TWO_PLACES)

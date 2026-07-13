@@ -142,7 +142,7 @@ def render_customs_invoice_pdf(req) -> bytes:
 
     peach = colors.HexColor("#F5CBA7")
     peach_line = colors.HexColor("#D9A47F")
-    items_tbl = Table(data, colWidths=[12 * mm, 50 * mm, 20 * mm, 22 * mm, 22 * mm, 24 * mm, 24 * mm])
+    items_tbl = Table(data, colWidths=[12 * mm, 50 * mm, 26 * mm, 16 * mm, 22 * mm, 24 * mm, 24 * mm])
     style_cmds = [
         ("BACKGROUND", (0, 0), (-1, 0), peach),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
