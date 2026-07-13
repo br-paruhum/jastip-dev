@@ -9,7 +9,7 @@ from xml.sax.saxutils import escape
 from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-from reportlab.lib.pagesizes import A4, A5, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
@@ -174,23 +174,23 @@ def render_customs_invoice_pdf(req) -> bytes:
 
 
 def render_box_label_pdf(req) -> bytes:
-    """Box label to stick on the package: A5 landscape, two borderless columns —
+    """Box label to stick on the package: A4 portrait, two borderless columns —
     SHIPPER (left) and RECEIVER (right), same party details as the customs
-    invoice, in a large font sized for A5."""
+    invoice, in a large font sized for A4."""
     buf = BytesIO()
-    page = landscape(A5)
+    page = A4
     doc = SimpleDocTemplate(
         buf, pagesize=page,
-        leftMargin=12 * mm, rightMargin=12 * mm, topMargin=14 * mm, bottomMargin=12 * mm,
+        leftMargin=18 * mm, rightMargin=18 * mm, topMargin=18 * mm, bottomMargin=18 * mm,
         title=f"Box Label {req.reference}",
     )
     styles = getSampleStyleSheet()
     heading = ParagraphStyle("bl_head", parent=styles["Normal"], fontName="Helvetica-Bold",
-                             fontSize=20, leading=26, textColor=INK, spaceAfter=10)
-    body = ParagraphStyle("bl_body", parent=styles["Normal"], fontSize=16, leading=24, textColor=INK)
+                             fontSize=24, leading=30, textColor=INK, spaceAfter=12)
+    body = ParagraphStyle("bl_body", parent=styles["Normal"], fontSize=18, leading=27, textColor=INK)
 
     shipper, receiver = _customs_parties(req)
-    col_w = (page[0] - 24 * mm) / 2
+    col_w = (page[0] - 36 * mm) / 2
     tbl = Table([[
         [Paragraph("SHIPPER", heading), Paragraph(shipper, body)],
         [Paragraph("RECEIVER", heading), Paragraph(receiver, body)],
