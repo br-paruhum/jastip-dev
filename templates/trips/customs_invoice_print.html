@@ -46,8 +46,8 @@
       <div class="party">
         <span class="label">SHIPPER:</span><br>
         {{ req.proxy_buyer.user.full_name|default:req.proxy_buyer.name }}{% if req.proxy_buyer.user.buyer_invoice_address %}<br>
-        {{ req.proxy_buyer.user.buyer_invoice_address }}{% endif %}{% if req.proxy_buyer.city or req.proxy_buyer.country %}<br>
-        {{ req.proxy_buyer.city }}{% if req.proxy_buyer.city and req.proxy_buyer.country %}, {% endif %}{{ req.proxy_buyer.country }}{% endif %}{% if req.proxy_buyer.user.phone_e164 %}<br>
+        {{ req.proxy_buyer.user.buyer_invoice_address|linebreaksbr }}{% endif %}{% if req.proxy_buyer.country %}<br>
+        {{ req.proxy_buyer.country }}{% endif %}{% if req.proxy_buyer.user.phone_e164 %}<br>
         {{ req.proxy_buyer.user.phone_e164|cut:"+" }}{% endif %}
       </div>
     </div>
@@ -57,7 +57,8 @@
         <span class="label">RECEIVER:</span><br>
         {{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}<br>
         {{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}<br>
-        {{ req.buyer.buyer_destination_city }}{% endif %}{% if req.buyer.phone_e164 %}<br>
+        {{ req.buyer.buyer_destination_city }}{% endif %}{% if req.destination_country %}<br>
+        {{ req.destination_country }}{% endif %}{% if req.buyer.phone_e164 %}<br>
         {{ req.buyer.phone_e164|cut:"+" }}{% endif %}
       </div>
     </div>

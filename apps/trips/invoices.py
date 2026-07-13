@@ -76,18 +76,20 @@ def render_customs_invoice_pdf(req) -> bytes:
     # Meta: DATE / PURCHASE ORDER, then SHIPPER / RECEIVER blocks.
     date_str = ci["date"].strftime("%d-%b-%Y") if ci["date"] else "—"
     proxy = req.proxy_buyer
-    proxy_loc = ", ".join(
-        p for p in [getattr(proxy, "city", ""), getattr(proxy, "country", "")] if p
-    ) if proxy else ""
+    proxy_country = getattr(proxy, "country", "") if proxy else ""
     proxy_user = getattr(proxy, "user", None)
     proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
+    # Proxy address prints one line per row of their credentials; country comes
+    # from the admin Proxy Buyers list (not the buyer-entered city).
+    proxy_addr_lines = [ln for ln in (proxy_addr or "").splitlines() if ln.strip()]
     proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
     # Phone with country code, no "+" — required by the shipment company.
     proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
-    shipper = _party_block(proxy_name, proxy_addr, proxy_loc, proxy_phone)
+    shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
     receiver = _party_block(
         req.buyer.full_name, req.buyer.buyer_invoice_address,
-        req.buyer.buyer_destination_city, req.buyer.phone_e164.lstrip("+")
+        req.buyer.buyer_destination_city, req.destination_country,
+        req.buyer.phone_e164.lstrip("+")
     )
     meta = Table([
         [Paragraph(f"<b>DATE:</b> {date_str}", label),
