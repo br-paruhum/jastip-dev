@@ -318,24 +318,9 @@ Context expected (Django include passes the parent context through):
       <p>Transfer Proof Submitted. Wait for admin fund verification.</p>
       <span style="display: block; text-align: right;">[9A-1B]</span>
       {% elif o.balance_extra_due > 0 %}
-      {# #Step-8A.2B-Buyer #}
-      {% with s=o.balance_settlement %}
+      {# #Step-8A.2B-Buyer — bank details + Submit Proof live in the "Pay Second Deposit" card. #}
       <p>Your package has arrived and the traveler has sent the Customs Duty amount. Please pay the second deposit.</p>
       <span style="display: block; text-align: right;">[8A-2B]</span>
-      <p>Please pay the second deposit of <strong>{% if s.origin_idr %}IDR {{ s.idr|by_currency:"IDR" }}{% else %}{{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }}{% endif %}</strong>{% if not s.origin_idr %} (IDR {{ s.idr|by_currency:"IDR" }}{% if s.rate %} @ {{ s.rate|floatformat:2 }}{% endif %}){% endif %} to:</p>
-      <table class="invoice" style="max-width:440px;margin-bottom:8px">
-        <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-        <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-        <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-        <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-      </table>
-      {% if not s.origin_idr %}<p class="help" style="margin-bottom:12px">IDR equivalent shown at the BCA TT rate for reference.</p>{% endif %}
-      {% endwith %}
-      <form method="post" action="{% url 'trips:request_pay' o.id %}" enctype="multipart/form-data" style="text-align:center">
-        {% csrf_token %}
-        <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
-        <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
-      </form>
       {% elif o.balance_refund_due > 0 %}
       <p class="muted">Your deposit exceeded the final invoice. A refund of <strong>{{ o.currency }} {{ o.balance_refund_due|by_currency:o.currency }}</strong> will be processed to you.</p>
       {% else %}
@@ -476,24 +461,9 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif o.status == "accepted" %}
       {% if is_order_buyer %}
-      {# #Step-5A.1B-Buyer #}
+      {# #Step-5A.1B-Buyer — bank details + Submit Proof live in the "Pay First Deposit" card. #}
       <p>You accept the shipment cost, please pay the first deposit.</p>
       <span style="display: block; text-align: right;">[5A-1B]</span>
-      {% with s=o.deposit_settlement %}
-      <p>Please make a bank transfer of <strong>{% if s.origin_idr %}IDR {{ s.idr|by_currency:"IDR" }}{% else %}{{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }}{% endif %}</strong>{% if not s.origin_idr %} (IDR {{ s.idr|by_currency:"IDR" }}{% if s.rate %} @ {{ s.rate|floatformat:2 }}{% endif %}){% endif %} to:</p>
-      <table class="invoice" style="max-width:440px;margin-bottom:8px">
-        <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-        <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-        <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-        <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-      </table>
-      {% if not s.origin_idr %}<p class="help" style="margin-bottom:12px">IDR equivalent shown at the BCA TT rate for reference.</p>{% endif %}
-      {% endwith %}
-      <form method="post" action="{% url 'trips:order_deposit_pay' o.id %}" enctype="multipart/form-data" style="text-align:center">
-        {% csrf_token %}
-        <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
-        <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
-      </form>
       {% else %}
       {# #Step-5A.1P-Proxy #}
       <p class="muted">Buyer accepted the shipment cost. Waiting for the Buyer's deposit and admin fund verification before make purchases.</p>
