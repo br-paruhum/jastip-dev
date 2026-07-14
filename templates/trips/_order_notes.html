@@ -30,9 +30,15 @@ Context expected (Django include passes the parent context through):
   {# PROXY — package-ready (Finalizing Order) form workspace.               #}
   {# ==================================================================== #}
   {% if note_role == "package_ready" %}
+    {% if o.status == "items_purchased" %}
+    {# #Step-6.3-Proxy — reopened via "Edit Order Data" after Mark Package Ready #}
+    <p class="muted">You have marked package ready. Click Update Package Details after you have made any changes.</p>
+    <span style="display: block; text-align: right;">[6A-3P]</span>
+    {% else %}
     {# #Step-6.1-Proxy #}
     <p class="muted">Please fill in all Actual Quantity and Unit Cost, Final Total Weight, upload Products photos, upload Box/Luggage photo before it closed. Gather and inserting all products receipts to an envelope, sealed it and put it inside the box/luggage. Please make sure you have Buyer's consent on any product specifications discrepancies, if any. Then select "Mark Package Ready".</p>
     <span style="display: block; text-align: right;">[6A-1P]</span>
+    {% endif %}
   {# ==================================================================== #}
   {# CARRIER — offer-form (pre-submission). No leg_offer exists yet; the    #}
   {# carrier has only opened the form from the Queuing Cargo board.         #}
