@@ -33,7 +33,7 @@
         {% endif %}
       </div>
     </div>
-    <div class="form-field"><label>Upload Receipt</label>
+    <div class="form-field"><label>Upload Duty Receipt</label>
       {% if arrive_req.custom_fare_proof %}
       <div style="margin-bottom:6px">
         <a href="{{ arrive_req.custom_fare_proof.url }}" target="_blank"><img src="{{ arrive_req.custom_fare_proof.url }}" alt="Actual receipt" style="max-width:120px;border-radius:8px;display:block"></a>
@@ -43,7 +43,7 @@
       {{ arrive_form.custom_fare_proof }}{{ arrive_form.custom_fare_proof.errors }}
     </div>
     {{ arrive_form.non_field_errors }}
-    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Amount{% else %}Send Actual Receipt{% endif %}</button></div>
+    <div style="text-align:center"><button class="btn btn-primary" type="submit">{% if arrive_req.status == "package_received" %}Send Duty Amount{% else %}Send Duty Receipt{% endif %}</button></div>
   </div>
 </form>
 
