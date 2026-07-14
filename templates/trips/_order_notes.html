@@ -46,9 +46,9 @@ Context expected (Django include passes the parent context through):
   {# CARRIER — posted Travel Plan detail (Carrier-First), awaiting orders. #}
   {# ==================================================================== #}
   {% elif note_role == "plan" %}
-    {# #Step-1.2-Carrier #}
-    <p class="muted">Your travel plan is posted and now listed on the Queuing Carrier board. Buyers can send you their orders against your spare capacity. You can Edit or Cancel this plan until a buyer places an order, or until you are within 24 hours of travel.</p>
-
+    {# #Step-1B.2T-Traveler #}
+    <p class="muted">Your travel plan now listed on the Queuing Traveler's Offers board. Buyers can send you their orders against your spare capacity. You can Edit or Cancel this plan until a buyer places an order, or until your travel date.</p>
+	<span style="display: block; text-align: right;">[1B-2T]</span>
   {# ==================================================================== #}
   {# CARRIER VIEW — offer-detail (leg_offer). Acts on leg_offer / order.   #}
   {# ==================================================================== #}

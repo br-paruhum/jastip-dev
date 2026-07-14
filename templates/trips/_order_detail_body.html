@@ -6,15 +6,13 @@
 {# Notes/guidance card — always first, always expanded, soft-clay header. #}
 {% include "trips/_order_notes.html" with note_order=bf_order note_role="order" %}
 
-{# Pay First Deposit — buyer-only, sits right under Notes while the deposit is due. #}
-{% if is_order_buyer and bf_order.status == "accepted" %}
-<details class="card fold mt-2"{% if not bf_order.deposit_pending %} open{% endif %}>
+{# Pay First Deposit — buyer-only, shown only while the deposit is DUE.
+   Once the buyer submits proof (deposit_pending, Step 5A.2B) the whole tab
+   disappears; the Notes card + Payments ledger cover the waiting state. #}
+{% if is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %}
+<details class="card fold mt-2" open>
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
-  {% if bf_order.deposit_pending %}
-  {# #Step-5A.2B-Buyer — proof submitted; collapse the pay action. #}
-  <p class="muted">Transfer proof submitted. Waiting for admin fund verification.</p>
-  {% else %}
   {# #Step-5A.1B-Buyer — bank details + Submit Proof (moved out of the Notes card). #}
   {% with s=bf_order.deposit_settlement %}
   <p>Please make a bank transfer of <strong>{% if s.origin_idr %}IDR {{ s.idr|by_currency:"IDR" }}{% else %}{{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }}{% endif %}</strong>{% if not s.origin_idr %} (IDR {{ s.idr|by_currency:"IDR" }}{% if s.rate %} @ {{ s.rate|floatformat:2 }}{% endif %}){% endif %} to:</p>
@@ -31,7 +29,6 @@
     <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
     <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
   </form>
-  {% endif %}
   </div>
 </details>
 {% endif %}
