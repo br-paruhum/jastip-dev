@@ -27,17 +27,11 @@ Context expected (Django include passes the parent context through):
   {% with o=note_order %}
 
   {# ==================================================================== #}
-  {# PROXY — package-ready (Finalizing Order) form workspace.               #}
-  {# ==================================================================== #}
-  {% if note_role == "package_ready" %}
-    {# #Step-6.1-Proxy #}
-    <p class="muted">Please fill in all Actual Quantity and Unit Cost, Final Total Weight, upload Products photos, upload Box/Luggage photo before it closed. Gather and inserting all products receipts to an envelope, sealed it and put it inside the box/luggage. Please make sure you have Buyer's consent on any product specifications discrepancies, if any. Then select "Mark Package Ready".</p>
-    <span style="display: block; text-align: right;">[6A-1P]</span>
-  {# ==================================================================== #}
   {# CARRIER — offer-form (pre-submission). No leg_offer exists yet; the    #}
   {# carrier has only opened the form from the Queuing Cargo board.         #}
+  {# (Proxy package-ready Notes now live inline in _proxy_purchase_body.html.) #}
   {# ==================================================================== #}
-  {% elif note_role == "carrier_offer" %}
+  {% if note_role == "carrier_offer" %}
     {# #Step-4.1-Traveler #}
     <p class="muted">Please fill in all required data. After you click "Submit Offer", Buyer will be notified. Weight on Buyer's order is subject to final reweighing.</p>
 	<span style="display: block; text-align: right;">[4A-1T]</span>
