@@ -138,6 +138,7 @@ class ContactMessage(models.Model):
 
     class Topic(models.TextChoices):
         PROXY = "become a proxy buyer", "Become a Proxy Buyer"
+        CARRIER = "become a carrier", "Become a Carrier"
         ADVERTISE = "inquire about advertising", "Inquire about Advertising"
         FEEDBACK = "share feedback", "Share Feedback"
         SUPPORT = "get support", "Get Support"

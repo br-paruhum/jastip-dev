@@ -18,7 +18,7 @@ from apps.notifications.services import send_email
 from apps.trips.constants import OfferStatus, OPEN_PLAN_STATUSES, Status
 from apps.trips.models import Order, ProxyBuyer, TravelPlan
 
-from .forms import ContactForm
+from .forms import CarrierLeadForm, ContactForm
 from .models import ContactMessage, FAQItem, SitePage
 
 logger = logging.getLogger(__name__)
@@ -194,6 +194,53 @@ def contact(request):
         initial = {"topic": topic} if topic in ContactMessage.Topic.values else {}
         form = ContactForm(initial=initial)
     return render(request, "pages/contact.html", {"form": form})
+
+
+def become_carrier(request):
+    """Opt-in landing page for travellers who fly Jakarta↔Germany regularly.
+    A consented lead lands as a 'Become a Carrier' ContactMessage in the admin inbox."""
+    if request.method == "POST":
+        form = CarrierLeadForm(request.POST)
+        if request.POST.get("website"):  # honeypot tripped — fake success, save nothing
+            messages.success(request, "Thanks! We'll be in touch about carrying on your next trip.")
+            return redirect("pages:become_carrier")
+        if not _verify_turnstile(request):
+            messages.error(request, "Verification failed. Please try again.")
+        elif form.is_valid():
+            cd = form.cleaned_data
+            freq_label = dict(form.fields["frequency"].choices).get(cd["frequency"], cd["frequency"])
+            body = (
+                f"Home base in Germany: {cd['home_city']}\n"
+                f"Flies Jakarta ↔ Germany: {freq_label}\n"
+            )
+            if cd.get("note"):
+                body += f"\n{cd['note']}"
+            msg = ContactMessage.objects.create(
+                name=cd["name"], email=cd["email"],
+                topic=ContactMessage.Topic.CARRIER, message=body,
+            )
+            send_email(
+                to_address=settings.ADMIN_EMAIL,
+                subject=f"[Carrier lead] {msg.name} — {cd['home_city']}",
+                template="contact_message",
+                context={"msg": msg},
+                event="carrier_lead",
+                cc_admin=False,
+            )
+            send_email(
+                to_address=msg.email,
+                subject=f"Thanks for your interest in carrying with {settings.SITE_NAME}",
+                template="contact_confirmation",
+                context={"msg": msg, "faq_url": request.build_absolute_uri(reverse("pages:page", args=["faq"]))},
+                event="carrier_lead_confirmation",
+                cc_admin=False,
+                reply_to=["support@proxybuying.com"],
+            )
+            messages.success(request, "Thanks! We'll be in touch about carrying on your next trip.")
+            return redirect("pages:become_carrier")
+    else:
+        form = CarrierLeadForm()
+    return render(request, "pages/become_carrier.html", {"form": form})
 
 
 @require_GET
