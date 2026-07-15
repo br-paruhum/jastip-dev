@@ -14,12 +14,30 @@ class CarrierLeadForm(forms.Form):
     )
     name = forms.CharField(max_length=120)
     email = forms.EmailField()
+    country = forms.ChoiceField(
+        label="Country you're based in",
+        # Germany is the default (current focus). Add markets here as we expand.
+        choices=[
+            ("Germany", "Germany"),
+            ("Netherlands", "Netherlands"),
+            ("United Kingdom", "United Kingdom"),
+            ("France", "France"),
+            ("Belgium", "Belgium"),
+            ("United States", "United States"),
+            ("Japan", "Japan"),
+            ("South Korea", "South Korea"),
+            ("Singapore", "Singapore"),
+            ("Australia", "Australia"),
+            ("Other", "Other"),
+        ],
+        initial="Germany",
+    )
     home_city = forms.CharField(
-        max_length=120, label="Your home city in Germany",
+        max_length=120, label="Your home city",
         widget=forms.TextInput(attrs={"placeholder": "e.g. Berlin, München, Frankfurt"}),
     )
     frequency = forms.ChoiceField(
-        label="How often do you fly Jakarta ↔ Germany?",
+        label="How often do you fly to/from Indonesia?",
         choices=[
             ("", "Select…"),
             ("monthly", "About once a month"),

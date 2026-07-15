@@ -210,8 +210,9 @@ def become_carrier(request):
             cd = form.cleaned_data
             freq_label = dict(form.fields["frequency"].choices).get(cd["frequency"], cd["frequency"])
             body = (
-                f"Home base in Germany: {cd['home_city']}\n"
-                f"Flies Jakarta ↔ Germany: {freq_label}\n"
+                f"Country: {cd['country']}\n"
+                f"Home city: {cd['home_city']}\n"
+                f"Flies to/from Indonesia: {freq_label}\n"
             )
             if cd.get("note"):
                 body += f"\n{cd['note']}"
@@ -221,7 +222,7 @@ def become_carrier(request):
             )
             send_email(
                 to_address=settings.ADMIN_EMAIL,
-                subject=f"[Carrier lead] {msg.name} — {cd['home_city']}",
+                subject=f"[Carrier lead] {msg.name} — {cd['home_city']}, {cd['country']}",
                 template="contact_message",
                 context={"msg": msg},
                 event="carrier_lead",
