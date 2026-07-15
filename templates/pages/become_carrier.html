@@ -23,7 +23,7 @@
         </div></div>
 
         <div class="card" style="max-width:620px"><div class="card-body">
-          <h3 class="mt-0">Get on the carrier list</h3>
+          <h3 class="mt-0" style="text-align:center">Get on the carrier list</h3>
           <p class="muted">Tell us your route and how often you fly. We'll reach out when there's cargo that fits your next trip. Takes 30 seconds — no obligation.</p>
           <form method="post" action="{% url 'pages:become_carrier' %}">
             {% csrf_token %}
@@ -45,7 +45,7 @@
             <div class="cf-turnstile mt-2" data-sitekey="{{ TURNSTILE_SITE_KEY }}" style="text-align: center"></div>
             {% endif %}
 
-            <div class="mt-2">
+            <div class="mt-2" style="text-align:center">
               <button class="btn btn-primary" type="submit">Add me to the carrier list</button>
             </div>
             <p class="muted mt-2" style="font-size:.85rem">We'll only use your details to match you with trips. No spam — unsubscribe any time. See our <a href="{% url 'pages:page' 'privacy-policy' %}">Privacy Policy</a>.</p>
