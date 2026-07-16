@@ -160,7 +160,8 @@
   <summary><h3>Your Payout</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="max-width:440px">
-    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.deposit_due|by_currency:leg_offer.order.currency }}</td></tr>
+    {# Carry fee, not deposit_due: the buyer's deposit also carries their own platform fee, which is not the carrier's to earn. #}
+    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.shipment_cost_due|by_currency:leg_offer.order.currency }}</td></tr>
     <tr><td>Weight adjustment</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.weight_delta|by_currency:leg_offer.order.currency }}</td></tr>
     <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|by_currency:leg_offer.order.currency }}</td></tr>
     <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|by_currency:leg_offer.order.currency }}</td></tr>

@@ -22,6 +22,10 @@ def site_globals(request):
         from .models import SiteSettings
         return SiteSettings.load().payment_term_cargo_buyer
 
+    def _platform_fee_min_idr():
+        from .models import SiteSettings
+        return SiteSettings.load().platform_fee_min_idr
+
     return {
         "SITE_NAME": getattr(settings, "SITE_NAME", "ProxyBuying"),
         "SITE_DOMAIN": getattr(settings, "SITE_DOMAIN", ""),
@@ -38,4 +42,6 @@ def site_globals(request):
         "PAYMENT_TERM": SimpleLazyObject(_payment_term),
         "PAYMENT_TERM_CARRIER": SimpleLazyObject(_payment_term_carrier),
         "PAYMENT_TERM_CARGO_BUYER": SimpleLazyObject(_payment_term_cargo_buyer),
+        # The 2.5% commission is floored to this (IDR only) — see platform_fee_floor.
+        "PLATFORM_FEE_MIN_IDR": SimpleLazyObject(_platform_fee_min_idr),
     }

@@ -38,9 +38,8 @@
 <details class="card fold mt-2" open>
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
-  {# #Step-5A.1B-Buyer — carrier's accepted ask + bank details + Submit Proof. #}
-  <p class="muted" style="margin-top:0">Carrier's accepted ask: <strong>{{ leg.allocated_weight_kg|floatformat:1 }} kg</strong> @ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}/kg</p>
-  <p>Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+  {# #Step-5A.1B-Buyer — bank details + Submit Proof. The accepted ask and the amount breakdown live in the Order Details card. #}
+  <p style="margin-top:0">Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
   <table class="invoice" style="max-width:440px;margin-bottom:8px">
     <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
     <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
@@ -117,6 +116,16 @@
     {# The buyer declares one Weight; the rate comes from the Carrier's Offer, so there is no bid price/partial split to show. #}
     {% if bf_order.is_cargo %}
     <tr><td>Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
+    {# Once a carrier's offer is accepted the buyer's bill is fixed, so show what they owe and how it breaks down. #}
+    {% with leg=bf_order.confirmed_legs.0 %}
+    {% if leg %}
+    <tr><td>Rate per kg</td><td class="num-right">{{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}</td></tr>
+    <tr><td>Total Shipment Cost</td><td class="num-right">{{ bf_order.currency }} {{ leg.shipment_cost_due|by_currency:bf_order.currency }}</td></tr>
+    {# The fee is max(COMMISSION_PERCENT, platform_fee_min_idr) — both live values, so the label can't drift from the figure. The floor is IDR-only (platform_fee_floor). #}
+    <tr><td>{{ COMMISSION_PERCENT }}% Platform Fee{% if bf_order.currency == "IDR" and PLATFORM_FEE_MIN_IDR %} (min {{ PLATFORM_FEE_MIN_IDR|floatformat:0|intcomma }}){% endif %}</td><td class="num-right">{{ bf_order.currency }} {{ leg.buyer_platform_fee|by_currency:bf_order.currency }}</td></tr>
+    <tr class="total"><td>Total Due</td><td class="num-right">{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</td></tr>
+    {% endif %}
+    {% endwith %}
     {% endif %}
     <tr><td>Travel date</td><td class="num-right">{% if bf_order.carrier_first_plan %}{{ bf_order.carrier_first_plan.travel_date|date:"d-M-Y" }}{% else %}{% for leg in bf_order.confirmed_legs %}{{ leg.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}{% for o in bf_order.pending_offers %}{{ o.travel_date|date:"d-M-Y" }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% endfor %}{% endif %}</td></tr>
     {% if is_order_buyer and bf_order.status == "responded" and bf_order.pending_offers %}

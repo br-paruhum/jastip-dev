@@ -1898,9 +1898,34 @@ class TravelerOffer(models.Model):
         return (self.effective_ask_cost_per_kg * self.order.effective_weight_kg).quantize(TWO_PLACES)
 
     @property
-    def deposit_due(self) -> Decimal:
-        """Deposit owed once selected: allocated weight × accepted ask rate."""
+    def shipment_cost_due(self) -> Decimal:
+        """The carry fee alone: allocated weight × accepted ask rate. This is the
+        carrier's earnings basis — keep it out of anything the buyer is charged
+        on top (see buyer_platform_fee)."""
         return ((self.allocated_weight_kg or Decimal("0")) * self.ask_cost_per_kg).quantize(TWO_PLACES)
+
+    @property
+    def buyer_platform_fee(self) -> Decimal:
+        """Cargo only: goProxyBuy's fee charged to the BUYER, on top of the carry
+        fee — per the Cargo Buyer payment terms ("Total of Shipment Cost … and
+        2.5% platform fee"). Independent of the carrier's own 2.5%, which comes
+        out of their payout (LegTransaction.commission_amount): the platform
+        earns on both sides. Floored in IDR like the carrier's.
+        """
+        if not self.order.is_cargo:
+            return Decimal("0.00")
+        base = self.shipment_cost_due
+        if base <= 0:
+            return Decimal("0.00")
+        pct = Decimal(str(settings.PLATFORM_COMMISSION_PERCENT))
+        fee = base * pct / Decimal("100")
+        return max(fee, platform_fee_floor(self.order.currency)).quantize(TWO_PLACES)
+
+    @property
+    def deposit_due(self) -> Decimal:
+        """What the buyer owes once selected: carry fee + their platform fee
+        (cargo). Proxy legs have no buyer-side fee, so it stays the carry fee."""
+        return (self.shipment_cost_due + self.buyer_platform_fee).quantize(TWO_PLACES)
 
     @property
     def deposit_paid_amount(self) -> Decimal:
@@ -2276,8 +2301,10 @@ class LegPayment(models.Model):
         INBOUND = "inbound", "Inbound (to admin)"
         OUTBOUND = "outbound", "Outbound (from admin)"
 
+    # Labels mirror Payment.Kind: the buyer reads these on their Payments card,
+    # so a leg deposit must not read differently from a proxy one.
     class Kind(models.TextChoices):
-        DEPOSIT = "deposit", "Carrier deposit"
+        DEPOSIT = "deposit", "Buyer's First Deposit"
         BALANCE = "balance", "Weight-delta balance"
         PAYOUT = "payout", "Payout to carrier"
         REFUND = "refund", "Refund"
