@@ -3,7 +3,11 @@ from decimal import Decimal
 from django.db import models
 from django.urls import reverse
 
-from apps.trips.constants import DEFAULT_PAYMENT_TERM, DEFAULT_PAYMENT_TERM_CARRIER
+from apps.trips.constants import (
+    DEFAULT_PAYMENT_TERM,
+    DEFAULT_PAYMENT_TERM_CARGO_BUYER,
+    DEFAULT_PAYMENT_TERM_CARRIER,
+)
 
 
 class SiteSettings(models.Model):
@@ -24,6 +28,14 @@ class SiteSettings(models.Model):
         default=DEFAULT_PAYMENT_TERM_CARRIER,
         help_text=(
             "Shown as the Payment Term on Carrier Only trip detail pages. "
+            "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
+        ),
+    )
+    payment_term_cargo_buyer = models.TextField(
+        default=DEFAULT_PAYMENT_TERM_CARGO_BUYER,
+        help_text=(
+            "Shown as the Payment Term to the Buyer on a Cargo order (no Proxy "
+            "Buyer involved — the buyer already owns the goods). "
             "HTML allowed, e.g. <ul><li>first point</li><li>second point</li></ul>."
         ),
     )

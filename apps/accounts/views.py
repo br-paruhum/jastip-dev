@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from apps.notifications.services import send_whatsapp
 from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, REFUND_ELIGIBLE_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
-    AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm, OrderForm,
+    AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
     ProxyEstimateForm, RequestItemFormSet, ReviewForm, ReviewItemFormSet,
     TravelPlanForm, TravelerCargoOfferForm, TravelerOfferForm,
@@ -576,8 +576,6 @@ def profile(request):
             "password_form": ChangePasswordForm(user),
             "plan_form": TravelPlanForm(),
             "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
-            "new_order_form": OrderForm(),
-            "new_order_formset": OrderItemFormSet(instance=Order(), prefix="bf_items"),
             "travel_rows": travel_rows,
             "orders_proxy": orders_proxy,
             "orders_cargo": orders_cargo,

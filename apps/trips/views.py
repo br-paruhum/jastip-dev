@@ -27,6 +27,7 @@ from .constants import (
 from .forms import (
     AWBForm,
     BuyRequestForm,
+    CargoItemFormSet,
     CarrierRateForm,
     CustomFareForm,
     LegCustomFareForm,
@@ -83,6 +84,25 @@ def _save_order_photos(order, files):
         OrderPhoto.objects.create(order=order, image=f, position=existing + saved + 1)
         saved += 1
     return saved
+
+
+def _require_box_photo(form, request, cargo, order=None):
+    """Cargo orders must carry a photo of the box/luggage before it is closed —
+    the Carrier may open it to verify the contents. Photos already on the order
+    satisfy it, so editing doesn't force a re-upload. Products (proxy-buying)
+    orders are exempt: there the Proxy Buyer supplies the photos, not the buyer.
+
+    Call only once ``form.is_valid()`` has run (add_error needs cleaned_data).
+    Returns True when the order may be saved.
+    """
+    if not cargo:
+        return True
+    if request.FILES.getlist("order_photos"):
+        return True
+    if order is not None and order.photos.exists():
+        return True
+    form.add_error(None, "Attach a photo of the box/luggage before it is closed.")
+    return False
 
 
 def profile_required(view):
@@ -346,12 +366,13 @@ def order_create(request):
     if request.method == "POST":
         # Cargo lists items WITH a declared unit price (customs); Products lists
         # items only (the Proxy Buyer estimates prices later) — same split as the
-        # plan-first flow (request_create). A proxy order is always Products.
-        cargo = proxy is None and request.POST.get("cargo_only") == "1"
-        ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
+        # plan-first flow (request_create). A proxy order is always Products, and
+        # a proxy-less order is always Cargo.
+        cargo = proxy is None
+        ItemFormSet = CargoItemFormSet if cargo else RequestItemFormSet
         form = OrderForm(request.POST, proxy=proxy, carrier_plan=carrier_plan)
         formset = ItemFormSet(request.POST, request.FILES, instance=Order(), prefix="bf_items")
-        if form.is_valid() and formset.is_valid():
+        if form.is_valid() and formset.is_valid() and _require_box_photo(form, request, cargo):
             with db_transaction.atomic():
                 order = form.save(commit=False)
                 order.buyer = request.user
@@ -361,6 +382,8 @@ def order_create(request):
                     order.cargo_only = False
                     order.from_country = proxy.country
                     order.from_city = proxy.city
+                else:
+                    order.cargo_only = True
                 if carrier_plan is not None:
                     # Flow-2: bind the carrier and fix the whole route to the plan
                     # (the origin is the carrier's, not the proxy's city).
@@ -389,8 +412,8 @@ def order_create(request):
                         item.actual_unit_cost = item.estimated_unit_cost
                         item.purchased_at = timezone.now()
                     item.save()
-                if proxy is not None:
-                    _save_order_photos(order, request.FILES.getlist("order_photos"))
+                # Proxy order: reference photos. Cargo order: box/luggage photos.
+                _save_order_photos(order, request.FILES.getlist("order_photos"))
             if proxy is not None:
                 workflow.on_proxy_order_created(order)
                 if carrier_plan is not None:
@@ -402,7 +425,8 @@ def order_create(request):
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(proxy=proxy, carrier_plan=carrier_plan)
-        formset = OrderItemFormSet(instance=Order(), prefix="bf_items")
+        ItemFormSet = RequestItemFormSet if proxy is not None else CargoItemFormSet
+        formset = ItemFormSet(instance=Order(), prefix="bf_items")
     from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "proxy": proxy,
@@ -429,11 +453,12 @@ def order_edit(request, pk):
     # re-quote (see below). Capture the state before the form touches the instance.
     revising_estimate = proxy is not None and order.status == Status.ESTIMATE_SENT
     if request.method == "POST":
-        cargo = proxy is None and request.POST.get("cargo_only") == "1"
-        ItemFormSet = OrderItemFormSet if cargo else RequestItemFormSet
+        # A proxy-less order is always Cargo (the form no longer asks the type).
+        cargo = proxy is None
+        ItemFormSet = CargoItemFormSet if cargo else RequestItemFormSet
         form = OrderForm(request.POST, instance=order, proxy=proxy)
         formset = ItemFormSet(request.POST, request.FILES, instance=order, prefix="bf_items")
-        if form.is_valid() and formset.is_valid():
+        if form.is_valid() and formset.is_valid() and _require_box_photo(form, request, cargo, order):
             with db_transaction.atomic():
                 order = form.save(commit=False)
                 if proxy is not None:
@@ -469,8 +494,8 @@ def order_edit(request, pk):
                             item.actual_unit_cost = Decimal("0")
                             item.purchased_at = None
                         item.save()
-                    if proxy is not None:
-                        _save_order_photos(order, request.FILES.getlist("order_photos"))
+                    # Proxy order: reference photos. Cargo order: box/luggage photos.
+                    _save_order_photos(order, request.FILES.getlist("order_photos"))
             if not items:
                 messages.error(request, "Keep at least one item on the order.")
                 return redirect(request.path)
@@ -482,7 +507,8 @@ def order_edit(request, pk):
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(instance=order, proxy=proxy)
-        formset = OrderItemFormSet(instance=order, prefix="bf_items")
+        ItemFormSet = RequestItemFormSet if proxy is not None else CargoItemFormSet
+        formset = ItemFormSet(instance=order, prefix="bf_items")
     from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
                   {"form": form, "formset": formset, "is_edit": True, "order": order,
@@ -507,6 +533,44 @@ def order_cancel(request, pk):
     order.save(update_fields=["status", "updated_at"])
     messages.success(request, "Order cancelled.")
     return redirect(reverse("accounts:profile") + "#my-orders")
+
+
+def _publish_offer_trip(offer, traveler):
+    """Publish a cargo offer's trip on the Queuing Traveler's Offers board.
+
+    An offer already describes a trip, and the order rarely uses all of the
+    declared capacity — the remainder is real spare weight other buyers should be
+    able to book through the traveler-first flow. So the trip is surfaced as a
+    TravelPlan, exactly as "Create New Plan" would.
+
+    Reuses the traveler's existing plan for the same trip (same route + travel
+    date) rather than minting a second row: one 20 kg suitcase must never
+    advertise 20 kg twice. Returns the plan, or None for a non-cargo order.
+    """
+    if not offer.order.is_cargo:
+        return None
+    plan = TravelPlan.objects.filter(
+        traveler=traveler,
+        from_city__iexact=offer.from_city, from_country=offer.from_country,
+        to_city__iexact=offer.to_city, to_country=offer.to_country,
+        travel_date=offer.travel_date,
+        status__in=OPEN_PLAN_STATUSES,
+    ).first()
+    if plan is None:
+        plan = TravelPlan.objects.create(
+            traveler=traveler,
+            from_city=offer.from_city, from_country=offer.from_country,
+            to_city=offer.to_city, to_country=offer.to_country,
+            travel_date=offer.travel_date, travel_time=offer.travel_time,
+            available_weight_kg=offer.avail_kg,
+            shipment_cost_per_kg=offer.ask_cost_per_kg,
+            shipment_currency=ExchangeRate.currency_for_country(offer.from_country),
+            # A cargo trip carries goods the buyer already owns — no proxy
+            # buying, so no margin.
+            carrier_only=True,
+            margin_percent=Decimal("0"),
+        )
+    return plan
 
 
 # --- Traveler: respond to a buyer-first order with an offer ----------------
@@ -534,20 +598,26 @@ def offer_create(request, order_id):
     form = (TravelerOfferForm if order.is_cargo else TravelerCargoOfferForm)(request.POST)
     if form.is_valid():
         offer = form.save(commit=False)
-        # Take-all-or-nothing (Task 1): a carrier's offered weight must equal the
-        # buyer's requested weight exactly — no over- or under-offering, so the
-        # accepted carrier always carries the whole order with no leftover.
-        if order.is_cargo and offer.avail_kg != order.bid_weight_kg:
+        # Traveler-first framing: avail_kg is the carrier's spare capacity, not a
+        # bid on this order. It only has to be big enough to take the whole order
+        # (offer_select still allocates exactly order.bid_weight_kg — the surplus
+        # stays the carrier's to use elsewhere). Under-offering is still refused:
+        # there is no partial fulfillment, so a carrier who can't take it all
+        # can't take it at all.
+        if order.is_cargo and offer.avail_kg < order.bid_weight_kg:
             messages.error(
                 request,
-                f"Your offered weight must equal the buyer's requested "
-                f"{order.bid_weight_kg} kg — this order is take-all-or-nothing.",
+                f"Your available weight must be at least the buyer's "
+                f"{order.bid_weight_kg} kg — this order can't be split across carriers.",
             )
             return redirect(dashboard_url + f"?offer={order_id}#offer-form")
         with db_transaction.atomic():
             offer.order = order
             offer.traveler = request.user
             offer.pickup_address = request.user.traveler_address
+            # Surface the trip on the Queuing board so its spare capacity is
+            # bookable by other buyers (traveler-first), not just this order.
+            offer.plan = _publish_offer_trip(offer, request.user)
             offer.save()
             order.recompute_status()
         workflow.on_offer_submitted(order, offer)
@@ -924,6 +994,33 @@ def offer_edit(request, pk):
 
 
 # --- Buyer: select a pending offer (single or partial-multi) ----------------
+# --- Buyer: decline one carrier's offer on a cargo order --------------------
+@profile_required
+@require_POST
+def offer_reject(request, pk):
+    """Buyer declines a single pending offer (cargo). The counterpart of
+    ``offer_select``: the order-level ``order_reject`` is the proxy flow's
+    shipment-cost rejection and refuses cargo orders. Other pending offers stay
+    live; if this was the last one, ``recompute_status`` returns the order to the
+    Queuing Buyer's Cargo board so other carriers can still offer.
+    """
+    offer = get_object_or_404(TravelerOffer, pk=pk, offer_status=OfferStatus.PENDING)
+    order = offer.order
+    detail_url = reverse("accounts:profile") + f"?order={order.id}#order-detail"
+    if request.user != order.buyer:
+        messages.error(request, "Only the buyer can reject an offer.")
+        return redirect(detail_url)
+    if order.status not in OPEN_ORDER_STATUSES:
+        messages.error(request, "This order is no longer accepting offers.")
+        return redirect(detail_url)
+    with db_transaction.atomic():
+        offer.offer_status = OfferStatus.REJECTED
+        offer.save(update_fields=["offer_status", "updated_at"])
+        order.recompute_status()
+    messages.success(request, "Offer rejected. Your order stays listed for other carriers.")
+    return redirect(detail_url)
+
+
 @profile_required
 @require_POST
 def offer_select(request, pk):

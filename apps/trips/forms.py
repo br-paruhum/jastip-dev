@@ -157,14 +157,15 @@ class OrderForm(forms.ModelForm):
 
     class Meta:
         model = Order
+        # The buyer's delivery address/postal code live on their profile
+        # (buyer_invoice_address), so the order never asks for them again.
         fields = [
             "from_city", "from_country", "to_city", "to_country",
-            "to_address", "to_postal_code", "delivery_preference",
+            "delivery_preference",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
             "cargo_only", "partial_allowed", "buyer_notes", "proxy_buyer_notes",
         ]
         widgets = {
-            "to_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Destination delivery address"}),
             "proxy_buyer_notes": forms.Textarea(attrs={
                 "rows": 4,
                 "placeholder": "Any specific request for the Proxy Buyer — you can also paste a product URL here (optional).",
@@ -191,7 +192,7 @@ class OrderForm(forms.ModelForm):
         # the buyer fills in: route cities, products, and the order deadline.
         if proxy is not None:
             for name in (
-                "cargo_only", "from_country", "from_city", "to_address", "to_postal_code",
+                "cargo_only", "from_country", "from_city",
                 "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
             ):
                 self.fields.pop(name, None)
@@ -204,28 +205,17 @@ class OrderForm(forms.ModelForm):
                     self.fields.pop(name, None)
             self.fields["proxy_buyer_notes"].required = False
             return
-        # Non-proxy (cargo) orders talk to Carriers, not a proxy buyer.
-        self.fields.pop("proxy_buyer_notes", None)
-        # The bool model fields don't preselect their string-keyed choices on
-        # edit (str(True) != "1"), so map them back explicitly.
-        if self.instance and self.instance.pk:
-            self.fields["cargo_only"].initial = "1" if self.instance.cargo_only else "0"
-            self.fields["partial_allowed"].initial = "1" if self.instance.partial_allowed else "0"
-        else:
-            # New non-proxy order = Cargo (Flow-2). A Products order always goes
-            # through a Proxy Buyer now, so default the type to Cargo so "Post an
-            # Order" lands straight on the cargo form.
-            self.fields["cargo_only"].initial = "1"
-        # Start the bid fields blank instead of pre-filling the model's 0
-        # default — otherwise typing "5" into the leading 0 produces "50".
+        # Non-proxy = Cargo Order: the buyer already owns the goods and a Carrier
+        # just brings them. There is no Products-without-a-proxy order (it would
+        # have nobody to route to), so the type is fixed rather than asked, and
+        # the carry rate comes from the Carrier's Offer — not a buyer-set bid.
+        for name in ("proxy_buyer_notes", "cargo_only", "bid_cost_per_kg",
+                     "partial_allowed", "buyer_notes"):
+            self.fields.pop(name, None)
+        self.fields["bid_weight_kg"].label = "Total Weight (kg)"
+        # Start blank instead of pre-filling the model's 0 default — otherwise
+        # typing "5" into the leading 0 produces "50".
         self.fields["bid_weight_kg"].initial = None
-        self.fields["bid_cost_per_kg"].initial = None
-        # Bid weight/price + partial only apply to a Cargo order; the Products
-        # (proxy buying) flow has no buyer-set weight/price — the Proxy Buyer
-        # estimates them. Required-ness is enforced in clean() per type.
-        self.fields["bid_weight_kg"].required = False
-        self.fields["bid_cost_per_kg"].required = False
-        self.fields["partial_allowed"].required = False
 
     def clean(self):
         cleaned = super().clean()
@@ -234,18 +224,12 @@ class OrderForm(forms.ModelForm):
         # cleaned_data would break instance construction.
         if self.proxy is not None:
             return cleaned
-        if cleaned.get("cargo_only"):
-            # Cargo: bid weight + opening price are the carry-fee basis.
-            if not cleaned.get("bid_weight_kg") or cleaned["bid_weight_kg"] <= 0:
-                self.add_error("bid_weight_kg", "Enter the package weight (kg).")
-            if not cleaned.get("bid_cost_per_kg") or cleaned["bid_cost_per_kg"] <= 0:
-                self.add_error("bid_cost_per_kg", "Enter your opening price per kg.")
-        else:
-            # Products: no buyer-set weight/price/partial — the Proxy Buyer
-            # quotes estimates in their offer. Neutralise the Cargo-only fields.
-            cleaned["bid_weight_kg"] = Decimal("0")
-            cleaned["bid_cost_per_kg"] = Decimal("0")
-            cleaned["partial_allowed"] = False
+        # Cargo: the buyer's declared total weight is the carry-fee basis (the
+        # Carrier re-weighs it later); the rate comes from the Carrier's Offer.
+        # A missing value already raises "required" — only 0/negative needs this.
+        weight = cleaned.get("bid_weight_kg")
+        if weight is not None and weight <= 0:
+            self.add_error("bid_weight_kg", "Enter the total weight (kg).")
         return cleaned
 
     def clean_max_acceptable_date(self):
@@ -459,11 +443,12 @@ class OrderItemForm(forms.ModelForm):
 
     class Meta:
         model = RequestItem
-        fields = ["name", "quantity", "unit", "photo", "estimated_unit_cost"]
+        fields = ["name", "quantity", "unit", "photo", "estimated_unit_cost", "buyer_note"]
         widgets = {
             "name": forms.TextInput(attrs={"placeholder": "Product Name"}),
             "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
             "estimated_unit_cost": ThousandSeparatorNumberInput(attrs={"placeholder": "Unit price"}),
+            "buyer_note": forms.TextInput(attrs={"placeholder": "Notes for this product (optional)"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -485,6 +470,30 @@ class OrderItemForm(forms.ModelForm):
 
 OrderItemFormSet = inlineformset_factory(
     Order, RequestItem, form=OrderItemForm,
+    extra=3, max_num=10, validate_max=True, can_delete=True,
+)
+
+
+class CargoItemForm(OrderItemForm):
+    """Cargo order item. The buyer already owns the goods and the Carrier may open
+    the box to verify the contents, so every product the buyer lists must carry a
+    photo — unlike the plan-first carrier_only flow, which shares OrderItemForm."""
+
+    def clean(self):
+        cleaned = super().clean()
+        # Blank spare rows never reach here (empty_permitted skips validation) and
+        # a row marked for deletion is on its way out — neither needs a photo.
+        if cleaned.get("DELETE") or not cleaned.get("name"):
+            return cleaned
+        # An unchanged file input re-cleans to the stored file, so editing an order
+        # whose item already has a photo doesn't force a re-upload.
+        if not cleaned.get("photo"):
+            self.add_error("photo", "Add a photo of this product.")
+        return cleaned
+
+
+CargoItemFormSet = inlineformset_factory(
+    Order, RequestItem, form=CargoItemForm,
     extra=3, max_num=10, validate_max=True, can_delete=True,
 )
 

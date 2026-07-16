@@ -18,6 +18,10 @@ def site_globals(request):
         from .models import SiteSettings
         return SiteSettings.load().payment_term_carrier
 
+    def _payment_term_cargo_buyer():
+        from .models import SiteSettings
+        return SiteSettings.load().payment_term_cargo_buyer
+
     return {
         "SITE_NAME": getattr(settings, "SITE_NAME", "ProxyBuying"),
         "SITE_DOMAIN": getattr(settings, "SITE_DOMAIN", ""),
@@ -29,7 +33,9 @@ def site_globals(request):
         "PAYMENT_DEADLINE_HOURS": getattr(settings, "PAYMENT_DEADLINE_HOURS", 24),
         # Lazy: the DB query only runs if a template actually renders the sidebar.
         "sidebar_promos": SimpleLazyObject(_promos),
-        # Site-wide payment terms (admin-editable; carrier-only plans use a separate one).
+        # Site-wide payment terms (admin-editable; carrier-only plans and cargo
+        # orders each use a separate one).
         "PAYMENT_TERM": SimpleLazyObject(_payment_term),
         "PAYMENT_TERM_CARRIER": SimpleLazyObject(_payment_term_carrier),
+        "PAYMENT_TERM_CARGO_BUYER": SimpleLazyObject(_payment_term_cargo_buyer),
     }

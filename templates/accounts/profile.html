@@ -187,84 +187,10 @@
         <!-- Panel: My Orders (plan-first requests + buyer-first orders) -->
         <div data-panel="my-orders">
 
-          <!-- Inline "Post an Order" form (toggled by the button above) -->
-          <div id="order-form-wrap" class="card" style="display:none;margin-bottom:18px"><div class="card-body">
-            <div class="card-band-row">Post an Order</div>
-            <p class="muted">No carrier yet — post your route, items and price, and carriers will respond with offers.</p>
-            <form method="post" action="{% url 'trips:order_create' %}" enctype="multipart/form-data">
-              {% csrf_token %}
-              <div class="form-field">
-                <label>Order Type</label>
-                {{ new_order_form.cargo_only }}{{ new_order_form.cargo_only.errors }}
-                <p class="help">Products — a Proxy Buyer purchases the items for you. Cargo — you already have the goods and a Carrier just brings them.</p>
-              </div>
-              <div class="form-row">
-                <div class="form-field"><label>From City</label>{{ new_order_form.from_city }}{{ new_order_form.from_city.errors }}</div>
-                <div class="form-field"><label>From Country</label>{{ new_order_form.from_country }}{{ new_order_form.from_country.errors }}</div>
-              </div>
-              <div class="form-row">
-                <div class="form-field"><label>To City</label>{{ new_order_form.to_city }}{{ new_order_form.to_city.errors }}</div>
-                <div class="form-field"><label>To Country</label>{{ new_order_form.to_country }}{{ new_order_form.to_country.errors }}</div>
-              </div>
-              {{ new_order_formset.management_form }}
-              {{ new_order_formset.non_form_errors }}
-              <div id="new-order-items" class="mt-2">
-                {% for item_form in new_order_formset %}
-                <div class="item-row card" style="margin-bottom:14px;box-shadow:none">
-                  <div class="card-body">
-                    {{ item_form.id }}
-                    <span class="del-field" style="display:none">{{ item_form.DELETE }}</span>
-                    <div class="form-row item-cols">
-                      <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
-                      <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
-                      <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
-                      <div class="form-field cargo-only-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
-                    </div>
-                    <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
-                    <button type="button" class="btn btn-sm btn-outline remove-new-order-item">Remove</button>
-                  </div>
-                </div>
-                {% endfor %}
-              </div>
-              <button type="button" class="btn btn-ghost btn-sm" id="add-new-order-item">+ Add Product</button>
-
-              <div class="form-row mt-2 cargo-only-field">
-                <div class="form-field"><label>Bid Weight (kg)</label>{{ new_order_form.bid_weight_kg }}{{ new_order_form.bid_weight_kg.errors }}</div>
-                <div class="form-field"><label>Bid Price per kg</label>{{ new_order_form.bid_cost_per_kg }}{{ new_order_form.bid_cost_per_kg.errors }}</div>
-              </div>
-              <div class="form-field" style="margin-top:30px">
-                <label>Offer Deadline</label>{{ new_order_form.max_acceptable_date }}{{ new_order_form.max_acceptable_date.errors }}
-                <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
-              </div>
-              <div class="form-field cargo-only-field">
-                <label>Allow this order to be split across multiple carriers</label>
-                {{ new_order_form.partial_allowed }}{{ new_order_form.partial_allowed.errors }}
-              </div>
-              <div class="form-field"><label>Notes to Carriers</label>{{ new_order_form.buyer_notes }}</div>
-
-              <div style="text-align:center;margin-top:12px">
-                <button class="btn btn-primary" type="submit">Send Order</button>
-              </div>
-            </form>
-          </div></div>
-
-          <template id="new-order-empty-form">
-            <div class="item-row card" style="margin-bottom:14px;box-shadow:none"><div class="card-body">
-              {{ new_order_formset.empty_form.id }}
-              <span class="del-field" style="display:none">{{ new_order_formset.empty_form.DELETE }}</span>
-              <div class="form-row item-cols">
-                <div class="form-field"><label>Product Name</label>{{ new_order_formset.empty_form.name }}</div>
-                <div class="form-field"><label>Qty</label>{{ new_order_formset.empty_form.quantity }}</div>
-                <div class="form-field"><label>Unit</label>{{ new_order_formset.empty_form.unit }}</div>
-                <div class="form-field cargo-only-field"><label>Unit Price</label>{{ new_order_formset.empty_form.estimated_unit_cost }}</div>
-              </div>
-              <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
-              <button type="button" class="btn btn-sm btn-outline remove-new-order-item">Remove</button>
-            </div></div>
-          </template>
-
           <div class="dash-tables">
-            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Proxy Buying orders yet." heading="My Proxy Buying" %}
+            {# Heading-row buttons: Buy Order = pick a Proxy Buyer on the home list; Cargo Order = goods already in hand. #}
+            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No orders yet." heading="My Orders" show_create_orders=True %}
+            {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Cargo orders yet." heading="My Cargo Orders" %}
           </div>
           <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
@@ -540,7 +466,6 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     // Collapse inline toggle forms whenever the user switches (or re-clicks) a tab.
     if (wrap) wrap.style.display = 'none';
     if (planTables) planTables.style.display = '';
-    if (orderWrap) orderWrap.style.display = 'none';
     panels.forEach(function (p) { p.style.display = (p.dataset.panel === name) ? '' : 'none'; });
     // Transient detail panels (order-detail, plan-detail) keep their origin tab
     // highlighted in the sidebar via data-origin.
@@ -627,56 +552,6 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     }
   }
 
-  // Toggle the inline "Post an Order" form.
-  var orderToggle = document.getElementById('toggle-order-form');
-  var orderWrap = document.getElementById('order-form-wrap');
-  if (orderToggle && orderWrap) {
-    orderToggle.addEventListener('click', function () {
-      orderWrap.style.display = orderWrap.style.display === 'none' ? '' : 'none';
-    });
-  }
-
-  // Order Type (Products vs Cargo) shows/hides the Cargo-only fields.
-  var newOrderType = document.querySelector('#order-form-wrap select[name="cargo_only"]');
-  function applyNewOrderType() {
-    if (!newOrderType) return;
-    var isCargo = newOrderType.value === '1';
-    document.querySelectorAll('#order-form-wrap .cargo-only-field').forEach(function (el) {
-      el.style.display = isCargo ? '' : 'none';
-    });
-  }
-  if (newOrderType) { newOrderType.addEventListener('change', applyNewOrderType); applyNewOrderType(); }
-
-  // Add/remove items on the inline "Post an Order" form.
-  var newOrderMaxItems = {{ new_order_formset.max_num }};
-  var newOrderTotalForms = document.getElementById('id_{{ new_order_formset.prefix }}-TOTAL_FORMS');
-  var newOrderContainer = document.getElementById('new-order-items');
-  var newOrderAddBtn = document.getElementById('add-new-order-item');
-  if (newOrderAddBtn && newOrderTotalForms) {
-    function refreshNewOrderAddState() {
-      newOrderAddBtn.disabled = parseInt(newOrderTotalForms.value, 10) >= newOrderMaxItems;
-    }
-    newOrderAddBtn.addEventListener('click', function () {
-      var count = parseInt(newOrderTotalForms.value, 10);
-      if (count >= newOrderMaxItems) { newOrderAddBtn.disabled = true; return; }
-      var html = document.getElementById('new-order-empty-form').innerHTML.replace(/__prefix__/g, count).trim();
-      var rowWrap = document.createElement('div');
-      rowWrap.innerHTML = html;
-      newOrderContainer.appendChild(rowWrap.firstElementChild);
-      newOrderTotalForms.value = count + 1;
-      applyNewOrderType();
-      refreshNewOrderAddState();
-    });
-    newOrderContainer.addEventListener('click', function (e) {
-      if (!e.target.classList.contains('remove-new-order-item')) return;
-      var row = e.target.closest('.item-row');
-      var del = row.querySelector('input[name$="-DELETE"]');
-      if (del) { del.checked = true; row.style.display = 'none'; }
-      else { row.parentNode.removeChild(row); }
-      refreshNewOrderAddState();
-    });
-    refreshNewOrderAddState();
-  }
 })();
 </script>
 <script>

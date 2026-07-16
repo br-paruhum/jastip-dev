@@ -20,6 +20,7 @@ urlpatterns = [
     path("offers/<int:pk>/withdraw/", views.offer_withdraw, name="offer_withdraw"),
     path("offers/<int:pk>/edit/", views.offer_edit, name="offer_edit"),
     path("offers/<int:pk>/select/", views.offer_select, name="offer_select"),
+    path("offers/<int:pk>/reject/", views.offer_reject, name="offer_reject"),
     path("offers/<int:pk>/deposit/", views.leg_deposit_pay, name="leg_deposit_pay"),
     path("offers/<int:pk>/weight-verify/", views.leg_weight_verify, name="leg_weight_verify"),
     path("offers/<int:pk>/arrived/", views.leg_arrived, name="leg_arrived"),

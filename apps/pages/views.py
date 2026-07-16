@@ -91,7 +91,12 @@ def home(request):
     queuing_carriers = list(
         TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
         .select_related("traveler")
-        .prefetch_related("buy_requests", "carrier_matches__order")
+        # cargo_offers feeds cargo_offer_committed_kg (the Avail column); its
+        # deposit_verified reads the leg transaction's payments.
+        .prefetch_related(
+            "buy_requests", "carrier_matches__order",
+            "cargo_offers__transaction__payments",
+        )
         .order_by("travel_date", "-created_at")
     )
 

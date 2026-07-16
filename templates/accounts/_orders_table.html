@@ -1,5 +1,14 @@
 {% load humanize %}
-<h4 class="muted" style="margin-top:1rem">{{ heading }}</h4>
+{# Heading row mirrors _travel_table.html: label left, create-actions right. #}
+<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:1rem;margin-bottom:16px">
+  <h4 class="muted" style="margin:0">{{ heading }}</h4>
+  {% if show_create_orders %}
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <a class="btn btn-primary" href="{% url 'pages:home' %}#proxy-buyers" style="padding:6px 14px;font-size:.85rem">Create Buy Order</a>
+    <a class="btn btn-primary" href="{% url 'trips:order_create' %}" style="padding:6px 14px;font-size:.85rem">Create Cargo Order</a>
+  </div>
+  {% endif %}
+</div>
 {% if orders %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">

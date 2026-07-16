@@ -4,10 +4,10 @@
 {% block content %}
 <section>
   <div class="container">
-    <span class="eyebrow">{% if carrier_plan %}CARRIER-FIRST · ORDER{% elif proxy %}PROXY BUYING PROCESS START{% else %}Buyer · Order First{% endif %}</span>
-    <h1>Post an Order</h1>
+    <span class="eyebrow">{% if carrier_plan %}CARRIER-FIRST · ORDER{% elif proxy %}PROXY BUYING PROCESS START{% else %}Buyer · Cargo Order{% endif %}</span>
+    <h1>{% if not carrier_plan and not proxy %}Create Cargo Order{% else %}Post an Order{% endif %}</h1>
     {% if not carrier_plan and not proxy %}
-    <p class="muted">No carrier yet — post your route, items and price, and carriers will respond with offers.</p>
+    <p class="muted">You already have the goods — post your route, items and total weight, and carriers will respond with offers.</p>
     {% endif %}
     <div class="profile-layout mt-2">
       <div class="profile-main">
@@ -17,11 +17,12 @@
       <div class="fold-body">
       {% if proxy %}
         {# #Step-1A.1B-Buyer — proxy-buying order creation form #}
-        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
 		<span style="display: block; text-align: right;">[1A-1B]</span>
       {% else %}
-        {# #Step-1.1-Buyer (cargo) — buyer-first cargo order creation form #}
-        <p class="muted">Notes placeholder — Step 1.1 (Buyer, cargo): post your route, items and price, then carriers respond with offers.</p>
+        {# #Step-1A.1BC-Buyer — buyer-first cargo order creation form #}
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for the reship cost directly to the traveler.</li><li>After you click “Send Cargo Order”, the Order will be listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a> table on the home page.</li><li>You still can edit this Order later before a traveler send an Offer and you accept it.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li><li>Beside of shipment rate offered by the traveler, you will be charge by 2.5% platform fee.</li></ul>
+        <span style="display: block; text-align: right;">[1A-1BC]</span>
       {% endif %}
       </div>
     </details>
@@ -30,20 +31,14 @@
       {% if proxy %}<input type="hidden" name="proxy" value="{{ proxy.id }}">{% endif %}
       <div class="card-body">
         <div class="card-band-row">Order Details</div>
+        {{ form.non_field_errors }}
         {% if carrier_plan %}
         <div class="card" style="margin-top:18px;box-shadow:none"><div class="card-body" style="padding:12px 16px">
           <strong>Ordering against carrier {{ carrier_plan.reference }}</strong><br>
           <span class="muted">{{ carrier_plan.from_city }} → {{ carrier_plan.to_city }} · Travel {{ carrier_plan.travel_date|date:"d-M-Y" }} · Rate {{ carrier_plan.shipment_currency }} {{ carrier_plan.shipment_cost_per_kg|floatformat:0 }}/kg · Spare {{ carrier_plan.carrier_first_remaining_kg|floatformat:1 }} kg</span>
         </div></div>
         {% endif %}
-        {% if not proxy %}
-        <div class="form-field">
-          <label>Order Type</label>
-          {{ form.cargo_only }}{{ form.cargo_only.errors }}
-          <p class="help">Products — a Proxy Buyer purchases the items for you. Cargo — you already have the goods and a Carrier just brings them.</p>
-        </div>
-        {% endif %}
-        <div class="form-row"{% if proxy %} style="margin-top:18px"{% endif %}>
+        <div class="form-row" style="margin-top:18px">
           <div class="form-field">
             <label>From City</label>
             {% if carrier_plan %}
@@ -65,16 +60,6 @@
           <div class="form-field"><label>To City</label>{% if carrier_plan %}<input type="text" value="{{ carrier_plan.to_city }}" disabled>{% else %}{{ form.to_city }}{{ form.to_city.errors }}{% endif %}</div>
           <div class="form-field"><label>To Country</label>{% if carrier_plan %}<input type="text" value="{{ carrier_plan.to_country }}" disabled>{% else %}{{ form.to_country }}{{ form.to_country.errors }}{% endif %}</div>
         </div>
-        {% if not proxy %}
-        <div class="form-field">
-          <label>Destination Address</label>{{ form.to_address }}{{ form.to_address.errors }}
-          <p class="help">Lets carriers see upfront whether a reship will be needed.</p>
-        </div>
-        <div class="form-field">
-          <label>Destination Postal Code</label>{{ form.to_postal_code }}{{ form.to_postal_code.errors }}
-        </div>
-        {% endif %}
-
         {{ formset.management_form }}
         {{ formset.non_form_errors }}
         <div id="items" class="mt-2">
@@ -87,9 +72,18 @@
                 <div class="form-field"><label>Product Name</label>{{ item_form.name }}{{ item_form.name.errors }}</div>
                 <div class="form-field"><label>Qty</label>{{ item_form.quantity }}</div>
                 <div class="form-field"><label>Unit</label>{{ item_form.unit }}{{ item_form.unit.errors }}</div>
-                <div class="form-field cargo-only-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
+                {% if not proxy %}
+                <div class="form-field"><label>Unit Price</label>{{ item_form.estimated_unit_cost }}{{ item_form.estimated_unit_cost.errors }}</div>
+                {% endif %}
               </div>
-              <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
+              {% if not proxy %}
+              <p class="help">Price for this item — needed for the customs invoice.</p>
+              <div class="form-field"><label>Notes</label>{{ item_form.buyer_note }}{{ item_form.buyer_note.errors }}</div>
+              <div class="form-field">
+                <label>Product Photo</label>{{ item_form.photo }}{{ item_form.photo.errors }}
+                <p class="help">Required — jpeg, jpg or png, max 2 MB.</p>
+              </div>
+              {% endif %}
               <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
             </div>
           </div>
@@ -98,54 +92,56 @@
         <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add Product</button>
 
         {% if not proxy %}
-        <div class="form-row mt-2 cargo-only-field">
-          <div class="form-field"><label>Bid Weight (kg)</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}</div>
-          <div class="form-field"><label>Bid Price per kg</label>{{ form.bid_cost_per_kg }}{{ form.bid_cost_per_kg.errors }}</div>
+        {# Cargo: weight + deadline share a row. A carrier_plan always implies a proxy, so this branch always has the deadline. #}
+        <div class="form-row" style="margin-top:30px">
+          <div class="form-field">
+            <label>{{ form.bid_weight_kg.label }}</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}
+            <p class="help">The Carrier re-weighs the package before carrying it.</p>
+          </div>
+          <div class="form-field">
+            <label>{{ form.max_acceptable_date.label }}</label>{{ form.max_acceptable_date }}{{ form.max_acceptable_date.errors }}
+            <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
+          </div>
         </div>
-        {% endif %}
-        {% if not carrier_plan %}
+        {% elif not carrier_plan %}
         <div class="form-field" style="margin-top:30px">
           <label>{{ form.max_acceptable_date.label }}</label>{{ form.max_acceptable_date }}{{ form.max_acceptable_date.errors }}
-          {% if proxy %}
           <p class="help">Last day for proxy buyer to send estimate cost of your products.</p>
-          {% else %}
-          <p class="help">Last day to receive carrier offers — also your drop-off grace-period deadline.</p>
-          {% endif %}
         </div>
         {% endif %}
-        <div class="form-field" style="margin-top:30px">
+        {# Cargo pairs Delivery Preference with the box photo 50/50; the proxy form keeps them stacked (Notes to Proxy Buyer sits between). #}
+        {% if not proxy %}<div class="form-row" style="margin-top:30px">{% endif %}
+        <div class="form-field"{% if proxy %} style="margin-top:30px"{% endif %}>
           <label>{{ form.delivery_preference.label }} <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" style="stroke:var(--danger);vertical-align:-5px;margin-left:5px" aria-hidden="true" role="img"><title>Choose carefully — reshipment adds a cost you pay later.</title><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="16.7" x2="12" y2="16.7"/></svg></label>{{ form.delivery_preference }}{{ form.delivery_preference.errors }}
           <p class="help">Notes: If you select 'Reship package' you have to pay reshipment cost to the Buyer later.</p>
         </div>
-        {% if not proxy %}
-        <div class="form-field cargo-only-field">
-          <label>Allow this order to be split across multiple carriers</label>
-          {{ form.partial_allowed }}{{ form.partial_allowed.errors }}
-        </div>
-        <div class="form-field"><label>Notes to Carriers</label>{{ form.buyer_notes }}</div>
-        {% endif %}
-
         {% if proxy %}
         {# #Step-1.1-Buyer — extra order-level context for the proxy buyer. #}
         <div class="form-field" style="margin-top:30px">
           <label>Notes to Proxy Buyer</label>{{ form.proxy_buyer_notes }}{{ form.proxy_buyer_notes.errors }}
         </div>
-        <div class="form-field" style="margin-top:30px">
-          <label>Reference Photos</label>
+        {% endif %}
+        <div class="form-field"{% if proxy %} style="margin-top:30px"{% endif %}>
+          <label>{% if proxy %}Reference Photos{% else %}Box/Luggage Photo{% endif %}</label>
           {% if order and order.photos.all %}
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
             {% for p in order.photos.all %}
-            <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Reference photo {{ forloop.counter }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
+            <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Order photo {{ forloop.counter }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
             {% endfor %}
           </div>
           {% endif %}
           <input type="file" name="order_photos" id="order-photos" accept="image/*" multiple>
+          {% if proxy %}
           <p class="help">Optional — attach up to 10 photos (jpeg, jpg, png).</p>
+          {% else %}
+          <p class="help">Required — photo before box/luggage is closed. Attach up to 10 photos (jpeg, jpg, png).</p>
+          {% endif %}
         </div>
-        {% endif %}
+        {% if not proxy %}</div>{% endif %}
 
         <div style="text-align:center;margin-top:12px">
-          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Send Order{% endif %}</button>
+          {# Button names follow HowTo_BuyerComeFirst_Rev-260717.xlsx: Option 1 = Send Buy Order, Option 2 = Send Cargo Order. #}
+          <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% elif proxy %}Send Buy Order{% else %}Send Cargo Order{% endif %}</button>
         </div>
       </div>
     </form>
@@ -163,9 +159,18 @@
       <div class="form-field"><label>Product Name</label>{{ formset.empty_form.name }}</div>
       <div class="form-field"><label>Qty</label>{{ formset.empty_form.quantity }}</div>
       <div class="form-field"><label>Unit</label>{{ formset.empty_form.unit }}</div>
-      <div class="form-field cargo-only-field"><label>Unit Price</label>{{ formset.empty_form.estimated_unit_cost }}</div>
+      {% if not proxy %}
+      <div class="form-field"><label>Unit Price</label>{{ formset.empty_form.estimated_unit_cost }}</div>
+      {% endif %}
     </div>
-    <p class="help cargo-only-field">Price for this item — needed for the customs invoice.</p>
+    {% if not proxy %}
+    <p class="help">Price for this item — needed for the customs invoice.</p>
+    <div class="form-field"><label>Notes</label>{{ formset.empty_form.buyer_note }}</div>
+    <div class="form-field">
+      <label>Product Photo</label>{{ formset.empty_form.photo }}
+      <p class="help">Required — jpeg, jpg or png, max 2 MB.</p>
+    </div>
+    {% endif %}
     <button type="button" class="btn btn-sm btn-outline remove-item">Remove</button>
   </div></div>
 </template>
@@ -183,17 +188,6 @@
   var container = document.getElementById('items');
   var addBtn = document.getElementById('add-item');
 
-  // Order Type (Products vs Cargo) shows/hides the Cargo-only fields. A proxy
-  // (Flow-1) order has no type selector and is always Products, so hide them.
-  var orderType = document.querySelector('select[name="cargo_only"]');
-  function applyOrderType() {
-    var isCargo = orderType ? orderType.value === '1' : false;
-    document.querySelectorAll('.cargo-only-field').forEach(function (el) {
-      el.style.display = isCargo ? '' : 'none';
-    });
-  }
-  if (orderType) orderType.addEventListener('change', applyOrderType);
-
   function refreshAddState() {
     addBtn.disabled = parseInt(totalForms.value, 10) >= maxItems;
   }
@@ -206,7 +200,6 @@
     wrap.innerHTML = html;
     container.appendChild(wrap.firstElementChild);
     totalForms.value = count + 1;
-    applyOrderType();
     refreshAddState();
   });
 
@@ -219,7 +212,6 @@
     refreshAddState();
   });
 
-  applyOrderType();
   refreshAddState();
 
   // Reference-photo cap: 10 total (existing count is already subtracted server-

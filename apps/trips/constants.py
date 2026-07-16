@@ -259,6 +259,20 @@ DEFAULT_PAYMENT_TERM_CARRIER = (
     "</ul>"
 )
 
+# Payment terms shown to the Buyer on a Cargo order (buyer already owns the goods,
+# so no Proxy Buyer and no goods cost — only the carry fee + platform fee).
+# This default is what the pages/0015 migration writes onto the existing settings
+# row on staging/production, so keep it in sync with the wording in admin.
+DEFAULT_PAYMENT_TERM_CARGO_BUYER = """<ul>
+<li>Buyer pay both 1). Total of Shipment Cost when Buyer accept shipment rate offered by a Carrier and 2). 2.5% platform fee to goProxyBuy.com 
+</li>
+<li>Buyer pay both 1). Customs Duty; and 2). Shipment Cost shortage (Actual minus Estimate) if any; when Traveler arrived at the destination city and upload Customs Duty amount.
+</li>
+<li>Delivery End-Point of the package is based on Buyer selection when placing the order. If Buyer selected "Request Reship" then the Delivery End-Point is the Buyer's location, else is the Traveler's location. 
+</li>
+<li>Proxy Buyer and Traveler payouts will be disbursed maximum 24 hours after Buyer confirm "Package Received"</li>
+</ul>"""
+
 # Pre-filled (editable) note the buyer sends to the traveler with a request.
 DEFAULT_BUYER_NOTE = (
     "Please send me a message if you find difficulties finding my item(s) - "

@@ -45,11 +45,7 @@
     <tr><td>Allocated weight</td><td class="num-right">{{ leg_offer.allocated_weight_kg|default:leg_offer.avail_kg|floatformat:1 }} kg</td></tr>
     <tr><td>Your ask rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
     <tr><td>Drop-off deadline</td><td class="num-right">{{ leg_offer.drop_off_deadline|date:"d-M-Y" }}</td></tr>
-    <tr><td>Deposit</td><td class="num-right">
-      {% if leg_offer.deposit_verified %}<span class="badge badge-success">Verified</span>
-      {% elif leg_offer.deposit_pending %}<span class="badge badge-warning">Awaiting verification</span>
-      {% else %}<span class="badge badge-muted">Awaiting buyer's deposit</span>{% endif %}
-    </td></tr>
+    {# No Deposit row: the Notes card already states the deposit state ([5A-1T] / [5A-2T]). #}
     {% if leg_offer.agreed_weight_kg %}<tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg|floatformat:1 }} kg</td></tr>{% endif %}
   </table>
 </div></div>
@@ -155,7 +151,8 @@
 
 <details class="card fold mt-2">
   <summary><h3>Payment Terms</h3></summary>
-  <div class="fold-body payment-terms">{{ PAYMENT_TERM|safe }}</div>
+  {# Cargo has no Proxy Buyer and no goods cost, so the proxy terms don't apply. #}
+  <div class="fold-body payment-terms">{% if leg_offer.order.is_cargo %}{{ PAYMENT_TERM_CARGO_BUYER|safe }}{% else %}{{ PAYMENT_TERM|safe }}{% endif %}</div>
 </details>
 
 {% if leg_offer.payout_ready and leg_offer.transaction %}

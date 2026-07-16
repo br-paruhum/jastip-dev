@@ -166,9 +166,17 @@ Context expected (Django include passes the parent context through):
       <p class="muted">{{ leg_offer.order.get_status_display }}</p>
       {% endif %}
     {% elif not leg_offer.leg_status %}
-      {# Cargo/legacy drop-off path (multi-leg). #}
+      {# Cargo drop-off path. Deposit state is per-leg (the order-level deposit_pending above is the proxy flow's). #}
       {% if not leg_offer.deposit_verified %}
-      <p class="muted">Waiting for the buyer's deposit to clear before drop-off.</p>
+        {% if leg_offer.deposit_pending %}
+        {# #Step-5A.2T-Traveler #}
+        <p class="muted">Buyer submit transfer proof, waiting for admin fund verification.</p>
+        <span style="display: block; text-align: right;">[5A-2T]</span>
+        {% else %}
+        {# #Step-5A.1T-Traveler #}
+        <p class="muted">Buyer accepted your offer rate, awaiting for Buyer's deposit.</p>
+        <span style="display: block; text-align: right;">[5A-1T]</span>
+        {% endif %}
       {% elif leg_offer.order.is_multi_leg_cargo and not leg_offer.order.items_fully_assigned %}
       <p class="muted">Waiting for the buyer to split the goods across carriers — once they do, you can record the drop-off of your share.</p>
       {% else %}
@@ -225,34 +233,32 @@ Context expected (Django include passes the parent context through):
   {# BUYER / PROXY / STAFF VIEW — order-detail (bf_order → o).             #}
   {# ==================================================================== #}
   {% elif o.is_cargo %}
-    {# Cargo/legacy: buyer picks among carrier offers. Not part of the       #}
-    {# numbered proxy-buying flow; kept for backward compatibility.          #}
-    {% if o.pending_offers %}
-    <div class="table-wrap">
-      <table class="invoice">
-        <tr><td class="num-right"><strong>Ask/kg</strong></td><td class="num-right"><strong>Avail (kg)</strong></td><td style="padding-left:16px"><strong>Travel Date</strong></td><td><strong>Status</strong></td><td></td></tr>
-        {% for offer in o.pending_offers %}
-        <tr>
-          <td class="num-right">{{ o.currency }} {{ offer.ask_cost_per_kg|by_currency:o.currency }}</td>
-          <td class="num-right">{{ offer.avail_kg }}</td>
-          <td style="padding-left:16px">{{ offer.travel_date|date:"d-M-Y" }}</td>
-          <td>{{ offer.get_offer_status_display }}</td>
-          <td>
-            {% if o.is_accepting_offers %}
-              <form method="post" action="{% url 'trips:offer_select' offer.id %}">
-                {% csrf_token %}
-                <button class="btn btn-primary btn-sm" type="submit">Accept</button>
-              </form>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </table>
-    </div>
-    <p class="help mt-2">Carrier's name and drop-off address stay hidden until the deposit clears.
-      Accepting an offer assigns the whole order to that carrier — every other offer is automatically rejected.</p>
+    {# Cargo (buyer already owns the goods): buyer picks among carrier offers.  #}
+    {# Notes are prose only — the offer figures and Accept/Reject live in the   #}
+    {# Order Details card (_order_detail_body.html).                            #}
+    {# Precedence: a confirmed leg outranks a pending offer — else accepting one falls through to "waiting for an offer" and reads as going back to Step 1. #}
+    {% if o.confirmed_legs %}
+      {% with leg=o.confirmed_legs.0 %}
+      {% if leg.deposit_pending %}
+      {# #Step-5A.2B-Buyer #}
+      <p>Transfer proof submitted. Waiting for Admin fund verification.</p>
+      <span style="display: block; text-align: right;">[5A-2B]</span>
+      {% elif not leg.deposit_verified %}
+      {# #Step-5A.1B-Buyer — bank details + Submit Proof live in the deposit card below. #}
+      <p>You accept the shipment cost, please pay the first deposit.</p>
+      <span style="display: block; text-align: right;">[5A-1B]</span>
+      {% else %}
+      <p class="muted">Deposit verified. Hand the package over to the traveler — they weigh it in front of you and record the drop-off.</p>
+      {% endif %}
+      {% endwith %}
+    {% elif o.pending_offers %}
+    {# #Step-4A.2B-Buyer #}
+    <p>A traveler offered to carry your order. Please Accept or Reject it. If there are more than 1 carrier listed, accept the one you prefer - the others are then declined automatically. Use the Chat Box if you want to negotiate the offer on shipment cost.</p>
+    <span style="display: block; text-align: right;">[4A-2B]</span>
     {% else %}
-    <p class="muted">No pending offers right now.</p>
+    {# #Step-1A.2BC-Buyer — cargo order posted, waiting for a Carrier's offer. #}
+    <p class="muted">Your cargo order has been listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a> awaiting for traveler to send an offer.</p>
+    <span style="display: block; text-align: right;">[1A-2BC]</span>
     {% endif %}
 
   {% else %}

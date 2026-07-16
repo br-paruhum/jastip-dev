@@ -279,11 +279,33 @@ class TravelPlan(ListingTimingMixin, models.Model):
         return total.quantize(TWO_PLACES)
 
     @property
+    def cargo_offer_committed_kg(self) -> Decimal:
+        """Weight this trip has committed to buyer-first cargo orders.
+
+        A cargo offer never sets ``order.plan`` (the order stays on buyer-first
+        rails), so its weight is in neither ``utilized_weight_kg`` nor
+        ``held_hold_kg`` — this is the third ledger. Counts only offers the buyer
+        selected AND paid the deposit on: capacity stays advertised while the
+        buyer is still deciding, so a stalled buyer can't freeze the trip.
+        """
+        total = Decimal("0")
+        for off in self.cargo_offers.all():
+            if off.offer_status == OfferStatus.SELECTED and off.deposit_verified:
+                total += off.allocated_weight_kg or Decimal("0")
+        return total.quantize(TWO_PLACES)
+
+    @property
     def carrier_first_remaining_kg(self) -> Decimal:
         """Spare weight still offerable to carrier-first buyers: total capacity minus
-        both plan-first orders (``utilized_weight_kg``) and carrier-first holds
-        (``held_hold_kg``). Never negative for display."""
-        remaining = self.available_weight_kg - self.utilized_weight_kg - self.held_hold_kg
+        plan-first orders (``utilized_weight_kg``), carrier-first holds
+        (``held_hold_kg``) and buyer-first cargo commitments
+        (``cargo_offer_committed_kg``). Never negative for display."""
+        remaining = (
+            self.available_weight_kg
+            - self.utilized_weight_kg
+            - self.held_hold_kg
+            - self.cargo_offer_committed_kg
+        )
         return remaining.quantize(TWO_PLACES) if remaining > 0 else Decimal("0.00")
 
     @property
@@ -770,6 +792,37 @@ class Order(ListingTimingMixin, models.Model):
     def confirmed_legs(self) -> list:
         """Selected TravelerOffers ("legs") for this order, oldest first."""
         return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.SELECTED]
+
+    @property
+    def cargo_awaiting_deposit(self) -> bool:
+        """Cargo order with a confirmed leg whose deposit hasn't cleared yet.
+
+        That stage belongs to the Pay First Deposit + Payments cards, so the
+        legacy "Accepted Carrier's Ask" leg card stays hidden until the deposit
+        is verified and the later steps (drop-off, balance, pickup) are live.
+        """
+        if not self.is_cargo:
+            return False
+        legs = self.confirmed_legs
+        return bool(legs) and not all(leg.deposit_verified for leg in legs)
+
+    @property
+    def buyer_payments(self) -> list:
+        """Payment rows for the buyer's Payments card, oldest first.
+
+        Proxy (Products) orders settle at order level (Transaction/Payment);
+        Cargo settles per leg (LegTransaction/LegPayment). Both models expose the
+        same kind/currency/amount/status/created_at, so the card renders either.
+        """
+        if self.is_cargo:
+            rows = []
+            for leg in self.confirmed_legs:
+                if hasattr(leg, "transaction"):
+                    rows.extend(leg.transaction.payments.all())
+            return sorted(rows, key=lambda p: p.created_at)
+        if hasattr(self, "transaction"):
+            return list(self.transaction.payments.all())
+        return []
 
     @property
     def pending_offers(self) -> list:
@@ -1717,6 +1770,15 @@ class TravelerOffer(models.Model):
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="traveler_offers")
     traveler = models.ForeignKey(USER, on_delete=models.CASCADE, related_name="traveler_offers")
+    # The real trip this offer is part of. An offer already describes a trip
+    # (route + date + spare capacity), so it is published as a TravelPlan on the
+    # Queuing Traveler's Offers board — letting other buyers use the capacity this
+    # order doesn't consume. Null only for offers made before this was introduced.
+    plan = models.ForeignKey(
+        "TravelPlan", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="cargo_offers",
+        help_text="Travel plan this offer's trip is published as on the Queuing board.",
+    )
 
     ask_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
     avail_kg = models.DecimalField(
@@ -2300,6 +2362,10 @@ class RequestItem(models.Model):
     quantity = models.PositiveSmallIntegerField(default=1)
     unit = models.CharField(max_length=20, default="pcs", blank=True, help_text="Unit of measure, e.g. pcs, box, kg.")
     photo = models.ImageField(upload_to="items/requested/", blank=True, null=True, storage=webp_storage)
+    buyer_note = models.CharField(
+        max_length=255, blank=True,
+        help_text="Buyer's note about this item (cargo orders).",
+    )
 
     # Set by the traveler when reviewing the request ("update the cost fields").
     estimated_unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
