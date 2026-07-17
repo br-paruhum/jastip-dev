@@ -58,10 +58,12 @@
 {% endif %}
 
 {# Drop-Off Address — buyer-only, once the deposit clears (Step 5A.3BC). Only the address: the money lives in Pay First Deposit / Payments, "what happens next" lives in the Notes. #}
+{# Open while the buyer still needs the address; folds itself away once the package is handed over. #}
 {% if is_order_buyer and bf_order.confirmed_legs and not bf_order.cargo_awaiting_deposit %}
-<div class="card mt-2"><div class="card-body">
-  <div class="card-band-row">Drop-Off Address</div>
-  <div style="display:flex;flex-direction:column;gap:16px;margin-top:14px">
+<details class="card fold mt-2"{% if bf_order.awaiting_dropoff %} open{% endif %}>
+  <summary><h3>Drop-Off Address</h3></summary>
+  <div class="fold-body">
+  <div style="display:flex;flex-direction:column;gap:16px">
     {% for leg in bf_order.confirmed_legs %}
     <div>
       {# pre-wrap keeps the traveler's own line breaks — the field is a 2-row textarea, so the address arrives multi-line. #}
@@ -72,36 +74,14 @@
       {% endif %}
     </div>
 
-    {# The LATER leg steps (customs balance, refund bank details, Pickup/Reship, Confirm Received) still live here until each is split into its own card — hidden until the leg actually moves. #}
+    {# The LATER leg steps (refund bank details, Pickup/Reship choice) still live here until each is split into its own card — hidden until the leg actually moves. The second deposit and the whole reship phase have their own cards; the weight and duty figures this used to repeat live in Order Details. #}
     {# Only the states that need an ACTION from the buyer. dropped_off / weight_verified / package_received are pure status — the Notes card says where the package is, so a "Next Step: Received by carrier" row is just noise. #}
-    {% if leg.leg_status and leg.leg_status != "package_dropped_off" and leg.leg_status != "weight_verified" and leg.leg_status != "package_received" %}
+    {% if leg.leg_status and not leg.is_reship_flow and leg.leg_status != "package_dropped_off" and leg.leg_status != "weight_verified" and leg.leg_status != "package_received" %}
+    {% if not leg.second_deposit_due %}
     <div style="border-top:1px solid var(--line);padding-top:16px">
-      <div class="eyebrow" style="margin-bottom:8px">Next Step</div>
       <div>
           {% if leg.leg_status == "package_arrived" %}
-            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
-            {% if leg.custom_fare_amount %}
-            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|by_currency:leg.custom_fare_currency }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
-            {% endif %}
-            {% if leg.extra_due > 0 and not leg.balance_settled %}
-              {% if leg.balance_pending %}
-              <p class="muted" style="margin:0 0 6px">Balance proof submitted — pending fund verification.</p>
-              {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
-              {% else %}
-              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
-              <table class="invoice" style="max-width:540px;margin:0 0 10px">
-                <tr><td style="width:250px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-                <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-                <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-                <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-              </table>
-              <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">
-                {% csrf_token %}
-                <input type="file" name="proof" accept="image/png,image/jpeg" required>
-                <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
-              </form>
-              {% endif %}
-            {% elif leg.refund_due > 0 and not leg.balance_settled %}
+            {% if leg.refund_due > 0 and not leg.balance_settled %}
               <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|by_currency:bf_order.currency }}</p>
               {% if leg.refund_bank_details %}
                 <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
@@ -145,28 +125,7 @@
               {% csrf_token %}
               <button class="btn btn-primary btn-sm" type="submit">Confirm Picked Up (Clear)</button>
             </form>
-          {% elif leg.leg_status == "reship_requested" %}
-            <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
-          {% elif leg.leg_status == "reship_cost_sent" %}
-            <p class="help" style="margin:0 0 4px">
-              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|by_currency:bf_order.destination_currency }} —
-              {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
-            </p>
-            {% if leg.reshipment_proof %}
-              <span class="badge badge-success">Proof uploaded</span>
-            {% else %}
-              <form method="post" action="{% url 'trips:leg_reship_proof' leg.id %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <input type="file" name="reshipment_proof" accept="image/png,image/jpeg" required>
-                <button class="btn btn-primary btn-sm" type="submit">Upload Payment Proof</button>
-              </form>
-            {% endif %}
-          {% elif leg.leg_status == "reshipping" %}
-            <p class="help" style="margin:0 0 4px">AWB: {{ leg.awb_number }}</p>
-            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
-              {% csrf_token %}
-              <button class="btn btn-primary btn-sm" type="submit">Confirm Received (Clear)</button>
-            </form>
+          {# The reship states are the Reshipment card's job now — no copy here. #}
           {% elif leg.leg_status == "clear" %}
             <span class="badge badge-success">Clear — closing soon</span>
           {% elif leg.leg_status == "closed" %}
@@ -192,34 +151,37 @@
       </div>
     </div>
     {% endif %}
+    {% endif %}
     {% endfor %}
   </div>
-</div></div>
+  </div>
+</details>
 {% endif %}
 
-{# Pay Second Deposit — buyer-only, sits under Notes while the customs-duty balance is due. #}
-{% if is_order_buyer and bf_order.status == "package_arrived" and not bf_order.balance_pending and bf_order.balance_extra_due > 0 %}
+{# Pay Second Deposit (Cargo) — buyer-only, per-leg. Like Pay First Deposit, it disappears the moment the proof is submitted: the Payments card carries the pending row and the View Second Deposit Proof button from there. The figures behind the amount live in Order Details. #}
+{% if is_order_buyer and bf_order.is_cargo %}
+{% for leg in bf_order.confirmed_legs %}
+{% if leg.second_deposit_due and not leg.balance_pending %}
 <details class="card fold mt-2" open>
   <summary><h3>Pay Second Deposit</h3></summary>
   <div class="fold-body">
-  {# #Step-8A.2B-Buyer — bank details + Submit Proof (moved out of the Notes card). #}
-  {% with s=bf_order.balance_settlement %}
-  <p>Please pay the second deposit of <strong>{% if s.origin_idr %}IDR {{ s.idr|by_currency:"IDR" }}{% else %}{{ s.ref_ccy }} {{ s.ref_amount|by_currency:s.ref_ccy }}{% endif %}</strong>{% if not s.origin_idr %} (IDR {{ s.idr|by_currency:"IDR" }}{% if s.rate %} @ {{ s.rate|floatformat:2 }}{% endif %}){% endif %} to:</p>
+  {# #Step-8A.2B-Buyer — bank details + Submit Proof (moved out of the Drop-Off Address card). #}
+  <p style="margin-top:0">Please pay Second Deposit of <strong>{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
   <table class="invoice" style="max-width:440px;margin-bottom:8px">
     <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
     <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
     <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
     <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
   </table>
-  {% if not s.origin_idr %}<p class="help" style="margin-bottom:12px">IDR equivalent shown at the BCA TT rate for reference.</p>{% endif %}
-  {% endwith %}
-  <form method="post" action="{% url 'trips:request_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
+  <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="text-align:center">
     {% csrf_token %}
     <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
     <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
   </form>
   </div>
 </details>
+{% endif %}
+{% endfor %}
 {% endif %}
 
 {# Package Received Confirmation — buyer-only, pickup path; sits under Notes at ready_for_pickup. #}
@@ -243,9 +205,17 @@
 {% endif %}
 {% endif %}
 
-{# Reshipment tab — buyer view only, when the buyer chose reshipment. #}
-{% if is_order_buyer and bf_order.is_reship_flow %}
-{% include "trips/_reship_tab.html" with ro=bf_order reship_is_buyer=True %}
+{# Reshipment tab — buyer view. Cargo drives it from the leg + leg_* endpoints; proxy stays order-level. Preferred courier is order-level either way. #}
+{% if is_order_buyer %}
+  {% if bf_order.is_cargo %}
+    {% for leg in bf_order.confirmed_legs %}
+      {% if leg.is_reship_flow %}
+      {% include "trips/_reship_tab.html" with ro=leg reship_is_buyer=True courier_id=bf_order.id proof_url="trips:leg_reship_proof" clear_url="trips:leg_clear" %}
+      {% endif %}
+    {% endfor %}
+  {% elif bf_order.is_reship_flow %}
+    {% include "trips/_reship_tab.html" with ro=bf_order reship_is_buyer=True courier_id=bf_order.id proof_url="trips:request_reship_proof" clear_url="trips:request_clear" %}
+  {% endif %}
 {% endif %}
 
 <div class="card mt-2"><div class="card-body">
@@ -255,15 +225,32 @@
     {% if bf_order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     {# The buyer declares one Weight; the rate comes from the Carrier's Offer, so there is no bid price/partial split to show. #}
     {% if bf_order.is_cargo %}
-    <tr><td>Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
     {# Once a carrier's offer is accepted the buyer's bill is fixed, so show what they owe and how it breaks down. #}
     {% with leg=bf_order.confirmed_legs.0 %}
     {% if leg %}
+    {# Once the carrier measures the package the declared weight is history — the bill settles on the final one. #}
+    {% if leg.agreed_weight_kg is not None %}
+    <tr><td>Final Weight</td><td class="num-right">{{ leg.final_weight_kg|floatformat:1 }} kg</td></tr>
+    {% else %}
+    <tr><td>Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
+    {% endif %}
     <tr><td>Rate per kg</td><td class="num-right">{{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}</td></tr>
-    <tr><td>Total Shipment Cost</td><td class="num-right">{{ bf_order.currency }} {{ leg.shipment_cost_due|by_currency:bf_order.currency }}</td></tr>
+    <tr><td>Total Shipment Cost</td><td class="num-right">{{ bf_order.currency }} {{ leg.final_shipment_cost|by_currency:bf_order.currency }}</td></tr>
     {# The fee is max(COMMISSION_PERCENT, platform_fee_min_idr) — both live values, so the label can't drift from the figure. The floor is IDR-only (platform_fee_floor). #}
     <tr><td>{{ COMMISSION_PERCENT }}% Platform Fee{% if bf_order.currency == "IDR" and PLATFORM_FEE_MIN_IDR %} (min {{ PLATFORM_FEE_MIN_IDR|floatformat:0|intcomma }}){% endif %}</td><td class="num-right">{{ bf_order.currency }} {{ leg.buyer_platform_fee|by_currency:bf_order.currency }}</td></tr>
-    <tr class="total"><td>Total Due</td><td class="num-right">{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</td></tr>
+    {% if leg.custom_fare_amount %}
+    <tr><td>Custom Duty</td><td class="num-right">{{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}</td></tr>
+    {% endif %}
+    <tr class="total"><td>Total Due</td><td class="num-right">{{ bf_order.currency }} {{ leg.buyer_total_due|by_currency:bf_order.currency }}</td></tr>
+    {# Only once arrival makes the bill move off the first deposit — before that Total Due IS the first deposit. #}
+    {% if leg.settlement_net %}
+    <tr><td>First Deposit Paid</td><td class="num-right">({{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }})</td></tr>
+    {% if leg.refund_due %}
+    <tr class="total"><td>Refund Due</td><td class="num-right">{{ bf_order.currency }} {{ leg.refund_due|by_currency:bf_order.currency }}</td></tr>
+    {% else %}
+    <tr class="total"><td>Second Deposit Due</td><td class="num-right">{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</td></tr>
+    {% endif %}
+    {% endif %}
     {% endif %}
     {% endwith %}
     {% endif %}
@@ -522,10 +509,11 @@
     </tr>
     {% endfor %}
   </table>
-  {% if bf_order.deposit_proof_url or bf_order.balance_proof_url %}
+  {# buyer_* proof links, not the order-level ones: cargo's proofs hang off the leg, so the plain properties are always empty there. #}
+  {% if bf_order.buyer_deposit_proof_url or bf_order.buyer_balance_proof_url %}
   <div style="text-align:center;margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-    {% if bf_order.deposit_proof_url %}<a href="{{ bf_order.deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View First Deposit Proof</a>{% endif %}
-    {% if bf_order.balance_proof_url %}<a href="{{ bf_order.balance_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Second Deposit Proof</a>{% endif %}
+    {% if bf_order.buyer_deposit_proof_url %}<a href="{{ bf_order.buyer_deposit_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View First Deposit Proof</a>{% endif %}
+    {% if bf_order.buyer_balance_proof_url %}<a href="{{ bf_order.buyer_balance_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Second Deposit Proof</a>{% endif %}
   </div>
   {% endif %}
   </div>

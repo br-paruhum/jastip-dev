@@ -70,6 +70,7 @@ def _pending_disbursements(user):
                 "kind": "proxy", "label": "Proxy Buyer",
                 "recipient": o.proxy_buyer.name if o.proxy_buyer_id else "—",
                 "amount": o.proxy_disbursement_total,
+                "url_name": "trips:release_disbursement", "target_id": o.id,
             })
         if o.traveler_payout_disbursable and not o.traveler_paid_at:
             try:
@@ -81,9 +82,43 @@ def _pending_disbursements(user):
                 "kind": "traveler", "label": "Carrier",
                 "recipient": t.full_name if t else "—",
                 "amount": tx.payout_to_traveler if tx else None,
+                "url_name": "trips:release_disbursement", "target_id": o.id,
             })
         if pending:
             rows.append({"order": o, "pending": pending})
+
+    # Cargo pays out per LEG (leg.payout_paid_at / leg_release_payout), so the
+    # order-level checks above never see it. Query the legs directly rather than
+    # leaning on the order status rollup: with several carriers, one cleared leg
+    # is payable even while the order still tracks a slower one.
+    by_order = {r["order"].id: r for r in rows}
+    cleared_legs = (
+        TravelerOffer.objects
+        .filter(
+            offer_status=OfferStatus.SELECTED,
+            leg_status__in=[LegStatus.CLEAR, LegStatus.CLOSED],
+            payout_paid_at__isnull=True,
+        )
+        .select_related("order", "order__buyer", "traveler", "transaction")
+        .order_by("-updated_at")
+    )
+    for leg in cleared_legs:
+        if not leg.order.is_cargo:
+            continue
+        tx = leg.transaction if hasattr(leg, "transaction") else None
+        entry = {
+            "kind": "leg_traveler", "label": "Carrier",
+            "recipient": leg.traveler.full_name if leg.traveler_id else "—",
+            "amount": tx.payout_to_traveler if tx else None,
+            "url_name": "trips:leg_release_payout", "target_id": leg.id,
+        }
+        row = by_order.get(leg.order_id)
+        if row:
+            row["pending"].append(entry)
+        else:
+            row = {"order": leg.order, "pending": [entry]}
+            by_order[leg.order_id] = row
+            rows.append(row)
 
     # Buyer overpaid refunds. Because the buyer pays 100% upfront, an overpaid
     # order auto-settles past Package Arrived straight to Paid in Full, so the
@@ -105,6 +140,7 @@ def _pending_disbursements(user):
             "bank_name": o.refund_bank_name,
             "account_no": o.refund_account_no,
             "account_name": o.refund_account_name,
+            "url_name": "trips:release_disbursement", "target_id": o.id,
         }]})
     return rows
 

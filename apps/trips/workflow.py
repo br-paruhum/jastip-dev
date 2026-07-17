@@ -719,6 +719,20 @@ def notify_traveler_paid(order):
     notify_see_email(traveler, event="cleared")
 
 
+def notify_leg_payout_released(leg):
+    """Cargo mirror of notify_traveler_paid: the payout is per leg, so the amount
+    comes from the leg's transaction and the mail goes to that leg's carrier
+    (notify_traveler_paid reads order.transaction, which cargo doesn't have)."""
+    send_email(
+        to_user=leg.traveler,
+        subject="Cleared — your payment is being released",
+        template="payout_released",
+        context=_ctx(leg.order, traveler=leg.traveler, payout=leg.transaction.payout_to_traveler),
+        event="cleared",
+    )
+    notify_see_email(leg.traveler, event="cleared")
+
+
 def on_offer_submitted(order, offer):
     """Buyer-first flow: carrier submitted an offer → notify the buyer."""
     ctx = {

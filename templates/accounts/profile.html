@@ -343,7 +343,8 @@
             </div>
             <p class="muted" style="font-size:.85em;margin:4px 0 0">Buyer: {{ row.order.buyer.full_name }} · {{ row.order.get_status_display }}</p>
             {% for d in row.pending %}
-            <form method="post" action="{% url 'trips:release_disbursement' row.order.id %}" enctype="multipart/form-data"
+            {# Cargo releases per leg (leg_release_payout); proxy/refund stay order-level. #}
+            <form method="post" action="{% url d.url_name d.target_id %}" enctype="multipart/form-data"
                   style="border-top:1px solid var(--line);padding-top:12px;margin-top:12px">
               {% csrf_token %}
               <input type="hidden" name="kind" value="{{ d.kind }}">

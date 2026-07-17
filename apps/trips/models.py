@@ -802,6 +802,14 @@ class Order(ListingTimingMixin, models.Model):
         return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.SELECTED]
 
     @property
+    def awaiting_dropoff(self) -> bool:
+        """A confirmed leg still hasn't been handed to its carrier (a leg gets a
+        leg_status only at drop-off). Keeps the Drop-Off Address card open while
+        the buyer still needs the address, and folds it away afterwards."""
+        legs = self.confirmed_legs
+        return bool(legs) and any(not leg.leg_status for leg in legs)
+
+    @property
     def cargo_awaiting_deposit(self) -> bool:
         """Cargo order with a confirmed leg whose deposit hasn't cleared yet.
 
@@ -831,6 +839,22 @@ class Order(ListingTimingMixin, models.Model):
         if hasattr(self, "transaction"):
             return list(self.transaction.payments.all())
         return []
+
+    @property
+    def buyer_deposit_proof_url(self) -> str:
+        """First-deposit proof link for the buyer's Payments card. Mirrors
+        buyer_payments: cargo settles per leg, proxy at order level."""
+        if self.is_cargo:
+            return next((leg.deposit_proof_url for leg in self.confirmed_legs if leg.deposit_proof_url), "")
+        return self.deposit_proof_url
+
+    @property
+    def buyer_balance_proof_url(self) -> str:
+        """Second-deposit proof link for the buyer's Payments card. See
+        buyer_deposit_proof_url."""
+        if self.is_cargo:
+            return next((leg.balance_proof_url for leg in self.confirmed_legs if leg.balance_proof_url), "")
+        return self.balance_proof_url
 
     @property
     def pending_offers(self) -> list:
@@ -1618,6 +1642,34 @@ class Order(ListingTimingMixin, models.Model):
         }
 
     @property
+    def reship_transfer_proof(self):
+        """The buyer's reshipment transfer proof, whichever flow holds it — cargo
+        keeps it on the leg. The Notes branch on this to tell "please pay" from
+        "proof sent", so reading the order-level field alone strands cargo on the
+        pre-payment note forever."""
+        if self.is_cargo:
+            return next((l.reshipment_proof for l in self.confirmed_legs if l.reshipment_proof), None)
+        return self.reshipment_proof or None
+
+    # --- Shared Reshipment-tab contract ---------------------------------------
+    # _reship_tab.html renders for a proxy Order and for a cargo leg. Both expose
+    # reship_status / reship_carrier so the card reads one name, not two.
+    @property
+    def reship_status(self) -> str:
+        return self.status
+
+    @property
+    def reship_carrier(self):
+        return self.proxy_traveler
+
+    @property
+    def reship_receiver_details(self) -> str:
+        """Cargo ships to a named receiver, not to the buyer — so the reship card
+        addresses the receiver (same person as on the customs invoice). Empty on
+        proxy orders, where the buyer IS the receiver."""
+        return self.receiver_details if self.is_cargo else ""
+
+    @property
     def invoice_unpaid_overpaid(self) -> Decimal:
         """Invoice statement line: actual Total Invoice − Deposit Paid.
         Positive = buyer still owes, negative = overpaid.
@@ -1931,6 +1983,28 @@ class TravelerOffer(models.Model):
         return ((self.allocated_weight_kg or Decimal("0")) * self.ask_cost_per_kg).quantize(TWO_PLACES)
 
     @property
+    def final_weight_kg(self) -> Decimal:
+        """The weight the bill settles on: measured on arrival, else allocated."""
+        if self.agreed_weight_kg is not None:
+            return self.agreed_weight_kg
+        return self.allocated_weight_kg or Decimal("0")
+
+    @property
+    def final_shipment_cost(self) -> Decimal:
+        """Carry fee at final weight — shipment_cost_due once the weight is
+        measured, i.e. shipment_cost_due + weight_delta."""
+        return (self.final_weight_kg * self.ask_cost_per_kg).quantize(TWO_PLACES)
+
+    @property
+    def buyer_total_due(self) -> Decimal:
+        """The buyer's whole bill for this leg: carry fee at final weight, their
+        platform fee, and the customs duty they reimburse. Equals deposit_due
+        until the carrier records a final weight or duty."""
+        return (
+            self.final_shipment_cost + self.buyer_platform_fee + self.custom_fare_in_order_currency
+        ).quantize(TWO_PLACES)
+
+    @property
     def buyer_platform_fee(self) -> Decimal:
         """Cargo only: goProxyBuy's fee charged to the BUYER, on top of the carry
         fee — per the Cargo Buyer payment terms ("Total of Shipment Cost … and
@@ -2031,8 +2105,7 @@ class TravelerOffer(models.Model):
     def weight_delta(self) -> Decimal:
         """(final measured weight − allocated) × accepted ask rate. Positive =
         buyer owes a balance; negative = buyer overpaid (refund due)."""
-        final = self.agreed_weight_kg if self.agreed_weight_kg is not None else (self.allocated_weight_kg or Decimal("0"))
-        delta_kg = final - (self.allocated_weight_kg or Decimal("0"))
+        delta_kg = self.final_weight_kg - (self.allocated_weight_kg or Decimal("0"))
         return (delta_kg * self.ask_cost_per_kg).quantize(TWO_PLACES)
 
     @property
@@ -2128,6 +2201,47 @@ class TravelerOffer(models.Model):
         payout is eligible for the admin to release — not necessarily paid yet."""
         return self.leg_status in {LegStatus.CLEAR, LegStatus.CLOSED}
 
+    def record_payout_payment(self, by_user, proof=None):
+        """Append an OUTBOUND PAYOUT row for a released carrier payout — the leg
+        mirror of Order.record_disbursement_payment. kind=PAYOUT never affects
+        the buyer-balance properties, which sum INBOUND (or OUTBOUND+REFUND).
+        The transfer proof lives on the payment, like the deposit/balance ones.
+        Returns the LegPayment, or None if there is nothing to pay."""
+        if not hasattr(self, "transaction"):
+            return None
+        amount = self.transaction.payout_to_traveler
+        if not amount or amount <= 0:
+            return None
+        return LegPayment.objects.create(
+            transaction=self.transaction,
+            direction=LegPayment.Direction.OUTBOUND,
+            kind=LegPayment.Kind.PAYOUT,
+            method=LegPayment.Method.MANUAL,
+            currency=self.order.currency,
+            amount=amount,
+            status=LegPayment.PaymentStatus.VERIFIED,
+            verified_by=by_user,
+            verified_at=timezone.now(),
+            proof=proof,
+            note="Carrier payout",
+        )
+
+    @property
+    def payout_proof_url(self) -> str:
+        """Transfer proof of the released payout, if any."""
+        if not hasattr(self, "transaction"):
+            return ""
+        p = (
+            self.transaction.payments.filter(
+                direction=LegPayment.Direction.OUTBOUND,
+                kind=LegPayment.Kind.PAYOUT,
+            )
+            .exclude(proof="")
+            .order_by("-id")
+            .first()
+        )
+        return p.proof.url if p and p.proof else ""
+
     @property
     def balance_paid_amount(self) -> Decimal:
         if not hasattr(self, "transaction"):
@@ -2158,6 +2272,45 @@ class TravelerOffer(models.Model):
         if self.refund_due > 0:
             return self.total_refunded >= self.refund_due
         return True
+
+    # --- Shared Reshipment-tab contract ---------------------------------------
+    # Cargo reships per leg, so _reship_tab.html gets the leg as `ro`. These give
+    # it the same names Order exposes (see Order.reship_status). The buyer's
+    # preferred courier stays order-level — one buyer, one courier choice.
+    @property
+    def reship_status(self) -> str:
+        return self.leg_status
+
+    @property
+    def reship_carrier(self):
+        return self.traveler
+
+    @property
+    def reship_receiver_details(self) -> str:
+        return self.order.reship_receiver_details
+
+    @property
+    def buyer(self):
+        return self.order.buyer
+
+    @property
+    def preferred_courier(self) -> str:
+        return self.order.preferred_courier
+
+    @property
+    def is_reship_flow(self) -> bool:
+        """This leg is in the reship phase — gates the leg's Reshipment tab."""
+        return self.fulfillment_method == FulfillmentMethod.RESHIP and self.leg_status in {
+            LegStatus.RESHIP_REQUESTED, LegStatus.RESHIP_COST_SENT, LegStatus.RESHIPPING,
+            LegStatus.CLEAR, LegStatus.CLOSED,
+        }
+
+    @property
+    def second_deposit_due(self) -> bool:
+        """The buyer owes a second deposit (weight-delta and/or customs duty) and
+        hasn't cleared it. Gates the Pay Second Deposit card, and holds back the
+        Pickup/Reship choice until it's paid."""
+        return self.extra_due > 0 and not self.balance_settled
 
     @property
     def balance_pending(self) -> bool:
@@ -2289,9 +2442,7 @@ class LegTransaction(models.Model):
     @property
     def gross_amount(self) -> Decimal:
         """Total amount earned by the carrier for this leg, based on final weight."""
-        leg = self.leg
-        weight = leg.agreed_weight_kg if leg.agreed_weight_kg is not None else leg.allocated_weight_kg
-        return ((weight or Decimal("0")) * leg.ask_cost_per_kg).quantize(TWO_PLACES)
+        return self.leg.final_shipment_cost
 
     @property
     def commission_amount(self) -> Decimal:
@@ -2331,7 +2482,7 @@ class LegPayment(models.Model):
     # so a leg deposit must not read differently from a proxy one.
     class Kind(models.TextChoices):
         DEPOSIT = "deposit", "Buyer's First Deposit"
-        BALANCE = "balance", "Weight-delta balance"
+        BALANCE = "balance", "Buyer's Second Deposit"
         PAYOUT = "payout", "Payout to carrier"
         REFUND = "refund", "Refund"
 

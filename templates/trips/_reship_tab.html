@@ -1,12 +1,19 @@
 {% load humanize money %}
 {% comment %}
-Reshipment tab — shown only when the buyer chose reshipment and the order is in
-the reship phase (Order.is_reship_flow). Rendered right below the Notes card.
+Reshipment tab — shown only when the buyer chose reshipment and the order/leg is
+in the reship phase (is_reship_flow). Rendered right below the Notes card.
 Context:
-  ro               – the Order.
+  ro               – the Order (proxy) or the leg/TravelerOffer (cargo). Both
+                     expose reship_status / reship_carrier / buyer /
+                     preferred_courier / reshipment_* / awb_* — see
+                     Order.reship_status.
   reship_is_buyer  – True = buyer view, False = carrier view.
-All actions reuse the existing reship endpoints; bank details come from the
-carrier's Credentials profile (traveler_bank_details), not per-order.
+  courier_id       – Order id: the preferred courier is always order-level.
+  cost_url / proof_url / ship_url / clear_url
+                   – endpoint names for this flow (request_* for proxy,
+                     leg_* for cargo), each taking ro.id.
+Bank details come from the carrier's Credentials profile (traveler_bank_details),
+not per-order.
 {% endcomment %}
 <details class="card fold notes-fold mt-2" open>
   <summary><h3>Reshipment</h3></summary>
@@ -15,9 +22,9 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
   {% if reship_is_buyer %}
     {# ---------------- BUYER ---------------- #}
     <div class="form-field">
-      <label>Carrier Bank Account</label>
-      {% if ro.proxy_traveler.traveler_bank_details %}
-      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0;color:var(--muted);white-space:pre-wrap">{{ ro.proxy_traveler.traveler_bank_details }}</blockquote>
+      <label>Traveler's Bank Account</label>
+      {% if ro.reship_carrier.traveler_bank_details %}
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0;color:var(--muted);white-space:pre-wrap">{{ ro.reship_carrier.traveler_bank_details }}</blockquote>
       {% else %}
       <div class="static-field muted">The Carrier hasn't set their bank details yet.</div>
       {% endif %}
@@ -29,26 +36,26 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
     <p class="muted" style="margin-top:12px">Waiting for the Carrier to send the reshipment cost.</p>
     {% endif %}
 
-    <form method="post" action="{% url 'trips:request_set_courier' ro.id %}" style="margin-top:16px">
+    <form method="post" action="{% url 'trips:request_set_courier' courier_id %}" style="margin-top:16px">
       {% csrf_token %}
       <div class="form-field">
         <label>Preferred Courier</label>
         <input type="text" name="preferred_courier" value="{{ ro.preferred_courier }}"
-               {% if ro.status == "reshipping" or ro.status == "clear" or ro.status == "closed" %}disabled{% endif %}>
+               {% if ro.reship_status == "reshipping" or ro.reship_status == "clear" or ro.reship_status == "closed" %}disabled{% endif %}>
         <p class="help">Please fill in Courier Name and Type (e.g.: regular, express, etc).</p>
       </div>
-      {% if ro.status == "reship_requested" or ro.status == "reship_cost_sent" %}
+      {% if ro.reship_status == "reship_requested" or ro.reship_status == "reship_cost_sent" %}
       <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Save Preferred Courier</button></div>
       {% endif %}
     </form>
 
-    {% if ro.reshipment_proof or ro.status == "reship_cost_sent" %}
+    {% if ro.reshipment_proof or ro.reship_status == "reship_cost_sent" %}
     <div class="form-field" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
       <label>Upload Transfer Proof</label>
       {% if ro.reshipment_proof %}
       <div style="text-align:center"><a href="{{ ro.reshipment_proof.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Transfer Proof</a></div>
       {% else %}
-      <form method="post" action="{% url 'trips:request_reship_proof' ro.id %}" enctype="multipart/form-data">
+      <form method="post" action="{% url proof_url ro.id %}" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="file" name="reshipment_proof" accept="image/png,image/jpeg" required>
         <div style="text-align:center;margin-top:10px"><button class="btn btn-primary btn-sm" type="submit">Upload Transfer Proof</button></div>
@@ -57,29 +64,46 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
     </div>
     {% endif %}
 
-    {% if ro.awb_document %}
+    {% if ro.awb_document or ro.awb_number %}
     <div class="form-field" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
       <label>AWB</label>
-      <div style="text-align:center"><a href="{{ ro.awb_document.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View AWB</a></div>
+      {% if ro.awb_number %}<div class="static-field">{{ ro.awb_number }}</div>{% endif %}
+      {% if ro.awb_document %}<div style="text-align:center{% if ro.awb_number %};margin-top:8px{% endif %}"><a href="{{ ro.awb_document.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View AWB</a></div>{% endif %}
     </div>
+    {% endif %}
+
+    {# Package is on its way — the buyer closes the leg out. #}
+    {% if ro.reship_status == "reshipping" %}
+    <form method="post" action="{% url clear_url ro.id %}" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px;text-align:center">
+      {% csrf_token %}
+      <button class="btn btn-primary" type="submit">Confirm Received</button>
+    </form>
     {% endif %}
 
   {% else %}
     {# ---------------- CARRIER ---------------- #}
+    {# Cargo ships to a named receiver (same one on the customs invoice); proxy ships to the buyer. #}
+    {% if ro.reship_receiver_details %}
+    <div class="form-field">
+      <label>Receiver Address</label>
+      <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0;color:var(--muted);white-space:pre-wrap">{{ ro.reship_receiver_details }}</blockquote>
+    </div>
+    {% else %}
     <div class="form-field">
       <label>Buyer's Reshipment Address</label>
       <blockquote style="border-left:3px solid var(--border);padding:8px 12px;margin:0;color:var(--muted);white-space:pre-wrap">{{ ro.buyer.full_name }}
 {{ ro.reshipment_address|default:ro.buyer.buyer_invoice_address }}{% if ro.buyer.buyer_destination_city %}
 {{ ro.buyer.buyer_destination_city }}{% endif %}</blockquote>
     </div>
+    {% endif %}
 
     <div class="form-field" style="margin-top:16px">
       <label>Preferred Courier</label>
       <div class="static-field {% if not ro.preferred_courier %}muted{% endif %}">{{ ro.preferred_courier|default:"Not specified yet by the buyer." }}</div>
     </div>
 
-    {% if ro.status == "reship_requested" %}
-    <form method="post" action="{% url 'trips:request_reship_cost' ro.id %}" enctype="multipart/form-data" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+    {% if ro.reship_status == "reship_requested" %}
+    <form method="post" action="{% url cost_url ro.id %}" enctype="multipart/form-data" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
       {% csrf_token %}
       <div class="form-field">
         <label>Reshipment Cost ({{ ro.destination_currency }})</label>
@@ -101,8 +125,8 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
     </div>
     {% endif %}
 
-    {% if ro.status == "reship_cost_sent" %}
-    <form method="post" action="{% url 'trips:request_reship' ro.id %}" enctype="multipart/form-data" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+    {% if ro.reship_status == "reship_cost_sent" %}
+    <form method="post" action="{% url ship_url ro.id %}" enctype="multipart/form-data" style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
       {% csrf_token %}
       <div class="form-field">
         <label>Upload AWB</label>
@@ -110,10 +134,11 @@ carrier's Credentials profile (traveler_bank_details), not per-order.
       </div>
       <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Package Sent</button></div>
     </form>
-    {% elif ro.awb_document %}
+    {% elif ro.awb_document or ro.awb_number %}
     <div class="form-field" style="margin-top:16px">
       <label>AWB</label>
-      <div style="text-align:center"><a href="{{ ro.awb_document.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View AWB</a></div>
+      {% if ro.awb_number %}<div class="static-field">{{ ro.awb_number }}</div>{% endif %}
+      {% if ro.awb_document %}<div style="text-align:center{% if ro.awb_number %};margin-top:8px{% endif %}"><a href="{{ ro.awb_document.url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View AWB</a></div>{% endif %}
     </div>
     {% endif %}
   {% endif %}

@@ -32,6 +32,7 @@ urlpatterns = [
     path("offers/<int:pk>/reship-proof/", views.leg_reship_proof, name="leg_reship_proof"),
     path("offers/<int:pk>/reship-ship/", views.leg_reship_ship, name="leg_reship_ship"),
     path("offers/<int:pk>/clear/", views.leg_clear, name="leg_clear"),
+    path("offers/<int:pk>/release-payout/", views.leg_release_payout, name="leg_release_payout"),
     path("plans/<int:pk>/", views.plan_detail, name="plan_detail"),
     path("plans/<int:plan_id>/order/", views.request_create, name="request_create"),
     path("requests/<int:pk>/edit/", views.request_edit, name="request_edit"),

@@ -1257,6 +1257,9 @@ def leg_custom_fare_proof(request, pk):
         return redirect(detail_url)
     offer.custom_fare_proof = proof
     offer.save(update_fields=["custom_fare_proof", "updated_at"])
+    # Duty settled — move the leg on per the buyer's order-time choice, so the
+    # leg doesn't sit at Package Arrived showing "pay the duty" after it's paid.
+    _honor_leg_delivery_preference(offer)
     messages.success(request, "Customs duty receipt uploaded.")
     return redirect(detail_url)
 
@@ -1389,6 +1392,64 @@ def leg_choose_fulfillment(request, pk):
     return redirect(detail_url)
 
 
+@require_POST
+def leg_release_payout(request, pk):
+    """Staff attaches the transfer proof and releases a CARGO leg's carrier
+    payout. The leg mirror of release_disbursement, which only knows the
+    order-level Transaction that cargo never has."""
+    if not request.user.is_staff:
+        messages.error(request, "Only staff can release disbursements.")
+        return redirect(reverse("accounts:profile"))
+    offer = get_object_or_404(TravelerOffer, pk=pk)
+    back = request.POST.get("next") or request.META.get("HTTP_REFERER") or (
+        reverse("accounts:profile") + f"?offer={offer.id}#offer-detail")
+    proof = request.FILES.get("proof")
+    if not proof:
+        messages.error(request, "Please attach the transfer proof image.")
+        return redirect(back)
+    if not offer.payout_disbursable or offer.payout_paid_at:
+        messages.info(request, "This payout isn't releasable (not cleared yet, or already paid).")
+        return redirect(back)
+
+    offer.payout_paid_at = timezone.now()
+    offer.save(update_fields=["payout_paid_at", "updated_at"])
+    offer.record_payout_payment(request.user, proof=proof)
+    offer.order.recompute_status()
+    try:
+        workflow.notify_leg_payout_released(offer)
+    except Exception:
+        # Money is already released — a mail failure must not hide that.
+        pass
+    messages.success(request, "Carrier payout released — carrier notified by email.")
+    return redirect(back)
+
+
+def _honor_leg_delivery_preference(offer):
+    """Cargo mirror of workflow._honor_pickup_preference: the buyer chose pickup
+    vs reshipment when placing the order, so once the duty receipt is in nobody
+    is asked to choose again. Pickup → Ready-for-Pickup; Reshipment → straight to
+    Reship-Requested (stamping the saved address) so the carrier is prompted for
+    the cost. Orders with no stated preference keep the manual choice.
+    """
+    order = offer.order
+    if offer.fulfillment_method:
+        return
+    if order.delivery_preference == FulfillmentMethod.PICKUP:
+        offer.fulfillment_method = FulfillmentMethod.PICKUP
+        offer.leg_status = LegStatus.READY_FOR_PICKUP
+        offer.save(update_fields=["fulfillment_method", "leg_status", "updated_at"])
+        order.recompute_status()
+    elif order.delivery_preference == FulfillmentMethod.RESHIP:
+        offer.fulfillment_method = FulfillmentMethod.RESHIP
+        offer.reshipment_address = (order.buyer.buyer_invoice_address or "").strip()
+        offer.leg_status = LegStatus.RESHIP_REQUESTED
+        offer.save(update_fields=[
+            "fulfillment_method", "reshipment_address", "leg_status", "updated_at",
+        ])
+        order.recompute_status()
+        _notify_leg_reship_requested(offer)
+
+
 def _notify_leg_reship_requested(offer):
     """Email + WhatsApp the leg's carrier that the buyer requested reshipment.
     Best-effort: a notification failure must not block the state transition."""
@@ -1484,13 +1545,17 @@ def leg_reship_ship(request, pk):
         TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.RESHIP_COST_SENT
     )
     detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
+    # The Reshipment tab sends the AWB as a document (Buy Order format); the
+    # number stays optional for callers that have one.
     awb = request.POST.get("awb_number", "").strip()
-    if not awb:
-        messages.error(request, "Enter an AWB number before submitting.")
+    doc = request.FILES.get("awb_document")
+    if not awb and not doc:
+        messages.error(request, "Attach the AWB document before submitting.")
         return redirect(detail_url)
-    offer.awb_number = awb
-    if request.FILES.get("awb_document"):
-        offer.awb_document = request.FILES["awb_document"]
+    if awb:
+        offer.awb_number = awb
+    if doc:
+        offer.awb_document = doc
     offer.leg_status = LegStatus.RESHIPPING
     offer.save(update_fields=["awb_number", "awb_document", "leg_status", "updated_at"])
     offer.order.recompute_status()

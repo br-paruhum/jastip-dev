@@ -131,10 +131,10 @@ Context expected (Django include passes the parent context through):
       {% else %}
       {# #Step-10A.1T-Traveler #}
       <p>Please wait for Buyer to send his/her Preferred Courier data before you send Reshipment cost.</p>
-      <span style="display: block; text-align: right;">[10.1A-0T]</span>
+      <span style="display: block; text-align: right;">[10A-0T]</span>
       {% endif %}
       {% elif leg_offer.order.status == "reship_cost_sent" %}
-      {% if leg_offer.order.reshipment_proof %}
+      {% if leg_offer.order.reship_transfer_proof %}
       {# #Step-13A.0T-Traveler #}
       <p>Transfer Proof received. Please send the package, upload AWB and select "Package Sent".</p>
 	  <span style="display: block; text-align: right;">[13A-0T]</span>
@@ -155,10 +155,11 @@ Context expected (Django include passes the parent context through):
       {% elif leg_offer.order.delivery_preference == "reship" %}
       {# #Step-15A.1T-Traveler #}
       <p>Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
+	  <span style="display: block; text-align: right;">[15A-1T]</span>
       {% else %}
       {# #Step-15A.2T-Traveler #}
       <p>Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
-	  <span style="display: block; text-align: right;">[15A-2T]</span>      
+	  <span style="display: block; text-align: right;">[15A-2T]</span>
       {% endif %}
       {% elif leg_offer.order.status == "closed" %}
       <p><span class="badge badge-success">Closed</span> Complete. Thank you!</p>
@@ -208,25 +209,46 @@ Context expected (Django include passes the parent context through):
       <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the receipt.</p>
       <span style="display: block; text-align: right;">[8A-2T]</span>
       {% endif %}
+    {# Reship: prose only — cost/AWB/Package Sent live on the Reshipment card. #}
     {% elif leg_offer.leg_status == "reship_requested" %}
-      <p class="help" style="margin:0 0 10px">The buyer wants this reshipped. Send the reship cost and your bank details.</p>
-      <form method="post" action="{% url 'trips:leg_reship_cost' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:280px">
-        {% csrf_token %}
-        <input type="number" step="0.01" min="0.01" name="reshipment_cost_amount" placeholder="Cost" required>
-        <input type="text" name="reshipment_bank_name" placeholder="Bank name" required>
-        <input type="text" name="reshipment_bank_account_no" placeholder="Account no." required>
-        <input type="text" name="reshipment_bank_account_name" placeholder="Account name" required>
-        <input type="file" name="reshipment_cost_proof" accept="image/png,image/jpeg">
-        <button class="btn btn-primary btn-sm" type="submit">Send Cost</button>
-      </form>
+      {% if leg_offer.order.preferred_courier %}
+      {# #Step-11A.0T-Traveler #}
+      <p>Fill in Reshipment Cost using Buyer's prefered courier.</p>
+      <span style="display: block; text-align: right;">[11A-0T]</span>
+      {% else %}
+      {# #Step-10A.0T-Traveler #}
+      <p>Please wait for Buyer to send his/her Preferred Courier data before you send Reshipment cost.</p>
+      <span style="display: block; text-align: right;">[10A-0T]</span>
+      {% endif %}
     {% elif leg_offer.leg_status == "reship_cost_sent" %}
-      <p class="help" style="margin:0 0 10px">Once the buyer has paid the reship cost, enter the AWB and mark it shipped.</p>
-      <form method="post" action="{% url 'trips:leg_reship_ship' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:280px">
-        {% csrf_token %}
-        <input type="text" name="awb_number" placeholder="AWB number" required>
-        <input type="file" name="awb_document">
-        <button class="btn btn-primary btn-sm" type="submit">Mark Shipped</button>
-      </form>
+      {% if leg_offer.reshipment_proof %}
+      {# #Step-13A.0T-Traveler #}
+      <p>Transfer Proof received. Please send the package, upload AWB and select "Package Sent".</p>
+      <span style="display: block; text-align: right;">[13A-0T]</span>
+      {% else %}
+      {# #Step-12A.0T-Traveler #}
+      <p>Reshipment Cost sent. Wait for Buyer's transfer proof.</p>
+      <span style="display: block; text-align: right;">[12A-0T]</span>
+      {% endif %}
+    {% elif leg_offer.leg_status == "reshipping" %}
+    {# #Step-14A.0T-Traveler #}
+      <p>Package sent. Wating for receive confirmation from Buyer.</p>
+      <span style="display: block; text-align: right;">[14A-0T]</span>
+    {# Cargo's payout is per leg (payout_paid_at); order.traveler_paid_at is the proxy flow's and stays null here. #}
+    {% elif leg_offer.leg_status == "clear" or leg_offer.leg_status == "closed" %}
+      {% if leg_offer.payout_paid_at %}
+      {# #Step-16A.0T-Traveler #}
+      <p><span class="badge badge-success">Transaction Completed</span><br>Your payout has been processed on {{ leg_offer.payout_paid_at|date:"d M Y, H:i" }}.<br>Thank you for doing business with {{ SITE_NAME }}.</p>
+      <span style="display: block; text-align: right;">[16A-0T]</span>
+      {% elif leg_offer.order.delivery_preference == "reship" %}
+      {# #Step-15A.1T-Traveler #}
+      <p>Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
+      <span style="display: block; text-align: right;">[15A-1T]</span>
+      {% else %}
+      {# #Step-15A.2T-Traveler #}
+      <p>Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
+      <span style="display: block; text-align: right;">[15A-2T]</span>
+      {% endif %}
     {% else %}
       <p class="muted">{{ leg_offer.get_leg_status_display }}</p>
     {% endif %}
@@ -254,6 +276,47 @@ Context expected (Django include passes the parent context through):
         {# #Step-8A.2B-Buyer — the amount + Submit Proof live in the card below. #}
         <p>Your package has arrived and the traveler has sent the customs duty amount. Please pay the second deposit.</p>
         <span style="display: block; text-align: right;">[8A-2B]</span>
+        {% endif %}
+      {% elif leg.leg_status == "reship_requested" %}
+        {% if o.preferred_courier %}
+        {# #Step-11A.0B-Buyer #}
+        <p class="muted">Prefered courier sent. Wait for Reshipment Cost.</p>
+        <span style="display: block; text-align: right;">[11A-0B]</span>
+        {% else %}
+        {# #Step-10A.0B-Buyer — the courier field lives on the Reshipment card. #}
+        <p>Customs Duty paid. Please fill in your prefered courier name and type (regular, express, etc).</p>
+        <span style="display: block; text-align: right;">[10A-0B]</span>
+        {% endif %}
+      {% elif leg.leg_status == "reship_cost_sent" %}
+        {% if leg.reshipment_proof %}
+        {# #Step-13A.0B-Buyer #}
+        <p class="muted">Transfer Proof sent. Wait for Airway Bill.</p>
+        <span style="display: block; text-align: right;">[13A-0B]</span>
+        {% else %}
+        {# #Step-12A.0B-Buyer — the amount + Upload Transfer Proof live on the Reshipment card. #}
+        <p>Reshipment cost received please pay and upload the transfer proof.</p>
+        <span style="display: block; text-align: right;">[12A-0B]</span>
+        {% endif %}
+      {% elif leg.leg_status == "reshipping" %}
+      {# #Step-14A.0B-Buyer — Confirm Received lives on the Reshipment card. #}
+      <p>Package sent. Waiting for the package.</p>
+      <span style="display: block; text-align: right;">[14A-0B]</span>
+      {% elif leg.leg_status == "clear" or leg.leg_status == "closed" %}
+        {# Step 16 closes it — cargo's payout is per leg (payout_paid_at), not order.traveler_paid_at. #}
+        {% if leg.payout_paid_at %}
+        {# #Step-16A.0B-Buyer — no proxy buyer in cargo, so only the traveler's payout. #}
+        <p><span class="badge badge-success">Transaction Completed</span><br>
+        The traveler's payout has been disbursed on {{ leg.payout_paid_at|date:"d M Y, H:i" }}.<br>
+        Thank you for doing business with {{ SITE_NAME }}.</p>
+        <span style="display: block; text-align: right;">[16A-0B]</span>
+        {% elif o.delivery_preference == "reship" %}
+        {# #Step-15A.1B-Buyer #}
+        <p>You confirmed have reviewed and received the package{% if leg.cleared_at %} on {{ leg.cleared_at|date:"d M Y, H:i" }}{% endif %}.</p>
+        <span style="display: block; text-align: right;">[15A-1B]</span>
+        {% else %}
+        {# #Step-15A.2B-Buyer #}
+        <p>You have reviewed and received the package{% if leg.cleared_at %} on {{ leg.cleared_at|date:"d M Y, H:i" }}{% endif %}.</p>
+        <span style="display: block; text-align: right;">[15A-2B]</span>
         {% endif %}
       {% elif leg.leg_status %}
       {# #Step-7A.0B-Buyer — carrier has the goods; the deposit steps are behind us. #}
@@ -392,9 +455,9 @@ Context expected (Django include passes the parent context through):
         <p class="muted">Prefered courier sent. Wait for Reshipment Cost.</p>
 		<span style="display: block; text-align: right;">[11A-0B]</span>
         {% else %}
-        {# #Step-10.1A.0B-Buyer #}
+        {# #Step-10A.0B-Buyer #}
         <p>Customs Duty paid. Please fill in your prefered courier name and type (regular, express, etc.).</p>
-        <span style="display: block; text-align: right;">[10.1A-0B]</span>
+        <span style="display: block; text-align: right;">[10A-0B]</span>
         {% endif %}
       {% else %}
       {# #Step-10.1A.0P-Proxy #Step-11-Proxy #}
@@ -403,7 +466,7 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif o.status == "reship_cost_sent" %}
       {% if is_order_buyer %}
-        {% if o.reshipment_proof %}
+        {% if o.reship_transfer_proof %}
         {# #Step-13A.0B-Buyer #}
         <p class="muted">Transfer Proof sent. Wait for Airway Bill.</p>
         <span style="display: block; text-align: right;">[13A-0B]</span>
@@ -421,8 +484,11 @@ Context expected (Django include passes the parent context through):
       {% if is_order_buyer %}
       {# #Step-14A.0B-Buyer #}
       <p>Package sent. Waiting for the package.</p>
-	  <span style="display: block; text-align: right;">[14A-0B]</span>	
+	  <span style="display: block; text-align: right;">[14A-0B]</span>
+      {# Cargo confirms on the Reshipment card (leg_clear) — request_clear is order-level and would reject a cargo leg. #}
+      {% if not o.is_cargo %}
       <form method="post" action="{% url 'trips:request_clear' o.id %}" style="text-align:center">{% csrf_token %}<button class="btn btn-primary" type="submit">Confirm Received</button></form>
+      {% endif %}
       {% else %}
       {# #Step-14A.0P-Proxy #}
       <p class="muted">Package sent by the traveler. Your payout will be disbursed after Buyer receive the package.</p>

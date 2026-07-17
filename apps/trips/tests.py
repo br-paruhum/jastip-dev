@@ -15,7 +15,15 @@ _NO_MANIFEST_STORAGES = {
 
 from apps.trips import workflow
 from apps.trips.constants import Currency, OfferStatus, Status
-from apps.trips.models import Order, Payment, RequestItem, TravelPlan, Transaction
+from apps.trips.models import (
+    LegTransaction,
+    Order,
+    Payment,
+    RequestItem,
+    TravelPlan,
+    Transaction,
+    TravelerOffer,
+)
 
 User = get_user_model()
 
@@ -1596,3 +1604,85 @@ class CarrierRateChangeTests(TestCase):
         )
         self.assertIn("your approval needed", buyer_html)
         self.assertIn("Approve new rate", buyer_html)
+
+
+class CargoSecondDepositMathTests(TestCase):
+    """The buyer's Order Details table and the carrier's payout are two views of
+    the same leg, so they must foot against each other and against the split
+    between first and second deposit."""
+
+    def _leg(self, agreed="3.1", duty="1335909"):
+        order = Order(settlement_currency="IDR", bid_weight_kg=Decimal("2.5"), cargo_only=True)
+        return TravelerOffer(
+            order=order,
+            allocated_weight_kg=Decimal("2.5"),
+            agreed_weight_kg=Decimal(agreed) if agreed else None,
+            ask_cost_per_kg=Decimal("295000"),
+            custom_fare_amount=Decimal(duty) if duty else None,
+            custom_fare_currency="IDR",
+        )
+
+    def test_buyer_table_foots(self):
+        leg = self._leg()
+        self.assertEqual(leg.final_weight_kg, Decimal("3.1"))
+        self.assertEqual(leg.final_shipment_cost, Decimal("914500.00"))
+        # 2.5% of 914,500 is under the IDR floor, so the floor wins.
+        self.assertEqual(leg.buyer_platform_fee, Decimal("50000.00"))
+        self.assertEqual(leg.deposit_due, Decimal("787500.00"))
+        self.assertEqual(leg.buyer_total_due, Decimal("2300409.00"))
+        self.assertEqual(leg.extra_due, Decimal("1512909.00"))
+        self.assertEqual(leg.buyer_total_due - leg.deposit_due, leg.extra_due)
+
+    def test_carrier_payout(self):
+        leg = self._leg()
+        txn = LegTransaction(leg=leg, commission_percent=Decimal("2.5"))
+        self.assertEqual(txn.gross_amount, Decimal("914500.00"))
+        self.assertEqual(txn.commission_amount, Decimal("50000.00"))
+        # Duty is reimbursed whole — no commission taken on it.
+        self.assertEqual(txn.payout_to_traveler, Decimal("2200409.00"))
+
+    def test_no_final_weight_yet_bills_the_allocated_deposit(self):
+        leg = self._leg(agreed=None, duty=None)
+        self.assertEqual(leg.buyer_total_due, leg.deposit_due)
+        self.assertFalse(leg.second_deposit_due)
+
+    def test_lighter_package_refunds_instead(self):
+        leg = self._leg(agreed="2.0", duty=None)
+        self.assertEqual(leg.extra_due, Decimal("0.00"))
+        self.assertEqual(leg.refund_due, Decimal("147500.00"))
+        self.assertFalse(leg.second_deposit_due)
+
+
+class CargoSecondDepositCardTests(TestCase):
+    """The Pay Second Deposit card must hand over to the Payments card the moment
+    the buyer submits proof — the same way Pay First Deposit does."""
+
+    def _render(self, order):
+        from django.template.loader import render_to_string
+        return render_to_string(
+            "trips/_order_detail_body.html",
+            {"bf_order": order, "is_order_buyer": True, "is_order_proxy": False},
+        )
+
+    def test_card_gate_follows_second_deposit_due_and_not_pending(self):
+        # The template gate is `second_deposit_due and not balance_pending`;
+        # assert the property pair it rests on, so the card can't linger.
+        order = Order(settlement_currency="IDR", bid_weight_kg=Decimal("2.5"), cargo_only=True)
+        leg = TravelerOffer(
+            order=order,
+            allocated_weight_kg=Decimal("2.5"),
+            agreed_weight_kg=Decimal("3.1"),
+            ask_cost_per_kg=Decimal("295000"),
+            custom_fare_amount=Decimal("1335909"),
+            custom_fare_currency="IDR",
+        )
+        self.assertTrue(leg.second_deposit_due)
+        # No transaction yet => nothing submitted => card shows.
+        self.assertFalse(leg.balance_pending)
+
+    def test_legacy_proxy_second_deposit_card_is_gone(self):
+        # Only the cargo card may define this heading now.
+        with open("templates/trips/_order_detail_body.html") as fh:
+            body = fh.read()
+        self.assertEqual(body.count("<h3>Pay Second Deposit</h3>"), 1)
+        self.assertNotIn("request_pay", body)

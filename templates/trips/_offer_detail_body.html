@@ -93,9 +93,13 @@
 </details>
 {% endif %}
 
-{# Reshipment tab — carrier view, when the buyer chose reshipment. #}
-{% if leg_offer.order.is_reship_flow %}
-{% include "trips/_reship_tab.html" with ro=leg_offer.order reship_is_buyer=False %}
+{# Reshipment tab — carrier view. Cargo reships per leg; proxy stays order-level. #}
+{% if leg_offer.order.is_cargo %}
+  {% if leg_offer.is_reship_flow %}
+  {% include "trips/_reship_tab.html" with ro=leg_offer reship_is_buyer=False cost_url="trips:leg_reship_cost" ship_url="trips:leg_reship_ship" %}
+  {% endif %}
+{% elif leg_offer.order.is_reship_flow %}
+  {% include "trips/_reship_tab.html" with ro=leg_offer.order reship_is_buyer=False cost_url="trips:request_reship_cost" ship_url="trips:request_reship" %}
 {% endif %}
 
 {% if leg_offer.order.is_cargo %}
@@ -228,21 +232,29 @@
 <details class="card fold mt-2" open>
   <summary><h3>Your Payout</h3></summary>
   <div class="fold-body">
-  <table class="invoice" style="max-width:440px">
-    {# Carry fee, not deposit_due: the buyer's deposit also carries their own platform fee, which is not the carrier's to earn. #}
-    <tr><td>Deposit (allocated {{ leg_offer.allocated_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.shipment_cost_due|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr><td>Weight adjustment</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.weight_delta|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr><td>Customs duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr class="total"><td>Total</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.subtotal_before_fee|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr><td>Platform fee (2.5% of carrying fee)</td><td class="num-right">− {{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|by_currency:leg_offer.order.currency }}</td></tr>
-    <tr class="total"><td>Balance due to you</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
-    <tr><td>Status</td><td class="num-right">
-      {% if leg_offer.payout_paid_at %}<span class="badge badge-success">Paid {{ leg_offer.payout_paid_at|date:"d M Y" }}</span>
-      {% elif leg_offer.payout_disbursable %}<span class="badge badge-warning">Ready for Disbursement</span>
-      {% else %}<span class="badge badge-muted">Awaiting pickup confirmation</span>{% endif %}
-    </td></tr>
+  <table class="invoice">
+    {# Carry fee at final weight (transaction.gross_amount), not deposit_due: the buyer's deposit also carries their own platform fee, which is not the carrier's to earn. #}
+    <tr><td>Shipment cost ({{ leg_offer.final_weight_kg|floatformat:1 }} kg)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.final_shipment_cost|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr><td>{{ COMMISSION_PERCENT }}% Platform Fee (as a carrier)</td><td class="num-right">({{ leg_offer.order.currency }} {{ leg_offer.transaction.commission_amount|by_currency:leg_offer.order.currency }})</td></tr>
+    <tr><td>Custom Duty (reimbursed)</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.custom_fare_in_order_currency|by_currency:leg_offer.order.currency }}</td></tr>
+    <tr class="total"><td>Total Due to You</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.transaction.payout_to_traveler|by_currency:leg_offer.order.currency }}{% if leg_offer.transaction.payout_to_traveler_idr %}<br><span class="muted" style="font-weight:400">≈ IDR {{ leg_offer.transaction.payout_to_traveler_idr|floatformat:0|intcomma }}</span>{% endif %}</td></tr>
   </table>
-  <p class="help mt-2">The platform will transfer this amount to you (manually) once the buyer confirms pickup or receipt.</p>
+  {# The duty receipt this carrier uploaded — backs the reimbursed row above. #}
+  <div style="text-align:center;margin-top:14px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    {% if leg_offer.custom_fare_proof_url %}<a href="{{ leg_offer.custom_fare_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Custom Duty</a>{% endif %}
+    {% if leg_offer.payout_proof_url %}<a href="{{ leg_offer.payout_proof_url }}" target="_blank" class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)">View Transfer Proof</a>{% endif %}
+  </div>
+  {# Staff-only release — cargo settles per leg, so this is the leg's own endpoint. #}
+  {% if user.is_staff and leg_offer.payout_disbursable and not leg_offer.payout_paid_at %}
+  <form method="post" action="{% url 'trips:leg_release_payout' leg_offer.id %}" enctype="multipart/form-data" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+    {% csrf_token %}
+    <label class="help">Admin — release payout: attach transfer proof</label>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+      <input type="file" name="proof" accept="image/png,image/jpeg" required>
+      <button class="btn btn-primary btn-sm" type="submit">Upload &amp; release</button>
+    </div>
+  </form>
+  {% endif %}
   </div>
 </details>
 {% endif %}
