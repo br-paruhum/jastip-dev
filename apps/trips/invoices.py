@@ -48,19 +48,33 @@ def _party_block(name, *lines) -> str:
 
 
 def _customs_parties(req):
-    """Shipper (proxy buyer) and receiver (buyer) blocks shared by the customs
-    invoice and the box label so they render identically. Shipper address prints
-    one line per row of the proxy's credentials; its country comes from the admin
-    Proxy Buyers list. Phones carry the country code with the leading "+" removed
-    (shipment company requirement)."""
-    proxy = req.proxy_buyer
-    proxy_country = getattr(proxy, "country", "") if proxy else ""
-    proxy_user = getattr(proxy, "user", None)
-    proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
-    proxy_addr_lines = [ln for ln in (proxy_addr or "").splitlines() if ln.strip()]
-    proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
-    proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
-    shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
+    """Shipper and receiver (buyer) blocks shared by the customs invoice and the
+    box label so they render identically. Shipper address prints one line per row
+    of the credentials; its country comes from the admin Proxy Buyers list.
+    Phones carry the country code with the leading "+" removed (shipment company
+    requirement).
+
+    Cargo orders have no Proxy Buyer to source the goods — the buyer already owns
+    them and hands them over themselves — so the BUYER is the shipper, from the
+    order's origin country.
+    """
+    if req.is_cargo:
+        buyer_addr_lines = [
+            ln for ln in (req.buyer.buyer_invoice_address or "").splitlines() if ln.strip()
+        ]
+        shipper = _party_block(
+            req.buyer.full_name, *buyer_addr_lines,
+            req.from_country, req.buyer.phone_e164.lstrip("+"),
+        )
+    else:
+        proxy = req.proxy_buyer
+        proxy_country = getattr(proxy, "country", "") if proxy else ""
+        proxy_user = getattr(proxy, "user", None)
+        proxy_addr = getattr(proxy_user, "buyer_invoice_address", "") if proxy_user else ""
+        proxy_addr_lines = [ln for ln in (proxy_addr or "").splitlines() if ln.strip()]
+        proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
+        proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
+        shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
     receiver = _party_block(
         req.buyer.full_name, req.buyer.buyer_invoice_address,
         req.buyer.buyer_destination_city, req.destination_country,

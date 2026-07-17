@@ -46,9 +46,12 @@
 {{ req.destination_country }}{% endif %}</div>
     </div>
     <div>
+      {# Cargo has no Proxy Buyer — the buyer owns the goods — so the row would only ever print "—". #}
+      {% if not req.is_cargo %}
       <div class="inv-meta-label">Sourced By (Proxy Buyer)</div>
       <div class="inv-meta-val">{% if req.proxy_buyer %}{{ req.proxy_buyer.name }} — {{ req.proxy_buyer.country }}{% else %}—{% endif %}</div>
-      <div class="inv-meta-label" style="margin-top:10px">Carried By</div>
+      {% endif %}
+      <div class="inv-meta-label"{% if not req.is_cargo %} style="margin-top:10px"{% endif %}>Carried By</div>
       <div class="inv-meta-val">{{ req.traveler_user.full_name|default:"Not yet assigned" }}{% if req.traveler_user.traveler_address %}
 {{ req.traveler_user.traveler_address }}{% endif %}{% if req.traveler_user.traveler_destination_city %}
 {{ req.traveler_user.traveler_destination_city }}{% endif %}</div>

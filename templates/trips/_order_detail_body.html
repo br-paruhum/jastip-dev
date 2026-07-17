@@ -57,6 +57,151 @@
 {% endfor %}
 {% endif %}
 
+{# Drop-Off Address — buyer-only, once the deposit clears (Step 5A.3BC). Only the address: the money lives in Pay First Deposit / Payments, "what happens next" lives in the Notes. #}
+{% if is_order_buyer and bf_order.confirmed_legs and not bf_order.cargo_awaiting_deposit %}
+<div class="card mt-2"><div class="card-body">
+  <div class="card-band-row">Drop-Off Address</div>
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:14px">
+    {% for leg in bf_order.confirmed_legs %}
+    <div>
+      {# pre-wrap keeps the traveler's own line breaks — the field is a 2-row textarea, so the address arrives multi-line. #}
+      {% if leg.address_revealed %}
+        {% if leg.drop_off_address %}<span style="white-space:pre-wrap">{{ leg.drop_off_address }}</span>{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}{% else %}<span class="muted">The carrier gave no drop-off address.</span>{% endif %}
+      {% else %}
+        <span class="muted">Hidden until deposit clears</span>
+      {% endif %}
+    </div>
+
+    {# The LATER leg steps (customs balance, refund bank details, Pickup/Reship, Confirm Received) still live here until each is split into its own card — hidden until the leg actually moves. #}
+    {% if leg.leg_status %}
+    <div style="border-top:1px solid var(--line);padding-top:16px">
+      <div class="eyebrow" style="margin-bottom:8px">Next Step</div>
+      <div>
+          {% if leg.leg_status == "package_dropped_off" %}
+            <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
+          {% elif leg.leg_status == "weight_verified" %}
+            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg|floatformat:1 }} kg) — awaiting carrier confirmation</span>
+          {% elif leg.leg_status == "package_received" %}
+            <span class="badge badge-success">Received by carrier</span>
+          {% elif leg.leg_status == "package_arrived" %}
+            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
+            {% if leg.custom_fare_amount %}
+            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|by_currency:leg.custom_fare_currency }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
+            {% endif %}
+            {% if leg.extra_due > 0 and not leg.balance_settled %}
+              {% if leg.balance_pending %}
+              <p class="muted" style="margin:0 0 6px">Balance proof submitted — pending fund verification.</p>
+              {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
+              {% else %}
+              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+              <table class="invoice" style="max-width:540px;margin:0 0 10px">
+                <tr><td style="width:250px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+                <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+                <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+                <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+              </table>
+              <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">
+                {% csrf_token %}
+                <input type="file" name="proof" accept="image/png,image/jpeg" required>
+                <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
+              </form>
+              {% endif %}
+            {% elif leg.refund_due > 0 and not leg.balance_settled %}
+              <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|by_currency:bf_order.currency }}</p>
+              {% if leg.refund_bank_details %}
+                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
+                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
+              {% else %}
+                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                  {% csrf_token %}
+                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
+                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
+                </form>
+              {% endif %}
+            {% elif not leg.fulfillment_method %}
+              <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the carrier to set
+                the best time to visit. On the visit, verify the package and click <strong>Confirm Pickup</strong>
+                to release the payment.</p>
+              <table class="invoice" style="max-width:400px;margin:0 0 12px">
+                <tr><td style="width:100px">Name</td><td>: {{ leg.traveler.full_name }}</td></tr>
+                {% if leg.traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ leg.traveler.traveler_address }}</span>{% if leg.traveler.traveler_destination_city %}, {{ leg.traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
+                <tr><td>Email</td><td>: {{ leg.traveler.email }}</td></tr>
+                {% if leg.traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ leg.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ leg.traveler.phone_e164 }}</a></td></tr>{% endif %}
+              </table>
+              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}" style="margin:0 0 14px">
+                {% csrf_token %}
+                <input type="hidden" name="fulfillment_method" value="pickup">
+                <button class="btn btn-primary btn-sm" type="submit">Confirm Pickup</button>
+              </form>
+              <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
+              <p style="margin:0 0 6px"><strong>Option 2 — Request Reshipment:</strong> Ship the package to your
+                Reshipment Address (set on your Profile). The carrier will be notified to send the shipping cost.</p>
+              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="fulfillment_method" value="reship">
+                <button class="btn btn-outline btn-sm" type="submit">Request Reshipment</button>
+              </form>
+            {% else %}
+              <span class="badge badge-warning">Settling…</span>
+            {% endif %}
+          {% elif leg.leg_status == "ready_for_pickup" %}
+            <p class="help" style="margin:0 0 4px">Pickup address: {{ leg.pickup_address }}</p>
+            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Confirm Picked Up (Clear)</button>
+            </form>
+          {% elif leg.leg_status == "reship_requested" %}
+            <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
+          {% elif leg.leg_status == "reship_cost_sent" %}
+            <p class="help" style="margin:0 0 4px">
+              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|by_currency:bf_order.destination_currency }} —
+              {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
+            </p>
+            {% if leg.reshipment_proof %}
+              <span class="badge badge-success">Proof uploaded</span>
+            {% else %}
+              <form method="post" action="{% url 'trips:leg_reship_proof' leg.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="reshipment_proof" accept="image/png,image/jpeg" required>
+                <button class="btn btn-primary btn-sm" type="submit">Upload Payment Proof</button>
+              </form>
+            {% endif %}
+          {% elif leg.leg_status == "reshipping" %}
+            <p class="help" style="margin:0 0 4px">AWB: {{ leg.awb_number }}</p>
+            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
+              {% csrf_token %}
+              <button class="btn btn-primary btn-sm" type="submit">Confirm Received (Clear)</button>
+            </form>
+          {% elif leg.leg_status == "clear" %}
+            <span class="badge badge-success">Clear — closing soon</span>
+          {% elif leg.leg_status == "closed" %}
+            <span class="badge badge-success">Closed</span>
+          {% elif leg.leg_status == "dropoff_missed" %}
+            <span class="badge badge-danger">Drop-off missed — leg cancelled</span>
+            {% if leg.dropoff_refund_amount > 0 %}
+              <p class="muted" style="margin:4px 0">Refund due: {{ bf_order.currency }} {{ leg.dropoff_refund_amount|by_currency:bf_order.currency }} (deposit minus 2.5% fee)</p>
+              {% if leg.refund_bank_details %}
+                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
+                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
+              {% else %}
+                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+                  {% csrf_token %}
+                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
+                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            {{ leg.get_leg_status_display }}
+          {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div></div>
+{% endif %}
+
 {# Pay Second Deposit — buyer-only, sits under Notes while the customs-duty balance is due. #}
 {% if is_order_buyer and bf_order.status == "package_arrived" and not bf_order.balance_pending and bf_order.balance_extra_due > 0 %}
 <details class="card fold mt-2" open>
@@ -166,7 +311,15 @@
 
 {% if bf_order.is_cargo %}
 <div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Items</h3>
+  {# Same print-button treatment as the Invoice card below (Send Buy Order format). #}
+  {# gap 12px handles the wrapped case: on a narrow screen the buttons drop under the heading and still clear it. #}
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+    <h3 style="margin-top:0;margin-bottom:0">Items</h3>
+    <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
+      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' bf_order.id %}" target="_blank">Print Box Label</a>
+    </span>
+  </div>
   <div class="table-wrap">
     <table class="invoice inv2">
       <thead>
@@ -458,211 +611,5 @@
 </details>
 {% endif %}
 
-{# Legacy cargo leg card. Superseded at the deposit stage by the Pay First Deposit + Payments cards above, so it is hidden until the deposit clears. It still hosts the buyer's later steps (drop-off status, customs balance, refund bank details, Pickup/Reship choice, Confirm Received) — split those into their own step cards, then drop this card. #}
-{% if bf_order.confirmed_legs and not bf_order.cargo_awaiting_deposit %}
-<div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Accepted Carrier's Ask</h3>
-  <div style="display:flex;flex-direction:column;gap:16px">
-    {% for leg in bf_order.confirmed_legs %}
-    <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden">
-
-      <div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;padding:14px 16px;background:var(--cream-200,#f5f1ea);border-bottom:1px solid var(--line)">
-        <span style="font-size:1.1rem;font-weight:800;color:var(--slate)">{{ leg.allocated_weight_kg|floatformat:1 }} kg</span>
-        <span class="muted" style="font-size:.9rem">@ {{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}/kg</span>
-        {% if leg.deposit_verified %}
-          <span class="badge badge-success" style="margin-left:auto">Deposit verified</span>
-        {% elif leg.deposit_pending %}
-          <span class="badge badge-warning" style="margin-left:auto">Deposit pending</span>
-        {% else %}
-          <span class="badge badge-muted" style="margin-left:auto">Deposit due</span>
-        {% endif %}
-      </div>
-
-      <div style="display:grid;gap:16px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-
-        <div>
-          <div class="eyebrow" style="margin-bottom:6px">Deposit</div>
-          {% if leg.deposit_verified %}
-            <span class="badge badge-success">Verified</span>
-          {% elif leg.deposit_pending %}
-            <span class="badge badge-warning">Awaiting verification</span>
-          {% else %}
-            <span class="muted">Due: {{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</span>
-          {% endif %}
-        </div>
-
-        <div>
-          <div class="eyebrow" style="margin-bottom:6px">Drop-off</div>
-          {% if leg.address_revealed %}
-            {% if leg.drop_off_address %}{{ leg.drop_off_address }}{% if leg.drop_off_postal_code %}, {{ leg.drop_off_postal_code }}{% endif %}<br>{% endif %}<span class="help">Drop off by {{ leg.drop_off_deadline|date:"d-M-Y" }}</span>
-          {% else %}
-            <span class="muted">Hidden until deposit clears</span>
-          {% endif %}
-        </div>
-
-      </div>
-
-      <div style="padding:16px;border-top:1px solid var(--line)">
-        <div class="eyebrow" style="margin-bottom:8px">Next Step</div>
-        <div>
-          {% if not leg.leg_status %}
-            {% if leg.address_revealed %}
-              <span class="muted">Awaiting drop-off &amp; weighing by the carrier</span>
-            {% elif leg.deposit_pending %}
-              <span class="muted">Pending fund verification</span>
-            {% else %}
-              <span class="muted">Pay deposit first</span>
-            {% endif %}
-          {% elif leg.leg_status == "package_dropped_off" %}
-            <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
-          {% elif leg.leg_status == "weight_verified" %}
-            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg|floatformat:1 }} kg) — awaiting carrier confirmation</span>
-          {% elif leg.leg_status == "package_received" %}
-            <span class="badge badge-success">Received by carrier</span>
-          {% elif leg.leg_status == "package_arrived" %}
-            <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
-            {% if leg.custom_fare_amount %}
-            <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|by_currency:leg.custom_fare_currency }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>
-            {% endif %}
-            {% if leg.extra_due > 0 and not leg.balance_settled %}
-              {% if leg.balance_pending %}
-              <p class="muted" style="margin:0 0 6px">Balance proof submitted — pending fund verification.</p>
-              {% if leg.balance_proof_url %}<a href="{{ leg.balance_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
-              {% else %}
-              <p style="margin:0 0 4px">Balance due — transfer <strong>{{ bf_order.currency }} {{ leg.extra_due|by_currency:bf_order.currency }}</strong>{% if leg.extra_due_idr %} or <strong>IDR {{ leg.extra_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
-              <table class="invoice" style="max-width:540px;margin:0 0 10px">
-                <tr><td style="width:250px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-                <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-                <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-                <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-              </table>
-              <form method="post" action="{% url 'trips:leg_balance_pay' leg.id %}" enctype="multipart/form-data" style="margin-bottom:8px">
-                {% csrf_token %}
-                <input type="file" name="proof" accept="image/png,image/jpeg" required>
-                <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
-              </form>
-              {% endif %}
-            {% elif leg.refund_due > 0 and not leg.balance_settled %}
-              <p class="muted" style="margin:0 0 4px">Refund due: {{ bf_order.currency }} {{ leg.refund_due|by_currency:bf_order.currency }}</p>
-              {% if leg.refund_bank_details %}
-                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
-                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
-              {% else %}
-                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-                  {% csrf_token %}
-                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
-                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
-                </form>
-              {% endif %}
-            {% elif not leg.fulfillment_method %}
-              <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the carrier to set
-                the best time to visit. On the visit, verify the package and click <strong>Confirm Pickup</strong>
-                to release the payment.</p>
-              <table class="invoice" style="max-width:400px;margin:0 0 12px">
-                <tr><td style="width:100px">Name</td><td>: {{ leg.traveler.full_name }}</td></tr>
-                {% if leg.traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ leg.traveler.traveler_address }}</span>{% if leg.traveler.traveler_destination_city %}, {{ leg.traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
-                <tr><td>Email</td><td>: {{ leg.traveler.email }}</td></tr>
-                {% if leg.traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ leg.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ leg.traveler.phone_e164 }}</a></td></tr>{% endif %}
-              </table>
-              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}" style="margin:0 0 14px">
-                {% csrf_token %}
-                <input type="hidden" name="fulfillment_method" value="pickup">
-                <button class="btn btn-primary btn-sm" type="submit">Confirm Pickup</button>
-              </form>
-              <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
-              <p style="margin:0 0 6px"><strong>Option 2 — Request Reshipment:</strong> Ship the package to your
-                Reshipment Address (set on your Profile). The carrier will be notified to send the shipping cost.</p>
-              <form method="post" action="{% url 'trips:leg_choose_fulfillment' leg.id %}">
-                {% csrf_token %}
-                <input type="hidden" name="fulfillment_method" value="reship">
-                <button class="btn btn-outline btn-sm" type="submit">Request Reshipment</button>
-              </form>
-            {% else %}
-              <span class="badge badge-warning">Settling…</span>
-            {% endif %}
-          {% elif leg.leg_status == "ready_for_pickup" %}
-            <p class="help" style="margin:0 0 4px">Pickup address: {{ leg.pickup_address }}</p>
-            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
-              {% csrf_token %}
-              <button class="btn btn-primary btn-sm" type="submit">Confirm Picked Up (Clear)</button>
-            </form>
-          {% elif leg.leg_status == "reship_requested" %}
-            <span class="badge badge-warning">Reship requested — awaiting cost from carrier</span>
-          {% elif leg.leg_status == "reship_cost_sent" %}
-            <p class="help" style="margin:0 0 4px">
-              Cost: {{ bf_order.destination_currency }} {{ leg.reshipment_cost_amount|by_currency:bf_order.destination_currency }} —
-              {{ leg.reshipment_bank_name }} {{ leg.reshipment_bank_account_no }} ({{ leg.reshipment_bank_account_name }})
-            </p>
-            {% if leg.reshipment_proof %}
-              <span class="badge badge-success">Proof uploaded</span>
-            {% else %}
-              <form method="post" action="{% url 'trips:leg_reship_proof' leg.id %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <input type="file" name="reshipment_proof" accept="image/png,image/jpeg" required>
-                <button class="btn btn-primary btn-sm" type="submit">Upload Payment Proof</button>
-              </form>
-            {% endif %}
-          {% elif leg.leg_status == "reshipping" %}
-            <p class="help" style="margin:0 0 4px">AWB: {{ leg.awb_number }}</p>
-            <form method="post" action="{% url 'trips:leg_clear' leg.id %}">
-              {% csrf_token %}
-              <button class="btn btn-primary btn-sm" type="submit">Confirm Received (Clear)</button>
-            </form>
-          {% elif leg.leg_status == "clear" %}
-            <span class="badge badge-success">Clear — closing soon</span>
-          {% elif leg.leg_status == "closed" %}
-            <span class="badge badge-success">Closed</span>
-          {% elif leg.leg_status == "dropoff_missed" %}
-            <span class="badge badge-danger">Drop-off missed — leg cancelled</span>
-            {% if leg.dropoff_refund_amount > 0 %}
-              <p class="muted" style="margin:4px 0">Refund due: {{ bf_order.currency }} {{ leg.dropoff_refund_amount|by_currency:bf_order.currency }} (deposit minus 2.5% fee)</p>
-              {% if leg.refund_bank_details %}
-                <p class="help" style="margin:0;white-space:pre-line">{{ leg.refund_bank_details }}</p>
-                <p class="muted" style="margin:4px 0 0">Admin will transfer the refund shortly.</p>
-              {% else %}
-                <form method="post" action="{% url 'trips:leg_refund_bank' leg.id %}" style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
-                  {% csrf_token %}
-                  <textarea name="refund_bank_details" rows="3" style="min-width:220px" placeholder="Bank name, account number, account holder name" required></textarea>
-                  <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
-                </form>
-              {% endif %}
-            {% endif %}
-          {% else %}
-            {{ leg.get_leg_status_display }}
-          {% endif %}
-        </div>
-
-      </div>
-
-      {% if not leg.deposit_verified %}
-      <div style="padding:16px;border-top:1px solid var(--line);text-align:center">
-        {% if leg.deposit_pending %}
-          <p class="muted" style="margin:0 0 12px">Deposit proof submitted — pending fund verification.</p>
-          <div style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
-            {% if leg.deposit_proof_url %}<a href="{{ leg.deposit_proof_url }}" target="_blank" class="btn btn-outline btn-sm">View uploaded proof</a>{% endif %}
-            <button class="btn btn-primary btn-sm" type="button" disabled>Pay {{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</button>
-          </div>
-        {% else %}
-          <p style="margin:0 0 8px">Please make a bank transfer of <strong>{{ bf_order.currency }} {{ leg.deposit_due|by_currency:bf_order.currency }}</strong>{% if leg.deposit_due_idr %} or <strong>IDR {{ leg.deposit_due_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
-          <table class="invoice" style="max-width:380px;margin:0 auto 12px;text-align:left">
-            <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
-            <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
-            <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
-            <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
-          </table>
-          <p class="help" style="margin:0 0 10px">Upload your transfer proof below.</p>
-          <form method="post" action="{% url 'trips:leg_deposit_pay' leg.id %}" enctype="multipart/form-data" style="display:inline-flex;flex-flow:row wrap;gap:24px;align-items:center;justify-content:center">
-            {% csrf_token %}
-            <input type="file" name="proof" accept="image/png,image/jpeg" required>
-            <button class="btn btn-primary btn-sm" type="submit">Submit Transfer Proof</button>
-          </form>
-        {% endif %}
-      </div>
-      {% endif %}
-    </div>
-    {% endfor %}
-  </div>
-</div></div>
-{% endif %}
 
 {% if is_order_proxy and bf_order.status == "items_purchased" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order chat_handover_prefill=True hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% elif bf_order.status == "deposit_paid" %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True chat_admin_note="Please communicate with Buyer on any sourcing issues (e.g.: shortage, out-of-stock, significant price increase, substitution, etc.). All Buyer's final decision for each product should be stated on Buyer's message." %}{% else %}{% include "trips/_chat_thread.html" with chat_obj=bf_order hide_chat_intro=True %}{% endif %}

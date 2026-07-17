@@ -248,7 +248,9 @@ Context expected (Django include passes the parent context through):
       <p>You accept the shipment cost, please pay the first deposit.</p>
       <span style="display: block; text-align: right;">[5A-1B]</span>
       {% else %}
-      <p class="muted">Deposit verified. Hand the package over to the traveler — they weigh it in front of you and record the drop-off.</p>
+      {# #Step-5A.3BC-Buyer — cargo: no proxy, the buyer hands the package over themselves. #}
+      <p>Your deposit verified. Hand the package over to the traveler at the latest {{ leg.drop_off_deadline|date:"d-M-Y" }} - traveler will re-weigh the package in front of you and confirm the drop-off.</p>
+      <span style="display: block; text-align: right;">[5A-3BC]</span>
       {% endif %}
       {% endwith %}
     {% elif o.pending_offers %}
