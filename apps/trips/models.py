@@ -365,6 +365,14 @@ class Order(ListingTimingMixin, models.Model):
     to_country = models.CharField(max_length=80, blank=True)
     to_address = models.TextField(blank=True)
     to_postal_code = models.CharField(max_length=20, blank=True)
+    # Cargo only: who receives the package at the destination. The buyer ships
+    # their own goods, so the buyer is the SHIPPER on the customs invoice — with
+    # no proxy in the flow, the receiver would otherwise be the buyer too, and
+    # customs cannot have shipper == receiver.
+    receiver_details = models.TextField(
+        blank=True,
+        help_text="Cargo: receiver's name and address at the destination, as printed on the customs invoice.",
+    )
     # Buyer's delivery preference, captured at order creation (Task 3): pick the
     # package up at the carrier's location, or have it reshipped to the buyer
     # (reship cost is settled later). Default = pickup.
@@ -1128,11 +1136,15 @@ class Order(ListingTimingMixin, models.Model):
 
     @property
     def customs_origin_country(self) -> str:
-        """Country of Origin column: the order's sourcing country (the proxy
-        buyer's country). All orders are proxy orders."""
+        """Country of Origin column: the country the goods ship FROM.
+
+        Proxy (Buy) orders source through a Proxy Buyer, so it is their country.
+        Cargo orders have no proxy — the buyer already owns the goods — so it is
+        the order's own origin, which is also where the buyer hands over.
+        """
         if self.proxy_buyer_id and self.proxy_buyer.country:
             return self.proxy_buyer.country
-        return ""
+        return self.from_country or ""
 
     @property
     def customs_invoice_date(self):
@@ -1327,7 +1339,21 @@ class Order(ListingTimingMixin, models.Model):
 
     @property
     def shipment_cost(self) -> Decimal:
-        """Actual shipment = carrier's final measured weight × rate."""
+        """Actual shipment = carrier's final measured weight × rate.
+
+        Cargo settles per leg: the final weight is the carrier's re-weigh at
+        drop-off (leg.agreed_weight_kg), and order.actual_weight_kg is only ever
+        written by the proxy flow's "Mark Package Ready" — so on a cargo order it
+        stays 0 and this would read 0 (blank Shipping Charges on the customs
+        invoice). Sum the legs instead, falling back to the allocated weight
+        until the drop-off is recorded.
+        """
+        if self.is_cargo:
+            total = Decimal("0")
+            for leg in self.confirmed_legs:
+                weight = leg.agreed_weight_kg if leg.agreed_weight_kg is not None else leg.allocated_weight_kg
+                total += (weight or Decimal("0")) * leg.ask_cost_per_kg
+            return self._q(total)
         rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
         return self._q(self.actual_weight_kg * rate)
 

@@ -60,6 +60,12 @@
           <div class="form-field"><label>To City</label>{% if carrier_plan %}<input type="text" value="{{ carrier_plan.to_city }}" disabled>{% else %}{{ form.to_city }}{{ form.to_city.errors }}{% endif %}</div>
           <div class="form-field"><label>To Country</label>{% if carrier_plan %}<input type="text" value="{{ carrier_plan.to_country }}" disabled>{% else %}{{ form.to_country }}{{ form.to_country.errors }}{% endif %}</div>
         </div>
+        {% if not proxy %}
+        <div class="form-field">
+          <label>{{ form.receiver_details.label }}</label>{{ form.receiver_details }}{{ form.receiver_details.errors }}
+          <p class="help">Who receives the package at the destination — printed as the Receiver on the customs invoice. You are the Shipper, so this cannot be you.</p>
+        </div>
+        {% endif %}
         {{ formset.management_form }}
         {{ formset.non_form_errors }}
         <div id="items" class="mt-2">

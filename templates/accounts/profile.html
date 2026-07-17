@@ -189,7 +189,7 @@
 
           <div class="dash-tables">
             {# Heading-row buttons: Buy Order = pick a Proxy Buyer on the home list; Cargo Order = goods already in hand. #}
-            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No orders yet." heading="My Orders" show_create_orders=True %}
+            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Buy Orders yet." heading="My Buy Orders" show_create_orders=True %}
             {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Cargo orders yet." heading="My Cargo Orders" %}
           </div>
           <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>

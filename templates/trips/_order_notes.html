@@ -180,16 +180,9 @@ Context expected (Django include passes the parent context through):
       {% elif leg_offer.order.is_multi_leg_cargo and not leg_offer.order.items_fully_assigned %}
       <p class="muted">Waiting for the buyer to split the goods across carriers — once they do, you can record the drop-off of your share.</p>
       {% else %}
-      <p class="help" style="margin:0 0 10px">The buyer is handing over the package. Weigh it in front of the buyer,
-        enter the final weight, and mark the drop-off — this weight is final and not subject to dispute.</p>
-      <form method="post" action="{% url 'trips:leg_weight_verify' leg_offer.id %}" style="display:flex;flex-flow:row wrap;gap:14px;align-items:flex-end">
-        {% csrf_token %}
-        <div class="form-field" style="margin:0">
-          <label>Final Weight (kg)</label>
-          <input type="number" step="0.01" min="0.01" name="agreed_weight_kg" style="width:160px" placeholder="kg" required>
-        </div>
-        <button class="btn btn-primary btn-sm" type="submit">Mark Drop-Off</button>
-      </form>
+      {# #Step-5A.3TC-Traveler — the weigh + Mark Drop-Off form lives in the "Hand Over Package" card (Notes stay prose-only). #}
+      <p class="muted">Buyer's deposit verified. Wait for the buyer to hand the package over to you - re-weigh the package in front of the buyer and confirm the drop-off.</p>
+      <span style="display: block; text-align: right;">[5A-3TC]</span>
       {% endif %}
     {% elif leg_offer.leg_status == "package_received" %}
       <p class="help" style="margin:0 0 10px">Package in your custody. When you reach the destination, add any customs

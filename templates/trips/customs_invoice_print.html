@@ -45,21 +45,35 @@
       <div><span class="label">DATE:</span> {% if ci.date %}{{ ci.date|date:"d-M-Y" }}{% else %}&mdash;{% endif %}</div>
       <div class="party">
         <span class="label">SHIPPER:</span><br>
+        {# Cargo has no Proxy Buyer — the buyer ships their own goods, so they are the shipper (mirrors _customs_parties for the PDF/box label). Guarding matters: with proxy_buyer None, `|default:req.proxy_buyer.name` still resolves its argument and raises VariableDoesNotExist. #}
+        {% if req.is_cargo %}
+        {{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}<br>
+        {{ req.buyer.buyer_invoice_address|linebreaksbr }}{% endif %}{% if req.from_country %}<br>
+        {{ req.from_country }}{% endif %}{% if req.buyer.phone_e164 %}<br>
+        {{ req.buyer.phone_e164|cut:"+" }}{% endif %}
+        {% else %}
         {{ req.proxy_buyer.user.full_name|default:req.proxy_buyer.name }}{% if req.proxy_buyer.user.buyer_invoice_address %}<br>
         {{ req.proxy_buyer.user.buyer_invoice_address|linebreaksbr }}{% endif %}{% if req.proxy_buyer.country %}<br>
         {{ req.proxy_buyer.country }}{% endif %}{% if req.proxy_buyer.user.phone_e164 %}<br>
         {{ req.proxy_buyer.user.phone_e164|cut:"+" }}{% endif %}
+        {% endif %}
       </div>
     </div>
     <div class="recv-col">
       <div><span class="label">PURCHASE ORDER:</span> {{ ci.reference }}</div>
       <div class="party">
         <span class="label">RECEIVER:</span><br>
+        {# Cargo: the buyer is the shipper, so the receiver is whoever they named on the order. #}
+        {% if req.is_cargo and req.receiver_details %}
+        {{ req.receiver_details|linebreaksbr }}{% if req.destination_country %}<br>
+        {{ req.destination_country }}{% endif %}
+        {% else %}
         {{ req.buyer.full_name }}{% if req.buyer.buyer_invoice_address %}<br>
         {{ req.buyer.buyer_invoice_address }}{% endif %}{% if req.buyer.buyer_destination_city %}<br>
         {{ req.buyer.buyer_destination_city }}{% endif %}{% if req.destination_country %}<br>
         {{ req.destination_country }}{% endif %}{% if req.buyer.phone_e164 %}<br>
         {{ req.buyer.phone_e164|cut:"+" }}{% endif %}
+        {% endif %}
       </div>
     </div>
   </div>

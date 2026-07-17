@@ -161,11 +161,15 @@ class OrderForm(forms.ModelForm):
         # (buyer_invoice_address), so the order never asks for them again.
         fields = [
             "from_city", "from_country", "to_city", "to_country",
-            "delivery_preference",
+            "receiver_details", "delivery_preference",
             "max_acceptable_date", "bid_weight_kg", "bid_cost_per_kg",
             "cargo_only", "partial_allowed", "buyer_notes", "proxy_buyer_notes",
         ]
         widgets = {
+            "receiver_details": forms.Textarea(attrs={
+                "rows": 3,
+                "placeholder": "Receiver's full name and full address at the destination",
+            }),
             "proxy_buyer_notes": forms.Textarea(attrs={
                 "rows": 4,
                 "placeholder": "Any specific request for the Proxy Buyer — you can also paste a product URL here (optional).",
@@ -192,7 +196,7 @@ class OrderForm(forms.ModelForm):
         # the buyer fills in: route cities, products, and the order deadline.
         if proxy is not None:
             for name in (
-                "cargo_only", "from_country", "from_city",
+                "cargo_only", "from_country", "from_city", "receiver_details",
                 "buyer_notes", "bid_weight_kg", "bid_cost_per_kg", "partial_allowed",
             ):
                 self.fields.pop(name, None)
@@ -213,6 +217,10 @@ class OrderForm(forms.ModelForm):
                      "partial_allowed", "buyer_notes"):
             self.fields.pop(name, None)
         self.fields["bid_weight_kg"].label = "Total Weight (kg)"
+        # Customs cannot have shipper == receiver, and on cargo the buyer is the
+        # shipper — so the receiver must be named.
+        self.fields["receiver_details"].label = "Receiver Name and Address"
+        self.fields["receiver_details"].required = True
         # Start blank instead of pre-filling the model's 0 default — otherwise
         # typing "5" into the leading 0 produces "50".
         self.fields["bid_weight_kg"].initial = None

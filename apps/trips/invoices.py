@@ -75,11 +75,17 @@ def _customs_parties(req):
         proxy_name = (getattr(proxy_user, "full_name", "") if proxy_user else "") or getattr(proxy, "name", "")
         proxy_phone = (getattr(proxy_user, "phone_e164", "") if proxy_user else "").lstrip("+")
         shipper = _party_block(proxy_name, *proxy_addr_lines, proxy_country, proxy_phone)
-    receiver = _party_block(
-        req.buyer.full_name, req.buyer.buyer_invoice_address,
-        req.buyer.buyer_destination_city, req.destination_country,
-        req.buyer.phone_e164.lstrip("+"),
-    )
+    if req.is_cargo and req.receiver_details:
+        # Cargo: the buyer is the shipper, so the receiver is whoever they named
+        # on the order — customs cannot have shipper == receiver.
+        receiver_lines = [ln for ln in req.receiver_details.splitlines() if ln.strip()]
+        receiver = _party_block(*receiver_lines, req.destination_country)
+    else:
+        receiver = _party_block(
+            req.buyer.full_name, req.buyer.buyer_invoice_address,
+            req.buyer.buyer_destination_city, req.destination_country,
+            req.buyer.phone_e164.lstrip("+"),
+        )
     return shipper, receiver
 
 
