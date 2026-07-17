@@ -1,3 +1,4 @@
+import re
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
@@ -21,8 +22,45 @@ def make_user(email):
     )
 
 
+def _fold_state(content, title):
+    """Is the <details> card headed `title` open? True/False, or None if the card
+    isn't on the page at all.
+
+    Matches on the card's heading and its `open` attribute only. These tests used
+    to pin the exact class list (`class="card fold mt-2"`), so adding the
+    `notes-fold` class — which is what paints the header cream — silently broke
+    26 of them at once. What a fold test cares about is whether the card is
+    expanded, never how it's styled.
+    """
+    m = re.search(
+        r"<details([^>]*)>\s*<summary><h3>" + re.escape(title) + r"</h3>", content
+    )
+    if not m:
+        return None
+    return bool(re.search(r"\bopen\b", m.group(1)))
+
+
+class FoldAssertions:
+    """Mixin: assert a card is expanded / collapsed / absent by name."""
+
+    def assertFoldOpen(self, content, title):
+        state = _fold_state(content, title)
+        self.assertIsNotNone(state, f"the {title!r} card is not on the page at all")
+        self.assertTrue(state, f"the {title!r} card should be expanded, but it is collapsed")
+
+    def assertFoldClosed(self, content, title):
+        state = _fold_state(content, title)
+        self.assertIsNotNone(state, f"the {title!r} card is not on the page at all")
+        self.assertFalse(state, f"the {title!r} card should be collapsed, but it is expanded")
+
+    def assertNoFold(self, content, title):
+        self.assertIsNone(
+            _fold_state(content, title), f"the {title!r} card should not be on this page"
+        )
+
+
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailPaymentTermsNotesFoldTests(TestCase):
+class OrderDetailPaymentTermsNotesFoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-1, Step 1 (Buyer sends order): the Payment Terms and
     Notes folds on the order-detail panel (accounts:profile?order=<id>) should
     open expanded on the Buyer's first look, and stay hidden from the Proxy
@@ -51,8 +89,8 @@ class OrderDetailPaymentTermsNotesFoldTests(TestCase):
         self.assertIn("Payment Terms", content)
         self.assertIn("Notes", content)
         # Both folds should render with the `open` attribute at this first step.
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Payment Terms")
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_does_not_see_payment_terms_or_notes_before_estimate(self):
         resp = self._get(self.proxy_user)
@@ -70,7 +108,7 @@ class OrderDetailPaymentTermsNotesFoldTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep2FoldTests(TestCase):
+class OrderDetailStep2FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-1, Step 2 (Proxy sends estimate, status=ESTIMATE_SENT):
     Payment Terms opens expanded on the Proxy's first look (closes for the
     Buyer, since their first look was Step 1); Notes stays open for both."""
@@ -95,18 +133,18 @@ class OrderDetailStep2FoldTests(TestCase):
     def test_buyer_payment_terms_closed_but_notes_open_at_step2(self):
         resp = self._get(self.buyer)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Payment Terms")
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_payment_terms_and_notes_open_at_step2(self):
         resp = self._get(self.proxy_user)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Payment Terms")
+        self.assertFoldOpen(content, "Notes")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep3FoldTests(TestCase):
+class OrderDetailStep3FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-1, Step 3 (Buyer accepts the estimate, status=RESPONDED,
     set by trips.views.proxy_estimate_accept): Payment Terms stays closed for
     both roles (each already had their first-look moment); Notes opens for
@@ -132,18 +170,18 @@ class OrderDetailStep3FoldTests(TestCase):
     def test_buyer_notes_open_payment_terms_closed_at_step3(self):
         resp = self._get(self.buyer)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Payment Terms")
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_notes_open_payment_terms_closed_at_step3(self):
         resp = self._get(self.proxy_user)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payment Terms</h3>')
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Payment Terms")
+        self.assertFoldOpen(content, "Notes")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OfferDetailStep4FoldTests(TestCase):
+class OfferDetailStep4FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-1, Step 4 (Carrier submits offer, order.status stays
     RESPONDED - offer_create calls recompute_status() which keeps it there
     since the offer is still pending): on the Carrier's own offer-detail panel
@@ -178,11 +216,11 @@ class OfferDetailStep4FoldTests(TestCase):
         self.client.force_login(self.carrier)
         resp = self.client.get(self.reverse("accounts:profile") + f"?offer={self.offer.pk}#offer-detail")
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payment Terms</h3>')
+        self.assertFoldOpen(content, "Payment Terms")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep5FoldTests(TestCase):
+class OrderDetailStep5FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-1, Step 5a/5b/5c: buyer accepts the carrier's offer
     (status=ACCEPTED, deposit_pending=False) -> submits transfer proof
     (status=ACCEPTED, deposit_pending=True) -> admin verifies
@@ -213,14 +251,14 @@ class OrderDetailStep5FoldTests(TestCase):
     def test_step5a_buyer_notes_open_no_payment_yet(self):
         resp = self._get(self.buyer)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
         self.assertIn("Submit Transfer Proof", content)
         self.assertNotIn("<h3>Payments</h3>", content)  # no payment record yet
 
     def test_step5a_proxy_notes_open(self):
         resp = self._get(self.proxy_user)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_step5b_buyer_notes_closed_shows_awaiting_verification(self):
         self.Payment.objects.create(
@@ -229,11 +267,11 @@ class OrderDetailStep5FoldTests(TestCase):
         )
         resp = self._get(self.buyer)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
         self.assertIn("awaiting admin verification of your deposit", content)
         self.assertNotIn('<div style="margin-bottom:10px"><input type="file" name="proof"', content)  # Note 5.1
         # Payments fold: buyer-only, open once a payment exists.
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+        self.assertFoldOpen(content, "Payments")
 
     def test_step5b_proxy_never_sees_payments_fold(self):
         self.Payment.objects.create(
@@ -244,7 +282,7 @@ class OrderDetailStep5FoldTests(TestCase):
         content = resp.content.decode()
         self.assertNotIn("<h3>Payments</h3>", content)
         # Proxy's Notes stays open even while deposit is pending.
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
         # Regression: the deposit_pending branch is role-neutral (no status
         # check gates it), so it used to leak the buyer's own "upload proof"
         # text/button/link to the Proxy too - Proxy should see the generic
@@ -263,7 +301,7 @@ class OrderDetailStep5FoldTests(TestCase):
         self.order.save()
         resp = self._get(self.buyer)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
         # Note 5.3: the View Transfer Proof link uses the clay/primary button, not outline.
         self.assertIn('class="btn btn-primary btn-sm">View Transfer Proof</a>', content)
 
@@ -272,11 +310,11 @@ class OrderDetailStep5FoldTests(TestCase):
         self.order.save()
         resp = self._get(self.proxy_user)
         content = resp.content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OfferDetailStep5NotesTests(TestCase):
+class OfferDetailStep5NotesTests(FoldAssertions, TestCase):
     """Note 5.2: on the Carrier's own offer-detail panel, once the order is
     ACCEPTED, Notes wording should distinguish 5a (awaiting the buyer's
     deposit) from 5b (deposit_pending - proof already submitted)."""
@@ -326,7 +364,7 @@ class OfferDetailStep5NotesTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep6FoldTests(TestCase):
+class OrderDetailStep6FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 6 (Proxy marks package ready, status=
     ITEMS_PURCHASED): both the Buyer's and the Proxy's Notes fold should open
     by default (was previously closed - items_purchased wasn't listed in the
@@ -351,11 +389,11 @@ class OrderDetailStep6FoldTests(TestCase):
 
     def test_buyer_notes_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_notes_open(self):
         content = self._get(self.proxy_user).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_never_sees_payments_fold(self):
         # Spec: Proxy's "Payment" row is "Never" - already satisfied by the
@@ -379,11 +417,11 @@ class OrderDetailStep6FoldTests(TestCase):
             currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
         )
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+        self.assertFoldClosed(content, "Payments")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep8FoldTests(TestCase):
+class OrderDetailStep8FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 8 (Carrier received the package, status=
     PACKAGE_RECEIVED): both the Buyer's and the Proxy's Notes fold should
     open by default (was previously closed - package_received wasn't listed
@@ -410,11 +448,11 @@ class OrderDetailStep8FoldTests(TestCase):
 
     def test_buyer_notes_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_notes_open(self):
         content = self._get(self.proxy_user).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_never_sees_payments_fold(self):
         from apps.trips.models import Payment, Transaction
@@ -434,11 +472,11 @@ class OrderDetailStep8FoldTests(TestCase):
             currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
         )
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+        self.assertFoldClosed(content, "Payments")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep9FoldTests(TestCase):
+class OrderDetailStep9FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 9 (Carrier sends duty amount, status=
     PACKAGE_ARRIVED): both the Buyer's and the Proxy's Notes fold should
     open by default (was previously closed - package_arrived wasn't listed
@@ -465,11 +503,11 @@ class OrderDetailStep9FoldTests(TestCase):
 
     def test_buyer_notes_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_notes_open(self):
         content = self._get(self.proxy_user).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_proxy_never_sees_payments_fold(self):
         from apps.trips.models import Payment, Transaction
@@ -489,7 +527,7 @@ class OrderDetailStep9FoldTests(TestCase):
             currency=self.order.currency, amount=self.order.deposit_due, status=Payment.PaymentStatus.VERIFIED,
         )
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Payments</h3>')
+        self.assertFoldClosed(content, "Payments")
 
     def test_buyer_notes_closed_once_balance_pending(self):
         # Step 10-1 (Buyer submits transfer proof) shares the same
@@ -503,11 +541,11 @@ class OrderDetailStep9FoldTests(TestCase):
             currency=self.order.currency, amount=Decimal("10"), status=Payment.PaymentStatus.PENDING,
         )
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep10_1FoldTests(TestCase):
+class OrderDetailStep10_1FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 10-1 (Buyer submits transfer proof for the
     balance, status=PACKAGE_ARRIVED + balance_pending=True): Buyer's and
     Proxy's Notes fold back to closed (Show/Close, not forced open - that's
@@ -541,15 +579,15 @@ class OrderDetailStep10_1FoldTests(TestCase):
 
     def test_buyer_notes_closed(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
 
     def test_proxy_notes_closed(self):
         content = self._get(self.proxy_user).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
 
     def test_buyer_payments_fold_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+        self.assertFoldOpen(content, "Payments")
 
     def test_proxy_never_sees_payments_fold(self):
         content = self._get(self.proxy_user).content.decode()
@@ -557,7 +595,7 @@ class OrderDetailStep10_1FoldTests(TestCase):
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OfferDetailStep10_1FoldTests(TestCase):
+class OfferDetailStep10_1FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 10-1 (Buyer submits balance transfer proof,
     order.status=PACKAGE_ARRIVED + balance_pending=True): the Carrier's Notes
     fold should close - previously hardcoded `open` unconditionally, so it
@@ -594,7 +632,7 @@ class OfferDetailStep10_1FoldTests(TestCase):
 
     def test_notes_open_before_balance_submitted(self):
         content = self._get().content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_notes_closed_once_balance_pending(self):
         from decimal import Decimal
@@ -603,11 +641,11 @@ class OfferDetailStep10_1FoldTests(TestCase):
             currency=self.order.currency, amount=Decimal("10"), status=self.Payment.PaymentStatus.PENDING,
         )
         content = self._get().content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
 
 
 @override_settings(STORAGES=_NO_MANIFEST_STORAGES)
-class OrderDetailStep10_2FoldTests(TestCase):
+class OrderDetailStep10_2FoldTests(FoldAssertions, TestCase):
     """Tabs Status Part-2, Step 10-2 (Admin verifies the buyer's balance,
     status=READY_FOR_PICKUP): the Buyer's Notes and Payments folds should
     both be open by default - ready_for_pickup wasn't listed in either
@@ -641,12 +679,12 @@ class OrderDetailStep10_2FoldTests(TestCase):
 
     def test_buyer_notes_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Notes</h3>')
+        self.assertFoldOpen(content, "Notes")
 
     def test_buyer_payments_fold_open(self):
         content = self._get(self.buyer).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2" open>\s*<summary><h3>Payments</h3>')
+        self.assertFoldOpen(content, "Payments")
 
     def test_proxy_notes_not_forced_open(self):
         content = self._get(self.proxy_user).content.decode()
-        self.assertRegex(content, r'<details class="card fold mt-2">\s*<summary><h3>Notes</h3>')
+        self.assertFoldClosed(content, "Notes")
