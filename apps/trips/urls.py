@@ -24,6 +24,7 @@ urlpatterns = [
     path("offers/<int:pk>/deposit/", views.leg_deposit_pay, name="leg_deposit_pay"),
     path("offers/<int:pk>/weight-verify/", views.leg_weight_verify, name="leg_weight_verify"),
     path("offers/<int:pk>/arrived/", views.leg_arrived, name="leg_arrived"),
+    path("offers/<int:pk>/duty-receipt/", views.leg_custom_fare_proof, name="leg_custom_fare_proof"),
     path("offers/<int:pk>/balance/", views.leg_balance_pay, name="leg_balance_pay"),
     path("offers/<int:pk>/refund-bank/", views.leg_refund_bank, name="leg_refund_bank"),
     path("offers/<int:pk>/fulfillment/", views.leg_choose_fulfillment, name="leg_choose_fulfillment"),

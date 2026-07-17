@@ -24,8 +24,28 @@
       <div class="form-field"><label>Custom Duty Currency</label><div class="static-field">{{ leg_offer.destination_currency }}</div></div>
       <div class="form-field"><label>Custom Duty Amount</label>{{ leg_arrive_form.custom_fare_amount }}</div>
     </div>
-    <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ leg_arrive_form.custom_fare_proof }}</div>
+    {# Amount only. The receipt is Step 10 — the traveler pays the duty after the buyer's deposit clears ([9A-2T]), so there is nothing to upload yet. #}
     <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Send Duty Amount</button></div>
+  </form>
+  </div>
+</details>
+{% endif %}
+
+{# Pay Customs Duty (Cargo, Step 10) — the receipt upload, only once the buyer's second deposit is verified ([9A-2T]). Step 8 took the amount; the traveler pays here. #}
+{% if leg_offer.order.is_cargo and leg_offer.leg_status == "package_arrived" and leg_offer.balance_settled and not leg_offer.custom_fare_proof %}
+<details class="card fold mt-2" open>
+  <summary><h3>Pay Customs Duty</h3></summary>
+  <div class="fold-body">
+  <table class="invoice" style="max-width:440px;margin:0 auto 12px">
+    <tr><td style="width:180px">Customs Duty to pay</td><td class="num-right"><strong>{{ leg_offer.custom_fare_currency }} {{ leg_offer.custom_fare_amount|by_currency:leg_offer.custom_fare_currency }}</strong></td></tr>
+  </table>
+  <form method="post" action="{% url 'trips:leg_custom_fare_proof' leg_offer.id %}" enctype="multipart/form-data" style="text-align:center">
+    {% csrf_token %}
+    <div class="form-field" style="margin:0 0 12px;max-width:420px;margin-left:auto;margin-right:auto">
+      <label>Proof of Payment</label>
+      <input type="file" name="custom_fare_proof" accept="image/png,image/jpeg" required>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Upload Receipt</button>
   </form>
   </div>
 </details>

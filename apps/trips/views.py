@@ -1233,6 +1233,34 @@ def leg_weight_verify(request, pk):
     return redirect(detail_url)
 
 
+# --- Traveler: upload the customs duty receipt (Step 10) --------------------
+@profile_required
+@require_POST
+def leg_custom_fare_proof(request, pk):
+    """Traveler pays the customs duty and uploads the receipt — AFTER the buyer's
+    second deposit clears (Step 10.1/10.2, see [9A-2T] "Buyer's deposit verified.
+    You can pay the Duty and upload the receipt").
+
+    Split from ``leg_arrived``, which only sends the AMOUNT at Step 8: there is
+    nothing to upload then, because the traveler has not paid yet.
+    """
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user, leg_status=LegStatus.PACKAGE_ARRIVED
+    )
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
+    if not offer.balance_settled:
+        messages.error(request, "Wait for the buyer's deposit to be verified before paying the duty.")
+        return redirect(detail_url)
+    proof = request.FILES.get("custom_fare_proof")
+    if not proof:
+        messages.error(request, "Attach the customs duty receipt.")
+        return redirect(detail_url)
+    offer.custom_fare_proof = proof
+    offer.save(update_fields=["custom_fare_proof", "updated_at"])
+    messages.success(request, "Customs duty receipt uploaded.")
+    return redirect(detail_url)
+
+
 # --- Traveler: mark a received leg as arrived at destination -----------------
 @profile_required
 @require_POST
