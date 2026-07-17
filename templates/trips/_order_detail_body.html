@@ -73,17 +73,12 @@
     </div>
 
     {# The LATER leg steps (customs balance, refund bank details, Pickup/Reship, Confirm Received) still live here until each is split into its own card — hidden until the leg actually moves. #}
-    {% if leg.leg_status %}
+    {# Only the states that need an ACTION from the buyer. dropped_off / weight_verified / package_received are pure status — the Notes card says where the package is, so a "Next Step: Received by carrier" row is just noise. #}
+    {% if leg.leg_status and leg.leg_status != "package_dropped_off" and leg.leg_status != "weight_verified" and leg.leg_status != "package_received" %}
     <div style="border-top:1px solid var(--line);padding-top:16px">
       <div class="eyebrow" style="margin-bottom:8px">Next Step</div>
       <div>
-          {% if leg.leg_status == "package_dropped_off" %}
-            <span class="badge badge-warning">Dropped off — awaiting weight verification</span>
-          {% elif leg.leg_status == "weight_verified" %}
-            <span class="badge badge-warning">Weight verified ({{ leg.agreed_weight_kg|floatformat:1 }} kg) — awaiting carrier confirmation</span>
-          {% elif leg.leg_status == "package_received" %}
-            <span class="badge badge-success">Received by carrier</span>
-          {% elif leg.leg_status == "package_arrived" %}
+          {% if leg.leg_status == "package_arrived" %}
             <p class="help" style="margin:0 0 4px">Final weight: {{ leg.agreed_weight_kg|floatformat:1 }} kg (allocated {{ leg.allocated_weight_kg|floatformat:1 }} kg)</p>
             {% if leg.custom_fare_amount %}
             <p class="help" style="margin:0 0 4px">Customs duty (reimbursable): {{ bf_order.currency }} {{ leg.custom_fare_in_order_currency|by_currency:bf_order.currency }}{% if leg.custom_fare_needs_conversion %} <span class="muted">({{ leg.custom_fare_currency }} {{ leg.custom_fare_amount|by_currency:leg.custom_fare_currency }})</span>{% endif %}{% if leg.custom_fare_proof_url %} · <a href="{{ leg.custom_fare_proof_url }}" target="_blank">proof</a>{% endif %}</p>

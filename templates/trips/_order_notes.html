@@ -185,20 +185,29 @@ Context expected (Django include passes the parent context through):
       <span style="display: block; text-align: right;">[5A-3TC]</span>
       {% endif %}
     {% elif leg_offer.leg_status == "package_received" %}
-      <p class="help" style="margin:0 0 10px">Package in your custody. When you reach the destination, add any customs
-        duty you paid there — it's reimbursable by the buyer, so upload the proof. Leave the amount zero if none.</p>
-      <form method="post" action="{% url 'trips:leg_arrived' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:10px;max-width:420px">
-        {% csrf_token %}
-        {{ leg_arrive_form.custom_fare_currency }}
-        <div class="form-row">
-          <div class="form-field"><label>Custom Duty Currency</label><div class="static-field">{{ leg_offer.destination_currency }}</div></div>
-          <div class="form-field"><label>Custom Duty Amount</label>{{ leg_arrive_form.custom_fare_amount }}</div>
-        </div>
-        <div class="form-field"><label>Proof of Payment (mandatory if paid)</label>{{ leg_arrive_form.custom_fare_proof }}</div>
-        <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Mark Arrived</button></div>
-      </form>
+      {% if not leg_offer.travel_date_passed %}
+      {# #Step-7A.0T-Traveler — before the travel date. The Customs Duty form is Step 8 (on arrival), so it stays hidden until the travel date passes. #}
+      <p class="muted">You have received the package. Upon arrival, fill in Customs Duty amount.</p>
+      <span style="display: block; text-align: right;">[7A-0T]</span>
+      {% else %}
+      {# #Step-8A.1T-Traveler — arrived. The duty fields live in the "Process Customs Duty" card (Notes stay prose-only). #}
+      <p class="muted">You have arrived. Please send Customs Duty amount and wait for buyer to make a deposit before you pay the Duty.</p>
+      <span style="display: block; text-align: right;">[8A-1T]</span>
+      {% endif %}
     {% elif leg_offer.leg_status == "package_arrived" %}
-      <p class="muted">Arrived. Awaiting the buyer to settle any weight-delta balance and choose pickup or reship.</p>
+      {% if leg_offer.balance_pending %}
+      {# #Step-9A.1T-Traveler #}
+      <p class="muted">Buyer has submit Transfer Proof. Wait for admin fund verification before make Duty payment.</p>
+      <span style="display: block; text-align: right;">[9A-1T]</span>
+      {% elif leg_offer.balance_settled %}
+      {# #Step-9A.2T-Traveler #}
+      <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the receipt.</p>
+      <span style="display: block; text-align: right;">[9A-2T]</span>
+      {% else %}
+      {# #Step-8A.2T-Traveler #}
+      <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the receipt.</p>
+      <span style="display: block; text-align: right;">[8A-2T]</span>
+      {% endif %}
     {% elif leg_offer.leg_status == "reship_requested" %}
       <p class="help" style="margin:0 0 10px">The buyer wants this reshipped. Send the reship cost and your bank details.</p>
       <form method="post" action="{% url 'trips:leg_reship_cost' leg_offer.id %}" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:6px;align-items:flex-start;max-width:280px">
@@ -232,7 +241,25 @@ Context expected (Django include passes the parent context through):
     {# Precedence: a confirmed leg outranks a pending offer — else accepting one falls through to "waiting for an offer" and reads as going back to Step 1. #}
     {% if o.confirmed_legs %}
       {% with leg=o.confirmed_legs.0 %}
-      {% if leg.deposit_pending %}
+      {% if leg.leg_status == "package_arrived" %}
+        {% if leg.balance_pending %}
+        {# #Step-9A.1B-Buyer #}
+        <p>Transfer Proof Submitted. Wait for admin fund verification.</p>
+        <span style="display: block; text-align: right;">[9A-1B]</span>
+        {% elif leg.balance_settled %}
+        {# #Step-9A.2B-Buyer #}
+        <p>Your deposit verified. Waiting for Traveler to make Duty payment</p>
+        <span style="display: block; text-align: right;">[9A-2B]</span>
+        {% else %}
+        {# #Step-8A.2B-Buyer — the amount + Submit Proof live in the card below. #}
+        <p>Your package has arrived and the traveler has sent the customs duty amount. Please pay the second deposit.</p>
+        <span style="display: block; text-align: right;">[8A-2B]</span>
+        {% endif %}
+      {% elif leg.leg_status %}
+      {# #Step-7A.0B-Buyer — carrier has the goods; the deposit steps are behind us. #}
+      <p>Traveler has received your package and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
+      <span style="display: block; text-align: right;">[7A-0B]</span>
+      {% elif leg.deposit_pending %}
       {# #Step-5A.2B-Buyer #}
       <p>Transfer proof submitted. Waiting for Admin fund verification.</p>
       <span style="display: block; text-align: right;">[5A-2B]</span>
