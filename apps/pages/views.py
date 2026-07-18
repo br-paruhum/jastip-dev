@@ -74,7 +74,11 @@ def home(request):
         .exclude(status__in=CARGO_DONE)
         .select_related("buyer").prefetch_related("traveler_offers")
     ):
-        o.board_weight = o.remaining_bid_weight_kg  # capacity still needed
+        # Show the cargo's own weight (final once weighed, else declared) and keep
+        # it steady once taken — the Status/Action columns already signal it's
+        # covered, so decrementing to remaining capacity just reads as "0 kg".
+        legs = o.confirmed_legs
+        o.board_weight = sum(l.final_weight_kg for l in legs) if legs else o.bid_weight_kg
         if o.is_fully_matched or o.in_transit:
             o.board_state, o.is_locked_fcfs, o.can_offer = "covered", True, False
         else:

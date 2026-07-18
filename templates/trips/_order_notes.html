@@ -21,8 +21,8 @@ Context expected (Django include passes the parent context through):
   Also in context: is_order_buyer, is_order_proxy (order view); leg_offer,
   leg_arrive_form (carrier view); BANK, focus_offer.
 {% endcomment %}
-<details class="card fold notes-fold mt-2" open>
-  <summary><h3>Notes</h3></summary>
+<div class="card notes-card mt-2">
+  <div class="notes-head"><h3>Notes</h3></div>
   <div class="fold-body">
   {% with o=note_order %}
 
@@ -587,4 +587,4 @@ Context expected (Django include passes the parent context through):
 
   {% endwith %}
   </div>
-</details>
+</div>

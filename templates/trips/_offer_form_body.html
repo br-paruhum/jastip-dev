@@ -1,6 +1,6 @@
 {% load humanize money %}
 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
-  <span class="eyebrow" style="margin:0">Respond to {{ offer_form_order.actor_label }} · {{ offer_form_order.reference }} · {{ offer_form_order.route }}</span>
+  <span class="eyebrow" style="margin:0">{{ offer_form_order.reference }} · {{ offer_form_order.route }}</span>
 </div>
 
 {# Notes/guidance card — always first, always expanded, soft-clay header. #}
@@ -11,7 +11,7 @@
 <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card mt-2">
   {% csrf_token %}
   <div class="card-body">
-    <div class="card-band-row">Place an Offer</div>
+    <div class="card-band-row">Offer Details</div>
     <p class="muted" style="margin-top:14px">
       <strong>{{ offer_form_order.reference }}</strong> ·
       Weight {{ offer_form_order.bid_weight_kg|floatformat:1 }} kg ·
@@ -66,7 +66,7 @@
 <form method="post" action="{% url 'trips:offer_create' offer_form_order.id %}" class="card mt-2">
   {% csrf_token %}
   <div class="card-body">
-    <div class="card-band-row">Place an Offer</div>
+    <div class="card-band-row">Offer Details</div>
     <p class="muted" style="margin-top:14px">
       <strong>{{ offer_form_order.reference }}</strong> - {{ offer_form_order.route }}<br>
       Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg -

@@ -291,7 +291,9 @@ class TravelPlan(ListingTimingMixin, models.Model):
         total = Decimal("0")
         for off in self.cargo_offers.all():
             if off.offer_status == OfferStatus.SELECTED and off.deposit_verified:
-                total += off.allocated_weight_kg or Decimal("0")
+                # final_weight_kg = measured weight once weighed, else allocated —
+                # so spare capacity reflects what's actually being carried.
+                total += off.final_weight_kg
         return total.quantize(TWO_PLACES)
 
     @property
@@ -823,6 +825,21 @@ class Order(ListingTimingMixin, models.Model):
         return bool(legs) and not all(leg.deposit_verified for leg in legs)
 
     @property
+    def show_dropoff_card(self) -> bool:
+        """Buyer's Drop-Off Address card: visible while a leg still needs the
+        address (awaiting drop-off) or carries a later-step ACTION (arrival
+        pickup/reship, refund). Hidden through the pure in-transit states
+        (dropped_off, weight_verified, package_received) where only the now-stale
+        address would remain."""
+        no_action = {"package_dropped_off", "weight_verified", "package_received"}
+        for leg in self.confirmed_legs:
+            if not leg.leg_status:  # awaiting drop-off → the address is still needed
+                return True
+            if not leg.is_reship_flow and leg.leg_status not in no_action and not leg.second_deposit_due:
+                return True
+        return False
+
+    @property
     def buyer_payments(self) -> list:
         """Payment rows for the buyer's Payments card, oldest first.
 
@@ -855,6 +872,14 @@ class Order(ListingTimingMixin, models.Model):
         if self.is_cargo:
             return next((leg.balance_proof_url for leg in self.confirmed_legs if leg.balance_proof_url), "")
         return self.balance_proof_url
+
+    @property
+    def custom_duty_proof_url(self) -> str:
+        """Customs-duty receipt link for the buyer's view — cargo settles per leg,
+        proxy at order level. Empty until the traveler uploads the receipt."""
+        if self.is_cargo:
+            return next((leg.custom_fare_proof_url for leg in self.confirmed_legs if leg.custom_fare_proof_url), "")
+        return self.custom_fare_proof.url if self.custom_fare_proof else ""
 
     @property
     def pending_offers(self) -> list:

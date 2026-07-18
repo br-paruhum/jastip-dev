@@ -28,6 +28,7 @@ from .forms import (
     AWBForm,
     BuyRequestForm,
     CargoItemFormSet,
+    CargoItemEditFormSet,
     CarrierRateForm,
     CustomFareForm,
     LegCustomFareForm,
@@ -41,6 +42,7 @@ from .forms import (
     RefundBankForm,
     ReshipmentCostForm,
     RequestItemFormSet,
+    RequestItemEditFormSet,
     ReviewForm,
     ReviewItemFormSet,
     TravelerOfferForm,
@@ -507,7 +509,7 @@ def order_edit(request, pk):
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
     else:
         form = OrderForm(instance=order, proxy=proxy)
-        ItemFormSet = RequestItemFormSet if proxy is not None else CargoItemFormSet
+        ItemFormSet = RequestItemEditFormSet if proxy is not None else CargoItemEditFormSet
         formset = ItemFormSet(instance=order, prefix="bf_items")
     from apps.accounts.views import _resolve_role, _proxy_buying_orders
     return render(request, "trips/order_form.html",
@@ -990,7 +992,9 @@ def offer_edit(request, pk):
                 messages.error(request, f"{field}: {err}")
     else:
         form = TravelerOfferForm(instance=offer)
-    return render(request, "trips/offer_edit.html", {"form": form, "offer": offer})
+    from apps.accounts.views import _resolve_role
+    return render(request, "trips/offer_edit.html",
+                  {"form": form, "offer": offer, "role": _resolve_role(request)})
 
 
 # --- Buyer: select a pending offer (single or partial-multi) ----------------
@@ -1286,7 +1290,7 @@ def leg_arrived(request, pk):
     offer.order.recompute_status()
     messages.success(
         request,
-        "Marked as arrived. The buyer will reimburse any customs duty and settle the balance, then choose pickup or reship.",
+        "Customs duty amount sent",
     )
     return redirect(detail_url)
 

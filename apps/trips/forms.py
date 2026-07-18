@@ -273,7 +273,7 @@ class TravelerOfferForm(forms.ModelForm):
             "avail_kg": forms.NumberInput(
                 attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 5.0"}
             ),
-            "drop_off_address": forms.Textarea(attrs={"rows": 2, "placeholder": "Where the buyer should drop off the package"}),
+            "drop_off_address": forms.Textarea(attrs={"rows": 4, "placeholder": "Where the buyer should drop off the package"}),
             "travel_date": DATE_INPUT,
             "travel_time": TIME_INPUT,
         }
@@ -457,6 +457,10 @@ class OrderItemForm(forms.ModelForm):
             "unit": forms.TextInput(attrs={"placeholder": "pcs"}),
             "estimated_unit_cost": ThousandSeparatorNumberInput(attrs={"placeholder": "Unit price"}),
             "buyer_note": forms.TextInput(attrs={"placeholder": "Notes for this product (optional)"}),
+            # Plain FileInput (not ClearableFileInput) — the existing photo is
+            # surfaced as a "View Product Photo" button in the template instead of
+            # Django's default "Currently: <link> Clear" markup.
+            "photo": forms.FileInput(attrs={"accept": "image/png,image/jpeg"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -503,6 +507,17 @@ class CargoItemForm(OrderItemForm):
 CargoItemFormSet = inlineformset_factory(
     Order, RequestItem, form=CargoItemForm,
     extra=3, max_num=10, validate_max=True, can_delete=True,
+)
+
+# Edit variants: extra=0 so editing an order shows only its existing items, not a
+# stack of blank spare rows ("+ Add Product" still adds more client-side).
+CargoItemEditFormSet = inlineformset_factory(
+    Order, RequestItem, form=CargoItemForm,
+    extra=0, max_num=10, validate_max=True, can_delete=True,
+)
+RequestItemEditFormSet = inlineformset_factory(
+    Order, RequestItem, form=RequestItemForm,
+    extra=0, max_num=10, validate_max=True, can_delete=True,
 )
 
 # Traveler sets the estimated cost of each item when reviewing.

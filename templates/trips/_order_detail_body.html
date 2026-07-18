@@ -8,7 +8,7 @@
 
 {# Pay First Deposit — buyer-only, shown only while the deposit is DUE (hidden once deposit_pending, Step 5A.2B). #}
 {% if is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
   {# #Step-5A.1B-Buyer — bank details + Submit Proof (moved out of the Notes card). #}
@@ -35,7 +35,7 @@
 {% if is_order_buyer and bf_order.is_cargo %}
 {% for leg in bf_order.confirmed_legs %}
 {% if not leg.deposit_pending and not leg.deposit_verified %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
   {# #Step-5A.1B-Buyer — bank details + Submit Proof. The accepted ask and the amount breakdown live in the Order Details card. #}
@@ -59,12 +59,14 @@
 
 {# Drop-Off Address — buyer-only, once the deposit clears (Step 5A.3BC). Only the address: the money lives in Pay First Deposit / Payments, "what happens next" lives in the Notes. #}
 {# Open while the buyer still needs the address; folds itself away once the package is handed over. #}
-{% if is_order_buyer and bf_order.confirmed_legs and not bf_order.cargo_awaiting_deposit %}
-<details class="card fold mt-2"{% if bf_order.awaiting_dropoff %} open{% endif %}>
+{% if is_order_buyer and not bf_order.cargo_awaiting_deposit and bf_order.show_dropoff_card %}
+<details class="card fold mt-2">
   <summary><h3>Drop-Off Address</h3></summary>
   <div class="fold-body">
   <div style="display:flex;flex-direction:column;gap:16px">
     {% for leg in bf_order.confirmed_legs %}
+    {# Address only until the package is handed over — once the leg moves (dropped off / received / arrived) it's no longer needed. #}
+    {% if not leg.leg_status %}
     <div>
       {# pre-wrap keeps the traveler's own line breaks — the field is a 2-row textarea, so the address arrives multi-line. #}
       {% if leg.address_revealed %}
@@ -73,6 +75,7 @@
         <span class="muted">Hidden until deposit clears</span>
       {% endif %}
     </div>
+    {% endif %}
 
     {# The LATER leg steps (refund bank details, Pickup/Reship choice) still live here until each is split into its own card — hidden until the leg actually moves. The second deposit and the whole reship phase have their own cards; the weight and duty figures this used to repeat live in Order Details. #}
     {# Only the states that need an ACTION from the buyer. dropped_off / weight_verified / package_received are pure status — the Notes card says where the package is, so a "Next Step: Received by carrier" row is just noise. #}
@@ -161,7 +164,8 @@
 {# Pay Second Deposit (Cargo) — buyer-only, per-leg. Like Pay First Deposit, it disappears the moment the proof is submitted: the Payments card carries the pending row and the View Second Deposit Proof button from there. The figures behind the amount live in Order Details. #}
 {% if is_order_buyer and bf_order.is_cargo %}
 {% for leg in bf_order.confirmed_legs %}
-{% if leg.second_deposit_due and not leg.balance_pending %}
+{# Only once the package has arrived (Step 8A-2B) — before that the weight-delta alone can make extra_due>0, but customs duty isn't set until arrival. #}
+{% if leg.leg_status == "package_arrived" and leg.second_deposit_due and not leg.balance_pending %}
 <details class="card fold mt-2" open>
   <summary><h3>Pay Second Deposit</h3></summary>
   <div class="fold-body">
@@ -187,7 +191,7 @@
 {# Package Received Confirmation — buyer-only, pickup path; sits under Notes at ready_for_pickup. #}
 {% if is_order_buyer and bf_order.status == "ready_for_pickup" and bf_order.delivery_preference != "reship" %}
 {% if not bf_order.is_proxy_buyer_first or bf_order.custom_fare_proof %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Package Received Confirmation</h3></summary>
   <div class="fold-body">
   {# #Step-10A.2B-Buyer traveler contact + #Step-15.2-Buyer Confirm Received (moved from the Notes card). #}
@@ -218,9 +222,17 @@
   {% endif %}
 {% endif %}
 
-<div class="card mt-2"><div class="card-body">
+<details class="card fold mt-2">
+  <summary><h3>Order Details</h3></summary>
+  <div class="fold-body">
+  {% if bf_order.is_cargo %}
+  {# Print docs — right-aligned, padded off the header. Edit/Cancel live at the card bottom. #}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:14px">
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' bf_order.id %}" target="_blank">Print Box Label</a>
+  </div>
+  {% endif %}
   <table class="invoice">
-    <tr class="title-band"><td colspan="2">Order Details</td></tr>
     {% if bf_order.is_cargo %}<tr><td>Type</td><td class="num-right">{{ bf_order.actor_label }}</td></tr>{% endif %}
     {% if bf_order.max_acceptable_date %}<tr><td>Deadline</td><td class="num-right">{{ bf_order.max_acceptable_date|date:"d-M-Y" }}</td></tr>{% endif %}
     {# The buyer declares one Weight; the rate comes from the Carrier's Offer, so there is no bid price/partial split to show. #}
@@ -278,31 +290,9 @@
   </div>
   {% endif %}{% endfor %}
   {% endif %}
-</div></div>
-
-{% if bf_order.photos.all %}
-<div class="card mt-2"><div class="card-body">
-  <h3 style="margin-top:0">Reference Photos</h3>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    {% for p in bf_order.photos.all %}
-    <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Reference photo {{ forloop.counter }}" style="width:96px;height:96px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
-    {% endfor %}
-  </div>
-</div></div>
-{% endif %}
-
-{% if bf_order.is_cargo %}
-<div class="card mt-2"><div class="card-body">
-  {# Same print-button treatment as the Invoice card below (Send Buy Order format). #}
-  {# gap 12px handles the wrapped case: on a narrow screen the buttons drop under the heading and still clear it. #}
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
-    <h3 style="margin-top:0;margin-bottom:0">Items</h3>
-    <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' bf_order.id %}" target="_blank">Print Box Label</a>
-    </span>
-  </div>
-  <div class="table-wrap">
+  {# Items — merged into Order Details (cargo). Print lives in the header row; Edit/Cancel at the bottom. #}
+  {% if bf_order.is_cargo %}
+  <div class="table-wrap" style="margin-top:14px">
     <table class="invoice inv2">
       <thead>
         <tr>
@@ -341,8 +331,16 @@
     </form>
   </div>
   {% endif %}
-</div></div>
-{% else %}
+  {% if bf_order.custom_duty_proof_url %}
+  <div style="text-align:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <a href="{{ bf_order.custom_duty_proof_url }}" target="_blank" class="btn btn-primary btn-sm">View Duty Receipt</a>
+  </div>
+  {% endif %}
+  {% endif %}
+  </div>
+</details>
+
+{% if not bf_order.is_cargo %}
 {% if estimate_order %}
 {# Proxy sends/edits the estimate inline here — merged from the former ?estimate= sub-panel. #}
 {% include "trips/_proxy_estimate_body.html" %}
@@ -490,7 +488,7 @@
      w/o balance_pending, ...). -->
 {# buyer_payments covers both flows: order-level (proxy) and per-leg (cargo). Cargo opens by default — it replaces the Pay First Deposit card the moment proof is submitted. #}
 {% if is_order_buyer and bf_order.buyer_payments %}
-<details class="card fold mt-2"{% if bf_order.is_cargo or bf_order.deposit_pending or bf_order.status == "deposit_paid" or bf_order.balance_pending or bf_order.status == "ready_for_pickup" %} open{% endif %}>
+<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">
@@ -522,7 +520,7 @@
 
 {# Proxy sees their disbursement only after the buyer has received (cleared); staff see it earlier to release funds. #}
 {% if bf_order.is_proxy_buyer_first and bf_order.items_actual_total and user.is_staff or bf_order.is_proxy_buyer_first and is_order_proxy and bf_order.buyer_cleared %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">
@@ -552,7 +550,7 @@
 </details>{% endif %}
 
 {% if is_order_buyer and assignment_rows %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Split Goods Across Carriers{% if bf_order.assignment_locked %} <span class="badge badge-muted">Locked — in transit</span>{% elif bf_order.needs_item_assignment %} <span class="badge badge-warning">Do this before drop-off</span>{% else %} <span class="badge badge-success">Done</span>{% endif %}</h3></summary>
   <div class="fold-body">
   {% if bf_order.assignment_locked %}

@@ -166,12 +166,23 @@ section { padding: 56px 0; }
 
 /* --- Foldable card (accordion) --- */
 details.fold > summary { list-style: none; cursor: pointer; padding: 20px; display: flex; align-items: center;
-  justify-content: space-between; gap: 12px; user-select: none; }
+  justify-content: center; gap: 12px; user-select: none; position: relative; background: var(--cream); }
 details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary h3 { margin: 0; }
-details.fold > summary::after { content: "\25BE"; color: var(--muted); font-size: .9rem; transition: transform .2s ease; }
+details.fold > summary::after { content: "\25BE"; color: var(--muted); font-size: .9rem; transition: transform .2s ease;
+  position: absolute; right: 20px; }
 details.fold:not([open]) > summary::after { transform: rotate(-90deg); }
-details.fold > .fold-body { padding: 0 20px 20px; }
+details.fold > .fold-body { padding: 16px 20px 20px; }
+/* First element sits a consistent 16px below the cream header regardless of its
+   own top margin (a <p>-first card would otherwise double up). */
+details.fold > .fold-body > :first-child { margin-top: 0; }
+
+/* Notes/guidance card, fixed-open (not foldable). Cream centered header; the
+   step codes in the bottom-right of each note render at 85%. */
+.notes-card .notes-head { background: var(--cream); text-align: center; padding: 20px; }
+.notes-card .notes-head h3 { margin: 0; font-size: 1.15rem; color: var(--slate); }
+.notes-card > .fold-body { padding: 20px; }
+.fold-body span[style*="text-align: right"] { font-size: 85%; }
 /* Notes/guidance card: soft-clay header, always the first card on a detail view
    and expanded on load (see the `open` attribute in _order_notes.html). */
 details.notes-fold > summary { background: var(--cream); }
@@ -353,7 +364,7 @@ table.invoice tr.title-band td { background: var(--cream); text-align: center; f
 .chat-photo { margin-top: 6px; max-width: 180px; border-radius: 6px; border: 1px solid var(--line); }
 /* Per-counterpart message boxes (Phase 9): each counterpart is its own
    "Messages" fold card, titled "Messages" with a smaller brown "→ with X" line. */
-.chat-title { display: flex; flex-direction: column; gap: 1px; }
+.chat-title { display: flex; align-items: baseline; gap: 8px; }
 .chat-box-head { font-size: .82rem; font-weight: 700; color: var(--clay-dark); margin: 0; }
 
 .invoice { width: 100%; border-collapse: collapse; }

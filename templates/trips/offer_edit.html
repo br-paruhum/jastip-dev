@@ -3,17 +3,17 @@
 {% block title %}Edit offer — {{ SITE_NAME }}{% endblock %}
 {% block content %}
 <section>
-  <div class="container" style="max-width:620px">
+  <div class="container">
     <span class="eyebrow">Edit Offer · {{ offer.order.reference }}</span>
     <h1>Edit Your Offer</h1>
-    <p class="muted">Bid {{ offer.order.bid_weight_kg|floatformat:1 }} kg @ {{ offer.order.currency }} {{ offer.order.bid_cost_per_kg|by_currency:offer.order.currency }}/kg ·
-      Deadline {{ offer.order.max_acceptable_date|date:"d-M-Y" }}. You can edit until the buyer selects your offer.</p>
-
-    <form method="post" class="card" style="margin-top:18px">
+    <div class="profile-layout mt-2">
+      <div class="profile-main">
+    {% include "trips/_order_notes.html" with note_order=offer.order note_role="carrier" leg_offer=offer %}
+    <form method="post" class="card mt-2">
       {% csrf_token %}
       <div class="card-body">
         <div class="card-band-row">Offer Details</div>
-        <div class="form-row">
+        <div class="form-row" style="margin-top:18px">
           <div class="form-field"><label>Your Rate per kg</label>{{ form.ask_cost_per_kg }}{{ form.ask_cost_per_kg.errors }}</div>
           <div class="form-field"><label>Avail (kg)</label>{{ form.avail_kg }}{{ form.avail_kg.errors }}</div>
         </div>
@@ -39,6 +39,9 @@
         </div>
       </div>
     </form>
+      </div>
+      {% include "_account_side_nav.html" with active_nav="travel-plans" %}
+    </div>
   </div>
 </section>
 {% endblock %}

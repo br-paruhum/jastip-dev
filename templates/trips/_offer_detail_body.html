@@ -13,7 +13,7 @@
 
 {# Process Customs Duty (Cargo) — the arrival action, moved out of the Notes card (Step 8A.1T). Gated on travel_date_passed, not leg_status: the leg stays package_received right through the flight, so status alone would show this before departure. #}
 {% if leg_offer.order.is_cargo and leg_offer.leg_status == "package_received" and leg_offer.travel_date_passed %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Process Customs Duty</h3></summary>
   <div class="fold-body">
   {# No intro line: the Notes card ([8A-1T]) already says what this step is for. #}
@@ -54,7 +54,7 @@
 {# Hand Over Package (Cargo) — the weigh + drop-off action, moved out of the Notes card (Step 5A.3TC). Shown once the buyer's deposit clears and until the drop-off is recorded. #}
 {% if leg_offer.order.is_cargo and leg_offer.offer_status == "selected" and not leg_offer.leg_status and leg_offer.deposit_verified %}
 {% if not leg_offer.order.is_multi_leg_cargo or leg_offer.order.items_fully_assigned %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Hand Over Package</h3></summary>
   <div class="fold-body">
   <p class="help" style="margin:0 0 10px">Weigh the package in front of the buyer, enter the final weight, and mark the drop-off — this weight is final and not subject to dispute.</p>
@@ -73,7 +73,7 @@
 
 {# Package Received Confirmation — action moved out of the Notes tab (Step-6.2). #}
 {% if not leg_offer.order.is_cargo and leg_offer.offer_status == "pending" and leg_offer.order.status == "items_purchased" and leg_offer.order.is_proxy_buyer_first %}
-<details class="card fold notes-fold mt-2" open>
+<details class="card fold notes-fold mt-2">
   <summary><h3>Package Received Confirmation</h3></summary>
   <div class="fold-body">
   <form method="post" action="{% url 'trips:request_receive' leg_offer.order_id %}">
@@ -103,25 +103,39 @@
 {% endif %}
 
 {% if leg_offer.order.is_cargo %}
-<div class="card mt-2"><div class="card-body">
-  {# Heading left, prints right — same treatment as the buyer's Items card. #}
-  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
-    <h3 style="margin-top:0;margin-bottom:0">Allocated Weight Details</h3>
-    <span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' leg_offer.order_id %}" target="_blank">Print Packing List</a>
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}{% if leg_offer.order.is_multi_leg_cargo %}?leg={{ leg_offer.id }}{% endif %}" target="_blank">Print Customs Invoice</a>
-      <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' leg_offer.order_id %}" target="_blank">Print Box Label</a>
-    </span>
+<details class="card fold mt-2">
+  <summary><h3>Allocated Weight Details</h3></summary>
+  <div class="fold-body">
+  {# Prints — right-aligned, padded off the header (same treatment as the buyer's Order Details). #}
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:14px">
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' leg_offer.order_id %}" target="_blank">Print Packing List</a>
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_customs_invoice' leg_offer.order_id %}{% if leg_offer.order.is_multi_leg_cargo %}?leg={{ leg_offer.id }}{% endif %}" target="_blank">Print Customs Invoice</a>
+    <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' leg_offer.order_id %}" target="_blank">Print Box Label</a>
   </div>
   <table class="invoice">
     <tr><td>Travel date</td><td class="num-right">{{ leg_offer.travel_date|date:"d-M-Y" }}{% if leg_offer.travel_time %} {{ leg_offer.travel_time|time:"H:i" }}{% endif %}</td></tr>
-    <tr><td>Allocated weight</td><td class="num-right">{{ leg_offer.allocated_weight_kg|default:leg_offer.avail_kg|floatformat:1 }} kg</td></tr>
+    <tr><td>Available weight</td><td class="num-right">{{ leg_offer.avail_kg|floatformat:1 }} kg</td></tr>
+    {% if leg_offer.agreed_weight_kg %}
+    <tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg|floatformat:1 }} kg</td></tr>
+    {% else %}
+    <tr><td>Cargo weight</td><td class="num-right">{{ leg_offer.order.bid_weight_kg|floatformat:1 }} kg</td></tr>
+    {% endif %}
     <tr><td>Your ask rate</td><td class="num-right">{{ leg_offer.order.currency }} {{ leg_offer.ask_cost_per_kg|by_currency:leg_offer.order.currency }} / kg</td></tr>
     <tr><td>Drop-off deadline</td><td class="num-right">{{ leg_offer.drop_off_deadline|date:"d-M-Y" }}</td></tr>
     {# No Deposit row: the Notes card already states the deposit state ([5A-1T] / [5A-2T]). #}
-    {% if leg_offer.agreed_weight_kg %}<tr><td>Final weight</td><td class="num-right">{{ leg_offer.agreed_weight_kg|floatformat:1 }} kg</td></tr>{% endif %}
   </table>
-</div></div>
+  {% if leg_offer.can_edit %}
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;border-top:1px solid var(--line);padding-top:14px;flex-wrap:wrap">
+    <a class="btn btn-primary btn-sm" href="{% url 'trips:offer_edit' leg_offer.id %}">Edit</a>
+    <form method="post" action="{% url 'trips:offer_withdraw' leg_offer.id %}" style="display:inline-block"
+          onsubmit="return confirm('Cancel this offer? It will be withdrawn from the buyer.');">
+      {% csrf_token %}
+      <button class="btn btn-outline-clay btn-sm" type="submit">Cancel</button>
+    </form>
+  </div>
+  {% endif %}
+  </div>
+</details>
 {% else %}
 <!-- Products (proxy buying): the carrier only CARRIES the goods — they do not
      source or pay for them. They must NOT see the product costs, margin, or the
@@ -190,7 +204,7 @@
 </div></div>
 
 {% if leg_offer.order.traveler_payout_ready and leg_offer.order.transaction %}
-<details class="card fold mt-2" open>
+<details class="card fold mt-2">
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">
@@ -260,14 +274,3 @@
 {% endif %}
 
 {% include "trips/_chat_thread.html" with chat_obj=leg_offer.order hide_chat_intro=True %}
-
-{% if leg_offer.can_edit and leg_offer.order.is_cargo %}
-<div class="mt-2" style="text-align:center">
-  <a class="btn btn-primary" href="{% url 'trips:offer_edit' leg_offer.id %}">Edit</a>
-  <form method="post" action="{% url 'trips:offer_withdraw' leg_offer.id %}" style="display:inline-block;margin-left:32px"
-        onsubmit="return confirm('Cancel this offer? It will be withdrawn from the buyer.');">
-    {% csrf_token %}
-    <button class="btn btn-outline" type="submit">Cancel</button>
-  </form>
-</div>
-{% endif %}

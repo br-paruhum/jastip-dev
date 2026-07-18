@@ -6,26 +6,27 @@
   <div class="container">
     <span class="eyebrow">{% if carrier_plan %}CARRIER-FIRST · ORDER{% elif proxy %}PROXY BUYING PROCESS START{% else %}Buyer · Cargo Order{% endif %}</span>
     <h1>{% if not carrier_plan and not proxy %}Create Cargo Order{% else %}Post an Order{% endif %}</h1>
-    {% if not carrier_plan and not proxy %}
-    <p class="muted">You already have the goods — post your route, items and total weight, and carriers will respond with offers.</p>
-    {% endif %}
     <div class="profile-layout mt-2">
       <div class="profile-main">
     {# Notes/guidance card — always first, always expanded, soft-clay header. #}
-    <details class="card fold notes-fold" open style="margin-bottom:16px">
-      <summary><h3>Notes</h3></summary>
+    <div class="card notes-card" style="margin-bottom:16px">
+      <div class="notes-head"><h3>Notes</h3></div>
       <div class="fold-body">
       {% if proxy %}
         {# #Step-1A.1B-Buyer — proxy-buying order creation form #}
         <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
 		<span style="display: block; text-align: right;">[1A-1B]</span>
+      {% elif is_edit %}
+        {# #Step-1A.3BC-Buyer — editing an already-listed cargo order #}
+        <p class="muted">Your cargo order has been listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a>, please Save Changes after making any updates.</p>
+        <span style="display: block; text-align: right;">[1A-3BC]</span>
       {% else %}
         {# #Step-1A.1BC-Buyer — buyer-first cargo order creation form #}
-        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for the reship cost directly to the traveler.</li><li>After you click “Send Cargo Order”, the Order will be listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a> table on the home page.</li><li>You still can edit this Order later before a traveler send an Offer and you accept it.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li><li>Beside of shipment rate offered by the traveler, you will be charge by 2.5% platform fee.</li></ul>
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for reshipment cost directly to the traveler.</li><li>After you click “Send Cargo Order”, the Order will be listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a>.</li><li>You still can edit this Order later before a traveler send an Offer and you accept it.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li></ul>
         <span style="display: block; text-align: right;">[1A-1BC]</span>
       {% endif %}
       </div>
-    </details>
+    </div>
     <form method="post" enctype="multipart/form-data" class="card">
       {% csrf_token %}
       {% if proxy %}<input type="hidden" name="proxy" value="{{ proxy.id }}">{% endif %}
@@ -86,7 +87,9 @@
               <p class="help">Price for this item — needed for the customs invoice.</p>
               <div class="form-field"><label>Notes</label>{{ item_form.buyer_note }}{{ item_form.buyer_note.errors }}</div>
               <div class="form-field">
-                <label>Product Photo</label>{{ item_form.photo }}{{ item_form.photo.errors }}
+                <label>Product Photo</label>
+                {% if item_form.instance.photo %}<a href="{{ item_form.instance.photo.url }}" target="_blank" class="btn btn-primary btn-sm" style="margin-bottom:6px">View Product Photo</a><br>{% endif %}
+                {{ item_form.photo }}{{ item_form.photo.errors }}
                 <p class="help">Required — jpeg, jpg or png, max 2 MB.</p>
               </div>
               {% endif %}
@@ -132,15 +135,19 @@
           {% if order and order.photos.all %}
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
             {% for p in order.photos.all %}
+            {% if proxy %}
             <a href="{{ p.image.url }}" target="_blank"><img src="{{ p.image.url }}" alt="Order photo {{ forloop.counter }}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--cream)"></a>
+            {% else %}
+            <a href="{{ p.image.url }}" target="_blank" class="btn btn-primary btn-sm">View Box Photo{% if not forloop.first %} {{ forloop.counter }}{% endif %}</a>
+            {% endif %}
             {% endfor %}
           </div>
           {% endif %}
-          <input type="file" name="order_photos" id="order-photos" accept="image/*" multiple>
+          <input type="file" name="order_photos" id="order-photos" accept="image/*"{% if proxy %} multiple{% endif %}{% if not proxy and not order.photos.all %} data-required="1"{% endif %}>
           {% if proxy %}
           <p class="help">Optional — attach up to 10 photos (jpeg, jpg, png).</p>
           {% else %}
-          <p class="help">Required — photo before box/luggage is closed. Attach up to 10 photos (jpeg, jpg, png).</p>
+          <p class="help">Required — photo before box/luggage is closed.</p>
           {% endif %}
         </div>
         {% if not proxy %}</div>{% endif %}
@@ -229,6 +236,18 @@
         alert('You can attach at most 10 photos. Only the first 10 will be uploaded.');
       }
     });
+    // Gate the box/luggage photo client-side so a miss doesn't reload the page
+    // (a reload wipes the already-selected product photos — file inputs can't be
+    // repopulated by the server).
+    if (photoInput.dataset.required === '1' && photoInput.form) {
+      photoInput.form.addEventListener('submit', function (e) {
+        if (photoInput.files.length === 0) {
+          e.preventDefault();
+          alert('Please attach the Box/Luggage Photo before sending your order.');
+          photoInput.focus();
+        }
+      });
+    }
   }
 })();
 </script>
