@@ -1779,7 +1779,17 @@ class ProxyOfferSpareCapacityTests(TestCase):
         self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("4.00"))
         self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("16.00"))  # 20 − 4
 
-    def test_capacity_released_when_closed(self):
+    def test_capacity_stays_consumed_when_closed(self):
+        # The goods were actually carried — that capacity is permanently consumed
+        # and must NOT return to Avail when the order closes (it used to release).
         self.order.status = Status.CLOSED
         self.order.save(update_fields=["status"])
+        self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("4.00"))
+        self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("16.00"))
+
+    def test_capacity_released_when_cancelled(self):
+        # Cancelled orders were never carried — capacity returns to Avail.
+        self.order.status = Status.CANCELLED
+        self.order.save(update_fields=["status"])
         self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("0.00"))
+        self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("20.00"))

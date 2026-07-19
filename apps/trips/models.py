@@ -1870,6 +1870,27 @@ class Order(ListingTimingMixin, models.Model):
         )
 
     @property
+    def board_payout_at(self):
+        """When the final admin payout for this order was released — the reference
+        point for how long a delivered order lingers on the Queuing Cargo board.
+        Latest of the proxy disbursement, the traveler payout, and per-leg payouts
+        (cargo). None until admin has paid someone out."""
+        stamps = [self.proxy_disbursed_at, self.proxy_second_disbursed_at,
+                  self.traveler_paid_at]
+        stamps += [leg.payout_paid_at for leg in self.confirmed_legs]
+        stamps = [t for t in stamps if t]
+        return max(stamps) if stamps else None
+
+    def lingers_on_cargo_board(self, within_days: int = 30) -> bool:
+        """A delivered order (CLEAR/CLOSED) stays on the Queuing Cargo board as a
+        Received / Closed record for `within_days` after admin released the payout,
+        then drops off. Both proxy Flow-1 and cargo Flow-2."""
+        if self.status not in {Status.CLEAR, Status.CLOSED}:
+            return False
+        at = self.board_payout_at
+        return bool(at and timezone.now() - at <= timedelta(days=within_days))
+
+    @property
     def unpaid_amount(self) -> Decimal:
         return self._q(self.invoice_total - self.amount_paid)
 

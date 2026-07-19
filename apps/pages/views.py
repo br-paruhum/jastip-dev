@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from datetime import date
+from datetime import date, timedelta
 from functools import lru_cache
 from pathlib import Path
 
@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.blog.models import Post
@@ -86,6 +87,27 @@ def home(request):
             o.board_state = "partial" if o.confirmed_legs else "open"
             o.is_locked_fcfs = False
             o.can_offer = (not request.user.is_authenticated or o.buyer_id != request.user.id)
+        cargo_looking.append(o)
+
+    # Recently delivered orders linger on the board for 30 days after the admin
+    # payout, shown as Received / Closed (both proxy Flow-1 and cargo Flow-2).
+    # ponytail: DB bound on cleared_at (payout follows clear) keeps this cheap;
+    # the exact 30-days-from-payout cut is done in Python via lingers_on_cargo_board.
+    linger_cutoff = timezone.now() - timedelta(days=45)
+    for o in (
+        Order.objects.filter(
+            plan__isnull=True, carrier_first_plan__isnull=True,
+            status__in={Status.CLEAR, Status.CLOSED},
+            cleared_at__gte=linger_cutoff,
+        ).select_related("buyer").prefetch_related("traveler_offers")
+    ):
+        if not o.lingers_on_cargo_board():
+            continue
+        legs = o.confirmed_legs
+        o.board_weight = (sum(l.final_weight_kg for l in legs)
+                          if o.is_cargo and legs else o.effective_weight_kg)
+        o.board_state = "received"
+        o.is_locked_fcfs, o.can_offer = True, False
         cargo_looking.append(o)
 
     cargo_looking.sort(key=lambda o: o.max_acceptable_date or date.max)

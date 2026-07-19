@@ -21,7 +21,9 @@
         </td>
         <td class="avail-cell">{{ o.board_weight|floatformat:1 }}</td>
         <td class="status-cell">
-          {% if o.board_state == "covered" %}
+          {% if o.board_state == "received" %}
+            {% include "trips/_status_badge.html" with status="received" label="Received" tone="success" %}
+          {% elif o.board_state == "covered" %}
             {% include "trips/_status_badge.html" with status="covered" label="Covered" tone="success" %}
           {% elif o.board_state == "partial" %}
             {% include "trips/_status_badge.html" with status="partial" label="Partial" tone="warning" %}
@@ -32,7 +34,9 @@
           {% endif %}
         </td>
         <td class="action-cell">
-          {% if o.is_locked_fcfs %}
+          {% if o.board_state == "received" %}
+            <span class="btn btn-sm btn-blocked">Closed</span>
+          {% elif o.is_locked_fcfs %}
             <span class="btn btn-sm btn-blocked" title="A carrier is already handling this cargo">Locked</span>
           {% elif o.can_offer %}
             <a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ o.id }}#offer-form">Send Offer</a>

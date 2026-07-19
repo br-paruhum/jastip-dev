@@ -34,8 +34,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Buyers Find Match Traveler Here</span>
-      <h2>1. Queuing Traveler's Offers</h2>
-      <p>Buyer find an offer that meets your route and date to Send an Order, otherwise select one from "2. Proxy Buyer List" table below.</p>
+      <h2>Traveler's Offers List</h2>
+      <p>Buyer find an offer that meets your route and date to Send an Order, otherwise select one from "Proxy Buyer List" below.</p>
     </div>
     {% include "pages/_home_carrier_queue_table.html" with queuing_carriers=queuing_carriers empty_msg="No queuing carriers exist for now." %}
   </div>
@@ -46,8 +46,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Buyers Initiate Order Here</span>
-      <h2>2. Proxy Buyers List</h2>
-      <p>Select a Proxy Buyer here. After you accept the the cost and weight estimates from the Proxy Buyer, your order will be listed on "3. Queuing Buyer's Cargo" table below awaiting for Traveler to send their Offer.</p>
+      <h2>Proxy Buyers List</h2>
+      <p>Select a Proxy Buyer here. After you accept the the cost and weight estimates from the Proxy Buyer, your order will be listed on "Buyer's Cargo List" below awaiting for Traveler to send their Offer.</p>
     </div>
     {% include "pages/_home_proxy_table.html" with proxy_buyers=proxy_buyers empty_msg="No proxy buyers available yet." %}
   </div>
@@ -58,8 +58,8 @@
   <div class="container">
     <div class="section-head">
       <span class="eyebrow">Travelers Find Match Buyer's Cargo Here</span>
-      <h2>3. Queuing Buyer's Cargo</h2>
-      <p>Traveler find buyer's cargo that meets your route and date to Send an Offer, otherwise create a new Travel Plan. Your plan will be listed on the "1. Queuing Traveler's Offers" table above.</p>
+      <h2>Buyer's Cargo List</h2>
+      <p>Traveler find buyer's cargo that meets your route and date to Send an Offer, otherwise create a new Travel Plan. Your plan will be listed on the "Traveler's Offers List" above.</p>
     </div>
     {% include "pages/_home_cargo_looking_table.html" with cargo_looking=cargo_looking empty_msg="No queuing cargo exist for now." %}
   </div>
