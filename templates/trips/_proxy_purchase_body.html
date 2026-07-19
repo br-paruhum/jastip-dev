@@ -14,9 +14,19 @@ _order_notes.html include) so hand-edits to that file can't clobber the
   <summary><h3>Notes</h3></summary>
   <div class="fold-body">
   {% if package_ready_order.status == "items_purchased" %}
-  {# #Step-6.3-Proxy — reopened via "Edit Order Data" after Mark Package Ready #}
-  <p class="muted">You have marked package ready. Click Update Package Details after you have made any changes.</p>
-  <span style="display: block; text-align: right;">[6A-3P]</span>
+    {% if package_ready_order.carrier_first_plan_id %}
+    {# #Step-T5.3P-Proxy — traveler-first: reopened via "Edit Order Data" after Mark Package Ready #}
+    <p class="muted">You have marked package ready. Click Update Package Details after you have made any changes.</p>
+    <span style="display: block; text-align: right;">[T5-3P]</span>
+    {% else %}
+    {# #Step-6.3-Proxy — reopened via "Edit Order Data" after Mark Package Ready #}
+    <p class="muted">You have marked package ready. Click Update Package Details after you have made any changes.</p>
+    <span style="display: block; text-align: right;">[6A-3P]</span>
+    {% endif %}
+  {% elif package_ready_order.carrier_first_plan_id %}
+  {# #Step-T5.1P-Proxy — traveler-first: proxy fills actual cost + marks package ready #}
+  <p class="muted">Please fill in all Actual Quantity and Unit Cost, Final Total Weight, upload Products photos, upload Box/Luggage photo before it closed. Gather and inserting all products receipts to an envelope, sealed it and put it inside the box/luggage. Please make sure you have Buyer's consent on any product specifications discrepancies, if any. Then select "Mark Package Ready".</p>
+  <span style="display: block; text-align: right;">[T5-1P]</span>
   {% else %}
   {# #Step-6.1-Proxy #}
   <p class="muted">Please fill in all Actual Quantity and Unit Cost, Final Total Weight, upload Products photos, upload Box/Luggage photo before it closed. Gather and inserting all products receipts to an envelope, sealed it and put it inside the box/luggage. Please make sure you have Buyer's consent on any product specifications discrepancies, if any. Then select "Mark Package Ready".</p>

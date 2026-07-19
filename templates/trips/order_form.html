@@ -12,7 +12,11 @@
     <div class="card notes-card" style="margin-bottom:16px">
       <div class="notes-head"><h3>Notes</h3></div>
       <div class="fold-body">
-      {% if proxy %}
+      {% if proxy and carrier_plan %}
+        {# #Step-T2.1B-Buyer — traveler-first: buyer sends Buy Order against a traveler's plan #}
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
+		<span style="display: block; text-align: right;">[T2-1B]</span>
+      {% elif proxy %}
         {# #Step-1A.1B-Buyer — proxy-buying order creation form #}
         <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
 		<span style="display: block; text-align: right;">[1A-1B]</span>

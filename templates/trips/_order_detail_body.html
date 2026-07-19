@@ -519,7 +519,7 @@
      w/o balance_pending, ...). -->
 {# buyer_payments covers both flows: order-level (proxy) and per-leg (cargo). Cargo opens by default — it replaces the Pay First Deposit card the moment proof is submitted. #}
 {% if is_order_buyer and bf_order.buyer_payments %}
-<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url and bf_order.status != "package_received" and not bf_order.pay_second_deposit_due %} open{% endif %}>
+<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url and bf_order.status != "package_received" and bf_order.status != "items_purchased" and not bf_order.pay_second_deposit_due %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">
