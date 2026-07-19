@@ -19,6 +19,8 @@ cert/
 db.sqlite3.bak*
 
 # Local working files (not part of the app)
+.claude/
+scripts/.date-backup/
 jastip-backup/
 how-to/
 new-how-to/

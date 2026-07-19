@@ -436,7 +436,7 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
 .profile-side .side-nav summary.active { background: var(--clay); color: #fff; }
 .profile-side .side-nav summary.active::after { color: rgba(255,255,255,.7); }
 .profile-side .side-nav .side-subnav { list-style: none; margin: 0; padding: 0; background: var(--cream); }
-.profile-side .side-nav .side-subnav a { padding-left: 1.75rem; font-weight: 500; font-size: .92em; }
+.profile-side .side-nav .side-subnav a { padding-left: 1.75rem; font-weight: 700; font-size: .92em; }
 .profile-panel-header { display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 8px; }
 
