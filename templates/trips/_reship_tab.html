@@ -15,7 +15,8 @@ Context:
 Bank details come from the carrier's Credentials profile (traveler_bank_details),
 not per-order.
 {% endcomment %}
-<details class="card fold notes-fold mt-2">
+{# Opens through the active reship steps (collapses once cleared/closed): for the buyer once the traveler submits the duty receipt (reship_requested), and for the carrier once the buyer sets the preferred courier. #}
+<details class="card fold notes-fold mt-2"{% if ro.reship_status != "clear" and ro.reship_status != "closed" and reship_is_buyer or ro.reship_status != "clear" and ro.reship_status != "closed" and not reship_is_buyer and ro.preferred_courier %} open{% endif %}>
   <summary><h3>Reshipment</h3></summary>
   <div class="fold-body">
 

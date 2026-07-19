@@ -485,10 +485,7 @@ Context expected (Django include passes the parent context through):
       {# #Step-14A.0B-Buyer #}
       <p>Package sent. Waiting for the package.</p>
 	  <span style="display: block; text-align: right;">[14A-0B]</span>
-      {# Cargo confirms on the Reshipment card (leg_clear) — request_clear is order-level and would reject a cargo leg. #}
-      {% if not o.is_cargo %}
-      <form method="post" action="{% url 'trips:request_clear' o.id %}" style="text-align:center">{% csrf_token %}<button class="btn btn-primary" type="submit">Confirm Received</button></form>
-      {% endif %}
+      {# Confirm Received lives on the Reshipment card (both flows): request_clear (proxy) / leg_clear (cargo). #}
       {% else %}
       {# #Step-14A.0P-Proxy #}
       <p class="muted">Package sent by the traveler. Your payout will be disbursed after Buyer receive the package.</p>

@@ -1858,6 +1858,18 @@ class Order(ListingTimingMixin, models.Model):
         return p.proof.url if p and p.proof else ""
 
     @property
+    def pay_second_deposit_due(self) -> bool:
+        """Proxy Flow-1: the buyer owes the arrival balance (customs duty + any
+        weight/cost delta) and hasn't submitted proof yet. Gates the order-level
+        Pay Second Deposit card and holds the Payments card closed until then."""
+        return (
+            self.is_proxy_buyer_first
+            and self.status == Status.PACKAGE_ARRIVED
+            and self.balance_extra_due > 0
+            and not self.balance_pending
+        )
+
+    @property
     def unpaid_amount(self) -> Decimal:
         return self._q(self.invoice_total - self.amount_paid)
 

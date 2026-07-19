@@ -189,6 +189,27 @@
 {% endfor %}
 {% endif %}
 
+{# Pay Second Deposit (Proxy, Flow-1) — buyer-only, order-level. Same card as the cargo one above, but the balance lives on the Order (request_pay), not a leg. Appears once the carrier records arrival + customs duty (Step 8A.2B) and disappears when proof is submitted — the Payments card then carries the pending row. #}
+{% if is_order_buyer and bf_order.pay_second_deposit_due %}
+<details class="card fold mt-2" open>
+  <summary><h3>Pay Second Deposit</h3></summary>
+  <div class="fold-body">
+  <p style="margin-top:0">Please pay Second Deposit of <strong>{{ bf_order.currency }} {{ bf_order.balance_extra_due|by_currency:bf_order.currency }}</strong>{% if bf_order.balance_due_now_idr %} or <strong>IDR {{ bf_order.balance_due_now_idr|floatformat:0|intcomma }}</strong>{% endif %} to:</p>
+  <table class="invoice" style="max-width:440px;margin-bottom:8px">
+    <tr><td style="width:120px">Bank Name</td><td>: {{ BANK.bank_name }}</td></tr>
+    <tr><td>Branch</td><td>: {{ BANK.branch }}</td></tr>
+    <tr><td>Account No.</td><td>: <strong>{{ BANK.account_no }}</strong></td></tr>
+    <tr><td>Account Name</td><td>: <strong>{{ BANK.account_name }}</strong></td></tr>
+  </table>
+  <form method="post" action="{% url 'trips:request_pay' bf_order.id %}" enctype="multipart/form-data" style="text-align:center">
+    {% csrf_token %}
+    <div style="margin-bottom:10px"><input type="file" name="proof" accept="image/png,image/jpeg" required></div>
+    <button class="btn btn-primary" type="submit">Submit Transfer Proof</button>
+  </form>
+  </div>
+</details>
+{% endif %}
+
 {# Package Received Confirmation — buyer-only, pickup path; sits under Notes at ready_for_pickup. #}
 {% if is_order_buyer and bf_order.status == "ready_for_pickup" and bf_order.delivery_preference != "reship" %}
 {% if not bf_order.is_proxy_buyer_first or bf_order.custom_fare_proof %}
@@ -498,7 +519,7 @@
      w/o balance_pending, ...). -->
 {# buyer_payments covers both flows: order-level (proxy) and per-leg (cargo). Cargo opens by default — it replaces the Pay First Deposit card the moment proof is submitted. #}
 {% if is_order_buyer and bf_order.buyer_payments %}
-<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url and bf_order.status != "package_received" %} open{% endif %}>
+<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url and bf_order.status != "package_received" and not bf_order.pay_second_deposit_due %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">
@@ -530,7 +551,8 @@
 
 {# Proxy sees their disbursement only after the buyer has received (cleared); staff see it earlier to release funds. #}
 {% if bf_order.is_proxy_buyer_first and bf_order.items_actual_total and user.is_staff or bf_order.is_proxy_buyer_first and is_order_proxy and bf_order.buyer_cleared %}
-<details class="card fold mt-2">
+{# Opens for the proxy once admin releases the disbursement (proof attached, proxy_disbursed_at set). #}
+<details class="card fold mt-2"{% if is_order_proxy and bf_order.proxy_disbursed_at %} open{% endif %}>
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">

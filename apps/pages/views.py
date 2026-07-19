@@ -56,7 +56,7 @@ def home(request):
     ):
         live = [off for off in o.traveler_offers.all()
                 if off.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)]
-        o.board_weight = o.estimated_weight_kg
+        o.board_weight = o.effective_weight_kg  # actual once weighed, else estimate
         if o.status in CARRY_INFLIGHT:
             o.board_state, o.is_locked_fcfs, o.can_offer = "covered", True, False
         else:  # RESPONDED — stay open so more carriers can offer until the

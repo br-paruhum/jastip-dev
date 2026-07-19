@@ -139,8 +139,8 @@
      buyer's settlement. Show only what concerns the carrier: route, travel date,
      the carry fee (shipment rate × weight), and reimbursable customs. The full
      invoice lives on the buyer's order-detail view, not here. -->
-{# Opens on load at Step 6A.2T (package ready) — the carrier checks these against the package before confirming receipt. #}
-<details class="card fold mt-2"{% if leg_offer.order.status == "items_purchased" %} open{% endif %}>
+{# Opens on load at Step 6A.2T (package ready), and again once the buyer's second deposit clears (ready_for_pickup, proxy) so the carrier sees the Upload Duty Receipt button — closes once the receipt is uploaded. #}
+<details class="card fold mt-2"{% if leg_offer.order.status == "items_purchased" or leg_offer.order.status == "ready_for_pickup" and leg_offer.order.is_proxy_buyer_first and not leg_offer.order.custom_fare_proof %} open{% endif %}>
   <summary><h3>Carry Details</h3></summary>
   <div class="fold-body">
   {% if leg_offer.order.status == "items_purchased" or leg_offer.leg_status or leg_offer.order.customs_phase %}
@@ -210,7 +210,8 @@
 </details>
 
 {% if leg_offer.order.traveler_payout_ready and leg_offer.order.transaction %}
-<details class="card fold mt-2">
+{# Opens for the carrier once admin releases the disbursement (proof attached, traveler_paid_at set). #}
+<details class="card fold mt-2"{% if leg_offer.order.traveler_paid_at %} open{% endif %}>
   <summary><h3>Your Disbursement</h3></summary>
   <div class="fold-body">
   <table class="invoice">
