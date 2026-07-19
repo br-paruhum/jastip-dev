@@ -176,7 +176,7 @@
 
           <div id="plan-tables">
             <div class="dash-tables">
-              {% include "accounts/_travel_table.html" with rows=travel_rows empty="No travel plans or offers yet." heading="My Travel Plans" show_create_plan=True %}
+              {% include "accounts/_travel_table.html" with rows=travel_rows empty="No travel plans or offers yet." heading="My Travel Plans" %}
             </div>
             <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
           </div>
@@ -188,9 +188,8 @@
         <div data-panel="my-orders">
 
           <div class="dash-tables">
-            {# Heading-row buttons: Buy Order = pick a Proxy Buyer on the home list; Cargo Order = goods already in hand. #}
-            {% include "accounts/_orders_table.html" with orders=orders_proxy empty="No Buy Orders yet." heading="My Buy Orders" show_create_orders=True %}
-            {% include "accounts/_orders_table.html" with orders=orders_cargo empty="No Cargo orders yet." heading="My Cargo Orders" %}
+            {# Buy + Cargo merged into one table (Type column). Create actions live in the sidebar accordion. #}
+            {% include "accounts/_orders_table.html" with orders=orders_all empty="No orders yet." heading="My Orders" %}
           </div>
           <label class="hide-closed-ctl"><input type="checkbox" class="hide-closed-toggle"> Hide closed items</label>
         </div>
@@ -405,8 +404,21 @@
       <aside class="profile-side">
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
-          {% if role == "traveler" %}<li><a href="#travel-plans" data-tab="travel-plans">My Travel Plans</a></li>{% endif %}
-          {% if role == "buyer" and not user.is_proxy_buyer and not user.is_superuser %}<li><a href="#my-orders" data-tab="my-orders">My Orders</a></li>{% endif %}
+          {% if role == "traveler" %}
+          <li><details class="nav-group">
+            <summary data-tab="travel-plans">My Travel Plans</summary>
+            <ul class="side-subnav"><li><a href="#" id="toggle-plan-form">Create New Plan</a></li></ul>
+          </details></li>
+          {% endif %}
+          {% if role == "buyer" and not user.is_proxy_buyer and not user.is_superuser %}
+          <li><details class="nav-group">
+            <summary data-tab="my-orders">My Orders</summary>
+            <ul class="side-subnav">
+              <li><a href="{% url 'pages:home' %}#proxy-buyers">Create Buy Order</a></li>
+              <li><a href="{% url 'trips:order_create' %}">Create Cargo Order</a></li>
+            </ul>
+          </details></li>
+          {% endif %}
           {% if role == "buyer" and user.is_proxy_buyer %}<li><a href="#proxy-orders" data-tab="proxy-orders">My Proxy Buying</a></li>{% endif %}
           {% if user.is_superuser %}<li><a href="#pending-disbursements" data-tab="pending-disbursements">Pending Disbursement</a></li>{% endif %}
           <li><a href="#reset-password" data-tab="reset-password">Reset Password</a></li>
@@ -477,7 +489,9 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   }
   links.forEach(function (l) {
     l.addEventListener('click', function (e) {
-      e.preventDefault();
+      // Accordion summaries keep their native open/close toggle; only anchors
+      // need their default (hash jump / navigation) cancelled.
+      if (l.tagName !== 'SUMMARY') e.preventDefault();
       activate(l.dataset.tab);
       // Drop any ?plan/?order/?offer detail query so the chosen tab sticks on
       // reload (the query now outranks the hash).
@@ -528,8 +542,12 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
     alignSide();
   }
   if (toggle && wrap) {
-    toggle.addEventListener('click', function () {
-      setPlanFormOpen(wrap.style.display === 'none');
+    // "Create New Plan" now lives in the sidebar accordion: switch to the
+    // Travel Plans panel first (in case another tab is showing), then open the form.
+    toggle.addEventListener('click', function (e) {
+      e.preventDefault();
+      activate('travel-plans');
+      setPlanFormOpen(true);
     });
   }
   var cancelPlan = document.getElementById('cancel-plan-form');

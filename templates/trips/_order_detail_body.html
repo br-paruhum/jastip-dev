@@ -8,7 +8,8 @@
 
 {# Pay First Deposit — buyer-only, shown only while the deposit is DUE (hidden once deposit_pending, Step 5A.2B). #}
 {% if is_order_buyer and bf_order.status == "accepted" and not bf_order.deposit_pending %}
-<details class="card fold mt-2">
+{# Opens on load: this card only renders at Step 5A.1B (offer accepted, deposit due) and is the buyer's next action. #}
+<details class="card fold mt-2" open>
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
   {# #Step-5A.1B-Buyer — bank details + Submit Proof (moved out of the Notes card). #}
@@ -222,7 +223,8 @@
   {% endif %}
 {% endif %}
 
-<details class="card fold mt-2">
+{# Opens on load while the buyer has a carrier offer to review — the rate row and Accept/Reject buttons live in this card (Step 4A.2B). #}
+<details class="card fold mt-2"{% if is_order_buyer and bf_order.status == "responded" and bf_order.pending_offers %} open{% endif %}>
   <summary><h3>Order Details</h3></summary>
   <div class="fold-body">
   {% if bf_order.is_cargo %}
@@ -375,9 +377,12 @@
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <h3 style="margin-top:0;margin-bottom:0">Invoice — {{ bf_order.currency }}</h3>
     {% if is_order_buyer or is_order_proxy %}<span style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+      {# Buyer: Invoice only. Proxy: Packing List + Box Label (they prepare the package). #}
       {% if is_order_buyer %}<a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_invoice' bf_order.id %}" target="_blank">Print Invoice</a>{% endif %}
+      {% if is_order_proxy %}
       <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_packing_list' bf_order.id %}" target="_blank">Print Packing List</a>
       <a class="btn btn-outline btn-sm" style="border-color:var(--clay-dark);color:var(--clay-dark)" href="{% url 'trips:request_box_label' bf_order.id %}" target="_blank">Print Box Label</a>
+      {% endif %}
     </span>{% endif %}
   </div>
   <div class="table-wrap" style="margin-top:14px">
@@ -420,6 +425,11 @@
         <td>{{ bf_order.estimated_weight_kg|floatformat:1 }}</td><td>{% if bf_order.actual_weight_kg %}{{ bf_order.actual_weight_kg|floatformat:1 }}{% endif %}</td><td></td>
         <td></td><td>{{ bf_order.effective_cost_per_kg|by_currency:bf_order.currency }}</td>
         <td>{{ bf_order.estimated_shipment_cost|by_currency:bf_order.currency }}</td><td>{{ bf_order.shipment_cost|by_currency:bf_order.currency }}</td>
+      </tr>
+      <tr>
+        <td class="lcell">{{ COMMISSION_PERCENT }}% Platform Fee{% if bf_order.currency == "IDR" and PLATFORM_FEE_MIN_IDR %} (min {{ PLATFORM_FEE_MIN_IDR|floatformat:0|intcomma }}){% endif %}</td>
+        <td></td><td></td><td></td><td></td><td></td>
+        <td>{{ bf_order.estimated_buyer_platform_fee|by_currency:bf_order.currency }}</td><td>{{ bf_order.actual_buyer_platform_fee|by_currency:bf_order.currency }}</td>
       </tr>
       <tr>
         <td class="lcell">Custom Duty</td>
@@ -488,7 +498,7 @@
      w/o balance_pending, ...). -->
 {# buyer_payments covers both flows: order-level (proxy) and per-leg (cargo). Cargo opens by default — it replaces the Pay First Deposit card the moment proof is submitted. #}
 {% if is_order_buyer and bf_order.buyer_payments %}
-<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url %} open{% endif %}>
+<details class="card fold mt-2"{% if not bf_order.custom_duty_proof_url and bf_order.status != "package_received" %} open{% endif %}>
   <summary><h3>Payments</h3></summary>
   <div class="fold-body">
   <table class="invoice" style="table-layout:fixed;width:100%">

@@ -120,6 +120,12 @@
         <td class="num">{{ req.shipment_cost|by_currency:req.currency }}</td>
       </tr>
       <tr>
+        <td>{{ COMMISSION_PERCENT }}% Platform Fee</td>
+        <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
+        <td class="num">{{ req.estimated_buyer_platform_fee|by_currency:req.currency }}</td>
+        <td class="num">{{ req.actual_buyer_platform_fee|by_currency:req.currency }}</td>
+      </tr>
+      <tr>
         <td>Custom Duty</td>
         <td class="num"></td><td class="num"></td><td></td><td></td><td></td>
         <td class="num">{{ req.estimated_custom|by_currency:req.currency }}</td>

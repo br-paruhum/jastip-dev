@@ -5,6 +5,7 @@
       <div class="muted" style="font-size:.8em">{{ o.items.count }} item{{ o.items.count|pluralize }} · {{ o.currency }} {% if o.is_cargo %}{{ o.cargo_charge_total|by_currency:o.currency }}{% else %}{{ o.invoice_total|by_currency:o.currency }}{% endif %}</div>
     {% endif %}
   </td>
+  <td>{% if o.is_cargo %}<span class="badge badge-muted">Cargo</span>{% else %}<span class="badge badge-info">Buy</span>{% endif %}</td>
   <td class="route-cell" style="white-space:normal;max-width:150px"><strong>{{ o.route }}</strong></td>
   <td>{% if o.is_cargo %}{% if o.bf_kind == "traveler_first" %}{{ o.estimated_weight_kg }}{% else %}{{ o.bid_weight_kg }}{% if o.partial_allowed %} <sup title="Partial fulfillment allowed">*</sup>{% endif %}{% endif %}{% else %}{% if o.estimated_weight_kg %}{{ o.estimated_weight_kg }}{% else %}—{% endif %}{% endif %}</td>
   <td>{% if offer %}{{ o.currency }} {{ offer.ask_cost_per_kg|by_currency:o.currency }}{% elif o.effective_cost_per_kg %}{{ o.currency }} {{ o.effective_cost_per_kg|by_currency:o.currency }}{% else %}—{% endif %}</td>

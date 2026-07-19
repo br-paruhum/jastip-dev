@@ -547,10 +547,9 @@ def _publish_offer_trip(offer, traveler):
 
     Reuses the traveler's existing plan for the same trip (same route + travel
     date) rather than minting a second row: one 20 kg suitcase must never
-    advertise 20 kg twice. Returns the plan, or None for a non-cargo order.
+    advertise 20 kg twice. Applies to both cargo and proxy/products offers — in
+    both the carrier only carries, so the spare weight is real spare baggage.
     """
-    if not offer.order.is_cargo:
-        return None
     plan = TravelPlan.objects.filter(
         traveler=traveler,
         from_city__iexact=offer.from_city, from_country=offer.from_country,
@@ -606,11 +605,15 @@ def offer_create(request, order_id):
         # stays the carrier's to use elsewhere). Under-offering is still refused:
         # there is no partial fulfillment, so a carrier who can't take it all
         # can't take it at all.
-        if order.is_cargo and offer.avail_kg < order.bid_weight_kg:
+        # Winner-take-all either flow: the carrier must have capacity for the whole
+        # order (cargo bids a weight; a proxy/products order carries the buyer's
+        # estimate). The surplus stays the carrier's to sell as spare baggage.
+        needed_kg = order.bid_weight_kg if order.is_cargo else order.estimated_weight_kg
+        if offer.avail_kg < needed_kg:
             messages.error(
                 request,
                 f"Your available weight must be at least the buyer's "
-                f"{order.bid_weight_kg} kg — this order can't be split across carriers.",
+                f"{needed_kg} kg — this order can't be split across carriers.",
             )
             return redirect(dashboard_url + f"?offer={order_id}#offer-form")
         with db_transaction.atomic():
@@ -733,12 +736,12 @@ def proxy_purchase(request, order_id):
             workflow.on_items_purchased(order)
             messages.success(request, "Package marked ready. Awaiting carrier confirmation on place and time to hand over the package.")
             return redirect(detail)
-        # Save (draft) / Update (already ready): persist only, stay on the workspace.
-        messages.success(
-            request,
-            "Package details updated." if order.status == Status.ITEMS_PURCHASED
-            else "Draft saved. Click Mark Package Ready when everything is complete.",
-        )
+        # Update (already ready): persist and return to the order detail. Save
+        # (draft, still Finalizing): persist and stay on the workspace to keep editing.
+        if action == "update":
+            messages.success(request, "Package details updated.")
+            return redirect(detail)
+        messages.success(request, "Draft saved. Click Mark Package Ready when everything is complete.")
         return redirect(package_ready)
     # Not ready — surface EVERY missing requirement at once: box photo AND each
     # purchased product still missing its photo (named, so it's clear with >1 item).

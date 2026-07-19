@@ -1686,3 +1686,100 @@ class CargoSecondDepositCardTests(TestCase):
             body = fh.read()
         self.assertEqual(body.count("<h3>Pay Second Deposit</h3>"), 1)
         self.assertNotIn("request_pay", body)
+
+
+class BuyerPlatformFeeTests(TestCase):
+    """Flow-1 proxy buying: goProxyBuy charges the BUYER a 2.5% platform fee on
+    top of the shipment cost, folded into the invoice total and the (full-upfront)
+    deposit. USD keeps the IDR floor out of the math so the 2.5% is exact."""
+
+    def setUp(self):
+        from apps.trips.models import ProxyBuyer
+        self.buyer = make_user("bpf-buyer@x.com")
+        proxy = ProxyBuyer.objects.create(
+            name="P", country="Japan", city="Tokyo", email="bpf-p@x.com",
+            user=make_user("bpf-pu@x.com"),
+        )
+        # Proxy order: 4 kg × 100 USD/kg = 400 shipment; 2 × 50 = 100 items; 10% margin = 10.
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, settlement_currency="USD",
+            proxy_margin_percent=Decimal("10"), estimated_weight_kg=Decimal("4"),
+            bid_cost_per_kg=Decimal("100"), status=Status.ACCEPTED,
+        )
+        RequestItem.objects.create(
+            request=self.order, name="Thing", quantity=2,
+            estimated_unit_cost=Decimal("50"),
+        )
+
+    def test_estimated_fee_is_2_5_percent_of_shipment(self):
+        self.assertEqual(self.order.estimated_shipment_cost, Decimal("400.00"))
+        self.assertEqual(self.order.estimated_buyer_platform_fee, Decimal("10.00"))  # 2.5% of 400
+
+    def test_fee_folds_into_invoice_total_and_deposit(self):
+        # items 100 + margin 10 + shipment 400 + fee 10 (+ custom 0) = 520
+        self.assertEqual(self.order.estimated_invoice_total, Decimal("520.00"))
+        self.assertEqual(self.order.deposit_due, Decimal("520.00"))
+
+    def test_actual_fee_tracks_measured_shipment(self):
+        self.order.actual_weight_kg = Decimal("5")  # 5 × 100 = 500 actual shipment
+        self.order.save(update_fields=["actual_weight_kg"])
+        self.assertEqual(self.order.actual_buyer_platform_fee, Decimal("12.50"))  # 2.5% of 500
+
+    def test_no_fee_on_plan_first_order(self):
+        plan = TravelPlan.objects.create(
+            traveler=make_user("bpf-t@x.com"), travel_date=date.today() + timedelta(days=5),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            available_weight_kg=Decimal("10"), shipment_cost_per_kg=Decimal("100"),
+            shipment_currency="USD",
+        )
+        req = Order.objects.create(plan=plan, buyer=self.buyer, estimated_weight_kg=Decimal("4"))
+        self.assertEqual(req.estimated_buyer_platform_fee, Decimal("0.00"))
+
+
+class ProxyOfferSpareCapacityTests(TestCase):
+    """Flow-1 proxy/products offers publish the carrier's trip on the Queuing
+    Traveler's Offers board and commit only the order's weight once the buyer's
+    deposit clears — like cargo (full capacity advertised until deposit_verified)."""
+
+    def setUp(self):
+        from apps.trips.models import ProxyBuyer
+        self.buyer = make_user("pos-b@x.com")
+        self.traveler = make_user("pos-t@x.com")
+        proxy = ProxyBuyer.objects.create(name="P", country="Japan", city="Tokyo",
+                                           email="pos-p@x.com", user=make_user("pos-pu@x.com"))
+        self.order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, settlement_currency="IDR",
+            estimated_weight_kg=Decimal("4"), bid_cost_per_kg=Decimal("100"),
+            status=Status.RESPONDED,
+        )
+        self.plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            available_weight_kg=Decimal("20"), shipment_cost_per_kg=Decimal("100"),
+            shipment_currency="IDR", carrier_only=True, margin_percent=Decimal("0"),
+        )
+        self.offer = TravelerOffer.objects.create(
+            order=self.order, traveler=self.traveler, plan=self.plan,
+            ask_cost_per_kg=Decimal("100"), avail_kg=Decimal("20"),
+            travel_date=self.plan.travel_date, from_city="Tokyo", from_country="Japan",
+            to_city="Jakarta", to_country="Indonesia", offer_status=OfferStatus.PENDING,
+        )
+
+    def _fresh_plan(self):
+        return TravelPlan.objects.get(pk=self.plan.pk)
+
+    def test_full_capacity_advertised_before_deposit(self):
+        # Order still RESPONDED (deposit not paid) → whole trip stays offerable.
+        self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("0.00"))
+        self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("20.00"))
+
+    def test_order_weight_committed_after_deposit(self):
+        self.order.status = Status.DEPOSIT_PAID
+        self.order.save(update_fields=["status"])
+        self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("4.00"))
+        self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("16.00"))  # 20 − 4
+
+    def test_capacity_released_when_closed(self):
+        self.order.status = Status.CLOSED
+        self.order.save(update_fields=["status"])
+        self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("0.00"))

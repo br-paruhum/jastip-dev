@@ -1,18 +1,11 @@
 {% load humanize %}
-{# Heading row mirrors _travel_table.html: label left, create-actions right. #}
 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:1rem;margin-bottom:16px">
   <h4 class="muted" style="margin:0">{{ heading }}</h4>
-  {% if show_create_orders %}
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <a class="btn btn-primary" href="{% url 'pages:home' %}#proxy-buyers" style="padding:6px 14px;font-size:.85rem">Create Buy Order</a>
-    <a class="btn btn-primary" href="{% url 'trips:order_create' %}" style="padding:6px 14px;font-size:.85rem">Create Cargo Order</a>
-  </div>
-  {% endif %}
 </div>
 {% if orders %}
 <div class="table-wrap">
   <table class="offers offers-centered offers-allcenter">
-    <thead><tr><th>Ref</th><th>Route</th><th>Weight<br>(kg)</th><th>Rate<br>/kg</th><th>Status</th><th>Action</th></tr></thead>
+    <thead><tr><th>Ref</th><th>Type</th><th>Route</th><th>Weight<br>(kg)</th><th>Rate<br>/kg</th><th>Status</th><th>Action</th></tr></thead>
     <tbody>
       {% for o in orders %}
         {% if not o.is_cargo and o.bf_kind == "buyer_first" and o.status == "responded" and o.pending_offers %}

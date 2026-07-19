@@ -100,6 +100,7 @@ def home(request):
         .prefetch_related(
             "buy_requests", "carrier_matches__order",
             "cargo_offers__transaction__payments",
+            "cargo_offers__order",   # cargo_offer_committed_kg reads off.order (proxy/products)
         )
         .order_by("travel_date", "-created_at")
     )

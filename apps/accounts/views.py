@@ -294,7 +294,7 @@ def profile(request):
     role = _resolve_role(request)
 
     travel_rows = []
-    orders_proxy = orders_cargo = []
+    orders_all = []
     proxy_orders = []
 
     if role == "traveler":
@@ -318,9 +318,10 @@ def profile(request):
             r.bf_kind = "traveler_first"
         for o in my_bf_orders:
             o.bf_kind = "buyer_first"
-        all_my_orders = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
-        orders_proxy = [o for o in all_my_orders if not o.is_cargo]
-        orders_cargo = [o for o in all_my_orders if o.is_cargo]
+        # Buy Orders and Cargo Orders now share one table (Type column) — see
+        # _orders_table.html. Keep the created_at ordering; the row's Type badge
+        # carries the Buy/Cargo distinction that used to split them.
+        orders_all = sorted(my_buying + my_bf_orders, key=lambda r: r.created_at, reverse=True)
 
         # Flow-1: orders the buyer (acting as a Proxy Buyer) has been assigned to
         # source — they respond with the estimate here.
@@ -613,8 +614,7 @@ def profile(request):
             "plan_form": TravelPlanForm(),
             "country_currency_map_json": json.dumps(ExchangeRate.country_currency_map()),
             "travel_rows": travel_rows,
-            "orders_proxy": orders_proxy,
-            "orders_cargo": orders_cargo,
+            "orders_all": orders_all,
             "proxy_orders": proxy_orders,
             "pending_disbursements": _pending_disbursements(user),
             "estimate_order": estimate_order,

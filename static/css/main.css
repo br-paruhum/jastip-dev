@@ -423,6 +423,20 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
 .profile-side .side-nav li:last-child a { border-bottom: 0; }
 .profile-side .side-nav a:hover { background: var(--cream); text-decoration: none; }
 .profile-side .side-nav a.active { background: var(--clay); color: #fff; }
+/* Sidebar accordion: summary looks like a nav link, clicking it reveals the
+   section's create-actions (native <details> toggle). */
+.profile-side .side-nav summary { display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: .75rem 1rem; color: var(--slate-600); font-weight: 600;
+  border-bottom: 1px solid var(--line); cursor: pointer; list-style: none; }
+.profile-side .side-nav summary::-webkit-details-marker { display: none; }
+.profile-side .side-nav summary::after { content: "\203A"; color: var(--muted); font-weight: 400;
+  transform: rotate(90deg); transition: transform .15s; }
+.profile-side .side-nav details[open] summary::after { transform: rotate(-90deg); }
+.profile-side .side-nav summary:hover { background: var(--cream); }
+.profile-side .side-nav summary.active { background: var(--clay); color: #fff; }
+.profile-side .side-nav summary.active::after { color: rgba(255,255,255,.7); }
+.profile-side .side-nav .side-subnav { list-style: none; margin: 0; padding: 0; background: var(--cream); }
+.profile-side .side-nav .side-subnav a { padding-left: 1.75rem; font-weight: 500; font-size: .92em; }
 .profile-panel-header { display: flex; align-items: center; justify-content: space-between;
   gap: 12px; margin-bottom: 8px; }
 

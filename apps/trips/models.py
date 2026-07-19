@@ -14,6 +14,7 @@ from .constants import (
     ACTIVE_TX_STATUSES,
     COUNTRY_CHOICES,
     COUNTRY_ISO2,
+    DEPOSIT_COMMITTED_STATUSES,
     HELD_MATCH_STATUSES,
     MSG_TAB_BUYER_PROXY,
     MSG_TAB_CARRIER_BUYER,
@@ -280,20 +281,27 @@ class TravelPlan(ListingTimingMixin, models.Model):
 
     @property
     def cargo_offer_committed_kg(self) -> Decimal:
-        """Weight this trip has committed to buyer-first cargo orders.
+        """Weight this trip has committed to buyer-first orders (cargo + proxy).
 
-        A cargo offer never sets ``order.plan`` (the order stays on buyer-first
-        rails), so its weight is in neither ``utilized_weight_kg`` nor
-        ``held_hold_kg`` — this is the third ledger. Counts only offers the buyer
-        selected AND paid the deposit on: capacity stays advertised while the
-        buyer is still deciding, so a stalled buyer can't freeze the trip.
+        A buyer-first offer never sets ``order.plan`` (the order stays on
+        buyer-first rails), so its weight is in neither ``utilized_weight_kg`` nor
+        ``held_hold_kg`` — this is the third ledger. Capacity stays advertised
+        while the buyer is still deciding, so a stalled buyer can't freeze the trip:
+
+        - Cargo: the SELECTED leg once its per-leg deposit clears, at its final
+          (measured, else allocated) weight.
+        - Proxy/products: the deposit is order-level and no leg is created, so the
+          live offer commits the order's weight once the order reaches a
+          deposit-verified status (see DEPOSIT_COMMITTED_STATUSES).
         """
         total = Decimal("0")
         for off in self.cargo_offers.all():
-            if off.offer_status == OfferStatus.SELECTED and off.deposit_verified:
-                # final_weight_kg = measured weight once weighed, else allocated —
-                # so spare capacity reflects what's actually being carried.
-                total += off.final_weight_kg
+            if off.order.is_cargo:
+                if off.offer_status == OfferStatus.SELECTED and off.deposit_verified:
+                    total += off.final_weight_kg
+            elif (off.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+                  and off.order.status in DEPOSIT_COMMITTED_STATUSES):
+                total += off.order.effective_weight_kg
         return total.quantize(TWO_PLACES)
 
     @property
@@ -1520,21 +1528,50 @@ class Order(ListingTimingMixin, models.Model):
             and self.custom_fare_currency != self.currency
         )
 
+    # --- Buyer platform fee (Flow-1 proxy buying) ---
+    def _buyer_platform_fee_on(self, base: Decimal) -> Decimal:
+        """2.5% of a shipment base, floored to the IDR minimum (0 if base ≤ 0)."""
+        if base <= 0:
+            return Decimal("0.00")
+        pct = Decimal(str(settings.PLATFORM_COMMISSION_PERCENT))
+        return max(base * pct / Decimal("100"),
+                   platform_fee_floor(self.currency)).quantize(TWO_PLACES)
+
+    @property
+    def estimated_buyer_platform_fee(self) -> Decimal:
+        """goProxyBuy's 2.5% fee charged to the BUYER on top of the (estimated)
+        shipment cost, floored to the IDR minimum. Flow-1 proxy orders only —
+        cargo carries the same fee on its leg (LegOffer.buyer_platform_fee), and
+        the proxy's/carrier's own 2.5% is withheld from their payouts. The
+        platform earns on every side."""
+        if not self.is_proxy_buyer_first:
+            return Decimal("0.00")
+        return self._buyer_platform_fee_on(self.estimated_shipment_cost)
+
+    @property
+    def actual_buyer_platform_fee(self) -> Decimal:
+        """Actual-column buyer fee: 2.5% of the measured shipment cost."""
+        if not self.is_proxy_buyer_first:
+            return Decimal("0.00")
+        return self._buyer_platform_fee_on(self.actual_shipment_cost)
+
     # --- Totals ---
     @property
     def estimated_invoice_total(self) -> Decimal:
-        """Est column total: estimated items + est margin + est shipment."""
+        """Est column total: estimated items + est margin + est shipment + buyer fee."""
         return self._q(
             self.items_estimated_total + self.estimated_margin
-            + self.estimated_shipment_cost + self.estimated_custom
+            + self.estimated_shipment_cost + self.estimated_buyer_platform_fee
+            + self.estimated_custom
         )
 
     @property
     def invoice_total(self) -> Decimal:
-        """Actual column total: actual items + actual margin + actual shipment + custom."""
+        """Actual column total: actual items + actual margin + actual shipment + buyer fee + custom."""
         return self._q(
             self.items_actual_total + self.actual_margin
-            + self.actual_shipment_cost + self.actual_custom
+            + self.actual_shipment_cost + self.actual_buyer_platform_fee
+            + self.actual_custom
         )
 
     @property
@@ -1548,7 +1585,7 @@ class Order(ListingTimingMixin, models.Model):
             return self.estimated_shipment_cost
         return self._q(
             self.items_estimated_total + self.estimated_margin
-            + self.estimated_shipment_cost
+            + self.estimated_shipment_cost + self.estimated_buyer_platform_fee
         )
 
     @property

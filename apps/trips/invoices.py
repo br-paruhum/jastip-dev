@@ -294,6 +294,10 @@ def render_invoice_pdf(req) -> bytes:
     data.append(["", "Shipment (kg)", str(req.estimated_weight_kg), str(act_weight), "",
                  "", _money(req.effective_cost_per_kg),
                  _money(req.estimated_shipment_cost), _money(req.shipment_cost)])
+    _fee_pct = settings.PLATFORM_COMMISSION_PERCENT
+    _fee_pct_str = f"{int(_fee_pct) if float(_fee_pct).is_integer() else _fee_pct}% Platform Fee"
+    data.append(["", _fee_pct_str, "", "", "", "", "",
+                 _money(req.estimated_buyer_platform_fee), _money(req.actual_buyer_platform_fee)])
     data.append(["", "Custom Duty", "", "", "", "", "",
                  _money(req.estimated_custom), _money(req.actual_custom)])
     total_row = len(data)

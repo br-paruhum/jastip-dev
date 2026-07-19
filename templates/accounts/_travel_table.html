@@ -1,7 +1,7 @@
 {% load humanize money %}
+{# Create New Plan moved to the "My Travel Plans" sidebar accordion. #}
 <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:1rem;margin-bottom:16px">
   <h4 class="muted" style="margin:0">{{ heading }}</h4>
-  {% if show_create_plan %}<button type="button" id="toggle-plan-form" class="btn btn-primary" style="padding:6px 14px;font-size:.85rem">Create New Plan</button>{% endif %}
 </div>
 {% if rows %}
 <div class="table-wrap">

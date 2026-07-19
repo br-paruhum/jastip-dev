@@ -46,6 +46,17 @@ OPEN_ORDER_STATUSES = {Status.OPEN, Status.RESPONDED}
 # Terminal buyer-first statuses (order never matched, or matching failed).
 BUYER_FIRST_TERMINAL_STATUSES = {Status.NO_RESPONSE, Status.DROPOFF_MISSED}
 
+# Proxy/products order statuses where the buyer's deposit is verified and the
+# carrier's capacity is committed against their published trip — so the spare
+# weight advertised on the Queuing Traveler's Offers board drops by this order's
+# weight (mirrors cargo's SELECTED + deposit_verified). Excludes pre-deposit
+# states (still advertised), and CLEAR/CLOSED/CANCELLED (capacity released).
+DEPOSIT_COMMITTED_STATUSES = {
+    Status.DEPOSIT_PAID, Status.ITEMS_PURCHASED, Status.PACKAGE_RECEIVED,
+    Status.PACKAGE_ARRIVED, Status.READY_FOR_PICKUP, Status.RESHIP_REQUESTED,
+    Status.RESHIP_COST_SENT, Status.RESHIPPING,
+}
+
 
 class OfferStatus(models.TextChoices):
     """Lifecycle of a single TravelerOffer before it is matched."""

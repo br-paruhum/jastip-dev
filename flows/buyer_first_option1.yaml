@@ -1,0 +1,589 @@
+flow: buyer_first_option1
+title: "Option 1 — Buyer sends a Buy Order (Proxy sources, Traveler carries)"
+source_of_truth:
+  howto: proxybuying-obsidian/AI-Context/references/HowTo_BuyerComeFirst_Rev-260717.xlsx
+  notes: proxybuying-obsidian/AI-Context/references/NotesTabContents_BuyerComeFirst.xlsx
+  enums: apps/trips/constants.py   # Status
+  workflow: apps/trips/workflow.py
+  template: templates/trips/_order_notes.html
+roles: [buyer, proxy, traveler]
+
+steps:
+
+  # ── Step 1 · Buyer places the Buy Order ──────────────────────────────
+  - id: "1A.1"
+    step: 1
+    actor: buyer
+    trigger: 'Fills the Buy Order form (before submit)'
+    order_status: open           # draft/compose; becomes an OPEN order on submit
+    workflow: ""
+    notes:
+      buyer:
+        code: "1A.1B"
+        text: >-
+          Fill in all required data. Write more specific data on Product Name
+          (e.g. "Shrimp paste chili pepper sauce - 200 ml"). Make sure to select
+          the correct Shipment Option (Pick Up or Request Reship). Use "Notes for
+          Proxy Buyer" for any specific request; you can put a url link here.
+          After you click "Send Order" the Proxy Buyer is notified. You can still
+          edit this Order later.
+      proxy: null
+      traveler: null
+    next: ["1A.2"]
+
+  - id: "1A.2"
+    step: 1
+    actor: buyer
+    trigger: 'Clicked "Send Buy Order"'
+    order_status: open
+    workflow: on_proxy_order_created
+    notes:
+      buyer:
+        code: "1A.2B"
+        text: >-
+          Buy Order Sent, waiting for Proxy Buyer to respond with Estimate Cost,
+          Estimate Total Package Weight and Margin Required.
+      proxy: null
+      traveler: null
+    next: ["2A.1"]
+
+  # ── Step 2 · Proxy sends the estimate ────────────────────────────────
+  - id: "2A.1"
+    step: 2
+    actor: proxy
+    trigger: 'Clicked "Process Estimate" in My Proxy Buying'
+    order_status: open
+    workflow: ""
+    notes:
+      buyer:
+        code: "1A.2B"
+        text: "(unchanged)"
+      proxy:
+        code: "2A.1P"
+        text: >-
+          Please fill in all required data. After you click "Send Estimate" the
+          Buyer is notified. Use the Chat Box to discuss ordered-product issues
+          (out-of-stock, shortage quantity, etc.).
+      traveler: null
+    next: ["2A.2"]
+
+  - id: "2A.2"
+    step: 2
+    actor: proxy
+    trigger: 'Clicked "Send Estimate"'
+    order_status: estimate_sent
+    workflow: on_estimate_sent
+    notes:
+      buyer:
+        code: "2A.2B"
+        text: >-
+          Proxy Buyer has sent the estimate. Please Accept, Edit, or Reject it.
+          Editing your order sends it back to the Proxy Buyer to re-estimate. Use
+          the Chat Box to negotiate the Margin or update order details.
+      proxy:
+        code: "2A.2P"
+        text: >-
+          Estimate Sent, waiting for Buyer to Accept or Edit it. If Edited, you
+          reprocess and resend the Estimate. You can still edit the Estimate
+          values before the Buyer Accepts or Rejects it.
+      traveler: null
+    next: ["3A.0"]              # Accept. (Edit → 2A.1; Reject → terminal)
+
+  # ── Step 3 · Buyer accepts the estimate; order opens to Travelers ────
+  - id: "3A.0"
+    step: 3
+    actor: buyer
+    trigger: 'Clicked "Accept"'
+    order_status: responded      # RESPONDED = listed on Queuing Buyer's Cargo
+    workflow: on_estimate_accepted
+    notes:
+      buyer:
+        code: "3A.0B"
+        text: >-
+          You accepted the estimate. Your order is now listed on 3. Queuing
+          Buyer's Cargo waiting for a Traveler to offer the shipment cost.
+      proxy:
+        code: "3A.0P"
+        text: >-
+          Buyer accepted your estimate. Buyer's order is now waiting for a
+          Traveler to offer the shipment cost.
+      traveler: null
+    next: ["4A.1"]
+
+  # ── Step 4 · A Traveler offers to carry ──────────────────────────────
+  - id: "4A.1"
+    step: 4
+    actor: traveler
+    trigger: 'Clicked "Send Offer" on 3. Queuing Buyer''s Cargo'
+    order_status: responded
+    workflow: ""
+    notes:
+      buyer:
+        code: "3A.0B"
+        text: "(unchanged)"
+      proxy:
+        code: "3A.0P"
+        text: "(unchanged)"
+      traveler:
+        code: "4A.1T"
+        text: >-
+          Please fill in all required data. After you click "Submit Offer" the
+          Buyer is notified. Weight on the Buyer's order is subject to final
+          reweighing.
+    next: ["4A.2"]
+
+  - id: "4A.2"
+    step: 4
+    actor: traveler
+    trigger: 'Clicked "Submit Offer"'
+    order_status: responded
+    workflow: on_offer_submitted
+    notes:
+      buyer:
+        code: "4A.2B"
+        text: >-
+          A traveler offered to carry your order. Please Accept or Reject it. If
+          more than one carrier is listed, accept the one you prefer — the others
+          are declined automatically. Use the Chat Box to negotiate the shipment
+          cost.
+      proxy:
+        code: "4A.2P"
+        text: >-
+          A traveler has offered to carry the Buyer's order. Waiting for the
+          Buyer to accept the shipment cost.
+      traveler:
+        code: "4A.2T"
+        text: >-
+          Your offer sent. Waiting for Buyer acceptance. Check the Chat Box if
+          the Buyer wants to negotiate. You can still edit the shipment-cost
+          offer before the Buyer Accepts or Rejects it.
+    next: ["5A.1"]
+
+  # ── Step 5 · Buyer accepts the offer and pays the first deposit ──────
+  - id: "5A.1"
+    step: 5
+    actor: buyer
+    trigger: 'Clicked "Accept"'
+    order_status: accepted       # order_accept view sets Status.ACCEPTED (proxy flow; cargo legs use TAKEN)
+    workflow: on_proxy_offer_accepted
+    notes:
+      buyer:
+        code: "5A.1B"
+        text: "You accept the shipment cost, please pay the first deposit."
+      proxy:
+        code: "5A.1P"
+        text: >-
+          Buyer accepted the shipment cost. Waiting for the Buyer's deposit and
+          admin fund verification before making purchases.
+      traveler:
+        code: "5A.1T"
+        text: "Buyer accepted your offer rate, awaiting the Buyer's deposit."
+    next: ["5A.2"]
+
+  - id: "5A.2"
+    step: 5
+    actor: buyer
+    trigger: 'Clicked "Submit Transfer Proof"'
+    order_status: accepted       # still ACCEPTED, now deposit_pending=True ("Temp Book — Verifying")
+    workflow: ""
+    notes:
+      buyer:
+        code: "5A.2B"
+        text: "Transfer proof submitted. Waiting for Admin fund verification."
+      proxy:
+        code: "5A.2P"
+        text: "Buyer submitted transfer proof. Waiting for Admin fund verification."
+      traveler:
+        code: "5A.2T"
+        text: "Buyer submitted transfer proof. Waiting for Admin fund verification."
+    next: ["5A.3"]
+
+  - id: "5A.3"
+    step: 5
+    actor: admin
+    trigger: "Verified Buyer's first deposit"
+    order_status: deposit_paid
+    workflow: on_deposit_verified
+    notes:
+      buyer:
+        code: "5A.3B"
+        text: >-
+          Your deposit verified. Use the Chat Box to chat with the Proxy Buyer
+          regarding any change on product specification, if any.
+      proxy:
+        code: "5A.3P"
+        text: >-
+          Buyer's deposit verified. You can start buying the products, prepare
+          the package (box or luggage), then select "Finalizing Order". Use the
+          Chat Box for any order-specification issues (size, color, type,
+          quantity; out-of-stock; price increase; substituted; etc.).
+      traveler:
+        code: "5A.3T"
+        text: "Buyer's deposit verified. Waiting for the Proxy Buyer to finalize the order."
+    next: ["6A.1"]
+
+  # ── Step 6 · Proxy finalises and marks the package ready ─────────────
+  - id: "6A.1"
+    step: 6
+    actor: proxy
+    trigger: 'Clicked "Finalizing Order"'
+    order_status: deposit_paid
+    workflow: ""
+    notes:
+      buyer:
+        code: "5A.3B"
+        text: "(unchanged)"
+      proxy:
+        code: "6A.1P"
+        text: >-
+          Fill in all Actual Quantity and Unit Cost, Final Total Weight, upload
+          Product photos and the Box/Luggage photo before it closes. Gather all
+          receipts into a sealed envelope inside the box/luggage. Make sure you
+          have the Buyer's consent on any spec discrepancies, then select
+          "Mark Package Ready".
+      traveler:
+        code: "5A.3T"
+        text: "(unchanged)"
+    next: ["6A.2"]
+
+  - id: "6A.2"
+    step: 6
+    actor: proxy
+    trigger: 'Clicked "Mark Package Ready"'
+    order_status: items_purchased
+    workflow: on_items_purchased
+    notes:
+      buyer:
+        code: "6A.2B"
+        text: >-
+          Your order has been finalized by the Proxy Buyer and is ready to be
+          handed over to the Traveler.
+      proxy:
+        code: "6A.2P"
+        text: >-
+          You have marked the package ready. Use the Chat Box with the Traveler
+          to set the time and location to hand over the package.
+      traveler:
+        code: "6A.2T"
+        text: >-
+          Proxy Buyer has the package ready. Use the Chat Box to set time and
+          location. On hand-over, compare the Packing List with the actual items
+          and box/luggage photo, then weigh it for a final check before selecting
+          Confirm Received.
+    next: ["6A.3", "7A.0"]      # 6A.3 = optional edit side-loop; else the traveler confirms receipt
+
+  # Side-loop: proxy reopens the finalised package to edit it. No status change
+  # (stays items_purchased); "Update Package Details" persists and returns to the
+  # order detail (proxy_purchase action=update). Rejoins the main line at 7A.0.
+  - id: "6A.3"
+    step: 6
+    actor: proxy
+    trigger: 'Clicked "Edit Order Data" → "Update Package Details"'
+    order_status: items_purchased
+    workflow: ""
+    notes:
+      buyer:
+        code: "6A.2B"
+        text: "(unchanged)"
+      proxy:
+        code: "6A.3P"
+        text: >-
+          You have marked package ready. Click Update Package Details after you
+          have made any changes.
+      traveler:
+        code: "6A.2T"
+        text: "(unchanged)"
+    next: ["7A.0"]
+
+  # ── Step 7 · Traveler receives the package from the Proxy ────────────
+  - id: "7A.0"
+    step: 7
+    actor: traveler
+    trigger: 'Clicked "Confirm Received"'
+    order_status: package_received
+    workflow: on_proxy_package_received
+    notes:
+      buyer:
+        code: "7A.0B"
+        text: >-
+          Traveler has received your package from the Proxy Buyer and is carrying
+          it to <destination-city>. You'll be notified to settle the Customs Duty
+          when it arrives.
+      proxy:
+        code: "7A.0P"
+        text: >-
+          You've handed the goods to the carrier. Your payout will be disbursed
+          after the Buyer receives the package.
+      traveler:
+        code: "7A.0T"
+        text: "You have received the package. Upon arrival, fill in the Customs Duty amount."
+    next: ["8A.1"]
+
+  # ── Step 8 · Arrival; Traveler sends the Customs Duty amount ─────────
+  - id: "8A.1"
+    step: 8
+    actor: traveler
+    trigger: 'Clicked "View" on My Travel Plan (arrived)'
+    order_status: package_arrived
+    workflow: on_package_arrived
+    notes:
+      buyer:
+        code: "7A.0B"
+        text: "(unchanged)"
+      proxy:
+        code: "7A.0P"
+        text: "(unchanged)"
+      traveler:
+        code: "8A.1T"
+        text: >-
+          You have arrived. Please send the Customs Duty amount and wait for the
+          Buyer to make a deposit before you pay the Duty.
+    next: ["8A.2"]
+
+  - id: "8A.2"
+    step: 8
+    actor: traveler
+    trigger: 'Clicked "Send Duty Amount"'
+    order_status: package_arrived
+    workflow: ""
+    notes:
+      buyer:
+        code: "8A.2B"
+        text: >-
+          Your package has arrived and the traveler has sent the customs duty
+          amount. Please pay the second deposit.
+      proxy:
+        code: "8A.2P"
+        text: >-
+          Traveler has arrived. Your payout will be disbursed after the Buyer
+          receives the package.
+      traveler:
+        code: "8A.2T"
+        text: >-
+          Duty amount sent, waiting for the Buyer's deposit and fund
+          verification. Once verified you can pay the Duty and upload the receipt.
+    next: ["9A.1"]
+
+  # ── Step 9 · Buyer pays the second deposit (customs duty) ────────────
+  - id: "9A.1"
+    step: 9
+    actor: buyer
+    trigger: 'Clicked "Submit Transfer Proof"'
+    order_status: package_arrived
+    workflow: ""
+    notes:
+      buyer:
+        code: "9A.1B"
+        text: "Transfer Proof Submitted. Wait for admin fund verification."
+      proxy:
+        code: "9A.1P"
+        text: >-
+          Buyer has submitted Transfer Proof for the Customs Duty payment. Your
+          payout will be disbursed after the Buyer receives the package.
+      traveler:
+        code: "9A.1T"
+        text: >-
+          Buyer has submitted Transfer Proof. Wait for admin fund verification
+          before making the Duty payment.
+    next: ["9A.2"]
+
+  - id: "9A.2"
+    step: 9
+    actor: admin
+    trigger: "Verified Buyer's second deposit"
+    order_status: ready_for_pickup   # "Paid in Full"
+    workflow: on_package_arrived_settled
+    notes:
+      buyer:
+        code: "9A.2B"
+        text: "Your deposit verified. Waiting for the Traveler to make the Duty payment."
+      proxy:
+        code: "9A.2P"
+        text: >-
+          Buyer's deposit verified. Your payout will be disbursed after the Buyer
+          receives the package.
+      traveler:
+        code: "9A.2T"
+        text: "Buyer's deposit verified. You can pay the Duty and upload the receipt."
+    next: ["10A.0", "10A.2"]    # branch: 10A.0 = Reship, 10A.2 = Pickup
+
+  # ══ Branch A · Buyer selected RESHIP ═════════════════════════════════
+  - id: "10A.0"
+    step: 10
+    actor: traveler
+    trigger: 'Clicked "Upload Receipt" (reship)'
+    order_status: ready_for_pickup
+    workflow: ""
+    notes:
+      buyer:
+        code: "10A.0B"
+        text: >-
+          Customs Duty paid. Please fill in your preferred courier name and type
+          (regular, express, etc.).
+      proxy:
+        code: "10.1A.0P"        # template consolidates the reship-branch proxy note to [10.1A-0P]
+        text: >-
+          Waiting for the Traveler to send the package to the Buyer. Your payout
+          will be disbursed after the Buyer receives the package.
+      traveler:
+        code: "10A.0T"
+        text: >-
+          Please wait for the Buyer to send their Preferred Courier data before
+          you send the Reshipment cost.
+    next: ["11A.0"]
+
+  - id: "11A.0"
+    step: 11
+    actor: buyer
+    trigger: 'Clicked "Save Preferred Courier"'
+    order_status: reship_requested
+    workflow: on_reship_requested
+    notes:
+      buyer:
+        code: "11A.0B"
+        text: "Preferred courier sent. Wait for Reshipment Cost."
+      proxy:
+        code: "10.1A.0P"
+        text: "(unchanged)"
+      traveler:
+        code: "11A.0T"
+        text: "Fill in the Reshipment Cost using the Buyer's preferred courier."
+    next: ["12A.0"]
+
+  - id: "12A.0"
+    step: 12
+    actor: traveler
+    trigger: 'Clicked "Send Reshipment Cost"'
+    order_status: reship_cost_sent
+    workflow: on_reship_cost_sent
+    notes:
+      buyer:
+        code: "12A.0B"
+        text: "Reshipment Cost received, please pay and upload Transfer proof."
+      proxy:
+        code: "10.1A.0P"
+        text: "(unchanged)"
+      traveler:
+        code: "12A.0T"
+        text: "Reshipment Cost sent. Wait for the Buyer's transfer proof."
+    next: ["13A.0"]
+
+  - id: "13A.0"
+    step: 13
+    actor: buyer
+    trigger: 'Clicked "Upload Transfer Proof"'
+    order_status: reship_cost_sent
+    workflow: on_reship_proof_uploaded
+    notes:
+      buyer:
+        code: "13A.0B"
+        text: "Transfer Proof sent. Wait for Airway Bill."
+      proxy:
+        code: "13A.0P"           # template renders [13A-0P]
+        text: "(unchanged)"
+      traveler:
+        code: "13A.0T"
+        text: "Transfer Proof received. Please send the package, upload AWB and select \"Package Sent\"."
+    next: ["14A.0"]
+
+  - id: "14A.0"
+    step: 14
+    actor: traveler
+    trigger: 'Clicked "Package Sent"'
+    order_status: reshipping     # "In Transit"
+    workflow: on_reshipped
+    notes:
+      buyer:
+        code: "14A.0B"
+        text: "Package sent. Waiting for the package."
+      proxy:
+        code: "14A.0P"
+        text: >-
+          Package sent by the traveler. Your payout will be disbursed after the
+          Buyer receives the package.
+      traveler:
+        code: "14A.0T"
+        text: "Package sent. Waiting for receive confirmation from the Buyer."
+    next: ["15A.1"]
+
+  - id: "15A.1"
+    step: 15
+    actor: buyer
+    trigger: 'Clicked "Confirm Received" (reship)'
+    order_status: clear
+    workflow: on_buyer_cleared
+    notes:
+      buyer:
+        code: "15A.1B"
+        text: "You confirmed you have reviewed and received the package on <date, time>."
+      proxy:
+        code: "15A.1P"
+        text: "Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours."
+      traveler:
+        code: "15A.1T"
+        text: "Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours."
+    next: ["16A.0"]
+
+  # ══ Branch B · Buyer selected PICKUP ═════════════════════════════════
+  - id: "10A.2"
+    step: 10
+    actor: traveler
+    trigger: 'Clicked "Upload Receipt" (pickup)'
+    order_status: ready_for_pickup
+    workflow: ""
+    notes:
+      buyer:
+        code: "10A.2B"
+        text: >-
+          Customs Duty paid. Check the Chat Box to see the time set by the
+          Carrier to visit the Carrier's location.
+      proxy:
+        code: "10A.2P"
+        text: >-
+          Waiting for the Buyer to collect the package. Your payout will be
+          disbursed after the Buyer receives the package.
+      traveler:
+        code: "10A.2T"
+        text: >-
+          Customs Duty paid. Use the Chat Box to inform the Buyer of the time to
+          visit and collect the package.
+    next: ["15A.2"]
+
+  - id: "15A.2"
+    step: 15
+    actor: buyer
+    trigger: 'Clicked "Confirm Received" (pickup)'
+    order_status: clear
+    workflow: on_buyer_cleared
+    notes:
+      buyer:
+        code: "15A.2B"
+        text: "You have reviewed and received the package on <date, time>. Transaction closed."
+      proxy:
+        code: "15A.2P"
+        text: "Package collected by the Buyer. Your payout will be disbursed within 24 hours."
+      traveler:
+        code: "15A.2T"
+        text: "Package collected by the Buyer. Your payout will be disbursed within 24 hours."
+    next: ["16A.0"]
+
+  # ── Step 16 · Admin disburses payouts; transaction complete ──────────
+  - id: "16A.0"
+    step: 16
+    actor: admin
+    trigger: "Process Payout Disbursements"
+    order_status: closed
+    workflow: on_cleared
+    notes:
+      buyer:
+        code: "16A.0B"
+        text: >-
+          The proxy buyer's and the traveler's payouts have been disbursed on
+          <date>, <time>. Thank you for doing business with goProxyBuy.
+      proxy:
+        code: "16A.0P"
+        text: "Your payout has been processed on <date, time>. Thank you for doing business with goProxyBuy."
+      traveler:
+        code: "16A.0T"
+        text: "Your payout has been processed on <date, time>. Thank you for doing business with goProxyBuy."
+    next: []
