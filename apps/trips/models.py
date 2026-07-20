@@ -839,12 +839,24 @@ class Order(ListingTimingMixin, models.Model):
         pickup/reship, refund). Hidden through the pure in-transit states
         (dropped_off, weight_verified, package_received) where only the now-stale
         address would remain."""
-        no_action = {"package_dropped_off", "weight_verified", "package_received"}
+        # ready_for_pickup's Confirm-Received now lives in the Package Received
+        # Confirmation card, and clear/closed are the finished states — no buyer
+        # action in the Drop-Off card for any of these.
+        no_action = {"package_dropped_off", "weight_verified", "package_received",
+                     "ready_for_pickup", "clear", "closed"}
         for leg in self.confirmed_legs:
             if not leg.leg_status:  # awaiting drop-off → the address is still needed
                 return True
-            if not leg.is_reship_flow and leg.leg_status not in no_action and not leg.second_deposit_due:
-                return True
+            if leg.is_reship_flow or leg.leg_status in no_action or leg.second_deposit_due:
+                continue
+            # "Settling…": arrived with a stated Pickup/Reship preference but not yet
+            # auto-progressed (waiting on the duty receipt) — no buyer action, so the
+            # card stays hidden until the leg actually moves (Ready-for-Pickup, refund…).
+            if (leg.leg_status == "package_arrived" and not leg.fulfillment_method
+                    and self.delivery_preference
+                    and not (leg.refund_due > 0 and not leg.balance_settled)):
+                continue
+            return True
         return False
 
     @property

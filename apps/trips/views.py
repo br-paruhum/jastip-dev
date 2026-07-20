@@ -357,10 +357,22 @@ def order_create(request):
         if carrier_plan.is_closed or carrier_plan.carrier_first_remaining_kg < min_kg:
             messages.error(request, "This carrier is no longer open for orders.")
             return redirect(reverse("pages:home") + "#queuing-carrier")
-        proxy = _resolve_proxy_for_country(carrier_plan.from_country)
-        if proxy is None:
-            messages.error(request, "No Proxy Buyer is available for this carrier's origin country yet.")
-            return redirect(reverse("pages:home") + "#queuing-carrier")
+        # The buyer chooses Buy (a separate proxy sources & buys the goods) or Cargo
+        # (buyer hands over their own package — no proxy). Travelers never proxy-buy,
+        # so a proxy is resolved only for the Buy path. Show the chooser until picked.
+        kind = request.GET.get("kind") or request.POST.get("kind")
+        if kind == "cargo":
+            proxy = None
+        elif kind == "buy":
+            proxy = _resolve_proxy_for_country(carrier_plan.from_country)
+            if proxy is None:
+                messages.error(request, "No Proxy Buyer is available for this carrier's origin country yet.")
+                return redirect(reverse("pages:home") + "#queuing-carrier")
+        else:
+            from apps.accounts.views import _resolve_role
+            return render(request, "trips/order_form.html",
+                          {"choose_kind": True, "carrier_plan": carrier_plan,
+                           "role": _resolve_role(request), "active_nav": "my-orders"})
     else:
         # Flow-1 entry: the buyer picked a proxy on the home "Proxy Buyers" list, so
         # this is always a Products order with the origin country fixed by the proxy.
@@ -422,6 +434,11 @@ def order_create(request):
                     messages.success(request, "Order sent. The Proxy Buyer will respond with an estimate, and your chosen carrier is reserved.")
                 else:
                     messages.success(request, "Order Posted. Proxy Buyer will soon respond with estimate.")
+            elif carrier_plan is not None:
+                # Traveler-First cargo: the carrier is pre-chosen, so bind them as a
+                # SELECTED leg now (no offer round-trip) — buyer pays the deposit next.
+                matching.bind_cargo_carrier(order, carrier_plan)
+                messages.success(request, "Cargo order sent. Your chosen carrier is reserved — please pay the first deposit.")
             else:
                 messages.success(request, "Order posted. Carriers can now respond with offers.")
             return redirect(reverse("accounts:profile") + f"?order={order.id}#order-detail")
@@ -1237,6 +1254,27 @@ def leg_weight_verify(request, pk):
     ])
     offer.order.recompute_status()
     messages.success(request, f"Drop-off recorded — final weight {weight} kg. This is final and not subject to dispute.")
+    return redirect(detail_url)
+
+
+# --- Traveler: set the drop-off address on a cargo leg ----------------------
+# Buyer-first cargo captures this on the offer form; traveler-first cargo is
+# auto-bound (no offer form), so the traveler sets it here until drop-off.
+@profile_required
+@require_POST
+def leg_drop_off_address(request, pk):
+    offer = get_object_or_404(
+        TravelerOffer, pk=pk, traveler=request.user,
+        offer_status=OfferStatus.SELECTED, leg_status__isnull=True,
+    )
+    detail_url = reverse("accounts:profile") + f"?offer={offer.id}#offer-detail"
+    address = (request.POST.get("drop_off_address") or "").strip()
+    if not address:
+        messages.error(request, "Enter your drop-off address.")
+        return redirect(detail_url)
+    offer.drop_off_address = address
+    offer.save(update_fields=["drop_off_address", "updated_at"])
+    messages.success(request, "Drop-off address saved. The buyer sees it once their deposit clears.")
     return redirect(detail_url)
 
 

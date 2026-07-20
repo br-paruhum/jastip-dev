@@ -36,7 +36,7 @@
 {% if is_order_buyer and bf_order.is_cargo %}
 {% for leg in bf_order.confirmed_legs %}
 {% if not leg.deposit_pending and not leg.deposit_verified %}
-<details class="card fold mt-2">
+<details class="card fold mt-2" open>
   <summary><h3>Pay First Deposit</h3></summary>
   <div class="fold-body">
   {# #Step-5A.1B-Buyer — bank details + Submit Proof. The accepted ask and the amount breakdown live in the Order Details card. #}
@@ -61,7 +61,7 @@
 {# Drop-Off Address — buyer-only, once the deposit clears (Step 5A.3BC). Only the address: the money lives in Pay First Deposit / Payments, "what happens next" lives in the Notes. #}
 {# Open while the buyer still needs the address; folds itself away once the package is handed over. #}
 {% if is_order_buyer and not bf_order.cargo_awaiting_deposit and bf_order.show_dropoff_card %}
-<details class="card fold mt-2">
+<details class="card fold mt-2" open>
   <summary><h3>Drop-Off Address</h3></summary>
   <div class="fold-body">
   <div style="display:flex;flex-direction:column;gap:16px">
@@ -97,7 +97,8 @@
                   <button class="btn btn-primary btn-sm" type="submit">Save Bank Details</button>
                 </form>
               {% endif %}
-            {% elif not leg.fulfillment_method %}
+            {% elif not leg.fulfillment_method and not leg.order.delivery_preference %}
+              {# Only when the buyer stated no Delivery Preference at order time — with one set, _honor_leg_delivery_preference auto-progresses after the duty receipt (no re-ask). #}
               <p style="margin:0 0 6px"><strong>Option 1 — Pickup:</strong> Please contact the carrier to set
                 the best time to visit. On the visit, verify the package and click <strong>Confirm Pickup</strong>
                 to release the payment.</p>
@@ -213,10 +214,26 @@
 {# Package Received Confirmation — buyer-only, pickup path; sits under Notes at ready_for_pickup. #}
 {% if is_order_buyer and bf_order.status == "ready_for_pickup" and bf_order.delivery_preference != "reship" %}
 {% if not bf_order.is_proxy_buyer_first or bf_order.custom_fare_proof %}
-<details class="card fold mt-2">
+<details class="card fold mt-2" open>
   <summary><h3>Package Received Confirmation</h3></summary>
   <div class="fold-body">
   {# #Step-10A.2B-Buyer traveler contact + #Step-15.2-Buyer Confirm Received (moved from the Notes card). #}
+  {% if bf_order.is_cargo %}
+  {# Cargo settles per leg: the traveler is the leg's carrier, and clearing is leg_clear. #}
+  {% for leg in bf_order.confirmed_legs %}
+  {% if leg.leg_status == "ready_for_pickup" %}
+  <table class="invoice" style="max-width:400px;margin-bottom:12px">
+    <tr><td style="width:100px">Name</td><td>: {{ leg.traveler.full_name }}</td></tr>
+    {% if leg.pickup_address %}<tr><td>Pickup Address</td><td>: <span style="white-space:pre-wrap">{{ leg.pickup_address }}</span></td></tr>{% endif %}
+    <tr><td>Email</td><td>: {{ leg.traveler.email }}</td></tr>
+    {% if leg.traveler.phone_e164 %}<tr><td>WhatsApp</td><td>: <a href="https://wa.me/{{ leg.traveler.phone_e164|slice:'1:' }}" target="_blank">{{ leg.traveler.phone_e164 }}</a></td></tr>{% endif %}
+  </table>
+  <form method="post" action="{% url 'trips:leg_clear' leg.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
+    <button class="btn btn-primary" type="submit">Confirm Received</button>
+  </form>
+  {% endif %}
+  {% endfor %}
+  {% else %}
   <table class="invoice" style="max-width:400px;margin-bottom:12px">
     <tr><td style="width:100px">Name</td><td>: {{ bf_order.proxy_traveler.full_name }}</td></tr>
     {% if bf_order.proxy_traveler.traveler_address %}<tr><td>Address</td><td>: <span style="white-space:pre-wrap">{{ bf_order.proxy_traveler.traveler_address }}</span>{% if bf_order.proxy_traveler.traveler_destination_city %}, {{ bf_order.proxy_traveler.traveler_destination_city }}{% endif %}</td></tr>{% endif %}
@@ -226,6 +243,7 @@
   <form method="post" action="{% url 'trips:request_clear' bf_order.id %}" style="text-align:center;margin-bottom:20px">{% csrf_token %}
     <button class="btn btn-primary" type="submit">Confirm Received</button>
   </form>
+  {% endif %}
   </div>
 </details>
 {% endif %}

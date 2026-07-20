@@ -9,7 +9,7 @@
 
 {# Process Customs Duty (Cargo) — the arrival action, moved out of the Notes card (Step 8A.1T). Gated on travel_date_passed, not leg_status: the leg stays package_received right through the flight, so status alone would show this before departure. #}
 {% if leg_offer.order.is_cargo and leg_offer.leg_status == "package_received" and leg_offer.travel_date_passed %}
-<details class="card fold mt-2">
+<details class="card fold mt-2" open>
   <summary><h3>Process Customs Duty</h3></summary>
   <div class="fold-body">
   {# No intro line: the Notes card ([8A-1T]) already says what this step is for. #}
@@ -47,10 +47,28 @@
 </details>
 {% endif %}
 
+{# Drop-Off Address (Traveler-First cargo) — the offer form captured this in buyer-first, but traveler-first is auto-bound, so the traveler sets it here. Shown until drop-off is recorded; the buyer sees it once their deposit clears. #}
+{% if leg_offer.order.is_cargo and leg_offer.order.carrier_first_plan_id and leg_offer.offer_status == "selected" and not leg_offer.leg_status %}
+<details class="card fold mt-2"{% if not leg_offer.drop_off_address %} open{% endif %}>
+  <summary><h3>Drop-Off Address</h3></summary>
+  <div class="fold-body">
+  <p class="help" style="margin:0 0 10px">Where the buyer should bring the package to you. Hidden from the buyer until their deposit clears.</p>
+  <form method="post" action="{% url 'trips:leg_drop_off_address' leg_offer.id %}">
+    {% csrf_token %}
+    <div class="form-field" style="margin:0 0 12px">
+      <label>Drop-off Address</label>
+      <textarea name="drop_off_address" rows="4" required>{{ leg_offer.drop_off_address }}</textarea>
+    </div>
+    <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Save Drop-Off Address</button></div>
+  </form>
+  </div>
+</details>
+{% endif %}
+
 {# Hand Over Package (Cargo) — the weigh + drop-off action, moved out of the Notes card (Step 5A.3TC). Shown once the buyer's deposit clears and until the drop-off is recorded. #}
 {% if leg_offer.order.is_cargo and leg_offer.offer_status == "selected" and not leg_offer.leg_status and leg_offer.deposit_verified %}
 {% if not leg_offer.order.is_multi_leg_cargo or leg_offer.order.items_fully_assigned %}
-<details class="card fold mt-2">
+<details class="card fold mt-2" open>
   <summary><h3>Hand Over Package</h3></summary>
   <div class="fold-body">
   <p class="help" style="margin:0 0 10px">Weigh the package in front of the buyer, enter the final weight, and mark the drop-off — this weight is final and not subject to dispute.</p>
@@ -250,7 +268,8 @@
 </details>
 
 {% if leg_offer.payout_ready and leg_offer.transaction %}
-<details class="card fold mt-2" open>
+{# Collapsed before the buyer confirms receipt (just a preview); opens once the leg clears — the payout is now the thing to look at. #}
+<details class="card fold mt-2"{% if leg_offer.leg_status == "clear" or leg_offer.leg_status == "closed" %} open{% endif %}>
   <summary><h3>Your Payout</h3></summary>
   <div class="fold-body">
   <table class="invoice">

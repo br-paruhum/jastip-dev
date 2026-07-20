@@ -24,7 +24,7 @@ from .constants import (
     OfferStatus,
     Status,
 )
-from .models import CarrierMatch, Order, TravelerOffer, TravelPlan
+from .models import CarrierMatch, LegTransaction, Order, TravelerOffer, TravelPlan
 
 
 def _settings():
@@ -268,6 +268,38 @@ def accept_bound_carrier(order, *, by_user):
         match.save()
     workflow.on_proxy_offer_accepted(order, offer)
     return True, "Estimate accepted. Please pay the deposit to confirm."
+
+
+def bind_cargo_carrier(order, plan):
+    """Traveler-First CARGO: the buyer picked a specific carrier's plan for a cargo
+    order (buyer owns the goods — no proxy, no estimate step). Unlike buyer-first
+    cargo, the carrier is already chosen, so create their leg ALREADY SELECTED
+    (mirroring offer_create + offer_select in one shot) so the order goes straight
+    to the buyer's first-deposit step. Capacity is held via the SELECTED leg's
+    ``cargo_offer_committed_kg`` (once its deposit clears) — no CarrierMatch and no
+    ``order.plan``, so it never double-counts against the trip. Returns the leg."""
+    weight = order.bid_weight_kg
+    with db_transaction.atomic():
+        offer = TravelerOffer.objects.create(
+            order=order,
+            traveler=plan.traveler,
+            plan=plan,
+            ask_cost_per_kg=plan.shipment_cost_per_kg,
+            avail_kg=weight,
+            allocated_weight_kg=weight,
+            travel_date=plan.travel_date,
+            travel_time=plan.travel_time,
+            from_city=plan.from_city, from_country=plan.from_country,
+            to_city=plan.to_city, to_country=plan.to_country,
+            pickup_address=getattr(plan.traveler, "traveler_address", "") or "",
+            offer_status=OfferStatus.SELECTED,
+        )
+        LegTransaction.objects.get_or_create(leg=offer)
+        order.recompute_status()
+    # ponytail: no traveler "you've been booked" email yet — on_request_submitted
+    # dereferences order.plan (null here). Traveler sees the leg in their dashboard;
+    # wire a notification when the cargo tail is finalised.
+    return offer
 
 
 def accept_match(match, *, by_user):

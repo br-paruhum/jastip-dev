@@ -255,6 +255,10 @@ Context expected (Django include passes the parent context through):
         {% endif %}
       {% elif leg_offer.order.is_multi_leg_cargo and not leg_offer.order.items_fully_assigned %}
       <p class="muted">Waiting for the buyer to split the goods across carriers — once they do, you can record the drop-off of your share.</p>
+      {% elif leg_offer.order.carrier_first_plan_id %}
+      {# #Step-T4.2TC-Traveler — traveler-first cargo: await buyer's hand-over, re-weigh + confirm drop-off. #}
+      <p class="muted">Buyer's deposit verified. Wait for the buyer to hand the package over to you - re-weigh the package in front of the buyer and confirm the drop-off.</p>
+      <span style="display: block; text-align: right;">[T4-2TC]</span>
       {% else %}
       {# #Step-5A.3TC-Traveler — the weigh + Mark Drop-Off form lives in the "Hand Over Package" card (Notes stay prose-only). #}
       <p class="muted">Buyer's deposit verified. Wait for the buyer to hand the package over to you - re-weigh the package in front of the buyer and confirm the drop-off.</p>
@@ -262,9 +266,19 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif leg_offer.leg_status == "package_received" %}
       {% if not leg_offer.travel_date_passed %}
-      {# #Step-7A.0T-Traveler — before the travel date. The Customs Duty form is Step 8 (on arrival), so it stays hidden until the travel date passes. #}
-      <p class="muted">You have received the package. Upon arrival, fill in Customs Duty amount.</p>
-      <span style="display: block; text-align: right;">[7A-0T]</span>
+        {% if leg_offer.order.carrier_first_plan_id %}
+        {# #Step-T6.1TC-Traveler — traveler-first cargo: package received, awaiting travel date. #}
+        <p class="muted">You have received the package. Upon arrival, fill in Customs Duty amount.</p>
+        <span style="display: block; text-align: right;">[T6-1TC]</span>
+        {% else %}
+        {# #Step-7A.0T-Traveler — before the travel date. The Customs Duty form is Step 8 (on arrival), so it stays hidden until the travel date passes. #}
+        <p class="muted">You have received the package. Upon arrival, fill in Customs Duty amount.</p>
+        <span style="display: block; text-align: right;">[7A-0T]</span>
+        {% endif %}
+      {% elif leg_offer.order.carrier_first_plan_id %}
+      {# #Step-T7.1T-Traveler — traveler-first: arrived, send Customs Duty amount (tail merges with Option 1 from here, no cargo suffix). #}
+      <p class="muted">You have arrived. Please send Customs Duty amount and wait for buyer to make a deposit before you pay the Duty.</p>
+      <span style="display: block; text-align: right;">[T7-1T]</span>
       {% else %}
       {# #Step-8A.1T-Traveler — arrived. The duty fields live in the "Process Customs Duty" card (Notes stay prose-only). #}
       <p class="muted">You have arrived. Please send Customs Duty amount and wait for buyer to make a deposit before you pay the Duty.</p>
@@ -272,17 +286,43 @@ Context expected (Django include passes the parent context through):
       {% endif %}
     {% elif leg_offer.leg_status == "package_arrived" %}
       {% if leg_offer.balance_pending %}
-      {# #Step-9A.1T-Traveler #}
-      <p class="muted">Buyer has submit Transfer Proof. Wait for admin fund verification before make Duty payment.</p>
-      <span style="display: block; text-align: right;">[9A-1T]</span>
+        {% if leg_offer.order.carrier_first_plan_id %}
+        {# #Step-T8.1T-Traveler — traveler-first: buyer submitted 2nd-deposit proof, awaiting verification. #}
+        <p class="muted">Buyer has submit Transfer Proof. Wait for admin fund verification before make Duty payment.</p>
+        <span style="display: block; text-align: right;">[T8-1T]</span>
+        {% else %}
+        {# #Step-9A.1T-Traveler #}
+        <p class="muted">Buyer has submit Transfer Proof. Wait for admin fund verification before make Duty payment.</p>
+        <span style="display: block; text-align: right;">[9A-1T]</span>
+        {% endif %}
       {% elif leg_offer.balance_settled %}
-      {# #Step-9A.2T-Traveler #}
-      <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the receipt.</p>
-      <span style="display: block; text-align: right;">[9A-2T]</span>
+        {% if leg_offer.order.carrier_first_plan_id %}
+        {# #Step-T8.2T-Traveler — traveler-first: 2nd deposit verified, pay Duty + upload receipt. #}
+        <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the receipt.</p>
+        <span style="display: block; text-align: right;">[T8-2T]</span>
+        {% else %}
+        {# #Step-9A.2T-Traveler #}
+        <p class="muted">Buyer's deposit verified. You can pay the Duty and upload the receipt.</p>
+        <span style="display: block; text-align: right;">[9A-2T]</span>
+        {% endif %}
+      {% elif leg_offer.order.carrier_first_plan_id %}
+      {# #Step-T7.2T-Traveler — traveler-first: duty amount sent, awaiting buyer deposit + verification. #}
+      <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the receipt.</p>
+      <span style="display: block; text-align: right;">[T7-2T]</span>
       {% else %}
       {# #Step-8A.2T-Traveler #}
       <p class="muted">Duty amount sent, waiting for Buyer's deposit and fund verification. Once verified you can pay the Duty and upload the receipt.</p>
       <span style="display: block; text-align: right;">[8A-2T]</span>
+      {% endif %}
+    {% elif leg_offer.leg_status == "ready_for_pickup" %}
+      {% if leg_offer.order.carrier_first_plan_id %}
+      {# #Step-T9.2T-Traveler — traveler-first: pickup path, duty paid, arrange collection. #}
+      <p class="muted">Customs Duty paid. Use Chat Box to inform Buyer for the time to visit collecting the package.</p>
+      <span style="display: block; text-align: right;">[T9-2T]</span>
+      {% else %}
+      {# #Step-10A.2T-Traveler #}
+      <p class="muted">Customs Duty paid. Use Chat Box to inform Buyer for the time to visit collecting the package.</p>
+      <span style="display: block; text-align: right;">[10A-2T]</span>
       {% endif %}
     {# Reship: prose only — cost/AWB/Package Sent live on the Reshipment card. #}
     {% elif leg_offer.leg_status == "reship_requested" %}
@@ -312,13 +352,23 @@ Context expected (Django include passes the parent context through):
     {# Cargo's payout is per leg (payout_paid_at); order.traveler_paid_at is the proxy flow's and stays null here. #}
     {% elif leg_offer.leg_status == "clear" or leg_offer.leg_status == "closed" %}
       {% if leg_offer.payout_paid_at %}
+        {% if leg_offer.order.carrier_first_plan_id %}
+        {# #Step-T15.1T-Traveler — traveler-first: payout processed, transaction completed. #}
+        <p><span class="badge badge-success">Transaction Completed</span><br>Your payout has been processed on {{ leg_offer.payout_paid_at|date:"d M Y, H:i" }}.<br>Thank you for doing business with {{ SITE_NAME }}.</p>
+        <span style="display: block; text-align: right;">[T15-1T]</span>
+        {% else %}
       {# #Step-16A.0T-Traveler #}
       <p><span class="badge badge-success">Transaction Completed</span><br>Your payout has been processed on {{ leg_offer.payout_paid_at|date:"d M Y, H:i" }}.<br>Thank you for doing business with {{ SITE_NAME }}.</p>
       <span style="display: block; text-align: right;">[16A-0T]</span>
+        {% endif %}
       {% elif leg_offer.order.delivery_preference == "reship" %}
       {# #Step-15A.1T-Traveler #}
       <p>Package received confirmed by the Buyer. Your payout will be disbursed within 24 hours.</p>
       <span style="display: block; text-align: right;">[15A-1T]</span>
+      {% elif leg_offer.order.carrier_first_plan_id %}
+      {# #Step-T14.2T-Traveler — traveler-first: pickup path, package collected by buyer. #}
+      <p>Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
+      <span style="display: block; text-align: right;">[T14-2T]</span>
       {% else %}
       {# #Step-15A.2T-Traveler #}
       <p>Package collected by the Buyer. Your payout will be disbursed within 24 hours.</p>
@@ -340,17 +390,43 @@ Context expected (Django include passes the parent context through):
       {% with leg=o.confirmed_legs.0 %}
       {% if leg.leg_status == "package_arrived" %}
         {% if leg.balance_pending %}
-        {# #Step-9A.1B-Buyer #}
-        <p>Transfer Proof Submitted. Wait for admin fund verification.</p>
-        <span style="display: block; text-align: right;">[9A-1B]</span>
+          {% if o.carrier_first_plan_id %}
+          {# #Step-T8.1B-Buyer — traveler-first: second-deposit proof submitted, awaiting verification. #}
+          <p>Transfer Proof Submitted. Wait for admin fund verification.</p>
+          <span style="display: block; text-align: right;">[T8-1B]</span>
+          {% else %}
+          {# #Step-9A.1B-Buyer #}
+          <p>Transfer Proof Submitted. Wait for admin fund verification.</p>
+          <span style="display: block; text-align: right;">[9A-1B]</span>
+          {% endif %}
         {% elif leg.balance_settled %}
-        {# #Step-9A.2B-Buyer #}
-        <p>Your deposit verified. Waiting for Traveler to make Duty payment</p>
-        <span style="display: block; text-align: right;">[9A-2B]</span>
+          {% if o.carrier_first_plan_id %}
+          {# #Step-T8.2B-Buyer — traveler-first: 2nd deposit verified, awaiting traveler's Duty payment. #}
+          <p>Your deposit verified. Waiting for Traveler to make Duty payment</p>
+          <span style="display: block; text-align: right;">[T8-2B]</span>
+          {% else %}
+          {# #Step-9A.2B-Buyer #}
+          <p>Your deposit verified. Waiting for Traveler to make Duty payment</p>
+          <span style="display: block; text-align: right;">[9A-2B]</span>
+          {% endif %}
+        {% elif o.carrier_first_plan_id %}
+        {# #Step-T7.2B-Buyer — traveler-first: package arrived, pay second deposit (Customs Duty). #}
+        <p>Your package has arrived and the traveler has sent the customs duty amount. Please pay the second deposit.</p>
+        <span style="display: block; text-align: right;">[T7-2B]</span>
         {% else %}
         {# #Step-8A.2B-Buyer — the amount + Submit Proof live in the card below. #}
         <p>Your package has arrived and the traveler has sent the customs duty amount. Please pay the second deposit.</p>
         <span style="display: block; text-align: right;">[8A-2B]</span>
+        {% endif %}
+      {% elif leg.leg_status == "ready_for_pickup" %}
+        {% if o.carrier_first_plan_id %}
+        {# #Step-T9.2B-Buyer — traveler-first: pickup path, duty paid, arrange collection (Confirm in Package Received Confirmation card). #}
+        <p>Custom Duty Paid. Check Chat Box to see the time set by Traveler to visit Traveler location.</p>
+        <span style="display: block; text-align: right;">[T9-2B]</span>
+        {% else %}
+        {# #Step-10A.2B-Buyer #}
+        <p>Custom Duty Paid. Check Chat Box to see the time set by the traveler to visit the traveler's location.</p>
+        <span style="display: block; text-align: right;">[10A-2B]</span>
         {% endif %}
       {% elif leg.leg_status == "reship_requested" %}
         {% if o.preferred_courier %}
@@ -379,32 +455,66 @@ Context expected (Django include passes the parent context through):
       {% elif leg.leg_status == "clear" or leg.leg_status == "closed" %}
         {# Step 16 closes it — cargo's payout is per leg (payout_paid_at), not order.traveler_paid_at. #}
         {% if leg.payout_paid_at %}
+          {% if o.carrier_first_plan_id %}
+          {# #Step-T15.1B-Buyer — traveler-first: payout disbursed, transaction completed. #}
+          <p><span class="badge badge-success">Transaction Completed</span><br>
+          The traveler's payout has been disbursed on {{ leg.payout_paid_at|date:"d M Y, H:i" }}.<br>
+          Thank you for doing business with {{ SITE_NAME }}.</p>
+          <span style="display: block; text-align: right;">[T15-1B]</span>
+          {% else %}
         {# #Step-16A.0B-Buyer — no proxy buyer in cargo, so only the traveler's payout. #}
         <p><span class="badge badge-success">Transaction Completed</span><br>
         The traveler's payout has been disbursed on {{ leg.payout_paid_at|date:"d M Y, H:i" }}.<br>
         Thank you for doing business with {{ SITE_NAME }}.</p>
         <span style="display: block; text-align: right;">[16A-0B]</span>
+          {% endif %}
         {% elif o.delivery_preference == "reship" %}
         {# #Step-15A.1B-Buyer #}
         <p>You confirmed have reviewed and received the package{% if leg.cleared_at %} on {{ leg.cleared_at|date:"d M Y, H:i" }}{% endif %}.</p>
         <span style="display: block; text-align: right;">[15A-1B]</span>
+        {% elif o.carrier_first_plan_id %}
+        {# #Step-T14.2B-Buyer — traveler-first: pickup path, package reviewed + received. #}
+        <p>You have reviewed and received the package{% if leg.cleared_at %} on {{ leg.cleared_at|date:"d M Y, H:i" }}{% endif %}.</p>
+        <span style="display: block; text-align: right;">[T14-2B]</span>
         {% else %}
         {# #Step-15A.2B-Buyer #}
         <p>You have reviewed and received the package{% if leg.cleared_at %} on {{ leg.cleared_at|date:"d M Y, H:i" }}{% endif %}.</p>
         <span style="display: block; text-align: right;">[15A-2B]</span>
         {% endif %}
       {% elif leg.leg_status %}
-      {# #Step-7A.0B-Buyer — carrier has the goods; the deposit steps are behind us. #}
-      <p>Traveler has received your package and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
-      <span style="display: block; text-align: right;">[7A-0B]</span>
+        {% if o.carrier_first_plan_id %}
+        {# #Step-T6.1BC-Buyer — traveler-first cargo: traveler has the package, in transit. #}
+        <p>Traveler has received your package and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
+        <span style="display: block; text-align: right;">[T6-1BC]</span>
+        {% else %}
+        {# #Step-7A.0B-Buyer — carrier has the goods; the deposit steps are behind us. #}
+        <p>Traveler has received your package and is carrying them to {{ o.to_city }}. You'll be notified to settle the Customs Duty when it arrives.</p>
+        <span style="display: block; text-align: right;">[7A-0B]</span>
+        {% endif %}
       {% elif leg.deposit_pending %}
-      {# #Step-5A.2B-Buyer #}
-      <p>Transfer proof submitted. Waiting for Admin fund verification.</p>
-      <span style="display: block; text-align: right;">[5A-2B]</span>
+        {% if o.carrier_first_plan_id %}
+        {# #Step-T4.1BC-Buyer — traveler-first cargo: first-deposit proof submitted, awaiting verification. #}
+        <p>Transfer proof submitted. Waiting for Admin fund verification.</p>
+        <span style="display: block; text-align: right;">[T4-1BC]</span>
+        {% else %}
+        {# #Step-5A.2B-Buyer #}
+        <p>Transfer proof submitted. Waiting for Admin fund verification.</p>
+        <span style="display: block; text-align: right;">[5A-2B]</span>
+        {% endif %}
       {% elif not leg.deposit_verified %}
-      {# #Step-5A.1B-Buyer — bank details + Submit Proof live in the deposit card below. #}
-      <p>You accept the shipment cost, please pay the first deposit.</p>
-      <span style="display: block; text-align: right;">[5A-1B]</span>
+        {% if o.carrier_first_plan_id %}
+        {# #Step-T2.3BC-Buyer — traveler-first cargo: pay the first deposit. #}
+        <p>You accept the shipment cost, please pay the first deposit.</p>
+        <span style="display: block; text-align: right;">[T2-3BC]</span>
+        {% else %}
+        {# #Step-5A.1B-Buyer — bank details + Submit Proof live in the deposit card below. #}
+        <p>You accept the shipment cost, please pay the first deposit.</p>
+        <span style="display: block; text-align: right;">[5A-1B]</span>
+        {% endif %}
+      {% elif o.carrier_first_plan_id %}
+      {# #Step-T4.2BC-Buyer — traveler-first cargo: deposit verified, hand package to traveler. #}
+      <p>Your deposit verified. Hand the package over to the traveler at the latest {{ leg.drop_off_deadline|date:"d-M-Y" }} - traveler will re-weigh the package in front of you and confirm the drop-off.</p>
+      <span style="display: block; text-align: right;">[T4-2BC]</span>
       {% else %}
       {# #Step-5A.3BC-Buyer — cargo: no proxy, the buyer hands the package over themselves. #}
       <p>Your deposit verified. Hand the package over to the traveler at the latest {{ leg.drop_off_deadline|date:"d-M-Y" }} - traveler will re-weigh the package in front of you and confirm the drop-off.</p>
@@ -815,9 +925,9 @@ Context expected (Django include passes the parent context through):
 	  <span style="display: block; text-align: right;">[2A-1P]</span>
       {% endif %}
       {% elif o.carrier_first_plan_id %}
-      {# #Step-T2.2B-Buyer — traveler-first: buy order sent, awaiting proxy estimate #}
+      {# #Step-T2.3B-Buyer — traveler-first: buy order sent, awaiting proxy estimate #}
       <p class="muted">Buy Order Sent, waiting for Proxy Buyer to respond with Estimate Cost, Estimate Package Weight and Margin Required.</p>
-	  <span style="display: block; text-align: right;">[T2-2B]</span>
+	  <span style="display: block; text-align: right;">[T2-3B]</span>
       {% else %}
       {# #Step-1A.2B-Buyer #}
       <p class="muted">Buy Order Sent, waiting for Proxy Buyer to respond with Estimate Cost, Estimate Package Weight and Margin Required.</p>

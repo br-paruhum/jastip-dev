@@ -23,6 +23,7 @@ urlpatterns = [
     path("offers/<int:pk>/reject/", views.offer_reject, name="offer_reject"),
     path("offers/<int:pk>/deposit/", views.leg_deposit_pay, name="leg_deposit_pay"),
     path("offers/<int:pk>/weight-verify/", views.leg_weight_verify, name="leg_weight_verify"),
+    path("offers/<int:pk>/drop-off-address/", views.leg_drop_off_address, name="leg_drop_off_address"),
     path("offers/<int:pk>/arrived/", views.leg_arrived, name="leg_arrived"),
     path("offers/<int:pk>/duty-receipt/", views.leg_custom_fare_proof, name="leg_custom_fare_proof"),
     path("offers/<int:pk>/balance/", views.leg_balance_pay, name="leg_balance_pay"),

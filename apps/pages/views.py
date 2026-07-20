@@ -73,7 +73,7 @@ def home(request):
     for o in (
         Order.objects.filter(plan__isnull=True, cargo_only=True)
         .exclude(status__in=CARGO_DONE)
-        .select_related("buyer").prefetch_related("traveler_offers")
+        .select_related("buyer", "carrier_first_plan").prefetch_related("traveler_offers")
     ):
         # Show the cargo's own weight (final once weighed, else declared) and keep
         # it steady once taken — the Status/Action columns already signal it's
@@ -110,7 +110,13 @@ def home(request):
         o.is_locked_fcfs, o.can_offer = True, False
         cargo_looking.append(o)
 
-    cargo_looking.sort(key=lambda o: o.max_acceptable_date or date.max)
+    # Traveler-First cargo has no Order Deadline (the carrier is pre-chosen), so the
+    # board's "Deadline" column falls back to the bound plan's travel date.
+    for o in cargo_looking:
+        o.board_deadline = o.max_acceptable_date or (
+            o.carrier_first_plan.travel_date if o.carrier_first_plan_id else None
+        )
+    cargo_looking.sort(key=lambda o: o.board_deadline or date.max)
 
     # Board 2 (Carrier-First): queued carriers with spare capacity waiting for
     # orders. Buyers "Send Order" here to put a carrier in front of their orders.

@@ -14,7 +14,7 @@
     <tbody>
       {% for o in cargo_looking %}
       <tr>
-        <td style="text-align:center">{{ o.max_acceptable_date|date:"d-M-Y" }}</td>
+        <td style="text-align:center">{{ o.board_deadline|date:"d-M-Y" }}</td>
         <td class="route-cell">
           <strong>{{ o.from_city }} → {{ o.to_city }}</strong>
           <span>{{ o.from_country }} → {{ o.to_country }}</span>

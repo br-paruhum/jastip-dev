@@ -8,14 +8,35 @@
     <h1>{% if not carrier_plan and not proxy %}Create Cargo Order{% else %}Post an Order{% endif %}</h1>
     <div class="profile-layout mt-2">
       <div class="profile-main">
+    {% if choose_kind %}
+    {# Buyer picks Buy vs Cargo before the form (traveler-first) — the fork of step 2. #}
+    <div class="card notes-card" style="margin-bottom:16px">
+      <div class="notes-head"><h3>Notes</h3></div>
+      <div class="fold-body">
+        {# #Step-T2.1B-Buyer — choose Buy (proxy sources) or Cargo (own package) #}
+        <p class="muted">You're selecting traveler <strong>{{ carrier_plan.reference }}</strong> ({{ carrier_plan.from_city }} → {{ carrier_plan.to_city }}).</p>
+        <p class="muted" style="margin:8px 0 0">Options:</p>
+        <ul class="muted" style="padding-left:18px;margin:0"><li><strong>Buy Order</strong> - a Proxy Buyer sources and buys the goods for you, then hands them to the traveler.</li><li><strong>Cargo Order</strong> - you already have the package; you hand it over for the traveler to carry.</li></ul>
+        <span style="display: block; text-align: right;">[T2-1B]</span>
+      </div>
+    </div>
+    <div class="card"><div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <a class="btn btn-primary" href="?carrier={{ carrier_plan.id }}&kind=buy">Send Buy Order</a>
+      <a class="btn btn-primary" href="?carrier={{ carrier_plan.id }}&kind=cargo">Send Cargo Order</a>
+    </div></div>
+    {% else %}
     {# Notes/guidance card — always first, always expanded, soft-clay header. #}
     <div class="card notes-card" style="margin-bottom:16px">
       <div class="notes-head"><h3>Notes</h3></div>
       <div class="fold-body">
       {% if proxy and carrier_plan %}
-        {# #Step-T2.1B-Buyer — traveler-first: buyer sends Buy Order against a traveler's plan #}
+        {# #Step-T2.2B-Buyer — traveler-first: buyer sends Buy Order against a traveler's plan #}
         <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
-		<span style="display: block; text-align: right;">[T2-1B]</span>
+		<span style="display: block; text-align: right;">[T2-2B]</span>
+      {% elif carrier_plan %}
+        {# #Step-T2.1BC-Buyer — traveler-first: buyer sends a Cargo Order against a traveler's plan #}
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for reshipment cost directly to the traveler.</li><li>After you click “Send Cargo Order”, your chosen carrier is reserved and you'll be asked to pay the first deposit.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li></ul>
+        <span style="display: block; text-align: right;">[T2-1BC]</span>
       {% elif proxy %}
         {# #Step-1A.1B-Buyer — proxy-buying order creation form #}
         <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Write more specific data on Product Name (e.g.: Shrimp paste chili pepper sauce - 200 ml, Brem Madiun Suling Gading pack 200 gram, etc.)</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship).</li><li>Use "Notes for Proxy Buyer" field at the bottom for any specific request, you can also put a url link here.</li><li>After you click “Send Buy Order”, the Proxy Buyer will be notified.</li><li>You still can edit this Order later.</li></ul>
@@ -104,8 +125,33 @@
         </div>
         <button type="button" class="btn btn-ghost btn-sm" id="add-item">+ Add Product</button>
 
+        {% if not proxy and carrier_plan %}
+        {# Traveler-First cargo: traveler already chosen (no offer window / deadline) — Total Weight + Delivery Preference + Box Photo on one row. #}
+        <div class="form-row" style="margin-top:30px">
+          <div class="form-field">
+            <label>{{ form.bid_weight_kg.label }}</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}
+            <p class="help">The Traveler re-weighs the package before carrying it.</p>
+          </div>
+          <div class="form-field">
+            <label>{{ form.delivery_preference.label }} <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-width="2.6" stroke-linecap="round" style="stroke:var(--danger);vertical-align:-5px;margin-left:5px" aria-hidden="true" role="img"><title>Choose carefully — reshipment adds a cost you pay later.</title><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="12" y1="16.7" x2="12" y2="16.7"/></svg></label>{{ form.delivery_preference }}{{ form.delivery_preference.errors }}
+            <p class="help">If you select 'Reship package' you'll pay reshipment cost to the Traveler later.</p>
+          </div>
+          <div class="form-field">
+            <label>Box/Luggage Photo</label>
+            {% if order and order.photos.all %}
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+              {% for p in order.photos.all %}
+              <a href="{{ p.image.url }}" target="_blank" class="btn btn-primary btn-sm">View Box Photo{% if not forloop.first %} {{ forloop.counter }}{% endif %}</a>
+              {% endfor %}
+            </div>
+            {% endif %}
+            <input type="file" name="order_photos" id="order-photos" accept="image/*"{% if not order.photos.all %} data-required="1"{% endif %}>
+            <p class="help">Required — photo before box/luggage is closed.</p>
+          </div>
+        </div>
+        {% else %}
         {% if not proxy %}
-        {# Cargo: weight + deadline share a row. A carrier_plan always implies a proxy, so this branch always has the deadline. #}
+        {# Buyer-first cargo (no bound carrier): weight + offer deadline share a row. #}
         <div class="form-row" style="margin-top:30px">
           <div class="form-field">
             <label>{{ form.bid_weight_kg.label }}</label>{{ form.bid_weight_kg }}{{ form.bid_weight_kg.errors }}
@@ -155,6 +201,7 @@
           {% endif %}
         </div>
         {% if not proxy %}</div>{% endif %}
+        {% endif %}
 
         <div style="text-align:center;margin-top:12px">
           {# Button names follow HowTo_BuyerComeFirst_Rev-260717.xlsx: Option 1 = Send Buy Order, Option 2 = Send Cargo Order. #}
@@ -162,6 +209,7 @@
         </div>
       </div>
     </form>
+    {% endif %}
       </div>
       {% include "_account_side_nav.html" %}
     </div>

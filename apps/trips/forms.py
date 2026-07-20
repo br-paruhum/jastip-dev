@@ -217,6 +217,12 @@ class OrderForm(forms.ModelForm):
                      "partial_allowed", "buyer_notes"):
             self.fields.pop(name, None)
         self.fields["bid_weight_kg"].label = "Total Weight (kg)"
+        # Traveler-First cargo: the carrier is already chosen, so there's no offer
+        # window — drop the Order Deadline (route is fixed by the plan server-side).
+        if carrier_plan is not None:
+            for name in ("max_acceptable_date", "from_country", "from_city",
+                         "to_country", "to_city"):
+                self.fields.pop(name, None)
         # Customs cannot have shipper == receiver, and on cargo the buyer is the
         # shipper — so the receiver must be named.
         self.fields["receiver_details"].label = "Receiver Name and Address"
