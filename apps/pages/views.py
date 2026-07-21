@@ -122,6 +122,9 @@ def home(request):
     # orders. Buyers "Send Order" here to put a carrier in front of their orders.
     queuing_carriers = list(
         TravelPlan.objects.filter(status__in=OPEN_PLAN_STATUSES)
+        # Hide trips whose travel date has passed (or is today) — you can't send
+        # an order to a carrier who has already left.
+        .filter(travel_date__gt=timezone.localdate())
         .select_related("traveler")
         # cargo_offers feeds cargo_offer_committed_kg (the Avail column); its
         # deposit_verified reads the leg transaction's payments.

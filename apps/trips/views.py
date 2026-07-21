@@ -361,9 +361,23 @@ def order_create(request):
         # (buyer hands over their own package — no proxy). Travelers never proxy-buy,
         # so a proxy is resolved only for the Buy path. Show the chooser until picked.
         kind = request.GET.get("kind") or request.POST.get("kind")
+        days_out = (carrier_plan.travel_date - timezone.localdate()).days
         if kind == "cargo":
+            # Cargo = buyer's own package, no proxy. The latest drop-off is the day
+            # before travel, so the trip must be at least 2 days out to leave any
+            # handover runway. Hardcoded (no purchase lead time needed).
+            if days_out < 2:
+                messages.error(request, "This carrier departs too soon for a Cargo Order — you need at least 2 days to drop off the package before departure. Pick a later carrier.")
+                return redirect(reverse("pages:home") + "#queuing-carrier")
             proxy = None
         elif kind == "buy":
+            # A Buy Order needs enough runway for the Proxy Buyer to purchase and
+            # hand the goods over before departure — same lead time the auto-matcher
+            # enforces.
+            lead = SiteSettings.load().carrier_match_lead_days
+            if days_out < lead:
+                messages.error(request, f"This carrier departs too soon for a Buy Order — the Proxy Buyer needs at least {lead} days to purchase and hand over the goods. Pick a later carrier, or send a Cargo Order instead.")
+                return redirect(reverse("pages:home") + "#queuing-carrier")
             proxy = _resolve_proxy_for_country(carrier_plan.from_country)
             if proxy is None:
                 messages.error(request, "No Proxy Buyer is available for this carrier's origin country yet.")

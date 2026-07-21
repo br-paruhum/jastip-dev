@@ -405,13 +405,13 @@
         <ul class="side-nav">
           <li><a href="#profile" data-tab="profile">My Profile</a></li>
           {% if role == "traveler" %}
-          <li><details class="nav-group">
+          <li><details class="nav-group" open>
             <summary data-tab="travel-plans">My Travel Plans</summary>
             <ul class="side-subnav"><li><a href="#" id="toggle-plan-form">Create New Plan</a></li></ul>
           </details></li>
           {% endif %}
           {% if role == "buyer" and not user.is_proxy_buyer and not user.is_superuser %}
-          <li><details class="nav-group">
+          <li><details class="nav-group" open>
             <summary data-tab="my-orders">My Orders</summary>
             <ul class="side-subnav">
               <li><a href="{% url 'pages:home' %}#proxy-buyers">Create Buy Order</a></li>
@@ -489,9 +489,9 @@ flatpickr(".timepicker", { enableTime: true, noCalendar: true, dateFormat: "H:i"
   }
   links.forEach(function (l) {
     l.addEventListener('click', function (e) {
-      // Accordion summaries keep their native open/close toggle; only anchors
-      // need their default (hash jump / navigation) cancelled.
-      if (l.tagName !== 'SUMMARY') e.preventDefault();
+      // Groups stay permanently expanded (cosmetic sub-menus): cancel the
+      // native <details> toggle on summary too, so clicking only switches tab.
+      e.preventDefault();
       activate(l.dataset.tab);
       // Drop any ?plan/?order/?offer detail query so the chosen tab sticks on
       // reload (the query now outranks the hash).

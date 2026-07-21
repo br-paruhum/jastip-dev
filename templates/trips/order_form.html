@@ -47,8 +47,8 @@
         <span style="display: block; text-align: right;">[1A-3BC]</span>
       {% else %}
         {# #Step-1A.1BC-Buyer — buyer-first cargo order creation form #}
-        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for reshipment cost directly to the traveler.</li><li>After you click “Send Cargo Order”, the Order will be listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>3. Queuing Buyer's Cargo</b></a>.</li><li>You still can edit this Order later before a traveler send an Offer and you accept it.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li></ul>
-        <span style="display: block; text-align: right;">[1A-1BC]</span>
+        <ul class="muted" style="padding-left:18px;margin:0"><li>Fill in all required data.</li><li>Product price is for Customs clearance purpose.</li><li>Total Weight will be reweigh by the traveler.</li><li>Make sure to select the correct Shipment Option (Pick Up or Request Reship). If you select Reship, you will pay for reshipment cost directly to the traveler.</li><li>After you click “Send Cargo Order”, the Order will be listed on <a href="{% url 'pages:home' %}#looking-for-traveler"><b>Buyer's Cargo List</b></a>.</li><li>You still can edit this Order later before a traveler send an Offer and you accept it.</li><li>Traveler who will carry this package has the right to open the box/luggage to verify the content.</li></ul>
+        <span style="display: block; text-align: right;">[B1.1BC]</span>
       {% endif %}
       </div>
     </div>
@@ -109,7 +109,7 @@
                 {% endif %}
               </div>
               {% if not proxy %}
-              <p class="help">Price for this item — needed for the customs invoice.</p>
+              <p class="help">Required for customs invoice.</p>
               <div class="form-field"><label>Notes</label>{{ item_form.buyer_note }}{{ item_form.buyer_note.errors }}</div>
               <div class="form-field">
                 <label>Product Photo</label>
@@ -229,7 +229,7 @@
       {% endif %}
     </div>
     {% if not proxy %}
-    <p class="help">Price for this item — needed for the customs invoice.</p>
+    <p class="help">Required for customs invoice.</p>
     <div class="form-field"><label>Notes</label>{{ formset.empty_form.buyer_note }}</div>
     <div class="form-field">
       <label>Product Photo</label>{{ formset.empty_form.photo }}

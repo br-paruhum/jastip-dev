@@ -429,9 +429,7 @@ table.invoice.inv2 tr.total td { font-weight: 800; color: var(--slate); border-b
   gap: 8px; padding: .75rem 1rem; color: var(--slate-600); font-weight: 600;
   border-bottom: 1px solid var(--line); cursor: pointer; list-style: none; }
 .profile-side .side-nav summary::-webkit-details-marker { display: none; }
-.profile-side .side-nav summary::after { content: "\203A"; color: var(--muted); font-weight: 400;
-  transform: rotate(90deg); transition: transform .15s; }
-.profile-side .side-nav details[open] summary::after { transform: rotate(-90deg); }
+/* Groups are permanently open (cosmetic sub-menus) — no collapse chevron. */
 .profile-side .side-nav summary:hover { background: var(--cream); }
 .profile-side .side-nav summary.active { background: var(--clay); color: #fff; }
 .profile-side .side-nav summary.active::after { color: rgba(255,255,255,.7); }
