@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
 # Deploy the pushed `main` branch to a remote Jastip environment.
-# Runs ON THE REMOTE: git pull → (migrate) → seed → (collectstatic) → restart.
+# Runs ON THE REMOTE: git pull → (migrate) → (collectstatic) → restart.
+# NEVER seeds — seeding clobbers admin-edited content on stg/prd.
 #
 # Run this from your local dev repo AFTER you have committed and pushed to
 # origin/main (e.g. an edit to apps/pages/how_to_body.html for the How-To page).
@@ -10,9 +11,9 @@
 #   ./scripts/deploy.sh                 # staging, full deploy (default)
 #   ./scripts/deploy.sh stg             # staging, full deploy
 #   ./scripts/deploy.sh prd             # PRODUCTION (asks you to confirm)
-#   ./scripts/deploy.sh stg --content   # content-only: pull → seed → restart
-#                                       #   (skips migrate + collectstatic — perfect
-#                                       #    for How-To / static page text edits)
+#   ./scripts/deploy.sh stg --content   # code-only: pull → restart
+#                                       #   (skips migrate + collectstatic — for
+#                                       #    template/text edits with no new static)
 #
 # Auth: reads the password from $JASTIP_SSH_PASS if set, otherwise prompts once.
 #       The same password is used for the SSH login and for `sudo systemctl restart`.
@@ -80,15 +81,13 @@ cd "$DIR"
 echo "  • git pull"
 git pull --ff-only | sed 's/^/    /'
 
+# NEVER seed on stg or prd — `seed` overwrites admin-edited page bodies
+# (FAQ, Blogs, Privacy, Terms) and has clobbered production content repeatedly.
+# Page/content changes go in via the admin, not the deploy.
+
 if [[ "$MODE" != "content" ]]; then
   echo "  • migrate"
   "$PY" manage.py migrate --noinput 2>&1 | grep -iE "applying|no migrations" | sed 's/^/    /' || true
-fi
-
-echo "  • seed (refresh page bodies, idempotent)"
-"$PY" manage.py seed 2>&1 | grep -iE "site pages|seed complete" | sed 's/^/    /' || true
-
-if [[ "$MODE" != "content" ]]; then
   echo "  • collectstatic"
   "$PY" manage.py collectstatic --noinput 2>&1 | tail -1 | sed 's/^/    /'
 fi
