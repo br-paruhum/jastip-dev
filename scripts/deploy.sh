@@ -20,7 +20,7 @@
 #
 set -euo pipefail
 
-HOST="claude@43.129.58.32"
+HOST="claude@43.133.154.27"
 
 # ── Parse args (env + optional --content) ────────────────────────────────────
 env="stg"
@@ -35,9 +35,11 @@ for arg in "$@"; do
   esac
 done
 
+# CloudPanel VPS: app dirs are 0770 owned by the per-site user, so git/migrate/
+# collectstatic run AS that user (SITEUSER); only the systemctl restart is root.
 case "$env" in
-  stg) DIR="/var/www/jastip-stg"; SERVICE="jastip-stg"; URL="https://stg.proxybuying.com" ;;
-  prd) DIR="/var/www/jastip-prd"; SERVICE="jastip-prd"; URL="https://www.proxybuying.com" ;;
+  stg) DIR="/home/goproxybuy-staging/htdocs/staging.goproxybuy.com"; SITEUSER="goproxybuy-staging"; SERVICE="jastip-stg"; URL="https://staging.goproxybuy.com" ;;
+  prd) DIR="/home/goproxybuy/htdocs/www.goproxybuy.com"; SITEUSER="goproxybuy"; SERVICE="jastip-prd"; URL="https://www.goproxybuy.com" ;;
 esac
 
 # ── Safety: confirm production, and warn if local HEAD isn't pushed ───────────
@@ -73,27 +75,32 @@ echo "→ Deploying origin/main to ${env} (${DIR}) — mode: ${mode}"
 
 # ── Run the deploy on the remote ─────────────────────────────────────────────
 sshpass -e ssh -o StrictHostKeyChecking=no -o ConnectTimeout=20 "$HOST" \
-  "DIR='$DIR' SERVICE='$SERVICE' MODE='$mode' SUDO_PW='$PW' bash -s" <<'REMOTE'
+  "DIR='$DIR' SITEUSER='$SITEUSER' SERVICE='$SERVICE' MODE='$mode' SUDO_PW='$PW' bash -s" <<'REMOTE'
+set -e
+
+# Cache claude's sudo credentials once so the inner `sudo -u` and the restart
+# don't need the password piped in (piping conflicts with the heredoc on stdin).
+echo "$SUDO_PW" | sudo -S -v 2>/dev/null
+
+# git pull / migrate / collectstatic run AS the site user (owns the 0770 app dir).
+# NEVER seed on stg or prd — `seed` overwrites admin-edited page bodies
+# (FAQ, Blogs, Privacy, Terms) and has clobbered production content repeatedly.
+sudo -u "$SITEUSER" -H env DIR="$DIR" MODE="$MODE" bash -s <<'SITE'
 set -e
 PY="$DIR/.venv/bin/python"
 cd "$DIR"
-
 echo "  • git pull"
 git pull --ff-only | sed 's/^/    /'
-
-# NEVER seed on stg or prd — `seed` overwrites admin-edited page bodies
-# (FAQ, Blogs, Privacy, Terms) and has clobbered production content repeatedly.
-# Page/content changes go in via the admin, not the deploy.
-
 if [[ "$MODE" != "content" ]]; then
   echo "  • migrate"
   "$PY" manage.py migrate --noinput 2>&1 | grep -iE "applying|no migrations" | sed 's/^/    /' || true
   echo "  • collectstatic"
   "$PY" manage.py collectstatic --noinput 2>&1 | tail -1 | sed 's/^/    /'
 fi
+SITE
 
 echo "  • restart $SERVICE"
-echo "$SUDO_PW" | sudo -S systemctl restart "$SERVICE" 2>&1 | grep -vi password || true
+sudo systemctl restart "$SERVICE"
 sleep 2
 echo "    service: $(systemctl is-active "$SERVICE")"
 REMOTE
