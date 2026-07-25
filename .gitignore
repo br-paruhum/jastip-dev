@@ -53,3 +53,5 @@ graphify-out/
 /proxybuying-obsidian/USERS NOTES/
 # AI-Context/references holds source PDFs; override the generic `references/` rule.
 !/proxybuying-obsidian/AI-Context/references/
+# …but PleaseIgnore/ under it is personal/scratch — keep it out of git.
+/proxybuying-obsidian/AI-Context/references/PleaseIgnore/
