@@ -7,6 +7,7 @@
         <th>Travel Date</th>
         <th>Route</th>
         <th>Avail Weight<br>(kg)</th>
+        <th>Min Weight<br>(kg)</th>
         <th>Rate<br>per kg</th>
         <th>Status</th>
         <th>Action</th>
@@ -21,6 +22,7 @@
           <span>{{ plan.from_country }} → {{ plan.to_country }}</span>
         </td>
         <td class="avail-cell">{{ plan.carrier_first_remaining_kg|floatformat:1 }}</td>
+        <td class="avail-cell">{{ plan.min_weight_kg|floatformat:1 }}</td>
         <td class="avail-cell">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|by_currency:plan.shipment_currency }}</td>
         <td class="status-cell">
           {% if plan.is_queue_locked %}

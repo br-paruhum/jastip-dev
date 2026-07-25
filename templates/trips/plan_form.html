@@ -35,6 +35,13 @@
             <p class="help">Currency is set automatically from your From Country.</p>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Minimum billed weight (kg)</label>
+            {{ form.min_weight_kg }}{{ form.min_weight_kg.errors }}
+            <p class="help">The buyer pays for at least this many kg, even if their order is lighter. Default 0.5.</p>
+          </div>
+        </div>
           <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
             <button class="btn btn-primary" type="submit">{% if is_edit %}Save Changes{% else %}Submit Travel Plan{% endif %}</button>
             <a class="btn btn-outline" href="{% url 'accounts:profile' %}{% if is_edit %}?plan={{ plan.id }}#plan-detail{% else %}#travel-plans{% endif %}">Cancel</a>

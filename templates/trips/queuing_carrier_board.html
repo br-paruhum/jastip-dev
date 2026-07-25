@@ -19,6 +19,7 @@
             <th style="text-align:left">Route</th>
             <th style="text-align:left">Travel Date</th>
             <th class="num-right">Spare Weight</th>
+            <th class="num-right">Min Weight</th>
             <th class="num-right">Rate / kg</th>
             <th>Status</th>
             <th>Action</th>
@@ -30,6 +31,7 @@
             <td>{{ plan.from_city }} → {{ plan.to_city }}</td>
             <td>{{ plan.travel_date|date:"d-M-Y" }}{% if plan.travel_time %} {{ plan.travel_time|time:"H:i" }}{% endif %}</td>
             <td class="num-right">{{ plan.carrier_first_remaining_kg|floatformat:1 }} kg</td>
+            <td class="num-right">{{ plan.min_weight_kg|floatformat:1 }} kg</td>
             <td class="num-right">{{ plan.shipment_currency }} {{ plan.shipment_cost_per_kg|by_currency:plan.shipment_currency }}</td>
             <td>
               {% if plan.is_queue_locked %}

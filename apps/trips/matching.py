@@ -287,6 +287,9 @@ def bind_cargo_carrier(order, plan):
             ask_cost_per_kg=plan.shipment_cost_per_kg,
             avail_kg=weight,
             allocated_weight_kg=weight,
+            # Carry the trip's minimum onto the leg so cargo's per-leg billing
+            # (shipment_cost_due) floors at the plan's minimum, not the default.
+            min_weight_kg=plan.min_weight_kg,
             travel_date=plan.travel_date,
             travel_time=plan.travel_time,
             from_city=plan.from_city, from_country=plan.from_country,

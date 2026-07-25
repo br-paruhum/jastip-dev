@@ -34,6 +34,25 @@ from .constants import (
 
 TWO_PLACES = Decimal("0.01")
 USER = settings.AUTH_USER_MODEL
+# Default minimum billable weight a traveler charges for (kg). Travelers may
+# raise it per plan/offer; the buyer is billed for at least this many kg even
+# when their order weighs less.
+DEFAULT_MIN_WEIGHT_KG = Decimal("0.5")
+
+
+def billable_weight(weight, minimum) -> Decimal:
+    """The weight the buyer is billed for: the greater of the actual/ordered
+    weight and the traveler's stated minimum. Shared by every flow so the
+    minimum floors the charge everywhere (see effective_min_weight_kg).
+
+    A non-positive weight means nothing has been ordered/measured yet (e.g. the
+    actual weight before the traveler weighs the package) — it stays 0 so the
+    minimum never invents a charge out of an empty order."""
+    w = weight or Decimal("0")
+    m = minimum or Decimal("0")
+    if w <= 0:
+        return w
+    return w if w >= m else m
 
 
 def platform_fee_floor(currency: str) -> Decimal:
@@ -88,6 +107,10 @@ class TravelPlan(ListingTimingMixin, models.Model):
     available_weight_kg = models.DecimalField(max_digits=6, decimal_places=2)
     shipment_currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.IDR)
     shipment_cost_per_kg = models.DecimalField(max_digits=12, decimal_places=2)
+    min_weight_kg = models.DecimalField(
+        max_digits=6, decimal_places=2, default=DEFAULT_MIN_WEIGHT_KG,
+        help_text="Minimum weight the buyer is billed for, even if their order is lighter.",
+    )
     margin_percent = models.DecimalField(
         max_digits=5, decimal_places=2, default=Decimal("0"),
         help_text="Applied on top of the ordered items cost.",
@@ -807,6 +830,28 @@ class Order(ListingTimingMixin, models.Model):
         return self.bid_cost_per_kg
 
     @property
+    def effective_min_weight_kg(self) -> Decimal:
+        """The traveler's minimum billable weight for this order's flow — mirrors
+        effective_cost_per_kg: the bound plan's, the single confirmed leg's, or
+        the single live proxy offer's. 0 (no floor) when none applies, e.g.
+        multi-leg cargo where each leg floors its own charge."""
+        if self.carrier_first_plan_id:
+            return self.carrier_first_plan.min_weight_kg
+        if self.plan_id:
+            return self.plan.min_weight_kg
+        legs = self.confirmed_legs
+        if len(legs) == 1:
+            return legs[0].min_weight_kg
+        if not self.is_cargo:
+            live = [
+                o for o in self.traveler_offers.all()
+                if o.offer_status in (OfferStatus.PENDING, OfferStatus.SELECTED)
+            ]
+            if len(live) == 1:
+                return live[0].min_weight_kg
+        return Decimal("0")
+
+    @property
     def confirmed_legs(self) -> list:
         """Selected TravelerOffers ("legs") for this order, oldest first."""
         return [o for o in self.traveler_offers.all() if o.offer_status == OfferStatus.SELECTED]
@@ -1402,9 +1447,11 @@ class Order(ListingTimingMixin, models.Model):
 
     @property
     def estimated_shipment_cost(self) -> Decimal:
-        """Shipment on the carrier's estimated weight (drives the deposit)."""
+        """Shipment on the carrier's estimated weight (drives the deposit),
+        floored at the traveler's minimum billable weight."""
         rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
-        return self._q(self.estimated_weight_kg * rate)
+        weight = billable_weight(self.estimated_weight_kg, self.effective_min_weight_kg)
+        return self._q(weight * rate)
 
     @property
     def shipment_cost(self) -> Decimal:
@@ -1421,10 +1468,11 @@ class Order(ListingTimingMixin, models.Model):
             total = Decimal("0")
             for leg in self.confirmed_legs:
                 weight = leg.agreed_weight_kg if leg.agreed_weight_kg is not None else leg.allocated_weight_kg
-                total += (weight or Decimal("0")) * leg.ask_cost_per_kg
+                total += billable_weight(weight, leg.min_weight_kg) * leg.ask_cost_per_kg
             return self._q(total)
         rate = self.plan.shipment_cost_per_kg if self.plan_id else self.effective_cost_per_kg
-        return self._q(self.actual_weight_kg * rate)
+        weight = billable_weight(self.actual_weight_kg, self.effective_min_weight_kg)
+        return self._q(weight * rate)
 
     @property
     def has_actual_weight(self) -> bool:
@@ -1434,6 +1482,14 @@ class Order(ListingTimingMixin, models.Model):
     def effective_weight_kg(self) -> Decimal:
         """Weight counted toward plan capacity: actual once confirmed, else estimated."""
         return self.actual_weight_kg if self.has_actual_weight else self.estimated_weight_kg
+
+    @property
+    def ordered_weight_kg(self) -> Decimal:
+        """The buyer's stated weight for display (e.g. the minimum-weight warning).
+        Buyer-first orders carry it in bid_weight_kg — estimated_weight_kg stays 0
+        on cargo and until a proxy sends its estimate — so fall back to the bid
+        whenever no measured/estimated weight has been recorded yet."""
+        return self.effective_weight_kg if self.effective_weight_kg > 0 else self.bid_weight_kg
 
     @property
     def refund_details_provided(self) -> bool:
@@ -1969,6 +2025,10 @@ class TravelerOffer(models.Model):
     avail_kg = models.DecimalField(
         max_digits=6, decimal_places=2, help_text="Carrier's declared spare capacity — shown publicly."
     )
+    min_weight_kg = models.DecimalField(
+        max_digits=6, decimal_places=2, default=DEFAULT_MIN_WEIGHT_KG,
+        help_text="Minimum weight the buyer is billed for, even if their order is lighter.",
+    )
 
     # Hidden from the buyer until this leg's deposit clears.
     drop_off_address = models.TextField(blank=True)
@@ -2075,19 +2135,32 @@ class TravelerOffer(models.Model):
         return ovr if ovr is not None else self.ask_cost_per_kg
 
     @property
+    def min_weight_kg_effective(self) -> Decimal:
+        """The minimum that actually bills this leg. Carrier-first legs are
+        auto-bound from a plan, so the PLAN's minimum is authoritative — this keeps
+        them correct even for legs bound before the minimum was copied onto the leg.
+        Buyer-first legs use their own (offer-set) minimum."""
+        if self.order.carrier_first_plan_id:
+            return self.order.carrier_first_plan.min_weight_kg
+        return self.min_weight_kg
+
+    @property
     def carry_fee_estimate(self) -> Decimal:
         """This carrier's carry fee for display = their effective rate × the order's
         effective (actual-or-estimated) carried weight. Per-offer, so each carrier
         sees their own quote even while several offers are pending (the order-level
         effective_cost_per_kg only resolves when a single offer is live)."""
-        return (self.effective_ask_cost_per_kg * self.order.effective_weight_kg).quantize(TWO_PLACES)
+        weight = billable_weight(self.order.ordered_weight_kg, self.min_weight_kg_effective)
+        return (self.effective_ask_cost_per_kg * weight).quantize(TWO_PLACES)
 
     @property
     def shipment_cost_due(self) -> Decimal:
         """The carry fee alone: allocated weight × accepted ask rate. This is the
         carrier's earnings basis — keep it out of anything the buyer is charged
-        on top (see buyer_platform_fee)."""
-        return ((self.allocated_weight_kg or Decimal("0")) * self.ask_cost_per_kg).quantize(TWO_PLACES)
+        on top (see buyer_platform_fee). Floored at min_weight_kg, so the carrier
+        earns (and the buyer pays) the stated minimum even on a lighter load."""
+        weight = billable_weight(self.allocated_weight_kg, self.min_weight_kg_effective)
+        return (weight * self.ask_cost_per_kg).quantize(TWO_PLACES)
 
     @property
     def final_weight_kg(self) -> Decimal:
@@ -2097,10 +2170,21 @@ class TravelerOffer(models.Model):
         return self.allocated_weight_kg or Decimal("0")
 
     @property
+    def charged_weight_kg(self) -> Decimal:
+        """The weight the buyer is actually billed for, floored at the traveler's
+        minimum. Cargo bills per leg (final/allocated weight); proxy (Flow-1)
+        bills at order level (the order's ordered weight). Equals the shown weight
+        unless the minimum applies."""
+        base = self.final_weight_kg if self.order.is_cargo else self.order.ordered_weight_kg
+        return billable_weight(base, self.min_weight_kg_effective)
+
+    @property
     def final_shipment_cost(self) -> Decimal:
         """Carry fee at final weight — shipment_cost_due once the weight is
-        measured, i.e. shipment_cost_due + weight_delta."""
-        return (self.final_weight_kg * self.ask_cost_per_kg).quantize(TWO_PLACES)
+        measured, i.e. shipment_cost_due + weight_delta. Still floored at the
+        minimum, so a re-weigh below the minimum bills the minimum."""
+        weight = billable_weight(self.final_weight_kg, self.min_weight_kg_effective)
+        return (weight * self.ask_cost_per_kg).quantize(TWO_PLACES)
 
     @property
     def buyer_total_due(self) -> Decimal:

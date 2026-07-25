@@ -12,6 +12,12 @@
   {% csrf_token %}
   <div class="card-body">
     <div class="card-band-row">Offer Details</div>
+    {% if offer_locked_trip %}
+    <p class="help" style="margin-top:14px;color:var(--clay)">
+      You already have a trip on this route (<strong>{{ offer_locked_trip.reference }}</strong> · {{ offer_locked_trip.travel_date|date:"d-M-Y" }}).
+      Its <strong>rate</strong> and <strong>minimum weight</strong> are locked to that trip; <strong>Avail</strong> shows the remaining {{ offer_locked_trip.carrier_first_remaining_kg|floatformat:1 }} kg.
+    </p>
+    {% endif %}
     <p class="muted" style="margin-top:14px">
       <strong>{{ offer_form_order.reference }}</strong> ·
       Weight {{ offer_form_order.bid_weight_kg|floatformat:1 }} kg ·
@@ -22,6 +28,12 @@
       <div class="form-field">
         <label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}
         <p class="help">Your spare capacity — at least the {{ offer_form_order.bid_weight_kg|floatformat:1 }} kg this order needs.</p>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field">
+        <label>Minimum billed weight (kg)</label>{{ offer_form_obj.min_weight_kg }}{{ offer_form_obj.min_weight_kg.errors }}
+        <p class="help">The buyer pays for at least this many kg, even if their order is lighter. Default 0.5.</p>
       </div>
     </div>
     <div class="form-row">
@@ -67,6 +79,12 @@
   {% csrf_token %}
   <div class="card-body">
     <div class="card-band-row">Offer Details</div>
+    {% if offer_locked_trip %}
+    <p class="help" style="margin-top:14px;color:var(--clay)">
+      You already have a trip on this route (<strong>{{ offer_locked_trip.reference }}</strong> · {{ offer_locked_trip.travel_date|date:"d-M-Y" }}).
+      Its <strong>rate</strong> and <strong>minimum weight</strong> are locked to that trip; <strong>Avail</strong> shows the remaining {{ offer_locked_trip.carrier_first_remaining_kg|floatformat:1 }} kg.
+    </p>
+    {% endif %}
     <p class="muted" style="margin-top:14px">
       <strong>{{ offer_form_order.reference }}</strong> - {{ offer_form_order.route }}<br>
       Est. weight {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg -
@@ -76,6 +94,8 @@
       <div class="form-field"><label>Shipment Cost per kg ({{ offer_form_order.currency }})</label>{{ offer_form_obj.ask_cost_per_kg }}{{ offer_form_obj.ask_cost_per_kg.errors }}</div>
       <div class="form-field"><label>Avail (kg)</label>{{ offer_form_obj.avail_kg }}{{ offer_form_obj.avail_kg.errors }}
         <p class="help">Your spare capacity — at least the {{ offer_form_order.estimated_weight_kg|floatformat:1 }} kg this order needs. The remainder is listed on <strong>1. Queuing Traveler's Offers</strong> for other buyers.</p></div>
+      <div class="form-field"><label>Minimum billed weight (kg)</label>{{ offer_form_obj.min_weight_kg }}{{ offer_form_obj.min_weight_kg.errors }}
+        <p class="help">The buyer pays for at least this many kg, even if their order is lighter. Default 0.5.</p></div>
     </div>
     <div class="form-row">
       <div class="form-field">

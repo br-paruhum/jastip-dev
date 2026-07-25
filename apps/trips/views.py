@@ -596,12 +596,21 @@ def _publish_offer_trip(offer, traveler):
             travel_date=offer.travel_date, travel_time=offer.travel_time,
             available_weight_kg=offer.avail_kg,
             shipment_cost_per_kg=offer.ask_cost_per_kg,
+            # First offer on a trip seeds the trip's minimum billable weight;
+            # every later offer on the same trip inherits it (locked below).
+            min_weight_kg=offer.min_weight_kg,
             shipment_currency=ExchangeRate.currency_for_country(offer.from_country),
             # A cargo trip carries goods the buyer already owns — no proxy
             # buying, so no margin.
             carrier_only=True,
             margin_percent=Decimal("0"),
         )
+    else:
+        # Per-trip terms: locked to the first offer on this trip (or a plan created
+        # via "Post a Travel Plan"). A later offer inherits the rate + minimum
+        # weight and cannot set different ones. Caller saves the offer.
+        offer.ask_cost_per_kg = plan.shipment_cost_per_kg
+        offer.min_weight_kg = plan.min_weight_kg
     return plan
 
 
@@ -647,6 +656,7 @@ def offer_create(request, order_id):
                 f"{needed_kg} kg — this order can't be split across carriers.",
             )
             return redirect(dashboard_url + f"?offer={order_id}#offer-form")
+        entered_rate, entered_min = offer.ask_cost_per_kg, offer.min_weight_kg
         with db_transaction.atomic():
             offer.order = order
             offer.traveler = request.user
@@ -657,6 +667,13 @@ def offer_create(request, order_id):
             offer.save()
             order.recompute_status()
         workflow.on_offer_submitted(order, offer)
+        if offer.ask_cost_per_kg != entered_rate or offer.min_weight_kg != entered_min:
+            messages.info(
+                request,
+                "Rate and minimum weight are locked to your existing trip "
+                f"({offer.plan.reference}): {order.currency} "
+                f"{offer.ask_cost_per_kg:.0f}/kg, minimum {offer.min_weight_kg:.1f} kg.",
+            )
         messages.success(request, "Offer submitted. The buyer will review it.")
         return redirect(dashboard_url + f"?offer={offer.id}#offer-detail")
     # Keep the carrier's entered values and show the field errors inline (not as

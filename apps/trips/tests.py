@@ -1793,3 +1793,153 @@ class ProxyOfferSpareCapacityTests(TestCase):
         self.order.save(update_fields=["status"])
         self.assertEqual(self._fresh_plan().cargo_offer_committed_kg, Decimal("0.00"))
         self.assertEqual(self._fresh_plan().carrier_first_remaining_kg, Decimal("20.00"))
+
+
+class MinBillableWeightTests(TestCase):
+    """Traveler's minimum weight floors the buyer's billed shipment across all
+    three flows: the buyer pays for at least min_weight_kg even when their order
+    is lighter (user's 3 test scenarios, 25-Jul)."""
+
+    def setUp(self):
+        self.traveler = make_user("mbw-t@x.com")
+        self.buyer = make_user("mbw-b@x.com")
+
+    def test_buyer_first_cargo_leg_floored(self):
+        # (1) Buyer orders 1.5 kg cargo; carrier's min is 3 kg → billed 3 kg.
+        order = Order.objects.create(
+            buyer=self.buyer, cargo_only=True, settlement_currency="IDR",
+            estimated_weight_kg=Decimal("1.5"), status=Status.RESPONDED,
+        )
+        leg = TravelerOffer.objects.create(
+            order=order, traveler=self.traveler,
+            ask_cost_per_kg=Decimal("500"), avail_kg=Decimal("5"),
+            min_weight_kg=Decimal("3"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.SELECTED, allocated_weight_kg=Decimal("1.5"),
+        )
+        # 3 kg × 500 = 1500 (floored), not 1.5 × 500 = 750.
+        self.assertEqual(leg.shipment_cost_due, Decimal("1500.00"))
+        self.assertEqual(order.effective_min_weight_kg, Decimal("3.00"))
+
+    def test_buyer_first_proxy_order_floored(self):
+        # (2) Buyer orders 1.5 kg goods; live proxy offer's min is 3 kg → billed 3 kg.
+        from apps.trips.models import ProxyBuyer
+        proxy = ProxyBuyer.objects.create(name="P", country="Japan", email="p@x.com")
+        order = Order.objects.create(
+            buyer=self.buyer, proxy_buyer=proxy, settlement_currency="IDR",
+            estimated_weight_kg=Decimal("1.5"), status=Status.RESPONDED,
+        )
+        TravelerOffer.objects.create(
+            order=order, traveler=self.traveler,
+            ask_cost_per_kg=Decimal("500"), avail_kg=Decimal("5"),
+            min_weight_kg=Decimal("3"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.PENDING,
+        )
+        self.assertEqual(order.effective_min_weight_kg, Decimal("3.00"))
+        self.assertEqual(order.estimated_shipment_cost, Decimal("1500.00"))
+
+    def test_carrier_first_order_floored(self):
+        # (3) Carrier's plan min is 3 kg; buyer sends 1.5 kg → billed 3 kg.
+        plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            available_weight_kg=Decimal("20"), shipment_currency=Currency.IDR,
+            shipment_cost_per_kg=Decimal("500"), min_weight_kg=Decimal("3"),
+        )
+        order = Order.objects.create(
+            buyer=self.buyer, carrier_first_plan=plan, settlement_currency="IDR",
+            estimated_weight_kg=Decimal("1.5"), status=Status.RESPONDED,
+        )
+        self.assertEqual(order.effective_min_weight_kg, Decimal("3.00"))
+        self.assertEqual(order.estimated_shipment_cost, Decimal("1500.00"))
+
+    def test_no_floor_when_order_exceeds_minimum(self):
+        # Order heavier than the minimum → billed on the real weight, not the min.
+        plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            available_weight_kg=Decimal("20"), shipment_currency=Currency.IDR,
+            shipment_cost_per_kg=Decimal("500"), min_weight_kg=Decimal("3"),
+        )
+        order = Order.objects.create(
+            buyer=self.buyer, carrier_first_plan=plan, settlement_currency="IDR",
+            estimated_weight_kg=Decimal("5"), status=Status.RESPONDED,
+        )
+        self.assertEqual(order.estimated_shipment_cost, Decimal("2500.00"))  # 5 × 500
+
+    def test_cargo_ordered_weight_reads_bid_weight(self):
+        # Buyer-first cargo stores the ordered weight in bid_weight_kg, not
+        # estimated_weight_kg — the warning/display must show the bid, not 0.
+        order = Order.objects.create(
+            buyer=self.buyer, cargo_only=True, settlement_currency="IDR",
+            bid_weight_kg=Decimal("1.5"), estimated_weight_kg=Decimal("0"),
+            status=Status.RESPONDED,
+        )
+        offer = TravelerOffer.objects.create(
+            order=order, traveler=self.traveler,
+            ask_cost_per_kg=Decimal("500"), avail_kg=Decimal("5"),
+            min_weight_kg=Decimal("3"),
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            offer_status=OfferStatus.PENDING,
+        )
+        self.assertEqual(order.ordered_weight_kg, Decimal("1.5"))
+        # carry-fee preview floors to the 3 kg minimum: 3 × 500 = 1500 (not 0).
+        self.assertEqual(offer.carry_fee_estimate, Decimal("1500.00"))
+
+    def test_min_weight_locked_to_first_offer_per_trip(self):
+        # The first offer on a trip seeds the trip's minimum; a later offer on the
+        # SAME trip (same route + date) inherits it and can't set a different one.
+        from apps.trips.views import _publish_offer_trip
+        trip = dict(
+            travel_date=date.today() + timedelta(days=10),
+            from_city="Jakarta", from_country="Indonesia",
+            to_city="Tokyo", to_country="Japan",
+        )
+        o1 = TravelerOffer(
+            traveler=self.traveler, ask_cost_per_kg=Decimal("500"),
+            avail_kg=Decimal("20"), min_weight_kg=Decimal("3"), **trip,
+        )
+        plan1 = _publish_offer_trip(o1, self.traveler)
+        self.assertEqual(plan1.min_weight_kg, Decimal("3.00"))
+
+        o2 = TravelerOffer(
+            traveler=self.traveler, ask_cost_per_kg=Decimal("900"),
+            avail_kg=Decimal("20"), min_weight_kg=Decimal("5"), **trip,
+        )
+        plan2 = _publish_offer_trip(o2, self.traveler)
+        self.assertEqual(plan2.pk, plan1.pk)                 # reused, not a 2nd trip
+        self.assertEqual(o2.min_weight_kg, Decimal("3.00"))  # min locked to the first
+        self.assertEqual(o2.ask_cost_per_kg, Decimal("500"))  # rate locked to the first
+
+    def test_carrier_first_cargo_leg_inherits_plan_minimum(self):
+        # Carrier-first cargo binds the carrier as a SELECTED leg; that leg must
+        # inherit the plan's minimum so its per-leg billing floors correctly.
+        from apps.trips.matching import bind_cargo_carrier
+        plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=10),
+            from_city="Jakarta", from_country="Indonesia",
+            to_city="Seoul", to_country="South Korea",
+            available_weight_kg=Decimal("20"), shipment_currency=Currency.IDR,
+            shipment_cost_per_kg=Decimal("500"), min_weight_kg=Decimal("3"),
+            carrier_only=True,
+        )
+        order = Order.objects.create(
+            buyer=self.buyer, carrier_first_plan=plan, cargo_only=True,
+            settlement_currency="IDR", bid_weight_kg=Decimal("1.5"), status=Status.OPEN,
+        )
+        leg = bind_cargo_carrier(order, plan)
+        self.assertEqual(leg.min_weight_kg, Decimal("3.00"))
+        self.assertEqual(leg.shipment_cost_due, Decimal("1500.00"))  # 3 × 500, floored
+
+    def test_default_min_weight_is_half_kg(self):
+        plan = TravelPlan.objects.create(
+            traveler=self.traveler, travel_date=date.today() + timedelta(days=10),
+            from_city="Tokyo", from_country="Japan", to_city="Jakarta", to_country="Indonesia",
+            available_weight_kg=Decimal("20"), shipment_currency=Currency.IDR,
+            shipment_cost_per_kg=Decimal("500"),
+        )
+        self.assertEqual(plan.min_weight_kg, Decimal("0.5"))

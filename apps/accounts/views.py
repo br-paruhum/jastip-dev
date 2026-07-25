@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.notifications.services import send_whatsapp
-from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, REFUND_ELIGIBLE_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
+from apps.trips.constants import BUYER_FIRST_TERMINAL_STATUSES, OPEN_ORDER_STATUSES, OPEN_PLAN_STATUSES, REFUND_ELIGIBLE_STATUSES, STATUS_TONE, LegStatus, OfferStatus, Status
 from apps.trips.forms import (
     AWBForm, BuyRequestForm, CustomFareForm, LegCustomFareForm,
     OrderItemFormSet, PurchaseItemFormSet, PurchaseWeightForm, ReshipmentCostForm,
@@ -417,7 +417,8 @@ def profile(request):
 
     # Travel plan detail embedded as an in-page panel (?plan=<id>#plan-detail).
     plan = None
-    plan_order_form = plan_order_formset = None
+    plan_order_form = plan_order_formset = plan_edit_form = None
+    plan_legs = []
     plan_id = request.GET.get("plan")
     if plan_id:
         plan = (
@@ -428,6 +429,19 @@ def profile(request):
         else:
             plan_order_form = BuyRequestForm()
             plan_order_formset = (OrderItemFormSet if plan.carrier_only else RequestItemFormSet)(instance=Order())
+            if user == plan.traveler and plan.can_edit:
+                plan_edit_form = TravelPlanForm(instance=plan)
+            # All active carrier-first legs bound to this trip (cargo AND proxy) so
+            # the plan detail is the traveler's single hub: each links to its full
+            # order page (confirm-receipt/weigh/drop-off) and gets a buyer chat box.
+            # NB proxy legs don't set leg.plan, so match on order.carrier_first_plan.
+            for leg in (TravelerOffer.objects
+                        .filter(order__carrier_first_plan=plan,
+                                offer_status__in=[OfferStatus.PENDING, OfferStatus.SELECTED])
+                        .select_related("order", "order__buyer")
+                        .order_by("id")):
+                leg.chat_box_list = leg.order.chat_boxes(user)
+                plan_legs.append(leg)
 
     # Buyer-first leg detail as an in-page panel for the *traveler* who owns the
     # offer (?offer=<id>#offer-detail). Read-only — the traveler's actions live
@@ -537,6 +551,7 @@ def profile(request):
 
     # Offer-form panel (?offer=<order_id>#offer-form) — traveler responds to a buyer-first order.
     offer_form_order = offer_form_obj = None
+    offer_locked_trip = None
     proxy_review_form = proxy_review_formset = None
     # An invalid offer submission stashes its POST here so we can re-render the
     # form bound (values kept + inline field errors) instead of wiping it.
@@ -558,6 +573,28 @@ def profile(request):
                 "to_city": _offer_order.to_city, "to_country": _offer_order.to_country,
                 "travel_time": time(12, 0),
             }
+            # Same-trip terms are locked: if this traveler already has an open trip
+            # on this route, a new offer inherits its rate + minimum weight (they're
+            # per-trip, seeded by the first offer — see _publish_offer_trip), and
+            # the Avail field shows the trip's remaining spare capacity.
+            offer_locked_trip = (
+                TravelPlan.objects.filter(
+                    traveler=user,
+                    from_city__iexact=_offer_order.from_city, from_country=_offer_order.from_country,
+                    to_city__iexact=_offer_order.to_city, to_country=_offer_order.to_country,
+                    status__in=OPEN_PLAN_STATUSES,
+                )
+                .order_by("travel_date")
+                .first()
+            )
+            if offer_locked_trip:
+                route_initial.update({
+                    "ask_cost_per_kg": offer_locked_trip.shipment_cost_per_kg,
+                    "min_weight_kg": offer_locked_trip.min_weight_kg,
+                    "avail_kg": offer_locked_trip.carrier_first_remaining_kg,
+                    "travel_date": offer_locked_trip.travel_date,
+                    "travel_time": offer_locked_trip.travel_time or time(12, 0),
+                })
             # Re-bind to the rejected submission only when it was for this order.
             bound = offer_post.get("data") if offer_post and str(offer_post.get("order_id")) == str(_offer_order.id) else None
             if _offer_order.is_cargo:
@@ -579,10 +616,21 @@ def profile(request):
                     offer_form_order = _offer_order
                     # Offer weight defaults to the order's weight — the traveler
                     # carries exactly the buyer's cargo (no spare-baggage upsell).
-                    initial = {**route_initial, "avail_kg": _offer_order.estimated_weight_kg}
+                    # A locked trip already set avail_kg to its remaining capacity.
+                    initial = {**route_initial}
+                    initial.setdefault("avail_kg", _offer_order.estimated_weight_kg)
                     offer_form_obj = TravelerCargoOfferForm(bound, initial=initial) if bound else TravelerCargoOfferForm(initial=initial)
                     if bound:
                         offer_form_obj.is_valid()
+            # Per-trip terms are locked to the traveler's existing trip: show the
+            # rate and minimum weight read-only (server-side enforced in
+            # _publish_offer_trip). Avail stays editable — it's prefilled to the
+            # remaining capacity but the traveler may offer less.
+            if offer_form_obj is not None and offer_locked_trip is not None:
+                for fname in ("ask_cost_per_kg", "min_weight_kg"):
+                    field = offer_form_obj.fields.get(fname)
+                    if field is not None:
+                        field.widget.attrs["readonly"] = True
 
     # Order-form panel (?order_form=<plan_id>#order-form) — buyer places new order.
     order_form_plan = order_form_buy = order_form_formset = None
@@ -631,6 +679,8 @@ def profile(request):
             "leg_arrive_form": leg_arrive_form,
             "plan_order_form": plan_order_form,
             "plan_order_formset": plan_order_formset,
+            "plan_edit_form": plan_edit_form,
+            "plan_legs": plan_legs,
             "review_req": review_req,
             "review_form": review_form,
             "review_formset": review_formset,
@@ -651,6 +701,7 @@ def profile(request):
             "order_form_formset": order_form_formset,
             "offer_form_order": offer_form_order,
             "offer_form_obj": offer_form_obj,
+            "offer_locked_trip": offer_locked_trip,
             "proxy_review_form": proxy_review_form,
             "proxy_review_formset": proxy_review_formset,
             **order_ctx,

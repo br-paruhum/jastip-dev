@@ -166,6 +166,13 @@
                   <p class="help">Use origin country currency.</p>
                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-field">
+                  <label>Minimum billed weight (kg)</label>
+                  {{ plan_form.min_weight_kg }}{{ plan_form.min_weight_kg.errors }}
+                  <p class="help">The buyer pays for at least this many kg, even if their order is lighter. Default 0.5.</p>
+                </div>
+              </div>
               <div style="display:flex;gap:10px;justify-content:center;margin-top:6px">
                 <button class="btn btn-primary" type="submit">Submit Travel Plan</button>
                 <button class="btn btn-outline-clay" type="button" id="cancel-plan-form">Cancel</button>

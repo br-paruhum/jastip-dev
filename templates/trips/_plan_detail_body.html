@@ -34,6 +34,10 @@
       <td class="pc-val" colspan="3">{{ plan.available_weight_kg|floatformat:1 }} kg</td>
     </tr>
     <tr>
+      <td class="pc-label">Minimum Weight:</td>
+      <td class="pc-val" colspan="3">{{ plan.min_weight_kg|floatformat:1 }} kg</td>
+    </tr>
+    <tr>
       <td class="pc-label">Remaining Weight:</td>
       <td class="pc-val" colspan="3">{{ plan.carrier_first_remaining_kg|floatformat:1 }} kg</td>
     </tr>
@@ -57,13 +61,89 @@
     <span class="badge badge-muted">No longer open</span>
   </div>
   {% endif %}
-  {% if user == plan.traveler and plan.can_edit %}
-  {# Cancel button removed: it dropped the whole plan and read like an undo-edit. #}
-  <div class="mt-2" style="text-align:center">
-    <a class="btn btn-primary" href="{% url 'trips:plan_edit' plan.id %}">Edit</a>
-  </div>
+  {% if user == plan.traveler and plan.can_edit and plan_edit_form %}
+  {% comment %}Edit button at the bottom of the card; reveals the edit form inline
+  (embedded, posts to plan_edit which redirects back to ?plan=<id>#plan-detail).{% endcomment %}
+  <details class="plan-edit-toggle mt-2">
+    <summary style="list-style:none;text-align:center;cursor:pointer"><span class="btn btn-primary">Edit</span></summary>
+    <div style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">
+    <form method="post" action="{% url 'trips:plan_edit' plan.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="carrier_only" value="1">
+      <input type="hidden" name="margin_percent" value="0">
+      <div class="form-row">
+        <div class="form-field"><label>Travel Date</label>{{ plan_edit_form.travel_date }}{{ plan_edit_form.travel_date.errors }}</div>
+        <div class="form-field"><label>Travel Time</label>{{ plan_edit_form.travel_time }}{{ plan_edit_form.travel_time.errors }}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>From City</label>{{ plan_edit_form.from_city }}{{ plan_edit_form.from_city.errors }}</div>
+        <div class="form-field"><label>From Country</label>{{ plan_edit_form.from_country }}{{ plan_edit_form.from_country.errors }}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>To City</label>{{ plan_edit_form.to_city }}{{ plan_edit_form.to_city.errors }}</div>
+        <div class="form-field"><label>To Country</label>{{ plan_edit_form.to_country }}{{ plan_edit_form.to_country.errors }}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Available Weight (kg)</label>{{ plan_edit_form.available_weight_kg }}{{ plan_edit_form.available_weight_kg.errors }}</div>
+        <div class="form-field"><label>Shipment Cost per kg</label>{{ plan_edit_form.shipment_cost_per_kg }}{{ plan_edit_form.shipment_cost_per_kg.errors }}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Minimum billed weight (kg)</label>{{ plan_edit_form.min_weight_kg }}{{ plan_edit_form.min_weight_kg.errors }}
+          <p class="help">The buyer pays for at least this many kg, even if their order is lighter.</p>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:6px"><button class="btn btn-primary" type="submit">Save Changes</button></div>
+    </form>
+    </div>
+  </details>
+  <style>.plan-edit-toggle > summary::-webkit-details-marker{display:none}.plan-edit-toggle > summary::marker{content:""}.plan-edit-toggle[open] > summary{margin-bottom:0}</style>
   {% endif %}
 </div></div>
+
+{% if user == plan.traveler and plan_legs %}
+{% comment %}Orders-on-this-trip hub: one place for the traveler to reach each
+bound order's full page (confirm-receipt/weigh for proxy, later steps for cargo),
+so they don't have to hunt for the leg's ?offer= page.{% endcomment %}
+<div class="card mt-2"><div class="card-body">
+  <div class="card-band-row">Orders on this trip</div>
+  <div class="table-wrap" style="margin-top:14px">
+    <table class="invoice">
+      <thead><tr><th class="lcell">Order</th><th>Type</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for leg in plan_legs %}
+      <tr>
+        <td class="lcell">{{ leg.order.reference }}</td>
+        <td>{% if leg.order.is_cargo %}Cargo{% else %}Proxy{% endif %}</td>
+        <td>{{ leg.order.get_status_display }}</td>
+        <td class="num-right"><a class="btn btn-primary btn-sm" href="{% url 'accounts:profile' %}?offer={{ leg.id }}#offer-detail">Open →</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="help">Confirm receipt, weigh, drop-off and chat happen on each order's page — click <strong>Open →</strong>.</p>
+</div></div>
+
+{# Drop-Off Address — carrier-first CARGO leg only (buyer brings goods they own). #}
+{% for leg in plan_legs %}
+{% if leg.order.is_cargo and leg.offer_status == "selected" and not leg.leg_status %}
+<details class="card fold mt-2"{% if not leg.drop_off_address %} open{% endif %}>
+  <summary><h3>Drop-Off Address · {{ leg.order.reference }}</h3></summary>
+  <div class="fold-body">
+  <form method="post" action="{% url 'trips:leg_drop_off_address' leg.id %}">
+    {% csrf_token %}
+    <div class="form-field" style="margin:0 0 12px">
+      <label>Drop-off Address</label>
+      <textarea name="drop_off_address" rows="4" required>{{ leg.drop_off_address }}</textarea>
+    </div>
+    <div style="text-align:center"><button class="btn btn-primary btn-sm" type="submit">Save Drop-Off Address</button></div>
+  </form>
+  </div>
+</details>
+{% endif %}
+{% include "trips/_chat_thread.html" with chat_obj=leg.order chat_boxes=leg.chat_box_list hide_chat_intro=True %}
+{% endfor %}
+{% endif %}
 
 {# Payment Terms — separate foldable card, collapsed on load (editable in admin: Site Settings). #}
 <details class="card fold mt-2">

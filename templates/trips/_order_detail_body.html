@@ -287,6 +287,7 @@
     {% else %}
     <tr><td>Weight</td><td class="num-right">{{ bf_order.bid_weight_kg|floatformat:1 }} kg</td></tr>
     {% endif %}
+    <tr><td>Minimum Charge Weight</td><td class="num-right">{{ leg.min_weight_kg_effective|floatformat:1 }} kg</td></tr>
     <tr><td>Rate per kg</td><td class="num-right">{{ bf_order.currency }} {{ leg.ask_cost_per_kg|by_currency:bf_order.currency }}</td></tr>
     <tr><td>Total Shipment Cost</td><td class="num-right">{{ bf_order.currency }} {{ leg.final_shipment_cost|by_currency:bf_order.currency }}</td></tr>
     {# The fee is max(COMMISSION_PERCENT, platform_fee_min_idr) — both live values, so the label can't drift from the figure. The floor is IDR-only (platform_fee_floor). #}
@@ -320,6 +321,14 @@
   {% if is_order_buyer and bf_order.status == "responded" and bf_order.pending_offers %}
   {# Accept/Reject the carrier offer(s) above. Cargo selects a leg (offer_select); order_accept/order_reject are the proxy flow's decision and refuse cargo. #}
   {% for offer in bf_order.pending_offers %}{% if not focus_offer or offer.id == focus_offer.id %}
+  {% if offer.min_weight_kg > bf_order.ordered_weight_kg %}
+  <div class="callout callout-warn" style="margin:12px 0;padding:10px 12px;border:1px solid var(--clay);border-radius:8px;background:var(--cream)">
+    ⚠️ You ordered <strong>{{ bf_order.ordered_weight_kg|floatformat:1 }} kg</strong>, but this traveler requires a
+    minimum of <strong>{{ offer.min_weight_kg|floatformat:1 }} kg</strong>. If you accept, you will be billed for
+    <strong>{{ offer.min_weight_kg|floatformat:1 }} kg</strong> ({{ bf_order.currency }}
+    {{ offer.carry_fee_estimate|by_currency:bf_order.currency }}), not {{ bf_order.ordered_weight_kg|floatformat:1 }} kg.
+  </div>
+  {% endif %}
   <div style="display:flex;gap:10px;justify-content:center;margin:16px 0 8px">
     {% if bf_order.is_cargo %}
     <form method="post" action="{% url 'trips:offer_select' offer.id %}">{% csrf_token %}<button class="btn btn-primary btn-sm" type="submit">Accept</button></form>
@@ -465,6 +474,13 @@
         <td></td><td>{{ bf_order.effective_cost_per_kg|by_currency:bf_order.currency }}</td>
         <td>{{ bf_order.estimated_shipment_cost|by_currency:bf_order.currency }}</td><td>{{ bf_order.shipment_cost|by_currency:bf_order.currency }}</td>
       </tr>
+      {% if bf_order.effective_min_weight_kg > bf_order.ordered_weight_kg %}
+      <tr><td class="lcell" colspan="8" style="color:var(--clay);font-size:.85em">
+        ⚠️ Traveler minimum {{ bf_order.effective_min_weight_kg|floatformat:1 }} kg applies —
+        shipment is billed at {{ bf_order.effective_min_weight_kg|floatformat:1 }} kg
+        (you ordered {{ bf_order.ordered_weight_kg|floatformat:1 }} kg).
+      </td></tr>
+      {% endif %}
       <tr>
         <td class="lcell">{{ COMMISSION_PERCENT }}% Platform Fee{% if bf_order.currency == "IDR" and PLATFORM_FEE_MIN_IDR %} (min {{ PLATFORM_FEE_MIN_IDR|floatformat:0|intcomma }}){% endif %}</td>
         <td></td><td></td><td></td><td></td><td></td>

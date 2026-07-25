@@ -6,7 +6,21 @@ from django.forms import inlineformset_factory
 from django.utils import timezone
 
 from .constants import COUNTRY_CHOICES, Currency, FulfillmentMethod
-from .models import Order, Message, RequestItem, TravelerOffer, TravelPlan
+from .models import DEFAULT_MIN_WEIGHT_KG, Order, Message, RequestItem, TravelerOffer, TravelPlan
+
+
+class MinWeightDefaultMixin:
+    """Traveler's minimum billable weight is optional on the form — an omitted or
+    blank value falls back to the model default, so older submit paths (and the
+    edit form) that don't carry the field keep working."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "min_weight_kg" in self.fields:
+            self.fields["min_weight_kg"].required = False
+
+    def clean_min_weight_kg(self):
+        return self.cleaned_data.get("min_weight_kg") or DEFAULT_MIN_WEIGHT_KG
 
 # Text input enhanced by flatpickr (static/vendor/flatpickr). Displays and
 # submits dd-Mmm-yyyy (e.g. 19-Jun-2026) on every browser — the native
@@ -57,7 +71,7 @@ class CarrierRateForm(forms.Form):
     )
 
 
-class TravelPlanForm(forms.ModelForm):
+class TravelPlanForm(MinWeightDefaultMixin, forms.ModelForm):
     from_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
     to_country = forms.ChoiceField(choices=COUNTRY_CHOICES)
 
@@ -76,13 +90,16 @@ class TravelPlanForm(forms.ModelForm):
         model = TravelPlan
         fields = [
             "travel_date", "travel_time", "from_city", "from_country", "to_city", "to_country",
-            "available_weight_kg", "shipment_cost_per_kg",
+            "available_weight_kg", "shipment_cost_per_kg", "min_weight_kg",
             "margin_percent", "carrier_only",
         ]
         widgets = {
             "travel_date": DATE_INPUT,
             "travel_time": TIME_INPUT,
             "shipment_cost_per_kg": ThousandSeparatorNumberInput(),
+            "min_weight_kg": forms.NumberInput(
+                attrs={"step": "0.1", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 0.5"}
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -259,7 +276,7 @@ class OrderForm(forms.ModelForm):
         return val
 
 
-class TravelerOfferForm(forms.ModelForm):
+class TravelerOfferForm(MinWeightDefaultMixin, forms.ModelForm):
     """Carrier's response to a buyer-first order (see PLAN-buyer-first-orders.md
     §3, §8). Becomes a 'leg' once the buyer selects it."""
 
@@ -269,7 +286,7 @@ class TravelerOfferForm(forms.ModelForm):
     class Meta:
         model = TravelerOffer
         fields = [
-            "ask_cost_per_kg", "avail_kg",
+            "ask_cost_per_kg", "avail_kg", "min_weight_kg",
             "drop_off_address",
             "travel_date", "travel_time",
             "from_city", "from_country", "to_city", "to_country",
@@ -278,6 +295,9 @@ class TravelerOfferForm(forms.ModelForm):
             "ask_cost_per_kg": ThousandSeparatorNumberInput(),
             "avail_kg": forms.NumberInput(
                 attrs={"step": "0.01", "min": "0.01", "inputmode": "decimal", "placeholder": "e.g. 5.0"}
+            ),
+            "min_weight_kg": forms.NumberInput(
+                attrs={"step": "0.1", "min": "0", "inputmode": "decimal", "placeholder": "e.g. 0.5"}
             ),
             "drop_off_address": forms.Textarea(attrs={"rows": 4, "placeholder": "Where the buyer should drop off the package"}),
             "travel_date": DATE_INPUT,
@@ -310,7 +330,7 @@ class TravelerOfferForm(forms.ModelForm):
         return val
 
 
-class TravelerCargoOfferForm(forms.ModelForm):
+class TravelerCargoOfferForm(MinWeightDefaultMixin, forms.ModelForm):
     """Carrier's carry offer on a 'Cargo Looking for Carrier' order (Flow-1/2):
     offer weight + shipment rate/kg + travel date/time. No drop-off address — the
     proxy buyer hands the package over to the carrier, so the buyer never drops
@@ -322,7 +342,7 @@ class TravelerCargoOfferForm(forms.ModelForm):
     class Meta:
         model = TravelerOffer
         fields = [
-            "ask_cost_per_kg", "avail_kg", "travel_date", "travel_time",
+            "ask_cost_per_kg", "avail_kg", "min_weight_kg", "travel_date", "travel_time",
             "from_city", "from_country", "to_city", "to_country",
         ]
         widgets = {
@@ -330,6 +350,10 @@ class TravelerCargoOfferForm(forms.ModelForm):
             "avail_kg": forms.NumberInput(
                 attrs={"step": "0.1", "min": "0.1", "inputmode": "decimal",
                        "placeholder": "e.g. 5.0", "class": "num-right"}
+            ),
+            "min_weight_kg": forms.NumberInput(
+                attrs={"step": "0.1", "min": "0", "inputmode": "decimal",
+                       "placeholder": "e.g. 0.5", "class": "num-right"}
             ),
             "travel_date": DATE_INPUT,
             "travel_time": TIME_INPUT,
