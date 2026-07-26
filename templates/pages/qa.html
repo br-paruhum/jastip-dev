@@ -6,7 +6,7 @@
   <div class="container">
     <span class="eyebrow">Q&amp;A</span>
     <h1>How {{ SITE_NAME }} works</h1>
-    <p class="muted">A step-by-step reference for buyers, proxy buyers, and travelers.
+    <p class="muted qa-intro">A step-by-step reference for buyers, proxy buyers, and travelers.
       Prefer to ask? Use the help chat at the bottom-right of any page.</p>
     <div class="content-layout qa-layout">
       <div class="content-main">
@@ -37,6 +37,11 @@
   .qa-a { margin: 0; }
   .qa-a p { margin: 0 0 .5rem; }
   .qa-layout .content-main > :first-child { margin-top: 0; }
+  /* Desktop: keep the intro within the main column so it doesn't run under the
+     right-hand sidebar band (sidebar 300px + 32px gap). */
+  @media (min-width: 981px) {
+    .qa-intro { max-width: calc(100% - 332px); }
+  }
   /* Long page: on narrow screens the sidebar would otherwise land at the very
      bottom — surface it right under the intro instead. */
   @media (max-width: 980px) {
