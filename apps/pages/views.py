@@ -1,5 +1,7 @@
+import html
 import json
 import logging
+import re
 import time
 from datetime import date, timedelta
 from functools import lru_cache
@@ -12,6 +14,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.blog.models import Post
@@ -332,6 +335,58 @@ def load_howto_qa() -> str:
     except OSError:
         logger.warning("howto_qa.md missing at %s", path)
         return ""
+
+
+_QA_LINK = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)")
+_QA_BOLD = re.compile(r"\*\*([^*]+)\*\*")
+
+
+def _qa_inline(text):
+    """Escape, then apply the only markdown the KB uses: **bold**, [links], newlines."""
+    out = html.escape(text)
+    out = _QA_LINK.sub(r'<a href="\2">\1</a>', out)
+    out = _QA_BOLD.sub(r"<strong>\1</strong>", out)
+    return mark_safe(out.replace("\n", "<br>"))
+
+
+def _parse_qa(text):
+    """Turn howto_qa.md into [{title, level, items:[(question, answer_html)]}].
+
+    Everything before the first `---` (the editor preamble/warning) is skipped.
+    Headings become section labels (level 1 for `#`, 2+ for `##`); each Q:/A:
+    pair becomes an item. Single-source with the chatbot — same file, one edit.
+    """
+    sections, started, q, a_lines = [], False, None, None
+
+    def flush():
+        nonlocal q, a_lines
+        if sections and q is not None and a_lines is not None:
+            sections[-1]["items"].append((q, _qa_inline("\n".join(a_lines).strip())))
+        q, a_lines = None, None
+
+    for raw in text.splitlines():
+        s = raw.strip()
+        if not started:
+            started = s == "---"
+            continue
+        if s.startswith("#"):
+            flush()
+            level = len(s) - len(s.lstrip("#"))
+            sections.append({"title": s.lstrip("#").strip(), "level": level, "items": []})
+        elif s.startswith("Q:"):
+            flush()
+            q = s[2:].strip()
+        elif s.startswith("A:"):
+            a_lines = [s[2:].strip()]
+        elif a_lines is not None:
+            a_lines.append(s)  # answer continuation (e.g. the numbered list lines)
+    flush()
+    return sections
+
+
+def qa(request):
+    """Public Q&A page rendered live from the chatbot's knowledge base."""
+    return render(request, "pages/qa.html", {"sections": _parse_qa(load_howto_qa())})
 
 
 CHAT_MSG_MAXLEN = 500

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Q&A — How {{ SITE_NAME }} works{% endblock %}
+{% block meta_description %}Questions and answers on how {{ SITE_NAME }} works — for buyers, proxy buyers, and travelers.{% endblock %}
+{% block content %}
+<section>
+  <div class="container">
+    <div class="content-layout">
+      <div class="content-main">
+        <span class="eyebrow">Q&amp;A</span>
+        <h1>How {{ SITE_NAME }} works</h1>
+        <p class="muted">A step-by-step reference for buyers, proxy buyers, and travelers.
+          Prefer to ask? Use the help chat at the bottom-right of any page.</p>
+
+        {% for s in sections %}
+          {% if s.level == 1 %}
+            <h2 class="qa-group">{{ s.title }}</h2>
+          {% else %}
+            <h3 class="qa-sub">{{ s.title }}</h3>
+          {% endif %}
+          {% for q, a in s.items %}
+          <div class="qa-item">
+            <p class="qa-q">{{ q }}</p>
+            <div class="qa-a tag-prose">{{ a }}</div>
+          </div>
+          {% endfor %}
+        {% endfor %}
+      </div>
+      {% include "_ad_sidebar.html" %}
+    </div>
+  </div>
+</section>
+
+<style>
+  .qa-group { margin-top: 2.5rem; padding-bottom: .4rem; border-bottom: 2px solid var(--clay, #c55a11); }
+  .qa-sub { margin-top: 1.75rem; color: var(--clay, #c55a11); }
+  .qa-item { margin: 1rem 0 1.25rem; }
+  .qa-q { font-weight: 700; margin: 0 0 .35rem; }
+  .qa-a { margin: 0; }
+  .qa-a p { margin: 0 0 .5rem; }
+</style>
+{% endblock %}

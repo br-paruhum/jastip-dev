@@ -16,119 +16,205 @@ Editing tips:
 ## Getting started
 
 Q: What is goProxyBuy?
-A: goProxyBuy is a platform that facilitate both 1). Buyer to buy goods abroad, 2). Proxy buyer to help buyer source and buy the goods and 3). Traveler to help buyer bring the goods to his/her location.
+A: goProxyBuy is a platform that facilitates:
+1). Buyers buying goods abroad with the help of Proxy Buyers, and Travelers to carry the package to the buyer's location — shipment from the Proxy Buyer's location (Origin) to the buyer's location (Destination).
+2). Buyers sending a package with the help of Travelers — shipment from the buyer's location (Origin) to the recipient location chosen by the buyer (Destination).
 
 Q: I want to be a buyer, what should I do?
-A: You have to registered and confirming your email address. After logged in and select as a buyer, you need to verify your WhatsApp number. 
+A: Register and confirm your email address. After logging in, select the buyer role, then verify your WhatsApp number.
 
 Q: I want to be a proxy buyer, what should I do?
-A: You can start by fill in [Contact](https://www.goproxybuy.com/contact/) page stating your interest in becoming a Proxy Buyer, we will send you a form to fill and sign before we start adding you to Proxy Buyers List.
+A: Start by filling in the [Contact](https://www.goproxybuy.com/contact/) page, stating your interest in becoming a Proxy Buyer. We will send you a form to fill in and sign before we add you to the Proxy Buyers List.
 
 Q: I want to make money by carrying buyer's goods to the destination, what should I do?
-A: You need to register and confirming your email address. After logged in and select as a traveler, you need to verify your WhatsApp number. 
+A: Register and confirm your email address. After logging in, select the traveler role, then verify your WhatsApp number.
 
-## Buyer
+# Buyers
 
-Q: As a buyer,  how to start sending an order?
-A: After registered you can start sending an order either through **1. Queuing Traveler's Offers** table (if there is a match trip listed) or through **2. Proxy Buyers List** table if there is none in in table #1.
-(placeholder) Summarise the buyer flow. See the How-To for Buyer page.
+## 1. Buyers who want to buy goods abroad
 
-Q: What should the buyer filled in before sending an order?
-A: The buyer should fill in Product Names (up to 10), quantity, deadline (if the buyer is sending through **2. Proxy Buyers List** table), Shipment option (Pick up the package to traveler location or Reship to the buyer location), notes for proxy buyer (if any), upload product example photo2 (if any).
+Q: As a goods buyer, how do I start sending an order?
+A: If there is a matching route and date, you can start sending an order through **Traveler's Offers List**; otherwise you can use the **Proxy Buyers List**.
 
-Q: What should the buyer do after I send an order?
-A: There will be two offers that the buyer need to accept. 1). Proxy buyer cost estimates, total package wight and margin. 2). Traveler shipment cost per kg.
+Q: What should the buyer fill in before sending an order?
+A: The buyer should fill in Product names (up to 10), Quantity, Deadline, Shipment option (Pick up the package at the traveler's location or Reship to the buyer's location), notes for the proxy buyer (if any), and upload product example photos (if any).
+
+Q: What should the buyer do after they send an order?
+A: The buyer needs to accept the Product cost estimate and Margin from the Proxy Buyer, and the shipment cost per kg from the Traveler.
 
 Q: Can the buyer reject and negotiate the offers?
-A: Yes the buyer can reject and negotiate the offers. To reject the buyer just select Reject button, to negotiate the buyer use Chat Box provided at the bottom of the page.
+A: Yes, the buyer can reject and negotiate the offers. To reject, the buyer selects the Reject button; to negotiate, the buyer uses the Chat Box provided at the bottom of the page.
 
-Q: What should the buyer do after accepting both proxy buyer's estimates and traveler's shipment cost?
-A: The buyer will be asked to make first deposit to goProxyBuy account and wait for goProxyBuy admin to verify the fund.
+Q: What should the buyer do after accepting both the proxy buyer's estimate and the traveler's shipment cost?
+A: The buyer will be asked to make the first deposit to the goProxyBuy account and wait for the goProxyBuy admin to verify the fund.
 
-Q: What is next proxy buyer do after admin verified buyer's first deposit fund?
-A: Proxy buyer will start buying the buyer's ordered products, input actual cost, upload product photos, make any notes if there is any discrepancies between the buyer's order and the actual (shortage, out-of-stock, substitution, price increase, etc. -  the buyer should have a written consent regarding this in his/her Chat message), upload box/luggage photo before it closed and click Mark Package Ready button
+Q: What is next after the admin verified the buyer's first deposit fund?
+A: The proxy buyer will start buying the ordered products, input the actual cost, upload product photos, make notes if there are any discrepancies between the buyer's order and the actual items (shortage, out-of-stock, substitution, price increase, etc. — the buyer should have given written consent for this in their Chat message), upload a box/luggage photo before it is closed, and click the Mark Package Ready button.
 
-Q: What is next after proxy buyer click Mark Package Ready button?
-A: Traveler is informed and they will decide where and when the package will be handed over from proxy buyer to the traveler.
+Q: What is next after the proxy buyer clicks the Mark Package Ready button?
+A: The traveler is informed, and they will decide where and when the package will be handed over from the proxy buyer to the traveler.
 
-Q: What should the buyer do after the package was handed over to the traveler?
-A: You will be informed by the platform when traveler arrived at the destination and inputing Customs Duty amount to be paid (if any).
+Q: What is next after the package is handed over to the traveler?
+A: The buyer will be informed by the platform when the traveler arrives at the destination and inputs the Customs Duty amount to be paid (if any).
 
-Q: What should the buyer do after traveler inform me about the amount of Customs Duty tobe paid?
-A: The buyer will be asked to make second deposit  to goProxyBuy account and admin will verify the fund.
+Q: What should the buyer do after the traveler informs them about the amount of Customs Duty to be paid?
+A: The buyer will be asked to make the second deposit to the goProxyBuy account, and the admin will verify the fund.
 
-Q: What is next after the buyer make the second deposit?
-A: Traveler will pay the Customs Duty and upload the receipt.
+Q: What is next after the buyer makes the second deposit and the admin verifies the fund?
+A: The traveler will pay the Customs Duty and upload the receipt.
 
-Q: What is next after traveler upload Customs Duty receipt?
-A: It depends on the buyer selected shipment option when the buyer create the order.
+Q: What is next after the traveler uploads the Customs Duty receipt?
+A: It depends on the shipment option the buyer selected when creating the order.
 
 Q: What is next if the buyer selected Pick up when creating the order?
-A: The buyer should use Chat Box to agreed on when to visit traveler location.
+A: The buyer should use the Chat Box to agree on when to visit the traveler's location.
 
-Q: What is next after the buyer visit traveler location and review the package?
+Q: What is next after the buyer visits the traveler's location and reviews the package?
 A: The buyer should click Package Received to close the transaction cycle.
 
 Q: What is next if the buyer selected Reship the package when creating the order?
-A: The buyer should send to the traveler his/her preferred courier name and type, waiting for the reshipment cost from the traveler, the buyer uploading bank transfer proof for reshipment cost reimbursement and wait for the traveler to send the package and upload the Airway Bill.
+A: The buyer should send the traveler their preferred courier name and type, wait for the reshipment cost from the traveler, upload bank transfer proof for the reshipment cost reimbursement, and wait for the traveler to send the package and upload the Airway Bill.
 
-Q: What is next after the buyer received and reviewed the package?
+Q: What is next after the buyer receives and reviews the package?
 A: The buyer should click Package Received to close the transaction cycle.
 
-## Proxy Buyer
+## 2. Buyers who want to send the package abroad
 
-Q: What should the proxy buyer do when buyer send me an order?
-A: The proxy buyer should fill in the estimate cost of the products, estimate total package weight, margin and click Send Estimate.
+Q: As a cargo buyer, how do I start sending an order?
+A: If there is a matching route and date, you can start sending an order through **Traveler's Offers List**; otherwise you can **Create Cargo Order** through the Dashboard.
 
-Q: Can the proxy buyer edit the sent estimate?
-A: Yes, the proxy buyer can edit it before the buyer accepted it.
+Q: What should the buyer fill in before sending an order?
+A: The buyer should fill in Origin City and Country, Destination City and Country, Receiver Name and Address, Product names (up to 10), Quantity, Unit price of the product (for Customs purposes), Total weight, Order deadline, Delivery preference (Pick up or Reship), and upload product and box/luggage photos. This data will be displayed in the **Buyer's Cargo List**.
 
-Q: What should the proxy buyer do after buyer accept his/her estimate?
-A: The proxy buyer should wait until buyer also accept the shipment cost from the traveler, make first deposit and fund verified by admin before the proxy buyer can make any purchase.
+Q: What should the buyer do if a traveler sends an offer for their order?
+A: The buyer needs to accept the shipment cost per kg from the Traveler. Please be aware that travelers have a minimum accepted weight. The buyer will pay the traveler's shipment cost per kg times the minimum accepted weight, even if the buyer's actual weight is less than the traveler's minimum weight.
 
-Q: What should the proxy buyer do after buyer made first deposit and fund verified by admin?
-A: The proxy buyer can start buying the ordered products, input actual cost, upload product photos, make any notes if there is any discrepancies between the buyer's order and the actual (shortage, out-of-stock, substitution, price increase, etc. -  buyer should have a written consent regarding this in his/her Chat message), upload box/luggage photo before it closed and click Mark Package Ready button.
+Q: Can the buyer reject and negotiate the offers?
+A: Yes, the buyer can reject and negotiate the offers. To reject, the buyer selects the Reject button; to negotiate, the buyer uses the Chat Box provided at the bottom of the page.
 
-Q: What should the proxy buyer do after he/she clicked Mark Package Ready?
-A: The proxy buyer should use Chat Box with the traveler to agreed on time and place to hand over the package and hand the package over on the agreed time and place.
+Q: What should the buyer do after accepting the traveler's shipment cost?
+A: The buyer will be asked to make the first deposit to the goProxyBuy account and wait for the goProxyBuy admin to verify the fund.
 
-Q: When will the proxy buyer payout disbursed?
-A: The proxy buyer's payout will be disbursed maximum 24 hours after buyer confirmed received the package.
+Q: What should the buyer do next after the admin verified the buyer's first deposit fund?
+A: The buyer can see the traveler's drop-off address and bring the package to that location on or before the latest drop-off date set by the platform. The traveler has the right to open and re-weigh (and re-measure the dimensions of) the package.
 
-## Traveler
+Q: What is next after the package is handed over to the traveler?
+A: The buyer will be informed by the platform when the traveler arrives at the destination and inputs the Customs Duty amount to be paid (if any).
 
-Q: What should the traveler do to start making money from sharing his/her spare luggage space??
-A: After registered, the traveler can start send and Offer either through **3. Queuing Buyer's Cargo** table (if there is a match trip listed) or by creating new Travel Plan from the traveler's dashboard. The traveler's travel plan will be listed on  **1. Queuing Traveler's Offers** table.
+Q: What should the buyer do after the traveler informs them about the amount of Customs Duty to be paid?
+A: The buyer will be asked to make the second deposit to the goProxyBuy account, and the admin will verify the fund.
 
-Q: What should the traveler do after sending an offer through **3. Queuing Buyer's Cargo** table?
-A: Wait for the buyer to accept the traveler's offer, buyer make first deposit, goProxyBuy admin verified the fund, proxy buyer mark package ready and proxy buyer hand over the package to the traveler.
+Q: What is next after the buyer makes the second deposit and the admin verifies the fund?
+A: The traveler will pay the Customs Duty and upload the receipt.
 
-Q: What should the traveler do next after collecting the package from the proxy buyer?
-A: The traveler should send Customs duty amount when arived at the destination.
-
-Q: What should the traveler do after sending Customs duty amount at the destination?
-A: Waiting for buyer to make second deposit, goProxyBuy admin to verified the fund.
-
-Q: What should the traveler do after goProxyBuy admin verified the fund?
-A: Pay custom duty and upload the receipt.
-
-Q: What should the traveler do after uploading the Customs duty receipt?
-A: It depends on the buyer selected shipment option when the buyer create the order.
+Q: What is next after the traveler uploads the Customs Duty receipt?
+A: It depends on the shipment option the buyer selected when creating the order.
 
 Q: What is next if the buyer selected Pick up when creating the order?
-A: The buyer should use Chat Box to agreed on when to visit traveler location.
+A: The buyer should use the Chat Box to agree on when to visit the traveler's location.
 
-Q: What is next after the buyer visit traveler location and review the package?
+Q: What is next after the buyer visits the traveler's location and reviews the package?
 A: The buyer should click Package Received to close the transaction cycle.
 
-Q: What is next for the traveler todo if the buyer selected Reship the package when creating the order?
-A: The buyer should send to the traveler his/her preferred courier name and type, the traveler send the reshipment cost to the buyer, the buyer uploading bank transfer proof for reshipment cost reimbursement and the buyer wait for the traveler to send the package and upload the Airway Bill.
+Q: What is next if the buyer selected Reship the package when creating the order?
+A: The buyer should send the traveler their preferred courier name and type, wait for the reshipment cost from the traveler, upload bank transfer proof for the reshipment cost reimbursement, and wait for the traveler to send the package and upload the Airway Bill.
 
-Q: What is next for the traveler to do after the buyer received and reviewed the package?
+Q: What is next after the buyer receives and reviews the package?
 A: The buyer should click Package Received to close the transaction cycle.
 
-Q: When will the traveler payout disbursed?
-A: The traveler's payout will be disbursed maximum 24 hours after buyer confirmed received the package.
+# Proxy Buyer
+
+## Respond to Buyers who want to buy goods abroad
+
+Q: What should the proxy buyer do when a buyer sends an order?
+A: The proxy buyer should fill in the estimated cost of the products, the estimated total package weight, and the margin, then click Send Estimate.
+
+Q: Can the proxy buyer edit the sent estimate?
+A: Yes, the proxy buyer can edit it before the buyer accepts it.
+
+Q: What should the proxy buyer do after the buyer accepts his/her estimate?
+A: The proxy buyer should wait until the buyer also accepts the shipment cost from the traveler, makes the first deposit, and the fund is verified by the admin, before the proxy buyer can make any purchase.
+
+Q: What should the proxy buyer do after the buyer makes the first deposit and the fund is verified by the admin?
+A: The proxy buyer can start buying the ordered products, input the actual cost, upload product photos, make notes if there are any discrepancies between the buyer's order and the actual items (shortage, out-of-stock, substitution, price increase, etc. — the buyer should have given written consent for this in their Chat message), upload a box/luggage photo before it is closed, and click the Mark Package Ready button.
+
+Q: What should the proxy buyer do after clicking Mark Package Ready?
+A: The proxy buyer should use the Chat Box with the traveler to agree on the time and place to hand over the package, then hand the package over at the agreed time and place.
+
+Q: When will the proxy buyer's payout be disbursed?
+A: The proxy buyer's payout will be disbursed at most 24 hours after the buyer confirms receipt of the package.
+
+# Traveler
+
+## Respond to Buyers who want to buy goods abroad
+
+Q: What should the traveler do to start making money from sharing their spare luggage space?
+A: If there is a matching route and date, the traveler can send an Offer through **Buyer's Cargo List**; otherwise the traveler can **Create New Plan** from their dashboard. The data will be displayed on the **Traveler's Offers List**.
+
+Q: What should the traveler do after sending an offer through **Buyer's Cargo List**?
+A: Wait for the buyer to accept the traveler's offer, the buyer to make the first deposit, the admin to verify the fund, the proxy buyer to mark the package ready, and the proxy buyer to hand over the package to the traveler.
+
+Q: What should the traveler do next after receiving the package from the proxy buyer?
+A: The traveler should send the Customs duty amount when they arrive at the destination.
+
+Q: What should the traveler do after sending the Customs duty amount at the destination?
+A: Wait for the buyer to make the second deposit and the goProxyBuy admin to verify the fund.
+
+Q: What should the traveler do after the goProxyBuy admin verifies the fund?
+A: Pay the customs duty and upload the receipt.
+
+Q: What should the traveler do after uploading the Customs duty receipt?
+A: It depends on the shipment option the buyer selected when creating the order.
+
+Q: What is next if the buyer selected Pick up when creating the order?
+A: The buyer should use the Chat Box to agree on when to visit the traveler's location.
+
+Q: What is next after the buyer visits the traveler's location and reviews the package?
+A: The buyer should click Package Received to close the transaction cycle.
+
+Q: What should the traveler do if the buyer selected Reship the package when creating the order?
+A: The traveler should wait for the buyer to send their preferred courier name and type; then send the reshipment cost to the buyer; then wait for the buyer to upload bank transfer proof for the reshipment cost reimbursement; and then send the package and upload the Airway Bill.
+
+Q: What is next for the traveler to do after the buyer receives and reviews the package?
+A: The buyer should click Package Received to close the transaction cycle.
+
+Q: When will the traveler's payout be disbursed?
+A: The traveler's payout will be disbursed at most 24 hours after the buyer confirms receipt of the package.
+
+## Respond to Buyers who want to send the package abroad
+
+Q: What should the traveler do to start making money from sharing their spare luggage space?
+A: If there is a matching route and date, the traveler can send an Offer through **Buyer's Cargo List**; otherwise the traveler can **Create New Plan** from their dashboard. The data will be displayed on the **Traveler's Offers List**.
+
+Q: What should the traveler do after sending an offer through **Buyer's Cargo List**?
+A: Wait for the buyer to accept the traveler's offer, the buyer to make the first deposit, the admin to verify the fund, and the buyer to drop off the package at the Drop-off location.
+
+Q: What should the traveler do next after receiving the package at the Drop-off location?
+A: The traveler should send the Customs duty amount when they arrive at the destination.
+
+Q: What should the traveler do after sending the Customs duty amount at the destination?
+A: Wait for the buyer to make the second deposit and the admin to verify the fund.
+
+Q: What should the traveler do after the admin verifies the fund?
+A: Pay the customs duty and upload the receipt.
+
+Q: What should the traveler do after uploading the Customs duty receipt?
+A: It depends on the shipment option the buyer selected when creating the order.
+
+Q: What is next if the buyer selected Pick up when creating the order?
+A: The buyer should use the Chat Box to agree on when to visit the traveler's location.
+
+Q: What is next after the buyer visits the traveler's location and reviews the package?
+A: The buyer should click Package Received to close the transaction cycle.
+
+Q: What should the traveler do if the buyer selected Reship the package when creating the order?
+A: The buyer should send the traveler their preferred courier name and type; then the traveler sends the reshipment cost to the buyer; then the buyer uploads bank transfer proof for the reshipment cost reimbursement; and then the buyer waits for the traveler to send the package and upload the Airway Bill.
+
+Q: What is next for the traveler to do after the buyer receives and reviews the package?
+A: The buyer should click Package Received to close the transaction cycle.
+
+Q: When will the traveler's payout be disbursed?
+A: The traveler's payout will be disbursed at most 24 hours after the buyer confirms receipt of the package.
 
 ## Contact
 
