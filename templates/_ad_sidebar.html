@@ -13,23 +13,23 @@ AdSense units instead — no template changes needed on the pages that include i
          data-full-width-responsive="true"></ins>
     <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
   {% else %}
-    <div class="ad-card ad-card-cta">
-      <span class="ad-badge">Proxy Buyer</span>
+    <div class="promo-card promo-card-cta">
+      <span class="promo-badge">Proxy Buyer</span>
       <h4>Become a Proxy Buyer?</h4>
       <p>Earn your margin while staying abroad by buying and sending products specific to your country.</p>
       <a class="btn btn-primary btn-sm" href="{% url 'pages:contact' %}?topic={{ "become a proxy buyer"|urlencode }}">Get started</a>
     </div>
     {% for promo in sidebar_promos %}
-      <div class="ad-card">
-        {% if promo.badge %}<span class="ad-badge">{{ promo.badge }}</span>{% endif %}
+      <div class="promo-card">
+        {% if promo.badge %}<span class="promo-badge">{{ promo.badge }}</span>{% endif %}
         {% if promo.image %}<img src="{{ promo.image.url }}" alt="{{ promo.title }}" loading="lazy">{% endif %}
         <h4>{{ promo.title }}</h4>
         {% if promo.body %}<p>{{ promo.body }}</p>{% endif %}
         {% if promo.url %}<a class="btn btn-outline btn-sm" href="{{ promo.url }}">{{ promo.cta_label|default:"Learn more" }}</a>{% endif %}
       </div>
     {% endfor %}
-    <div class="ad-card ad-card-cta">
-      <span class="ad-badge">Your ad here</span>
+    <div class="promo-card promo-card-cta">
+      <span class="promo-badge">Your ad here</span>
       <h4>Advertise on {{ SITE_NAME }}</h4>
       <p>Reach carriers and cross-border shoppers. Promote your product or business in this space.</p>
       <a class="btn btn-primary btn-sm" href="{% url 'pages:contact' %}?topic=advertise">Get in touch</a>
