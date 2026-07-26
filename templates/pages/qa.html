@@ -4,13 +4,12 @@
 {% block content %}
 <section>
   <div class="container">
-    <div class="content-layout">
+    <span class="eyebrow">Q&amp;A</span>
+    <h1>How {{ SITE_NAME }} works</h1>
+    <p class="muted">A step-by-step reference for buyers, proxy buyers, and travelers.
+      Prefer to ask? Use the help chat at the bottom-right of any page.</p>
+    <div class="content-layout qa-layout">
       <div class="content-main">
-        <span class="eyebrow">Q&amp;A</span>
-        <h1>How {{ SITE_NAME }} works</h1>
-        <p class="muted">A step-by-step reference for buyers, proxy buyers, and travelers.
-          Prefer to ask? Use the help chat at the bottom-right of any page.</p>
-
         {% for s in sections %}
           {% if s.level == 1 %}
             <h2 class="qa-group">{{ s.title }}</h2>
@@ -37,5 +36,11 @@
   .qa-q { font-weight: 700; margin: 0 0 .35rem; }
   .qa-a { margin: 0; }
   .qa-a p { margin: 0 0 .5rem; }
+  .qa-layout .content-main > :first-child { margin-top: 0; }
+  /* Long page: on narrow screens the sidebar would otherwise land at the very
+     bottom — surface it right under the intro instead. */
+  @media (max-width: 980px) {
+    .qa-layout .content-side { order: -1; }
+  }
 </style>
 {% endblock %}
