@@ -40,24 +40,36 @@
     <a href="{% url 'pages:home' %}" class="brand"><picture><source srcset="{% static 'img/logo.webp' %}" type="image/webp"><img src="{% static 'img/logo.png' %}" alt="goProxyBuy" class="brand-logo" width="215" height="34"></picture></a>
     <button class="nav-toggle" aria-label="Menu" onclick="document.getElementById('navlinks').classList.toggle('open')">☰</button>
     <ul class="nav-links" id="navlinks">
-        <li><details class="nav-dropdown">
-          <summary>How-To</summary>
+        <li class="nav-dropdown">
+          <button type="button" class="nav-trigger" aria-haspopup="true">How It Works</button>
           <ul class="dropdown-menu">
-            <li><a href="{% url 'pages:how_to_for_buyer' %}">For Buyer</a></li>
-            <li><a href="{% url 'pages:how_to_for_traveler' %}">For Traveler</a></li>
+            <li><a href="{% url 'pages:qa' %}">Q&amp;A</a></li>
+            <li><a href="{% url 'pages:how_to_for_buyer' %}">Infographic for Buyer</a></li>
+            <li><a href="{% url 'pages:how_to_for_traveler' %}">Infographic for Traveler</a></li>
           </ul>
-        </details></li>
-        <li><a href="{% url 'pages:qa' %}">Q&amp;A</a></li>
-      {% if user.is_authenticated %}
+        </li>
+        <li class="nav-dropdown">
+          <button type="button" class="nav-trigger" aria-haspopup="true">Action</button>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'pages:home' %}#proxy-buyers">Buyer Find Proxy Buyer</a></li>
+            <li><a href="{% url 'pages:home' %}#queuing-carrier">Buyer Find Traveler's Offer</a></li>
+            <li><a href="{% url 'pages:home' %}#looking-for-traveler">Traveler's Find Buyer's Cargo</a></li>
+          </ul>
+        </li>
         <li><a href="{% url 'blog:list' %}">Blog</a></li>
+      {% if user.is_authenticated %}
         <li><a href="{% url 'trips:fxrate' %}">FX Rate</a></li>
         <li><a href="{% url 'accounts:profile' %}">Dashboard</a></li>
-        <li style="color:#c55a11;font-weight:600;font-size:.9rem">{{ user.full_name|default:user.email }}</li>
+        <li class="nav-user">{{ user.full_name|default:user.email }}</li>
         <li><a class="btn btn-outline btn-sm" href="{% url 'account_logout' %}">Logout</a></li>
       {% else %}
-        <li><a href="{% url 'blog:list' %}">Blog</a></li>
-        <li><a href="{% url 'account_login' %}">Login</a></li>
-        <li><a class="btn btn-primary btn-sm btn-register" href="{% url 'account_signup' %}">Register</a></li>
+        <li class="nav-dropdown">
+          <button type="button" class="nav-trigger" aria-haspopup="true">Login/Register</button>
+          <ul class="dropdown-menu">
+            <li><a href="{% url 'account_login' %}">Login</a></li>
+            <li><a href="{% url 'account_signup' %}">Register</a></li>
+          </ul>
+        </li>
       {% endif %}
     </ul>
   </div>
